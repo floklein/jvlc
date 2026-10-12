@@ -10,7 +10,8 @@ Source material for the VLC desktop UI redesign.
 
 | Area | Frames |
 | --- | --- |
-| Player (video, library sidebar open/closed) | `187:328`, `970:3308`, `970:3792`, `970:2703`, `970:4028`, `6261:15078`, `247:445` |
+| Player (video, library sidebar open/closed) | `187:328`, `970:3308`, `970:3792`, `970:2703`, `970:4028`, `247:445` |
+| Home | `6261:15078` |
 | Player: music | `4767:23726`, `4778:25123` |
 | Player: hidden UI | `3328:11554` |
 | Player: light theme | `2425:13624` |
