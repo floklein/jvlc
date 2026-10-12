@@ -1,0 +1,161 @@
+<!doctype html>
+<!--
+  PROTOTYPE — throwaway. Answers "Bar reveal and seek bar feel" (floklein/jvlc#10).
+  Three fullscreen reveal variants (switch with the bottom pill or ← →), tunable timings,
+  and the thick seek bar with hover thumbnail, chapter ticks and two scrub modes.
+  Not production code. Open by double-clicking.
+-->
+<html><head><meta charset="utf-8"><title>PROTOTYPE · bar reveal</title><style>
+:root{--A3T:rgba(25,25,25,.95);--FG1:#eaeaea;--FGA2:#8f8f8f;--FGA3:#6b6b6b;--acc:#d37918;--accBg:#371f06;--B2:#090909;--div:#222}
+*{box-sizing:border-box}
+body{margin:0;background:#111;color:#ccc;font:13px Inter,system-ui,sans-serif}
+.wrap{display:flex;flex-direction:column;gap:10px;padding:10px}
+.row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+#stage{position:relative;width:min(100%,960px);aspect-ratio:16/9;background:#000;overflow:hidden;user-select:none;border-radius:6px}
+#stage.fs{border-radius:0}
+#stage.nocursor,#stage.nocursor *{cursor:none!important}
+canvas#video{position:absolute;inset:0;width:100%;height:100%}
+.bar{position:absolute;left:0;right:0;display:flex;align-items:center;gap:12px;padding:0 14px;color:var(--FGA2);transition-property:transform,opacity;transition-timing-function:ease-out}
+.style-tint .bar{background:var(--A3T)}
+.style-light .bar{background:rgba(25,25,25,.78)}
+.style-grad .top{background:linear-gradient(rgba(0,0,0,.85),rgba(0,0,0,0))}
+.style-grad .bot{background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.85))}
+.top{top:0;height:40px}
+.bot{bottom:0;height:54px}
+.top.hid{transform:translateY(-100%);opacity:0}
+.bot.hid{transform:translateY(100%);opacity:0}
+.cone{width:12px;height:15px;background:var(--acc);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.title{position:absolute;left:50%;transform:translateX(-50%);color:var(--FG1);font-size:12px;opacity:.8}
+.wc{margin-left:auto;display:flex;gap:18px;font-size:13px}
+.btn{width:20px;height:20px;display:grid;place-items:center;color:var(--FGA2);font-size:12px}
+.play{width:48px;height:26px;border-radius:3px;background:var(--acc);display:grid;place-items:center;color:#161616;cursor:pointer}
+.time{font-variant-numeric:tabular-nums;font-size:12px;color:var(--FGA2);width:56px;text-align:center}
+#seek{position:relative;flex:1;height:26px;background:var(--B2);border-radius:3px;cursor:pointer}
+#played{position:absolute;left:0;top:0;bottom:0;background:var(--accBg);border-radius:3px 0 0 3px}
+#handle{position:absolute;top:2px;bottom:2px;width:6px;margin-left:-3px;background:var(--acc);border-radius:2px}
+#hoverline{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.35);display:none}
+.tick{position:absolute;top:0;bottom:0;width:2px;background:rgba(255,255,255,.18)}
+#thumb{position:absolute;bottom:62px;width:176px;display:none;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
+#thumb canvas{width:176px;height:99px;border-radius:4px;border:1px solid #373737;background:#000}
+#thumb span{font-size:11px;color:var(--FG1);background:rgba(14,14,14,.95);padding:2px 6px;border-radius:3px}
+.vol{width:70px;height:14px;background:#0e0e0e;clip-path:polygon(0 40%,100% 0,100% 100%,0 60%);position:relative}
+.vol i{position:absolute;inset:0 50% 0 0;background:linear-gradient(90deg,#7a9a1a,#9ab020)}
+.zone{position:absolute;left:0;right:0;pointer-events:none;background:repeating-linear-gradient(45deg,rgba(211,121,24,.12) 0 6px,transparent 6px 12px);display:none}
+.showzones .zone{display:block}
+#pausebadge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:40px;color:#fff;opacity:0;transition:opacity .2s;pointer-events:none}
+.panel{background:#1b1b1b;border:1px solid #2a2a2a;border-radius:6px;padding:10px;min-width:250px;display:flex;flex-direction:column;gap:7px}
+.panel h3{margin:0 0 2px;font-size:12px;color:#eaeaea;font-weight:600}
+.panel label{display:grid;grid-template-columns:120px 1fr 44px;gap:6px;align-items:center;font-size:12px}
+.panel input[type=range]{width:100%}
+.panel .opt{display:flex;gap:8px;align-items:center;font-size:12px}
+pre#state{margin:0;font:11px/1.45 ui-monospace,Consolas,monospace;color:#9fd29f;white-space:pre-wrap}
+.note{font-size:12px;color:#8f8f8f;max-width:960px}
+#switcher{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:#fff;color:#000;border-radius:999px;padding:6px 12px;box-shadow:0 4px 18px rgba(0,0,0,.5);font-weight:600;z-index:10}
+#switcher button{border:0;background:#eee;border-radius:999px;width:26px;height:26px;cursor:pointer;font-size:14px}
+</style></head><body><div class="wrap">
+<div class="note"><b>PROTOTYPE</b> · Fullscreen behavior of the redesigned player. Move the pointer around the video. Click the video to play/pause, double-click (or press F) for real fullscreen. Switch reveal variants with the white pill or ← →. Tune timings on the right; the state panel shows what's happening.</div>
+<div class="row">
+<div id="stage" class="style-tint">
+  <canvas id="video" width="960" height="540"></canvas>
+  <div id="pausebadge">❚❚</div>
+  <div class="zone" id="ztop" style="top:0"></div><div class="zone" id="zbot" style="bottom:0"></div>
+  <div class="bar top" id="top"><div class="cone"></div><span class="btn">···</span><span class="btn">▯</span><span class="btn">🗀</span><span style="font-size:12px">S01</span><span class="title">The Wand S01E04</span><div class="wc"><span>—</span><span>☐</span><span>⛶</span><span>✕</span></div></div>
+  <div id="thumb"><canvas width="176" height="99"></canvas><span></span></div>
+  <div class="bar bot" id="bot"><span class="btn">⏮</span><div class="play" id="playbtn">▶</div><span class="btn">⏭</span><span class="time" id="cur">00:00</span>
+    <div id="seek"><div id="played"></div><div id="hoverline"></div><div id="handle"></div></div>
+    <span class="time" id="dur">25:40</span><span class="btn">🔈</span><div class="vol"><i></i></div><span class="btn">∿</span><span class="btn">▭</span><span class="btn">⚙</span><span class="btn">☰</span></div>
+</div>
+<div class="panel">
+  <h3>Timings</h3>
+  <label>Reveal zone <input type="range" id="zone" min="8" max="200" value="64"><span></span></label>
+  <label>Show delay (ms) <input type="range" id="showDelay" min="0" max="600" step="10" value="80"><span></span></label>
+  <label>Hide delay (ms) <input type="range" id="hideDelay" min="0" max="1500" step="25" value="300"><span></span></label>
+  <label>Animation (ms) <input type="range" id="anim" min="0" max="500" step="10" value="150"><span></span></label>
+  <label>Pointer hide (ms) <input type="range" id="idle" min="500" max="5000" step="100" value="2000"><span></span></label>
+  <h3>Look</h3>
+  <div class="opt"><label style="display:flex;gap:4px"><input type="radio" name="look" value="tint" checked>Tint 95%</label><label style="display:flex;gap:4px"><input type="radio" name="look" value="light">Tint 78%</label><label style="display:flex;gap:4px"><input type="radio" name="look" value="grad">Gradient</label></div>
+  <h3>Seek</h3>
+  <div class="opt"><label style="display:flex;gap:4px"><input type="radio" name="scrub" value="live" checked>Live scrub</label><label style="display:flex;gap:4px"><input type="radio" name="scrub" value="release">Seek on release</label></div>
+  <div class="opt"><label style="display:flex;gap:4px"><input type="checkbox" id="thumbs" checked>Hover thumbnail</label><label style="display:flex;gap:4px"><input type="checkbox" id="showzones">Show zones</label></div>
+  <h3>State</h3>
+  <pre id="state"></pre>
+</div>
+</div>
+</div>
+<div id="switcher"><button id="prev">←</button><span id="vlabel"></span><button id="next">→</button></div>
+<script>
+const VARIANTS={A:'Edge reveal, each bar on its own (decided)',B:'Edge reveal, both bars together',C:'Any movement reveals both (today\'s VLC / YouTube)'};
+const keys=Object.keys(VARIANTS);
+let variant=new URLSearchParams(location.search).get('variant')||'A';if(!VARIANTS[variant])variant='A';
+const $=id=>document.getElementById(id);
+const stage=$('stage'),cv=$('video'),ctx=cv.getContext('2d'),tcv=$('thumb').querySelector('canvas'),tctx=tcv.getContext('2d');
+const DUR=1540,CHAPTERS=[0,92,410,780,1105,1380];
+let t=130,playing=true,last=performance.now();
+const P={};for(const k of['zone','showDelay','hideDelay','anim','idle']){const el=$(k);const upd=()=>{P[k]=+el.value;el.nextElementSibling.textContent=el.value;applyZones()};el.oninput=upd;upd()}
+document.querySelectorAll('[name=look]').forEach(r=>r.onchange=()=>{stage.className=stage.className.replace(/style-\w+/,'style-'+r.value)});
+let scrubMode='live';document.querySelectorAll('[name=scrub]').forEach(r=>r.onchange=()=>scrubMode=r.value);
+$('showzones').onchange=e=>stage.classList.toggle('showzones',e.target.checked);
+function applyZones(){$('ztop').style.height=P.zone+'px';$('zbot').style.height=P.zone+'px';$('top').style.transitionDuration=$('bot').style.transitionDuration=(P.anim||0)+'ms'}
+const fmt=s=>{s=Math.max(0,Math.floor(s));const m=Math.floor(s/60),x=s%60;return String(m).padStart(2,'0')+':'+String(x).padStart(2,'0')};
+function scene(c,w,h,time){const ch=CHAPTERS.filter(x=>x<=time).length-1;const hue=(ch*67+20)%360;
+ const g=c.createLinearGradient(0,0,w,h);g.addColorStop(0,`hsl(${hue},45%,22%)`);g.addColorStop(1,`hsl(${(hue+40)%360},50%,8%)`);c.fillStyle=g;c.fillRect(0,0,w,h);
+ const x=(time*37%1)*0+w*(.5+.35*Math.sin(time/7)),y=h*(.5+.25*Math.cos(time/5));c.fillStyle=`hsl(${(hue+180)%360},60%,60%)`;c.beginPath();c.arc(x,y,h*.09,0,7);c.fill();
+ c.fillStyle='rgba(255,255,255,.85)';c.font=`600 ${Math.round(h*.09)}px Inter,system-ui`;c.textAlign='center';c.fillText('Chapter '+(ch+1),w/2,h*.2);c.font=`${Math.round(h*.06)}px ui-monospace,Consolas`;c.fillText(fmt(time),w/2,h*.88)}
+// --- reveal state machine ---
+const S={ptr:null,inside:false,overTop:false,overBot:false,top:false,bot:false,cursorHidden:false,dragging:false};
+let timers={},idleTimer=null;
+function want(bar,on){const k=bar+(on?'show':'hide');clearTimeout(timers[bar+'show']);clearTimeout(timers[bar+'hide']);if(S[bar]===on)return;
+ timers[k]=setTimeout(()=>{S[bar]=on;render()},on?P.showDelay:P.hideDelay)}
+function evaluate(){
+ if(!playing||S.dragging){want('top',true);want('bot',true);return}
+ const h=stage.clientHeight,y=S.ptr?S.ptr.y:-1;
+ const nearTop=S.inside&&(y<P.zone||S.overTop), nearBot=S.inside&&(y>h-P.zone||S.overBot);
+ if(variant==='A'){want('top',nearTop);want('bot',nearBot)}
+ else if(variant==='B'){const n=nearTop||nearBot;want('top',n);want('bot',n)}
+ else{/* C: handled by movement */}
+}
+function onMove(e){const r=stage.getBoundingClientRect();S.ptr={x:e.clientX-r.left,y:e.clientY-r.top};S.inside=true;
+ S.cursorHidden=false;clearTimeout(idleTimer);idleTimer=setTimeout(()=>{if(playing&&!S.top&&!S.bot&&!S.dragging){S.cursorHidden=true;render()}else if(variant==='C'&&playing&&!S.overBot&&!S.overTop&&!S.dragging){S.top=S.bot=false;S.cursorHidden=true;render()}},variant==='C'?P.idle:P.idle);
+ if(variant==='C'){clearTimeout(timers.topshow);clearTimeout(timers.botshow);S.top=S.bot=true}
+ evaluate();render()}
+stage.addEventListener('mousemove',onMove);
+stage.addEventListener('mouseleave',()=>{S.inside=false;S.ptr=null;evaluate();render()});
+$('top').onmouseenter=()=>{S.overTop=true;evaluate()};$('top').onmouseleave=()=>{S.overTop=false;evaluate()};
+$('bot').onmouseenter=()=>{S.overBot=true;evaluate()};$('bot').onmouseleave=()=>{S.overBot=false;evaluate()};
+// click = play/pause after double-click window; dblclick = fullscreen
+let clickTimer=null;
+stage.addEventListener('click',e=>{if(e.target.closest('.bar'))return;clearTimeout(clickTimer);clickTimer=setTimeout(togglePlay,250)});
+stage.addEventListener('dblclick',e=>{if(e.target.closest('.bar'))return;clearTimeout(clickTimer);toggleFs()});
+$('playbtn').onclick=togglePlay;
+function togglePlay(){playing=!playing;$('pausebadge').style.opacity=playing?0:.8;setTimeout(()=>$('pausebadge').style.opacity=0,playing?0:600);evaluate();render()}
+function toggleFs(){if(document.fullscreenElement)document.exitFullscreen();else stage.requestFullscreen&&stage.requestFullscreen().catch(()=>{})}
+document.addEventListener('fullscreenchange',()=>{stage.classList.toggle('fs',!!document.fullscreenElement);cv.width=stage.clientWidth;cv.height=stage.clientHeight});
+// seek bar
+const seek=$('seek'),thumb=$('thumb');let hoverT=null,dragT=null;
+const tAt=e=>{const r=seek.getBoundingClientRect();return Math.min(1,Math.max(0,(e.clientX-r.left)/r.width))*DUR};
+for(const c of CHAPTERS.slice(1)){const d=document.createElement('div');d.className='tick';d.style.left=(c/DUR*100)+'%';seek.appendChild(d)}
+seek.addEventListener('mousemove',e=>{hoverT=tAt(e);showThumb(e)});
+seek.addEventListener('mouseleave',()=>{if(!S.dragging){hoverT=null;thumb.style.display='none';$('hoverline').style.display='none'}});
+seek.addEventListener('mousedown',e=>{S.dragging=true;dragT=tAt(e);if(scrubMode==='live')t=dragT;showThumb(e);evaluate();render();e.preventDefault()});
+window.addEventListener('mousemove',e=>{if(!S.dragging)return;dragT=tAt(e);hoverT=dragT;if(scrubMode==='live')t=dragT;showThumb(e)});
+window.addEventListener('mouseup',()=>{if(!S.dragging)return;S.dragging=false;t=dragT;dragT=null;thumb.style.display='none';$('hoverline').style.display='none';evaluate();render()});
+function showThumb(e){const r=seek.getBoundingClientRect(),sr=stage.getBoundingClientRect();const x=Math.min(r.width,Math.max(0,e.clientX-r.left));
+ $('hoverline').style.display='block';$('hoverline').style.left=x+'px';
+ if(!$('thumbs').checked){thumb.style.display='none';return}
+ const time=dragT??hoverT;scene(tctx,176,99,time);thumb.querySelector('span').textContent=fmt(time);
+ thumb.style.display='flex';thumb.style.left=Math.min(sr.width-182,Math.max(6,e.clientX-sr.left-88))+'px'}
+// keyboard
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){const i=(keys.indexOf(variant)+(e.key==='ArrowRight'?1:keys.length-1))%keys.length;setVariant(keys[i])}
+ else if(e.key===' '){togglePlay();e.preventDefault()}else if(e.key==='f'||e.key==='F')toggleFs()});
+$('prev').onclick=()=>setVariant(keys[(keys.indexOf(variant)+keys.length-1)%keys.length]);
+$('next').onclick=()=>setVariant(keys[(keys.indexOf(variant)+1)%keys.length]);
+function setVariant(v){variant=v;try{history.replaceState(null,'','?variant='+v)}catch(_){}S.top=S.bot=false;evaluate();render()}
+function render(){$('top').classList.toggle('hid',!S.top);$('bot').classList.toggle('hid',!S.bot);stage.classList.toggle('nocursor',S.cursorHidden);
+ $('vlabel').textContent=variant+' · '+VARIANTS[variant];$('playbtn').textContent=playing?'❚❚':'▶';
+ $('state').textContent=`variant   ${variant}\nplaying   ${playing}\npointer   ${S.ptr?Math.round(S.ptr.x)+','+Math.round(S.ptr.y):'outside'}\ntop bar   ${S.top?'shown':'hidden'}${S.overTop?' (hovered)':''}\nctrl bar  ${S.bot?'shown':'hidden'}${S.overBot?' (hovered)':''}\ncursor    ${S.cursorHidden?'hidden':'visible'}\nseek      ${S.dragging?'dragging ('+scrubMode+') → '+fmt(dragT):hoverT!=null?'hover '+fmt(hoverT):'—'}\ntime      ${fmt(t)} / ${fmt(DUR)}`}
+function frame(now){const dt=(now-last)/1000;last=now;if(playing&&!(S.dragging&&scrubMode==='live'))t=Math.min(DUR,t+dt);
+ scene(ctx,cv.width,cv.height,t);$('cur').textContent=fmt(t);const p=t/DUR*100;$('played').style.width=p+'%';$('handle').style.left=p+'%';
+ if(S.dragging&&scrubMode==='release'){const q=dragT/DUR*100;$('handle').style.left=q+'%'}
+ render();requestAnimationFrame(frame)}
+setVariant(variant);requestAnimationFrame(frame);
+</script></body></html>
