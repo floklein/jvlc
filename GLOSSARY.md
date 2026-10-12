@@ -28,6 +28,14 @@ _Avoid_: Title bar, menu bar, header
 The strip across the bottom of the player holding playback controls, the seek bar, volume and the track, adjustments and Queue buttons.
 _Avoid_: Toolbar, player bar, controller
 
+**Layout**:
+The user's arrangement of items in the Top bar and Control bar, kept separately for video and music.
+_Avoid_: Profile (for this meaning), toolbar configuration
+
+**Profile**:
+A named bundle of all preferences, Theme, Accent color, scale and Layouts that the user switches between; the library, history and per-show presets are shared by all Profiles.
+_Avoid_: Preset, configuration, Layout
+
 **Hide UI**:
 A mode where both bars stay hidden and appear only when the pointer nears their edge, as in fullscreen.
 _Avoid_: Minimal view, zen mode
