@@ -6,7 +6,7 @@
   Not production code. Open by double-clicking.
 -->
 <html><head><meta charset="utf-8"><title>PROTOTYPE · bar reveal</title><style>
-:root{--A3T:rgba(25,25,25,.95);--FG1:#eaeaea;--FGA2:#8f8f8f;--FGA3:#6b6b6b;--acc:#d37918;--accBg:#371f06;--B2:#090909;--div:#222}
+:root{--ease-out:cubic-bezier(0.23,1,0.32,1);--A3T:rgba(25,25,25,.95);--FG1:#eaeaea;--FGA2:#8f8f8f;--FGA3:#6b6b6b;--acc:#d37918;--accBg:#371f06;--B2:#090909;--div:#222}
 *{box-sizing:border-box}
 body{margin:0;background:#111;color:#ccc;font:13px Inter,system-ui,sans-serif}
 .wrap{display:flex;flex-direction:column;gap:10px;padding:10px}
@@ -15,7 +15,7 @@ body{margin:0;background:#111;color:#ccc;font:13px Inter,system-ui,sans-serif}
 #stage.fs{border-radius:0}
 #stage.nocursor,#stage.nocursor *{cursor:none!important}
 canvas#video{position:absolute;inset:0;width:100%;height:100%}
-.bar{position:absolute;left:0;right:0;display:flex;align-items:center;gap:12px;padding:0 14px;color:var(--FGA2);transition-property:transform,opacity;transition-timing-function:ease-out}
+.bar{position:absolute;left:0;right:0;display:flex;align-items:center;gap:12px;padding:0 14px;color:var(--FGA2);transition-property:transform,opacity;transition-timing-function:var(--ease-out)}
 .style-tint .bar{background:var(--A3T)}
 .style-light .bar{background:rgba(25,25,25,.78)}
 .style-grad .top{background:linear-gradient(rgba(0,0,0,.85),rgba(0,0,0,0))}
@@ -24,6 +24,9 @@ canvas#video{position:absolute;inset:0;width:100%;height:100%}
 .bot{bottom:0;height:54px}
 .top.hid{transform:translateY(-100%);opacity:0}
 .bot.hid{transform:translateY(100%);opacity:0}
+#stage.instant .bar{transition-duration:0ms!important}
+#stage.reduced .top.hid,#stage.reduced .bot.hid{transform:none}
+@media (prefers-reduced-motion: reduce){.top.hid,.bot.hid{transform:none}}
 .cone{width:12px;height:15px;background:var(--acc);clip-path:polygon(50% 0,100% 100%,0 100%)}
 .title{position:absolute;left:50%;transform:translateX(-50%);color:var(--FG1);font-size:12px;opacity:.8}
 .wc{margin-left:auto;display:flex;gap:18px;font-size:13px}
@@ -42,7 +45,7 @@ canvas#video{position:absolute;inset:0;width:100%;height:100%}
 .vol i{position:absolute;inset:0 50% 0 0;background:linear-gradient(90deg,#7a9a1a,#9ab020)}
 .zone{position:absolute;left:0;right:0;pointer-events:none;background:repeating-linear-gradient(45deg,rgba(211,121,24,.12) 0 6px,transparent 6px 12px);display:none}
 .showzones .zone{display:block}
-#pausebadge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:40px;color:#fff;opacity:0;transition:opacity .2s;pointer-events:none}
+#pausebadge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:40px;color:#fff;opacity:0;pointer-events:none}
 .panel{background:#1b1b1b;border:1px solid #2a2a2a;border-radius:6px;padding:10px;min-width:250px;display:flex;flex-direction:column;gap:7px}
 .panel h3{margin:0 0 2px;font-size:12px;color:#eaeaea;font-weight:600}
 .panel label{display:grid;grid-template-columns:120px 1fr 44px;gap:6px;align-items:center;font-size:12px}
@@ -53,7 +56,7 @@ pre#state{margin:0;font:11px/1.45 ui-monospace,Consolas,monospace;color:#9fd29f;
 #switcher{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:#fff;color:#000;border-radius:999px;padding:6px 12px;box-shadow:0 4px 18px rgba(0,0,0,.5);font-weight:600;z-index:10}
 #switcher button{border:0;background:#eee;border-radius:999px;width:26px;height:26px;cursor:pointer;font-size:14px}
 </style></head><body><div class="wrap">
-<div class="note"><b>PROTOTYPE</b> · Fullscreen behavior of the redesigned player. Move the pointer around the video. Click the video to play/pause, double-click (or press F) for real fullscreen. Switch reveal variants with the white pill or ← →. Tune timings on the right; the state panel shows what's happening.</div>
+<div class="note"><b>PROTOTYPE</b> · Fullscreen behavior of the redesigned player. Move the pointer around the video. Click the video to play/pause, double-click (or press F) for real fullscreen. Switch reveal variants with the white pill or ← →. Space (keyboard) changes bars instantly; pointer reveals slide with a strong ease-out. Tune timings on the right; the state panel shows what's happening.</div>
 <div class="row">
 <div id="stage" class="style-tint">
   <canvas id="video" width="960" height="540"></canvas>
@@ -76,7 +79,7 @@ pre#state{margin:0;font:11px/1.45 ui-monospace,Consolas,monospace;color:#9fd29f;
   <div class="opt"><label style="display:flex;gap:4px"><input type="radio" name="look" value="tint" checked>Tint 95%</label><label style="display:flex;gap:4px"><input type="radio" name="look" value="light">Tint 78%</label><label style="display:flex;gap:4px"><input type="radio" name="look" value="grad">Gradient</label></div>
   <h3>Seek</h3>
   <div class="opt"><label style="display:flex;gap:4px"><input type="radio" name="scrub" value="live" checked>Live scrub</label><label style="display:flex;gap:4px"><input type="radio" name="scrub" value="release">Seek on release</label></div>
-  <div class="opt"><label style="display:flex;gap:4px"><input type="checkbox" id="thumbs" checked>Hover thumbnail</label><label style="display:flex;gap:4px"><input type="checkbox" id="showzones">Show zones</label></div>
+  <div class="opt"><label style="display:flex;gap:4px"><input type="checkbox" id="thumbs" checked>Hover thumbnail</label><label style="display:flex;gap:4px"><input type="checkbox" id="showzones">Show zones</label><label style="display:flex;gap:4px"><input type="checkbox" id="reduced">Reduced motion</label></div>
   <h3>State</h3>
   <pre id="state"></pre>
 </div>
@@ -94,6 +97,7 @@ let t=130,playing=true,last=performance.now();
 const P={};for(const k of['zone','showDelay','hideDelay','anim','idle']){const el=$(k);const upd=()=>{P[k]=+el.value;el.nextElementSibling.textContent=el.value;applyZones()};el.oninput=upd;upd()}
 document.querySelectorAll('[name=look]').forEach(r=>r.onchange=()=>{stage.className=stage.className.replace(/style-\w+/,'style-'+r.value)});
 let scrubMode='live';document.querySelectorAll('[name=scrub]').forEach(r=>r.onchange=()=>scrubMode=r.value);
+$('reduced').onchange=e=>stage.classList.toggle('reduced',e.target.checked);
 $('showzones').onchange=e=>stage.classList.toggle('showzones',e.target.checked);
 function applyZones(){$('ztop').style.height=P.zone+'px';$('zbot').style.height=P.zone+'px';$('top').style.transitionDuration=$('bot').style.transitionDuration=(P.anim||0)+'ms'}
 const fmt=s=>{s=Math.max(0,Math.floor(s));const m=Math.floor(s/60),x=s%60;return String(m).padStart(2,'0')+':'+String(x).padStart(2,'0')};
@@ -124,10 +128,10 @@ $('top').onmouseenter=()=>{S.overTop=true;evaluate()};$('top').onmouseleave=()=>
 $('bot').onmouseenter=()=>{S.overBot=true;evaluate()};$('bot').onmouseleave=()=>{S.overBot=false;evaluate()};
 // click = play/pause after double-click window; dblclick = fullscreen
 let clickTimer=null;
-stage.addEventListener('click',e=>{if(e.target.closest('.bar'))return;clearTimeout(clickTimer);clickTimer=setTimeout(togglePlay,250)});
+stage.addEventListener('click',e=>{if(e.target.closest('.bar'))return;clearTimeout(clickTimer);clickTimer=setTimeout(()=>togglePlay(false),250)});
 stage.addEventListener('dblclick',e=>{if(e.target.closest('.bar'))return;clearTimeout(clickTimer);toggleFs()});
-$('playbtn').onclick=togglePlay;
-function togglePlay(){playing=!playing;$('pausebadge').style.opacity=playing?0:.8;setTimeout(()=>$('pausebadge').style.opacity=0,playing?0:600);evaluate();render()}
+$('playbtn').onclick=()=>togglePlay(false);
+function togglePlay(viaKey){playing=!playing;if(viaKey){stage.classList.add('instant');clearTimeout(window.__inst);window.__inst=setTimeout(()=>stage.classList.remove('instant'),Math.max(50,P.showDelay+20))}$('pausebadge').style.opacity=playing?0:.8;setTimeout(()=>$('pausebadge').style.opacity=0,playing?0:600);evaluate();render()}
 function toggleFs(){if(document.fullscreenElement)document.exitFullscreen();else stage.requestFullscreen&&stage.requestFullscreen().catch(()=>{})}
 document.addEventListener('fullscreenchange',()=>{stage.classList.toggle('fs',!!document.fullscreenElement);cv.width=stage.clientWidth;cv.height=stage.clientHeight});
 // seek bar
@@ -146,13 +150,14 @@ function showThumb(e){const r=seek.getBoundingClientRect(),sr=stage.getBoundingC
  thumb.style.display='flex';thumb.style.left=Math.min(sr.width-182,Math.max(6,e.clientX-sr.left-88))+'px'}
 // keyboard
 addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){const i=(keys.indexOf(variant)+(e.key==='ArrowRight'?1:keys.length-1))%keys.length;setVariant(keys[i])}
- else if(e.key===' '){togglePlay();e.preventDefault()}else if(e.key==='f'||e.key==='F')toggleFs()});
+ else if(e.key===' '){togglePlay(true);e.preventDefault()}else if(e.key==='f'||e.key==='F')toggleFs()});
 $('prev').onclick=()=>setVariant(keys[(keys.indexOf(variant)+keys.length-1)%keys.length]);
 $('next').onclick=()=>setVariant(keys[(keys.indexOf(variant)+1)%keys.length]);
 function setVariant(v){variant=v;try{history.replaceState(null,'','?variant='+v)}catch(_){}S.top=S.bot=false;evaluate();render()}
 function render(){$('top').classList.toggle('hid',!S.top);$('bot').classList.toggle('hid',!S.bot);stage.classList.toggle('nocursor',S.cursorHidden);
  $('vlabel').textContent=variant+' · '+VARIANTS[variant];$('playbtn').textContent=playing?'❚❚':'▶';
- $('state').textContent=`variant   ${variant}\nplaying   ${playing}\npointer   ${S.ptr?Math.round(S.ptr.x)+','+Math.round(S.ptr.y):'outside'}\ntop bar   ${S.top?'shown':'hidden'}${S.overTop?' (hovered)':''}\nctrl bar  ${S.bot?'shown':'hidden'}${S.overBot?' (hovered)':''}\ncursor    ${S.cursorHidden?'hidden':'visible'}\nseek      ${S.dragging?'dragging ('+scrubMode+') → '+fmt(dragT):hoverT!=null?'hover '+fmt(hoverT):'—'}\ntime      ${fmt(t)} / ${fmt(DUR)}`}
+ $('state').textContent=`variant   ${variant}\nplaying   ${playing}\npointer   ${S.ptr?Math.round(S.ptr.x)+','+Math.round(S.ptr.y):'outside'}\ntop bar   ${S.top?'shown':'hidden'}${S.overTop?' (hovered)':''}\nctrl bar  ${S.bot?'shown':'hidden'}${S.overBot?' (hovered)':''}\ncursor    ${S.cursorHidden?'hidden':'visible'}\nseek      ${S.dragging?'dragging ('+scrubMode+') → '+fmt(dragT):hoverT!=null?'hover '+fmt(hoverT):'—'}\ntime      ${fmt(t)} / ${fmt(DUR)}
+motion    ${stage.classList.contains('instant')?'instant (keyboard)':stage.classList.contains('reduced')?'reduced (fade only)':'slide, strong ease-out'}`}
 function frame(now){const dt=(now-last)/1000;last=now;if(playing&&!(S.dragging&&scrubMode==='live'))t=Math.min(DUR,t+dt);
  scene(ctx,cv.width,cv.height,t);$('cur').textContent=fmt(t);const p=t/DUR*100;$('played').style.width=p+'%';$('handle').style.left=p+'%';
  if(S.dragging&&scrubMode==='release'){const q=dragT/DUR*100;$('handle').style.left=q+'%'}
