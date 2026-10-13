@@ -28,6 +28,14 @@ _Avoid_: Favorite, bookmark
 A heart the user puts on a media file or Playlist, gathered in a Favorites row on Home.
 _Avoid_: Pin, star
 
+**Show**:
+A folder of episodes, wherever it lives on disk; its subfolders (such as seasons) belong to it.
+_Avoid_: Series, season (for the whole), library show
+
+**Preset**:
+A named set of playback adjustments, such as languages, delays, subtitle look and filters, that the user attaches to Shows and that overrides the Profile only where it sets a value.
+_Avoid_: Profile, configuration, settings preset
+
 **Theme**:
 The interface's color mode: Light, Dark, or System (follows the operating system's light/dark setting).
 _Avoid_: Color scheme, Day/Night, skin
