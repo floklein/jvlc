@@ -42,9 +42,13 @@
 #include "medialibrary/mlqmltypes.hpp"
 #include "medialibrary/mlplaylistlistmodel.hpp"
 
+#include "dialogs/mediainfo/media_properties_model.hpp"
+
 #include <QObject>
 #include <QStringList>
 #include <QMessageBox>
+#include <QPointer>
+#include <QUrl>
 
 #include <vlc_es.h>
 
@@ -81,7 +85,6 @@ class GotoTimeDialog;
 class VLMDialog;
 class HelpDialog;
 class AboutDialog;
-class MediaInfoDialog;
 class PlaylistsDialog;
 class BookmarksDialog;
 class PodcastConfigDialog;
@@ -113,7 +116,6 @@ public:
     Q_PROPERTY(bool vlmDialogVisible READ vlmDialogVisible NOTIFY vlmDialogVisibleChanged FINAL)
     Q_PROPERTY(bool helpDialogVisible READ helpDialogVisible NOTIFY helpDialogVisibleChanged FINAL)
     Q_PROPERTY(bool aboutDialogVisible READ aboutDialogVisible NOTIFY aboutDialogVisibleChanged FINAL)
-    Q_PROPERTY(bool mediaInfoDialogVisible READ mediaInfoDialogVisible NOTIFY mediaInfoDialogVisibleChanged FINAL)
     Q_PROPERTY(bool bookmarkDialogVisible READ bookmarkDialogVisible NOTIFY bookmarkDialogVisibleChanged FINAL)
     Q_PROPERTY(bool podcastDialogVisible READ podcastDialogVisible NOTIFY podcastDialogVisibleChanged FINAL)
     Q_PROPERTY(bool pluginDialogVisible READ pluginDialogVisible NOTIFY pluginDialogVisibleChanged FINAL)
@@ -152,6 +154,8 @@ public:
                                               const QString& placeholder,
                                               bool* ok = nullptr);
 
+    Q_INVOKABLE QUrl getArtworkFileUrl();
+
 protected:
     void customEvent( QEvent *) override;
 
@@ -180,7 +184,7 @@ private:
     std::unique_ptr<VLMDialog> m_vlmDialog;
     std::unique_ptr<HelpDialog> m_helpDialog;
     std::unique_ptr<AboutDialog> m_aboutDialog;
-    std::unique_ptr<MediaInfoDialog> m_mediaInfoDialog;
+    QPointer<MediaPropertiesModel> m_playerMediaProperties;
     std::unique_ptr<BookmarksDialog> m_bookmarkDialog;
     std::unique_ptr<PodcastConfigDialog> m_podcastDialog;
     std::unique_ptr<PluginDialog> m_pluginDialog;
@@ -195,6 +199,7 @@ private:
     bool b_isDying;
 
     void openDialog( OpenDialog::OpenTab );
+    void playerMediaProperties( MediaPropertiesModel::Tab tab );
 
     template<typename T>
     inline void ensureDialog(std::unique_ptr<T>& dialog);
@@ -275,7 +280,6 @@ public:
     bool vlmDialogVisible() const;
     bool helpDialogVisible() const;
     bool aboutDialogVisible() const;
-    bool mediaInfoDialogVisible() const;
     bool bookmarkDialogVisible() const;
     bool podcastDialogVisible() const;
     bool pluginDialogVisible() const;
@@ -288,6 +292,9 @@ public:
 signals:
     void releaseMouseEvents();
     void showToolbarEditorDialog();
+    /* Shows the Properties & Metadata window of a media. The live window,
+     * which follows the player, toggles when shown again on the same tab */
+    void showMediaProperties( MediaPropertiesModel *model, int tab );
 
     //visiblity signal
     void openDialogVisibleChanged();
@@ -298,7 +305,6 @@ signals:
     void vlmDialogVisibleChanged();
     void helpDialogVisibleChanged();
     void aboutDialogVisibleChanged();
-    void mediaInfoDialogVisibleChanged();
     void bookmarkDialogVisibleChanged();
     void podcastDialogVisibleChanged();
     void pluginDialogVisibleChanged();

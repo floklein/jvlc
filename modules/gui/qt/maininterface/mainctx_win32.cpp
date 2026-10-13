@@ -30,7 +30,6 @@
 #include "maininterface/compositor.hpp"
 #include "playlist/playlist_controller.hpp"
 #include "dialogs/dialogs_provider.hpp"
-#include "widgets/native/interface_widgets.hpp"
 #include "util/csdbuttonmodel.hpp"
 
 #include <QBitmap>

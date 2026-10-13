@@ -56,7 +56,6 @@ libqt_plugin_la_CPPFLAGS = $(AM_CPPFLAGS) $(CPPFLAGS_qt) \
 	-DQT_NO_CAST_FROM_BYTEARRAY \
 	-I$(srcdir) -I$(builddir) \
 	-I$(builddir)/dialogs/extended \
-	-I$(builddir)/dialogs/fingerprint \
 	-I$(builddir)/dialogs/firstrun \
 	-I$(builddir)/dialogs/help \
 	-I$(builddir)/dialogs/messages \
@@ -120,15 +119,11 @@ libqt_plugin_la_SOURCES = \
 	dialogs/extensions/extensions_manager.cpp dialogs/extensions/extensions_manager.hpp \
 	dialogs/fingerprint/chromaprint.cpp \
 	dialogs/fingerprint/chromaprint.hpp \
-	dialogs/fingerprint/fingerprintdialog.cpp \
-	dialogs/fingerprint/fingerprintdialog.hpp \
 	dialogs/firstrun/firstrunwizard.cpp dialogs/firstrun/firstrunwizard.hpp \
 	dialogs/gototime/gototime.cpp dialogs/gototime/gototime.hpp \
 	dialogs/help/aboutmodel.hpp \
 	dialogs/help/help.cpp dialogs/help/help.hpp \
-	dialogs/mediainfo/info_panels.cpp dialogs/mediainfo/info_panels.hpp \
-	dialogs/mediainfo/info_widgets.cpp dialogs/mediainfo/info_widgets.hpp \
-	dialogs/mediainfo/mediainfo.cpp dialogs/mediainfo/mediainfo.hpp \
+	dialogs/mediainfo/media_properties_model.cpp dialogs/mediainfo/media_properties_model.hpp \
 	dialogs/messages/messages.cpp dialogs/messages/messages.hpp \
 	dialogs/open/open.cpp dialogs/open/open.hpp \
 	dialogs/open/open_panels.cpp dialogs/open/open_panels.hpp \
@@ -373,8 +368,6 @@ libqt_plugin_la_SOURCES = \
 	widgets/native/customwidgets.cpp widgets/native/customwidgets.hpp \
 	widgets/native/csdthemeimage.cpp \
 	widgets/native/csdthemeimage.hpp \
-	widgets/native/interface_widgets.cpp \
-	widgets/native/interface_widgets.hpp \
 	widgets/native/navigation_attached.cpp \
 	widgets/native/navigation_attached.hpp \
 	widgets/native/mlfolderseditor.cpp \
@@ -416,14 +409,11 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/extensions/extensions.moc.cpp \
 	dialogs/extensions/extensions_manager.moc.cpp \
 	dialogs/fingerprint/chromaprint.moc.cpp \
-	dialogs/fingerprint/fingerprintdialog.moc.cpp \
 	dialogs/firstrun/firstrunwizard.moc.cpp \
 	dialogs/gototime/gototime.moc.cpp \
 	dialogs/help/aboutmodel.moc.cpp \
 	dialogs/help/help.moc.cpp \
-	dialogs/mediainfo/info_panels.moc.cpp \
-	dialogs/mediainfo/info_widgets.moc.cpp \
-	dialogs/mediainfo/mediainfo.moc.cpp \
+	dialogs/mediainfo/media_properties_model.moc.cpp \
 	dialogs/messages/messages.moc.cpp \
 	dialogs/open/open.moc.cpp \
 	dialogs/open/open_panels.moc.cpp \
@@ -537,7 +527,6 @@ nodist_libqt_plugin_la_SOURCES = \
 	widgets/native/animators.moc.cpp \
 	widgets/native/csdthemeimage.moc.cpp \
 	widgets/native/customwidgets.moc.cpp \
-	widgets/native/interface_widgets.moc.cpp \
 	widgets/native/navigation_attached.moc.cpp \
 	widgets/native/mlfolderseditor.moc.cpp \
 	widgets/native/searchlineedit.moc.cpp \
@@ -546,7 +535,6 @@ nodist_libqt_plugin_la_SOURCES = \
 nodist_libqt_plugin_la_SOURCES += \
 	dialogs/extended/ui_equalizer.h \
 	dialogs/extended/ui_video_effects.h \
-	dialogs/fingerprint/ui_fingerprintdialog.h \
 	dialogs/firstrun/ui_firstrunwizard.h \
 	dialogs/help/ui_about.h \
 	dialogs/help/ui_update.h \
@@ -763,7 +751,6 @@ endif
 libqt_plugin_la_UI = \
 	dialogs/extended/equalizer.ui \
 	dialogs/extended/video_effects.ui \
-	dialogs/fingerprint/fingerprintdialog.ui \
 	dialogs/firstrun/firstrunwizard.ui \
 	dialogs/help/about.ui \
 	dialogs/help/update.ui \
@@ -1050,6 +1037,7 @@ libqml_module_dialogs_a_QML = \
 	dialogs/dialogs/qml/Dialogs.qml \
 	dialogs/dialogs/qml/ModalDialog.qml \
 	dialogs/dialogs/qml/WindowDialog.qml \
+	dialogs/mediainfo/qml/MediaPropertiesDialog.qml \
 	dialogs/toolbar/qml/EditorDNDDelegate.qml \
 	dialogs/toolbar/qml/EditorDNDView.qml\
 	dialogs/toolbar/qml/EditorDummyButton.qml \
@@ -1899,6 +1887,28 @@ test_vlc_dialog_model_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_vlc_dialog_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_vlc_dialog_model
 TESTS += test_vlc_dialog_model
+
+# test_media_properties_model
+
+test_media_properties_model_SOURCES = \
+	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
+	tests/test_media_properties_model.cpp \
+	dialogs/mediainfo/media_properties_model.cpp \
+	dialogs/fingerprint/chromaprint.cpp
+
+nodist_test_media_properties_model_SOURCES = \
+	tests/test_media_properties_model.moc \
+	dialogs/mediainfo/media_properties_model.moc.cpp \
+	dialogs/fingerprint/chromaprint.moc.cpp
+
+BUILT_SOURCES += tests/test_media_properties_model.moc
+CLEANFILES += tests/test_media_properties_model.moc
+test_media_properties_model_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_media_properties_model_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_media_properties_model_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_media_properties_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_media_properties_model
+TESTS += test_media_properties_model
 
 # test_vlcicons
 

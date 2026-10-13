@@ -34,6 +34,8 @@
 #include <vlc_interface.h>
 #include <vlc_player.h>
 #include <vlc_media_library.h>
+#include <vlc_meta.h>
+#include <vlc_fingerprinter.h>
 
 #include "../../../../lib/libvlc_internal.h"
 
@@ -152,6 +154,72 @@ static void MLClose( vlc_object_t* obj )
     VLC_UNUSED(obj);
 }
 
+//Meta writer module
+
+static int WriteMeta( vlc_object_t* obj )
+{
+    auto p_export = reinterpret_cast<meta_export_t*>( obj );
+    testenv->metaWriterCalls++;
+    testenv->metaWriterFile = qfu( p_export->psz_file );
+    char* title = input_item_GetTitle( p_export->p_item );
+    testenv->metaWriterTitle = qfu( title );
+    free( title );
+    return testenv->metaWriterResult;
+}
+
+//Fingerprinter module
+
+static int FingerprinterEnqueue( fingerprinter_thread_t*, fingerprint_request_t* request )
+{
+    if ( testenv->fingerprintRequest )
+        fingerprint_request_Delete( testenv->fingerprintRequest );
+    testenv->fingerprintRequest = request;
+    return VLC_SUCCESS;
+}
+
+static fingerprint_request_t* FingerprinterGetResults( fingerprinter_thread_t* )
+{
+    fingerprint_request_t* request = testenv->fingerprintRequest;
+    testenv->fingerprintRequest = nullptr;
+    return request;
+}
+
+static void FingerprinterApply( fingerprint_request_t* request, size_t i_result )
+{
+    if ( i_result >= vlc_array_count( &request->results.metas_array ) )
+        return;
+    auto meta = static_cast<vlc_meta_t*>(
+        vlc_array_item_at_index( &request->results.metas_array, i_result ) );
+    vlc_mutex_locker lock( &request->p_item->lock );
+    vlc_meta_Merge( request->p_item->p_meta, meta );
+}
+
+static int OpenFingerprinter( vlc_object_t* obj )
+{
+    auto fingerprinter = reinterpret_cast<fingerprinter_thread_t*>( obj );
+    fingerprinter->pf_enqueue = FingerprinterEnqueue;
+    fingerprinter->pf_getresults = FingerprinterGetResults;
+    fingerprinter->pf_apply = FingerprinterApply;
+    var_Create( fingerprinter, "results-available", VLC_VAR_BOOL );
+    testenv->fingerprinter = obj;
+    return VLC_SUCCESS;
+}
+
+static void CloseFingerprinter( vlc_object_t* )
+{
+    if ( testenv->fingerprintRequest )
+        fingerprint_request_Delete( testenv->fingerprintRequest );
+    testenv->fingerprintRequest = nullptr;
+    testenv->fingerprinter = nullptr;
+}
+
+//Chromaprint stream output: only there to be found, never opened
+
+static int OpenChromaprint( vlc_object_t* )
+{
+    return VLC_EGENERIC;
+}
+
 //module declaration
 
 vlc_module_begin()
@@ -167,6 +235,16 @@ add_submodule()
 add_submodule()
     set_capability("medialibrary", 10000)
     set_callbacks(MLOpen, MLClose)
+add_submodule()
+    set_capability("meta writer", 10000)
+    set_callback(WriteMeta)
+add_submodule()
+    set_capability("fingerprinter", 10000)
+    set_callbacks(OpenFingerprinter, CloseFingerprinter)
+add_submodule()
+    set_capability("sout output", 0)
+    add_shortcut("chromaprint")
+    set_callback(OpenChromaprint)
 vlc_module_end()
 
 extern "C" {

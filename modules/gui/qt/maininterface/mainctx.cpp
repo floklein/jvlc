@@ -44,8 +44,6 @@
 
 #include "util/color_scheme_model.hpp"
 
-#include "widgets/native/interface_widgets.hpp"     // bgWidget, videoWidget
-
 #include "playlist/playlist_controller.hpp"
 #include "player/player_controller.hpp"
 

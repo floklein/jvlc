@@ -42,7 +42,6 @@
 /* The dialogs */
 #include "dialogs/bookmarks/bookmarks.hpp"
 #include "dialogs/preferences/preferences.hpp"
-#include "dialogs/mediainfo/mediainfo.hpp"
 #include "dialogs/messages/messages.hpp"
 #include "dialogs/extended/extended.hpp"
 #include "dialogs/vlm/vlm.hpp"
@@ -82,7 +81,6 @@
     X(vlmDialog) \
     X(helpDialog) \
     X(aboutDialog) \
-    X(mediaInfoDialog) \
     X(bookmarkDialog) \
     X(podcastDialog) \
     X(pluginDialog)\
@@ -381,23 +379,62 @@ void DialogsProvider::aboutDialog()
     toggleDialogVisible(m_aboutDialog);
 }
 
+void DialogsProvider::playerMediaProperties( MediaPropertiesModel::Tab tab )
+{
+    /* One window follows the player; it toggles when shown again on the same
+     * tab. QML deletes the model when the window closes. */
+    if( !m_playerMediaProperties )
+    {
+        MediaPropertiesModel * const model = new MediaPropertiesModel( p_intf, true, this );
+        PlayerController * const player = THEMIM;
+
+        connect( player, &PlayerController::inputChanged, model, [model, player]() {
+            model->setMedia( SharedInputItem{ player->getInput() } );
+        } );
+        connect( player, &PlayerController::currentMetaChanged,
+                 model, &MediaPropertiesModel::refreshMeta );
+        connect( player, &PlayerController::infoChanged,
+                 model, &MediaPropertiesModel::refreshCodecInfo );
+        connect( player, &PlayerController::statisticsUpdated,
+                 model, &MediaPropertiesModel::updateStatistics );
+        connect( model, &MediaPropertiesModel::saved, model, [model, player]() {
+            /* Refresh the player caches so the new tags and artwork show */
+            player->refreshMediaMeta( model->media().get() );
+        } );
+
+        model->setMedia( SharedInputItem{ player->getInput() } );
+        m_playerMediaProperties = model;
+    }
+
+    emit showMediaProperties( m_playerMediaProperties, tab );
+}
+
 void DialogsProvider::mediaInfoDialog( void )
 {
-    ensureDialog(m_mediaInfoDialog);
-    if( !m_mediaInfoDialog->isVisible() || m_mediaInfoDialog->currentTab() != MediaInfoDialog::META_PANEL )
-        m_mediaInfoDialog->showTab( MediaInfoDialog::META_PANEL );
-    else
-        m_mediaInfoDialog->hide();
+    playerMediaProperties( MediaPropertiesModel::GeneralTab );
 }
 
 void DialogsProvider::mediaInfoDialog( const SharedInputItem& inputItem )
 {
     assert(inputItem.get());
 
-    MediaInfoDialog * const mid = new MediaInfoDialog( p_intf, inputItem );
-    mid->setWindowFlag( Qt::Dialog );
-    mid->setAttribute( Qt::WA_DeleteOnClose );
-    mid->showTab( MediaInfoDialog::META_PANEL );
+    MediaPropertiesModel * const model = new MediaPropertiesModel( p_intf, false, this );
+    PlayerController * const player = THEMIM;
+    connect( model, &MediaPropertiesModel::saved, model, [model, player]() {
+        player->refreshMediaMeta( model->media().get() );
+    } );
+    model->setMedia( inputItem );
+
+    emit showMediaProperties( model, MediaPropertiesModel::GeneralTab );
+}
+
+QUrl DialogsProvider::getArtworkFileUrl()
+{
+    const QStringList schemes = QStringList(QStringLiteral("file"));
+    return QFileDialog::getOpenFileUrl( nullptr, qtr( "Choose Artwork" ),
+                                        p_intf->p_mi->getDialogFilePath(),
+                                        qtr( "Image Files (*.gif *.jpg *.jpeg *.png *.webp)" ),
+                                        nullptr, QFileDialog::Options(), schemes );
 }
 
 void DialogsProvider::mediaInfoDialog( const PlaylistItem& pItem )
@@ -486,12 +523,7 @@ bool DialogsProvider::questionDialog(const QString& text, const QString &title) 
 
 void DialogsProvider::mediaCodecDialog()
 {
-    ensureDialog(m_mediaInfoDialog);
-
-    if( !m_mediaInfoDialog->isVisible() || m_mediaInfoDialog->currentTab() != MediaInfoDialog::INFO_PANEL )
-        m_mediaInfoDialog->showTab( MediaInfoDialog::INFO_PANEL );
-    else
-        m_mediaInfoDialog->hide();
+    playerMediaProperties( MediaPropertiesModel::CodecTab );
 }
 
 QMessageBox::StandardButton DialogsProvider::messageDialog(const QString &text,

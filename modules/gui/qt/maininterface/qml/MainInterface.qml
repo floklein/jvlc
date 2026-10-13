@@ -242,6 +242,47 @@ Item {
             source: "qrc:///qt/qml/VLC/Playlist/PlaylistDetachedWindow.qml"
         }
 
+        // Properties & Metadata windows, one per media. They live here so
+        // they survive switching between the player and the library.
+        Connections {
+            target: DialogsProvider
+
+            property var windows: []
+
+            function onShowMediaProperties(properties, tab) {
+                const existing = windows.find((w) => w.properties === properties)
+                if (existing) {
+                    // the live window toggles, like the old dialog
+                    if (properties.live && existing.visible && existing.currentTab === tab) {
+                        existing.close()
+                    } else {
+                        existing.currentTab = tab
+                        existing.show()
+                        existing.raise()
+                        existing.requestActivate()
+                    }
+                    return
+                }
+
+                const window = mediaPropertiesComponent.createObject(g_mainInterface, {
+                    properties: properties,
+                    currentTab: tab
+                })
+                windows.push(window)
+                window.finished.connect(() => {
+                    windows = windows.filter((w) => w !== window)
+                })
+                window.show()
+                window.requestActivate()
+            }
+        }
+
+        Component {
+            id: mediaPropertiesComponent
+
+            MediaPropertiesDialog { }
+        }
+
         Connections {
             target: Player
             function onPlayingStateChanged() {

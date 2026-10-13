@@ -45,7 +45,7 @@ public:
                                   vlc_value_t, vlc_value_t newval, void *param );
     fingerprint_request_t * fetchResults();
     void apply( fingerprint_request_t *, size_t i_id );
-    static bool isSupported( QString uri );
+    static bool isSupported();
 
 signals:
     void finished();

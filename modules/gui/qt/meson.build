@@ -43,14 +43,11 @@ moc_headers = files(
     'dialogs/extensions/extensions.hpp',
     'dialogs/extensions/extensions_manager.hpp',
     'dialogs/fingerprint/chromaprint.hpp',
-    'dialogs/fingerprint/fingerprintdialog.hpp',
     'dialogs/firstrun/firstrunwizard.hpp',
     'dialogs/gototime/gototime.hpp',
     'dialogs/help/aboutmodel.hpp',
     'dialogs/help/help.hpp',
-    'dialogs/mediainfo/info_panels.hpp',
-    'dialogs/mediainfo/info_widgets.hpp',
-    'dialogs/mediainfo/mediainfo.hpp',
+    'dialogs/mediainfo/media_properties_model.hpp',
     'dialogs/messages/messages.hpp',
     'dialogs/open/open.hpp',
     'dialogs/open/open_panels.hpp',
@@ -165,7 +162,6 @@ moc_headers = files(
     'widgets/native/animators.hpp',
     'widgets/native/csdthemeimage.hpp',
     'widgets/native/customwidgets.hpp',
-    'widgets/native/interface_widgets.hpp',
     'widgets/native/navigation_attached.hpp',
     'widgets/native/mlfolderseditor.hpp',
     'widgets/native/searchlineedit.hpp',
@@ -233,8 +229,6 @@ qt_plugin_sources = files(
     'dialogs/extensions/extensions_manager.hpp',
     'dialogs/fingerprint/chromaprint.cpp',
     'dialogs/fingerprint/chromaprint.hpp',
-    'dialogs/fingerprint/fingerprintdialog.cpp',
-    'dialogs/fingerprint/fingerprintdialog.hpp',
     'dialogs/firstrun/firstrunwizard.cpp',
     'dialogs/firstrun/firstrunwizard.hpp',
     'dialogs/gototime/gototime.cpp',
@@ -242,12 +236,8 @@ qt_plugin_sources = files(
     'dialogs/help/aboutmodel.hpp',
     'dialogs/help/help.cpp',
     'dialogs/help/help.hpp',
-    'dialogs/mediainfo/info_panels.cpp',
-    'dialogs/mediainfo/info_panels.hpp',
-    'dialogs/mediainfo/info_widgets.cpp',
-    'dialogs/mediainfo/info_widgets.hpp',
-    'dialogs/mediainfo/mediainfo.cpp',
-    'dialogs/mediainfo/mediainfo.hpp',
+    'dialogs/mediainfo/media_properties_model.cpp',
+    'dialogs/mediainfo/media_properties_model.hpp',
     'dialogs/messages/messages.cpp',
     'dialogs/messages/messages.hpp',
     'dialogs/open/open.cpp',
@@ -531,8 +521,6 @@ qt_plugin_sources = files(
     'widgets/native/customwidgets.hpp',
     'widgets/native/csdthemeimage.cpp',
     'widgets/native/csdthemeimage.hpp',
-    'widgets/native/interface_widgets.cpp',
-    'widgets/native/interface_widgets.hpp',
     'widgets/native/navigation_attached.cpp',
     'widgets/native/navigation_attached.hpp',
     'widgets/native/mlfolderseditor.cpp',
@@ -588,7 +576,6 @@ endif
 ui_sources = files(
     'dialogs/extended/equalizer.ui',
     'dialogs/extended/video_effects.ui',
-    'dialogs/fingerprint/fingerprintdialog.ui',
     'dialogs/firstrun/firstrunwizard.ui',
     'dialogs/help/about.ui',
     'dialogs/help/update.ui',
@@ -621,6 +608,7 @@ qml_modules += {
         'dialogs/dialogs/qml/Dialogs.qml',
         'dialogs/dialogs/qml/ModalDialog.qml',
         'dialogs/dialogs/qml/WindowDialog.qml',
+        'dialogs/mediainfo/qml/MediaPropertiesDialog.qml',
         'dialogs/toolbar/qml/EditorDNDDelegate.qml',
         'dialogs/toolbar/qml/EditorDNDView.qml',
         'dialogs/toolbar/qml/EditorDummyButton.qml',
@@ -1471,6 +1459,30 @@ if qt6_dep.found()
             ),
             'moc_headers': files(
                 'dialogs/dialogs/dialogmodel.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_media_properties_model',
+            'sources': files(
+                'tests/vlc_stub_modules.cpp',
+                'tests/test_media_properties_model.cpp',
+                'dialogs/mediainfo/media_properties_model.hpp',
+                'dialogs/mediainfo/media_properties_model.cpp',
+                'dialogs/fingerprint/chromaprint.hpp',
+                'dialogs/fingerprint/chromaprint.cpp'
+            ),
+            'moc_sources': files(
+                'tests/test_media_properties_model.cpp'
+            ),
+            'moc_headers': files(
+                'dialogs/mediainfo/media_properties_model.hpp',
+                'dialogs/fingerprint/chromaprint.hpp'
             ),
             'suite': ['qt'],
             'include_directories' : qt_include_dir,

@@ -66,12 +66,15 @@ bool Chromaprint::enqueue( input_item_t *p_item )
     return true;
 }
 
-bool Chromaprint::isSupported( QString uri )
+bool Chromaprint::isSupported()
 {
-    if ( !module_exists( "stream_out_chromaprint" ) )
+    /* The fingerprinter decodes through the chromaprint stream output */
+    module_t **modules;
+    size_t matches = 0;
+    if ( vlc_module_match( "sout output", "chromaprint", true, &modules, &matches ) < 0 )
         return false;
-    else
-    return ( uri.startsWith( "file://" ) || uri.startsWith( "/" ) );
+    free( modules );
+    return matches > 0;
 }
 
 Chromaprint::~Chromaprint()

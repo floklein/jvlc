@@ -70,6 +70,17 @@ struct VLCTestingEnv
 
     //if set to false no render discovery will be found
     bool renderDiscoveryProbeEnabled = true;
+
+    //meta writer: what the last input_item_WriteMeta() received
+    int metaWriterCalls = 0;
+    QString metaWriterFile;
+    QString metaWriterTitle;
+    int metaWriterResult = VLC_SUCCESS;
+
+    //fingerprinter instance (valid once created) and its pending request,
+    //fill its results then trigger "results-available" on the fingerprinter
+    vlc_object_t* fingerprinter = nullptr;
+    struct fingerprint_request_t* fingerprintRequest = nullptr;
 };
 
 #endif /* QT_VLC_STUB_MODULES */
