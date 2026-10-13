@@ -36,6 +36,10 @@ _Avoid_: Series, season (for the whole), library show
 A named set of playback adjustments, such as languages, delays, subtitle look and filters, that the user attaches to Shows and that overrides the Profile only where it sets a value.
 _Avoid_: Profile, configuration, settings preset
 
+**Subtitle match**:
+A remembered pairing of an episode with a subtitle file, so the subtitle loads every time that episode plays.
+_Avoid_: Subtitle link, subtitle association
+
 **Theme**:
 The interface's color mode: Light, Dark, or System (follows the operating system's light/dark setting).
 _Avoid_: Color scheme, Day/Night, skin
