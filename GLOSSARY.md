@@ -60,6 +60,14 @@ _Avoid_: Color scheme, Day/Night, skin
 The single user-chosen color that marks interactive and active elements; the cone logo is not affected by it.
 _Avoid_: Highlight color, theme color
 
+**Tint**:
+The translucent layer in the Theme's background color that panels have when they sit over the video.
+_Avoid_: Ambient color, video color, overlay color
+
+**Video blur**:
+A blurred copy of the playing video shown beneath the Tint of panels over the video, where the platform supports it.
+_Avoid_: Acrylic, glass, backdrop
+
 **Top bar**:
 The strip across the top of the window holding the VLC menu, library toggle, folder button, media title and window controls.
 _Avoid_: Title bar, menu bar, header
