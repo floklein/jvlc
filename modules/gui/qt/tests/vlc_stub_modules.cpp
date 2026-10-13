@@ -114,8 +114,16 @@ static void CloseIntf( vlc_object_t *p_this )
 
 //Medialib module
 
-static void* MLGet( vlc_medialibrary_module_t*, int, va_list )
+static void* MLGet( vlc_medialibrary_module_t*, int query, va_list args )
 {
+    if (query == VLC_ML_GET_INPUT_ITEM)
+    {
+        // a media that plays long enough for tests, named after its id
+        int64_t id = va_arg(args, int64_t);
+        char name[32];
+        snprintf(name, sizeof(name), "ml:%" PRId64, id);
+        return input_item_New("vlc://pause:600", name);
+    }
     return nullptr;
 }
 

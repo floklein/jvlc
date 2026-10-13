@@ -155,8 +155,8 @@ Widgets.PageExt {
                 }
 
                 function onDoubleClick(object) {
-                    MediaLib.addAndPlay(object.id)
-                    MainCtx.playerView = true
+                    // the Play rule: the video and the videos after it
+                    onAction([model.index(object.index, 0)])
                 }
 
                 function isInfoExpandPanelAvailable(modelIndexData) { return true }
@@ -212,7 +212,8 @@ Widgets.PageExt {
 
                 function onDoubleClick(object) {
                     if (object.isVideo) {
-                        MediaLib.addAndPlay(object.id)
+                        // the Play rule: the video and the videos after it
+                        model.addAndPlay([model.index(object.index, 0)])
                         MainCtx.playerView = true
                         return
                     }

@@ -330,6 +330,15 @@ Item {
             }
         }
 
+        QueueReplacedNotice {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            // above the Control bar and the mini player
+            anchors.bottomMargin: VLCStyle.dp(120, VLCStyle.scale)
+
+            z: 10
+        }
+
         Loader {
             asynchronous: true
             source: "qrc:///qt/qml/VLC/Menus/GlobalShortcuts.qml"

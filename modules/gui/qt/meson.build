@@ -128,6 +128,7 @@ moc_headers = files(
     'playlist/playlist_controller.hpp',
     'playlist/playlist_item.hpp',
     'playlist/playlist_model.hpp',
+    'playlist/queue_store.hpp',
     'util/asynctask.hpp',
     'util/accessible_compat_attached.hpp',
     'util/audio_device_model.hpp',
@@ -438,6 +439,8 @@ qt_plugin_sources = files(
     'playlist/playlist_model.cpp',
     'playlist/playlist_model.hpp',
     'playlist/playlist_model_p.hpp',
+    'playlist/queue_store.cpp',
+    'playlist/queue_store.hpp',
     'util/asynctask.hpp',
     'util/accessible_compat_attached.cpp',
     'util/accessible_compat_attached.hpp',
@@ -511,7 +514,6 @@ qt_plugin_sources = files(
     'util/dismiss_popup_event_filter.hpp',
     'util/list_selection_model.cpp',
     'util/list_selection_model.hpp',
-    'util/model_recovery_agent.hpp',
     'util/vlcqtmessagehandler.cpp',
     'util/vlcqtmessagehandler.hpp',
     'util/colorizedsvgicon.cpp',
@@ -827,6 +829,7 @@ qml_modules += {
         'playlist/qml/PlaylistDelegate.qml',
         'playlist/qml/PlaylistPane.qml',
         'playlist/qml/PlaylistDetachedWindow.qml',
+        'playlist/qml/QueueReplacedNotice.qml',
     ),
 }
 
@@ -1311,6 +1314,33 @@ if qt6_dep.found()
                 'medialibrary/mlthreadpool.hpp',
                 'playlist/playlist_controller.hpp',
                 'playlist/playlist_item.hpp',
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_queue',
+            'sources': files(
+                'tests/test_queue.cpp',
+                'tests/vlc_stub_modules.cpp',
+                'util/vlctick.cpp',
+                'playlist/playlist_controller.cpp',
+                'playlist/playlist_item.cpp',
+                'playlist/queue_store.cpp',
+            ),
+            'moc_sources': files(
+                'tests/test_queue.cpp'
+            ),
+            'moc_headers': files(
+                'tests/vlc_stub_modules.cpp',
+                'util/vlctick.hpp',
+                'playlist/playlist_controller.hpp',
+                'playlist/playlist_item.hpp',
+                'playlist/queue_store.hpp',
             ),
             'suite': ['qt'],
             'include_directories' : qt_include_dir,

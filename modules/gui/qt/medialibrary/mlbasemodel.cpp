@@ -339,18 +339,48 @@ QVariant MLBaseModel::data(const QModelIndex &index, int role) const
 
 void MLBaseModel::addAndPlay(const QModelIndexList &list, const QStringList &options)
 {
+    Q_D(MLBaseModel);
+
     QVector<int> indx;
     std::transform(list.begin(), list.end(), std::back_inserter(indx), std::mem_fn(&QModelIndex::row));
 
-    ItemCallback play = [this, options](quint64, std::vector<std::unique_ptr<MLItem>> &items)
+    const auto isMedia = [](const std::unique_ptr<MLItem> &item) {
+        return item->getId().type == VLC_ML_PARENT_UNKNOWN;
+    };
+
+    // The Play rule: a single media plays with the media after it in the
+    // view, in its current sort, so that the next one plays automatically.
+    // A group (album, Playlist...) plays alone.
+    bool withRest = false;
+    if (indx.size() == 1)
+    {
+        // the item is usually cached, as the user acts on it
+        const std::unique_ptr<MLItem> *item = d->item(indx.first());
+        withRest = !item || !*item || isMedia(*item);
+        if (withRest)
+        {
+            const int count = static_cast<int>(getCount());
+            for (int row = indx.first() + 1; row < count; ++row)
+                indx.push_back(row);
+        }
+    }
+
+    ItemCallback play = [this, options, withRest, isMedia](quint64, std::vector<std::unique_ptr<MLItem>> &items)
     {
         if (!m_mediaLib)
             return;
 
         QVariantList ids;
-        std::transform(items.begin(), items.end()
-                       , std::back_inserter(ids)
-                       , [](const std::unique_ptr<MLItem> &item) { return item ? QVariant::fromValue(item->getId()) : QVariant {}; });
+        for (const std::unique_ptr<MLItem> &item : items)
+        {
+            if (!item)
+                continue;
+            if (withRest && !ids.isEmpty() && !isMedia(item))
+                continue;
+            ids.push_back(QVariant::fromValue(item->getId()));
+            if (withRest && ids.size() == 1 && !isMedia(item))
+                break;
+        }
 
         m_mediaLib->addAndPlay(ids, options);
     };

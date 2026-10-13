@@ -124,6 +124,8 @@ vlc_player_input_SeekByPos(struct vlc_player_input *input, double position,
     vlc_player_t *player = input->player;
     vlc_player_assert_seek_params(speed, whence);
 
+    input->paused_at_end = false;
+
     /* Assert before we modify position internally, this only check that user
      * positions are correct. */
     if (whence != VLC_PLAYER_WHENCE_ABSOLUTE)
@@ -160,6 +162,8 @@ vlc_player_input_SeekByTime(struct vlc_player_input *input, vlc_tick_t time,
 {
     vlc_player_t *player = input->player;
     vlc_player_assert_seek_params(speed, whence);
+
+    input->paused_at_end = false;
 
     if (whence != VLC_PLAYER_WHENCE_ABSOLUTE)
         time += vlc_player_input_GetTime(input, true, vlc_tick_now());
@@ -1025,6 +1029,15 @@ input_thread_Events(input_thread_t *input_thread,
                 vlc_player_Pause(player);
                 handled = true;
             }
+            else if (player->pause_at_end && input->repeat == 0
+                  && player->next_media == NULL
+                  && (input->capabilities & VLC_PLAYER_CAP_PAUSE))
+            {
+                /* Stay on the last frame, see vlc_player_IsEnded() */
+                input->paused_at_end = true;
+                vlc_player_Pause(player);
+                handled = true;
+            }
             else if (input->repeat > 0)
             {
                 input->repeat--;
@@ -1252,6 +1265,7 @@ vlc_player_input_New(vlc_player_t *player, input_item_t *item)
     input->player = player;
     input->started = false;
     input->playing = false;
+    input->paused_at_end = false;
 
     input->state = VLC_PLAYER_STATE_STOPPED;
     input->error = VLC_PLAYER_ERROR_NONE;

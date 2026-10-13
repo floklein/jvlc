@@ -21,6 +21,8 @@
 #endif
 
 #include "../medialibrary/mlbasemodel.hpp"
+#include "../medialibrary/medialib.hpp"
+#include "../playlist/playlist_controller.hpp"
 #include "vlc_stub_modules.hpp"
 
 #include <memory>
@@ -30,6 +32,8 @@
 #include <QTest>
 
 struct vlc_medialibrary_t;
+
+using vlc::playlist::PlaylistController;
 
 class MLTestModel : public MLBaseModel
 {
@@ -136,6 +140,7 @@ private slots:
 
     void cleanup() {
         m_model.reset();
+        m_queueMedialib.reset();
         m_medialib.reset();
     }
 
@@ -207,10 +212,120 @@ private slots:
         QCOMPARE(row, mid - 1);
     }
 
+    // The Play rule from the library
+
+    void testPlayMediaPlaysRestOfView()
+    {
+        PlaylistController controller(m_env->intf->p_playlist);
+        auto model = makeModelWithQueue(controller, 10);
+
+        model->addAndPlay({model->index(6)});
+
+        QTRY_COMPARE(queueNames(), QStringList({"ml:7", "ml:8", "ml:9", "ml:10"}));
+        QCOMPARE(currentIndex(), 0);
+        clearQueue();
+    }
+
+    void testPlaySelectionPlaysOnlySelection()
+    {
+        PlaylistController controller(m_env->intf->p_playlist);
+        auto model = makeModelWithQueue(controller, 10);
+
+        model->addAndPlay({model->index(1), model->index(4)});
+
+        QTRY_COMPARE(queueNames(), QStringList({"ml:2", "ml:5"}));
+        clearQueue();
+    }
+
+    void testPlayReplacesQueueWithUndo()
+    {
+        PlaylistController controller(m_env->intf->p_playlist);
+        auto model = makeModelWithQueue(controller, 3);
+        controller.append(QVariantList{QStringLiteral("vlc://pause:600")});
+
+        model->addAndPlay({model->index(1)});
+
+        QTRY_COMPARE(queueNames(), QStringList({"ml:2", "ml:3"}));
+        QVERIFY(controller.canUndoReplace());
+        clearQueue();
+    }
+
+    void testPlayNextFromLibrary()
+    {
+        PlaylistController controller(m_env->intf->p_playlist);
+        auto model = makeModelWithQueue(controller, 0);
+        controller.append(QVariantList{QStringLiteral("vlc://pause:600"), QStringLiteral("vlc://pause:601")});
+        controller.goTo(0);
+
+        m_queueMedialib->playNext({QVariant::fromValue(MLItemId{3, VLC_ML_PARENT_UNKNOWN})});
+
+        QTRY_COMPARE(queueNames().size(), 3);
+        QCOMPARE(queueNames().at(1), QStringLiteral("ml:3"));
+        QCOMPARE(currentIndex(), 0);
+        clearQueue();
+    }
+
+    void testAddToQueueFromLibrary()
+    {
+        PlaylistController controller(m_env->intf->p_playlist);
+        auto model = makeModelWithQueue(controller, 0);
+        controller.append(QVariantList{QStringLiteral("vlc://pause:600")});
+
+        m_queueMedialib->addToPlaylist(QVariantList{QVariant::fromValue(MLItemId{3, VLC_ML_PARENT_UNKNOWN})});
+
+        QTRY_COMPARE(queueNames().size(), 2);
+        QCOMPARE(queueNames().at(1), QStringLiteral("ml:3"));
+        clearQueue();
+    }
+
 private:
+    /* A model of `count` media (ids 1 to count) whose medialib plays into
+     * controller */
+    std::unique_ptr<MLTestModel> makeModelWithQueue(PlaylistController &controller, int count)
+    {
+        m_queueMedialib = std::make_unique<MediaLib>(m_env->intf, &controller);
+        auto model = std::make_unique<MLTestModel>();
+        model->classBegin();
+        model->setMl(m_queueMedialib.get());
+        if (count > 0)
+            model->appendRange(1, count);
+        model->componentComplete();
+        if (count > 0)
+        {
+            [&] { QVERIFY(QTest::qWaitFor([&]() { return !model->loading()
+                                                && model->getCount() == unsigned(count); })); }();
+        }
+        return model;
+    }
+
+    QStringList queueNames() const
+    {
+        vlc_playlist_t *playlist = m_env->intf->p_playlist;
+        QStringList names;
+        vlc::playlist::vlc_playlist_locker locker(playlist);
+        for (size_t i = 0; i < vlc_playlist_Count(playlist); ++i)
+            names.push_back(qfu(vlc_playlist_item_GetMedia(vlc_playlist_Get(playlist, i))->psz_name));
+        return names;
+    }
+
+    int currentIndex() const
+    {
+        vlc_playlist_t *playlist = m_env->intf->p_playlist;
+        vlc::playlist::vlc_playlist_locker locker(playlist);
+        return static_cast<int>(vlc_playlist_GetCurrentIndex(playlist));
+    }
+
+    void clearQueue()
+    {
+        vlc_playlist_t *playlist = m_env->intf->p_playlist;
+        vlc::playlist::vlc_playlist_locker locker(playlist);
+        vlc_playlist_Clear(playlist);
+    }
+
     std::unique_ptr<VLCTestingEnv> m_env;
     std::unique_ptr<MediaLib> m_medialib;
     std::unique_ptr<MLTestModel> m_model;
+    std::unique_ptr<MediaLib> m_queueMedialib;
 };
 
 

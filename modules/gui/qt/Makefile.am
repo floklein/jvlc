@@ -304,6 +304,8 @@ libqt_plugin_la_SOURCES = \
 	playlist/playlist_model.cpp \
 	playlist/playlist_model.hpp \
 	playlist/playlist_model_p.hpp \
+	playlist/queue_store.cpp \
+	playlist/queue_store.hpp \
 	util/asynctask.hpp \
 	util/accessible_compat_attached.cpp util/accessible_compat_attached.hpp \
 	util/audio_device_model.cpp  \
@@ -353,7 +355,6 @@ libqt_plugin_la_SOURCES = \
 	util/dismiss_popup_event_filter.hpp \
 	util/list_selection_model.cpp \
 	util/list_selection_model.hpp \
-	util/model_recovery_agent.hpp \
 	util/vlcqtmessagehandler.cpp \
 	util/vlcqtmessagehandler.hpp \
 	util/colorizedsvgicon.cpp \
@@ -499,6 +500,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	playlist/playlist_controller.moc.cpp \
 	playlist/playlist_item.moc.cpp \
 	playlist/playlist_model.moc.cpp \
+	playlist/queue_store.moc.cpp \
 	util/asynctask.moc.cpp \
 	util/accessible_compat_attached.moc.cpp \
 	util/audio_device_model.moc.cpp \
@@ -1266,7 +1268,8 @@ libqml_module_playlist_a_CPPFLAGS = $(libqt_plugin_la_CPPFLAGS)
 libqml_module_playlist_a_QML = \
 	playlist/qml/PlaylistDelegate.qml \
 	playlist/qml/PlaylistPane.qml \
-	playlist/qml/PlaylistDetachedWindow.qml
+	playlist/qml/PlaylistDetachedWindow.qml \
+	playlist/qml/QueueReplacedNotice.qml
 libqml_module_playlist_a_Singleton_QML =
 libqml_module_playlist_a_SOURCES = $(QML_MODULE_playlist_SRC)
 nodist_libqml_module_playlist_a_SOURCES = playlist/qmlassets.cpp $(QML_MODULE_playlist_NODIST_EXTRA)
@@ -1753,6 +1756,32 @@ QT_QTEST_COMMON_cxxflags = $(AM_CXXFLAGS) $(QT_CFLAGS) $(QT_QTEST_CFLAGS) -fPIC 
 QT_QTEST_COMMON_ldadd = $(QT_LIBS) $(LIBS_qt) $(QT_QTEST_LIBS) $(LIBVLCCORE) $(LIBVLC)
 QT_QTEST_COMMON_ldflags = $(AM_LDFLAGS) $(QT_LDFLAGS) $(QT_QTEST_LDFLAGS)
 
+
+# test_queue
+
+test_queue_SOURCES = \
+	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
+	tests/test_queue.cpp \
+	util/vlctick.cpp util/vlctick.hpp \
+	playlist/playlist_controller.hpp playlist/playlist_controller.cpp \
+	playlist/playlist_item.hpp playlist/playlist_item.cpp \
+	playlist/queue_store.hpp playlist/queue_store.cpp
+
+nodist_test_queue_SOURCES = \
+	tests/test_queue.moc \
+	util/vlctick.moc.cpp \
+	playlist/playlist_controller.moc.cpp \
+	playlist/playlist_item.moc.cpp \
+	playlist/queue_store.moc.cpp
+
+BUILT_SOURCES += tests/test_queue.moc
+CLEANFILES += tests/test_queue.moc
+test_queue_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_queue_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_queue_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_queue_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_queue
+TESTS += test_queue
 
 # test_ml_model
 

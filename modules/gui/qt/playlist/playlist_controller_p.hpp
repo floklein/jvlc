@@ -22,6 +22,10 @@
 
 #include "qt.hpp" // for qtr()
 
+#include <optional>
+
+#include <QTimer>
+
 namespace vlc {
 namespace playlist {
 
@@ -70,6 +74,21 @@ public:
     PlaylistController::SortOrder m_sortOrder = PlaylistController::SORT_ORDER_ASC;
 
     QVariantList sortKeyTitleList;
+
+    bool m_playAddsToQueue = false;
+
+    /* The Queue that the last Play replaced, kept for Undo */
+    struct ReplacedQueue
+    {
+        QVector<Media> media;
+        ssize_t currentIndex = -1;
+        bool playing = false;
+        vlc_tick_t time = VLC_TICK_INVALID;
+    };
+    std::optional<ReplacedQueue> m_replacedQueue;
+    QTimer m_undoReplaceTimer;
+
+    void forgetReplacedQueue();
 
 private:
     inline void fillSortKeyTitleList()

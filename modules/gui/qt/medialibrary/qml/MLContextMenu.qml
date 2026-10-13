@@ -66,10 +66,13 @@ NativeMenu {
             "visible": root.showPlayAsAlbumAction &&
                        (root.model instanceof MLAudioModel)
         }, {
-            "text": qsTr("Enqueue"),
+            "text": qsTr("Play next"),
+            "action": playNext
+        }, {
+            "text": qsTr("Add to Queue"),
             "action": enqueue
         }, {
-            "text": qsTr("Enqueue as album"),
+            "text": qsTr("Add album to Queue"),
             "action": enqueueAsAlbum,
             "visible": root.showPlayAsAlbumAction &&
                        (root.model instanceof MLAudioModel)
@@ -134,7 +137,12 @@ NativeMenu {
     // Functions
 
     function addAndPlay(dataList, options, indexes) {
-        model.ml.addAndPlay(_mlIDList(dataList), _playerOptions(options))
+        // the model applies the Play rule (the rest of the view after a media)
+        model.addAndPlay(indexes, _playerOptions(options))
+    }
+
+    function playNext(dataList, options, indexes) {
+        model.ml.playNext(_mlIDList(dataList), _playerOptions(options))
     }
 
     function playAsAudio(dataList, options, indexes) {

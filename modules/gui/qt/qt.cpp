@@ -53,6 +53,7 @@ extern "C" char **environ;
 
 #include <QApplication>
 #include <QDate>
+#include <QFile>
 #include <QFontDatabase>
 #include <QMutex>
 #include <QtQuickControls2/QQuickStyle>
@@ -103,12 +104,12 @@ extern "C" char **environ;
 #include "maininterface/compositor.hpp"
 #include "util/vlctick.hpp"
 #include "util/shared_input_item.hpp"
-#include "util/model_recovery_agent.hpp"
 #include "util/vlcqtmessagehandler.hpp"
 #include "network/networkmediamodel.hpp"
 #include "network/devicesourceprovider.hpp"
 #include "playlist/playlist_common.hpp"
 #include "playlist/playlist_item.hpp"
+#include "playlist/queue_store.hpp"
 #include "dialogs/dialogs/dialogmodel.hpp"
 #include "medialibrary/mlqmltypes.hpp"
 
@@ -264,6 +265,11 @@ static void ShowDialog   ( intf_thread_t *, int, int, intf_dialog_args_t * );
 
 #define QT_PIN_CONTROLS_TEXT N_("Pin video controls")
 #define QT_PIN_CONTROLS_LONGTEXT N_("Place video controls above and below the video instead of above")
+
+#define QT_PLAY_ADDS_TO_QUEUE_TEXT N_("Add to the Queue instead of replacing it")
+#define QT_PLAY_ADDS_TO_QUEUE_LONGTEXT N_("Play adds the media at the end of the Queue and " \
+                                          "plays it, instead of replacing the Queue with the " \
+                                          "media and the media after it.")
 
 #define FULLSCREEN_CONTROL_PIXELS N_( "Fullscreen controller mouse sensitivity" )
 
@@ -432,6 +438,9 @@ vlc_module_begin ()
                nullptr )
 
     add_bool( "qt-pin-controls", false, QT_PIN_CONTROLS_TEXT, QT_PIN_CONTROLS_LONGTEXT )
+
+    add_bool( "qt-play-adds-to-queue", false, QT_PLAY_ADDS_TO_QUEUE_TEXT,
+              QT_PLAY_ADDS_TO_QUEUE_LONGTEXT )
 
 
     add_obsolete_bool( "qt-advanced-pref" ) /* since 4.0.0 */
@@ -1317,18 +1326,43 @@ static void *Thread( void *obj )
     p_intf->p_mainPlayerController = new PlayerController(p_intf);
     p_intf->p_mainPlaylistController = new vlc::playlist::PlaylistController(p_intf->p_playlist);
 
-    std::optional playlistModelRecoveryAgent = std::unique_ptr<ModelRecoveryAgent>();
-    QMetaObject::invokeMethod(&app, [&playlistModelRecoveryAgent, settings = QPointer(p_intf->mainSettings), mpc = QPointer(p_intf->p_mainPlaylistController)]() {
-        if (Q_UNLIKELY(!playlistModelRecoveryAgent)) // std::optional is nullopt, reset() was already called
-            return;
-        if (Q_UNLIKELY(!settings || !mpc))
-            return;
-        try {
-            playlistModelRecoveryAgent = std::make_unique<ModelRecoveryAgent>(settings.get(),
-                                                                              QStringLiteral("Playlist"),
-                                                                              mpc.get());
-        } catch (...){ }
-    }, Qt::QueuedConnection);
+    {
+        vlc::playlist::PlaylistController *mpc = p_intf->p_mainPlaylistController;
+        /* "Add to the Queue instead of replacing it" set from the UI */
+        QObject::connect(mpc, &vlc::playlist::PlaylistController::playAddsToQueueChanged, mpc, [mpc]() {
+            if (config_GetInt("qt-play-adds-to-queue") != mpc->playAddsToQueue())
+                config_PutInt("qt-play-adds-to-queue", mpc->playAddsToQueue());
+        });
+    }
+
+    /* The Queue survives restarts */
+    std::unique_ptr<vlc::playlist::QueueStore> queueStore;
+    if( !p_intf->b_isDialogProvider )
+    {
+        queueStore = std::make_unique<vlc::playlist::QueueStore>(p_intf->p_mainPlaylistController,
+                                                                 QVLCUserDir(VLC_USERDATA_DIR) + QStringLiteral("/queue.json"));
+        /* Like the recently played media, the Queue is not kept when the
+         * user turned that history off */
+        queueStore->setEnabled(var_InheritBool(p_intf, "save-recentplay"));
+        /* Restore once the event loop runs, after the main thread had a
+         * chance to queue and start the media given on the command line */
+        QMetaObject::invokeMethod(queueStore.get(), [store = queueStore.get()]() {
+            store->restore();
+        }, Qt::QueuedConnection);
+
+        /* The previous crash-recovery file of the Queue is no longer used */
+        const QString recoveryKey = QStringLiteral("Playlist/RecoveryFilePath");
+        if (p_intf->mainSettings->contains(recoveryKey))
+        {
+            const QString recoveryFile = p_intf->mainSettings->value(recoveryKey).toString();
+            if (!recoveryFile.isEmpty())
+            {
+                QFile::remove(recoveryFile);
+                QFile::remove(recoveryFile + QStringLiteral(".lock"));
+            }
+            p_intf->mainSettings->remove(recoveryKey);
+        }
+    }
 
     /* Create the normal interface in non-DP mode */
 #ifdef _WIN32
@@ -1493,7 +1527,16 @@ static void *Thread( void *obj )
 
     msg_Dbg( p_intf, "QApp exec() finished" );
 
-    playlistModelRecoveryAgent.reset();
+    /* writes the pending changes of the Queue, or deletes it if the user
+     * turned the history off meanwhile */
+    if (queueStore)
+    {
+        const bool keepQueue = var_InheritBool(p_intf, "save-recentplay");
+        queueStore->setEnabled(keepQueue);
+        if (keepQueue)
+            queueStore->save();
+    }
+    queueStore.reset();
     return ThreadCleanup( p_intf, CLEANUP_APP_TERMINATED );
 }
 

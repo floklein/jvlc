@@ -340,6 +340,13 @@ on_media_stopped_action_changed(vlc_playlist_t *playlist,
                           void *userdata)
 {
     PlaylistControllerPrivate *that = static_cast<PlaylistControllerPrivate *>(userdata);
+
+    /* When the Queue ends (no next media), stay paused on the last frame
+     * instead of stopping, unless the user asked to stop or quit. The
+     * playlist and the player share the lock, which is held here. */
+    vlc_player_SetPauseAtEnd(vlc_playlist_GetPlayer(playlist),
+                             new_action == VLC_PLAYLIST_MEDIA_STOPPED_CONTINUE);
+
     that->callAsync([=](){
         auto action = static_cast<PlaylistController::MediaStopAction>(new_action);
         if (that->m_playlist != playlist)
@@ -377,6 +384,22 @@ PlaylistControllerPrivate::PlaylistControllerPrivate(PlaylistController* playlis
     , m_playlist(playlist)
 {
     fillSortKeyTitleList();
+
+    m_undoReplaceTimer.setSingleShot(true);
+    m_undoReplaceTimer.setInterval(std::chrono::seconds(5));
+    QObject::connect(&m_undoReplaceTimer, &QTimer::timeout, playlistController, [this]() {
+        forgetReplacedQueue();
+    });
+}
+
+void PlaylistControllerPrivate::forgetReplacedQueue()
+{
+    Q_Q(PlaylistController);
+    m_undoReplaceTimer.stop();
+    if (!m_replacedQueue)
+        return;
+    m_replacedQueue.reset();
+    emit q->canUndoReplaceChanged();
 }
 
 PlaylistControllerPrivate::~PlaylistControllerPrivate()
@@ -495,6 +518,161 @@ PlaylistController::insert(size_t index, const QVector<Media> &media, bool start
             return;
         vlc_playlist_Start(d->m_playlist);
     }
+}
+
+void PlaylistController::playMedia(const QVariantList& sourceList)
+{
+    playMedia(toMediaList(sourceList));
+}
+
+void
+PlaylistController::playMedia(const QVector<Media> &media)
+{
+    Q_D(PlaylistController);
+
+    if (Q_UNLIKELY(media.isEmpty()))
+        return;
+
+    if (d->m_playAddsToQueue)
+    {
+        append(media, true);
+        return;
+    }
+
+    std::optional<PlaylistControllerPrivate::ReplacedQueue> replaced;
+    {
+        vlc_playlist_locker locker(d->m_playlist);
+
+        const size_t count = vlc_playlist_Count(d->m_playlist);
+        if (count > 0)
+        {
+            PlaylistControllerPrivate::ReplacedQueue queue;
+            queue.media.reserve(count);
+            for (size_t i = 0; i < count; ++i)
+            {
+                vlc_playlist_item_t *item = vlc_playlist_Get(d->m_playlist, i);
+                queue.media.push_back(Media(vlc_playlist_item_GetMedia(item)));
+            }
+            queue.currentIndex = vlc_playlist_GetCurrentIndex(d->m_playlist);
+
+            vlc_player_t *player = vlc_playlist_GetPlayer(d->m_playlist);
+            const enum vlc_player_state state = vlc_player_GetState(player);
+            queue.playing = state == VLC_PLAYER_STATE_STARTED
+                         || state == VLC_PLAYER_STATE_PLAYING;
+            if (queue.playing)
+                queue.time = vlc_player_GetTime(player);
+            replaced = std::move(queue);
+        }
+
+        auto rawMedia = toRaw<input_item_t *>(media);
+        vlc_playlist_Clear(d->m_playlist);
+        int ret = vlc_playlist_Append(d->m_playlist,
+                                      rawMedia.constData(), rawMedia.size());
+        if (ret != VLC_SUCCESS)
+            throw std::bad_alloc();
+        if (vlc_playlist_GoTo(d->m_playlist, 0) == VLC_SUCCESS)
+            vlc_playlist_Start(d->m_playlist);
+    }
+
+    if (!replaced)
+    {
+        d->forgetReplacedQueue();
+        return;
+    }
+
+    d->m_replacedQueue = std::move(replaced);
+    d->m_undoReplaceTimer.start();
+    emit canUndoReplaceChanged();
+    emit queueReplaced();
+}
+
+void PlaylistController::playNext(const QVariantList& sourceList)
+{
+    playNext(toMediaList(sourceList));
+}
+
+void
+PlaylistController::playNext(const QVector<Media> &media)
+{
+    Q_D(PlaylistController);
+
+    if (Q_UNLIKELY(media.isEmpty()))
+        return;
+
+    vlc_playlist_locker locker(d->m_playlist);
+
+    /* -1 (no current item) inserts at the start */
+    const size_t index = vlc_playlist_GetCurrentIndex(d->m_playlist) + 1;
+    auto rawMedia = toRaw<input_item_t *>(media);
+    int ret = vlc_playlist_Insert(d->m_playlist, index,
+                                  rawMedia.constData(), rawMedia.size());
+    if (ret != VLC_SUCCESS)
+        throw std::bad_alloc();
+}
+
+void PlaylistController::undoReplace()
+{
+    Q_D(PlaylistController);
+
+    if (!d->m_replacedQueue)
+        return;
+
+    PlaylistControllerPrivate::ReplacedQueue queue = std::move(*d->m_replacedQueue);
+    d->forgetReplacedQueue();
+
+    vlc_playlist_locker locker(d->m_playlist);
+
+    auto rawMedia = toRaw<input_item_t *>(queue.media);
+    vlc_playlist_Clear(d->m_playlist);
+    int ret = vlc_playlist_Append(d->m_playlist,
+                                  rawMedia.constData(), rawMedia.size());
+    if (ret != VLC_SUCCESS)
+        throw std::bad_alloc();
+
+    if (queue.currentIndex < 0
+     || vlc_playlist_GoTo(d->m_playlist, queue.currentIndex) != VLC_SUCCESS
+     || !queue.playing)
+        return;
+
+    if (vlc_playlist_Start(d->m_playlist) == VLC_SUCCESS
+     && queue.time != VLC_TICK_INVALID)
+    {
+        vlc_player_SeekByTime(vlc_playlist_GetPlayer(d->m_playlist), queue.time,
+                              VLC_PLAYER_SEEK_PRECISE, VLC_PLAYER_WHENCE_ABSOLUTE);
+    }
+}
+
+bool PlaylistController::playAddsToQueue() const
+{
+    Q_D(const PlaylistController);
+    return d->m_playAddsToQueue;
+}
+
+void PlaylistController::setPlayAddsToQueue(bool playAddsToQueue)
+{
+    Q_D(PlaylistController);
+    if (d->m_playAddsToQueue == playAddsToQueue)
+        return;
+    d->m_playAddsToQueue = playAddsToQueue;
+    emit playAddsToQueueChanged();
+}
+
+bool PlaylistController::canUndoReplace() const
+{
+    Q_D(const PlaylistController);
+    return d->m_replacedQueue.has_value();
+}
+
+std::chrono::milliseconds PlaylistController::undoReplaceTimeout() const
+{
+    Q_D(const PlaylistController);
+    return d->m_undoReplaceTimer.intervalAsDuration();
+}
+
+void PlaylistController::setUndoReplaceTimeout(std::chrono::milliseconds timeout)
+{
+    Q_D(PlaylistController);
+    d->m_undoReplaceTimer.setInterval(timeout);
 }
 
 void
@@ -622,10 +800,24 @@ int PlaylistController::currentIndex() const
     return d->m_currentIndex;
 }
 
+/* At the end of the Queue (paused on the last frame), Play starts the Queue
+ * again from its first item. The playlist must be locked. */
+static bool restartEndedQueue(vlc_playlist_t *playlist)
+{
+    vlc_player_t* player = vlc_playlist_GetPlayer( playlist );
+    if ( !vlc_player_IsEnded( player ) || vlc_playlist_Count( playlist ) == 0 )
+        return false;
+    if ( vlc_playlist_GoTo( playlist, 0 ) == VLC_SUCCESS )
+        vlc_playlist_Start( playlist );
+    return true;
+}
+
 void PlaylistController::play()
 {
     Q_D(PlaylistController);
     vlc_playlist_locker lock{ d->m_playlist };
+    if ( restartEndedQueue( d->m_playlist ) )
+        return;
     vlc_playlist_Start( d->m_playlist );
 }
 
@@ -680,6 +872,8 @@ void PlaylistController::togglePlayPause()
 {
     Q_D(PlaylistController);
     vlc_playlist_locker lock{ d->m_playlist };
+    if ( restartEndedQueue( d->m_playlist ) )
+        return;
     vlc_player_t* player = vlc_playlist_GetPlayer( d->m_playlist );
     if ( vlc_player_IsStarted(player) )
         vlc_player_TogglePause( player );

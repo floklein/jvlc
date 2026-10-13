@@ -29,6 +29,8 @@
 #include <QVector>
 #include <QVariantList>
 
+#include <chrono>
+
 #include "media.hpp"
 #include "playlist_common.hpp"
 #include "playlist_item.hpp"
@@ -106,6 +108,10 @@ public:
     Q_PROPERTY(SortOrder sortOrder READ getSortOrder WRITE setSortOrder NOTIFY sortOrderChanged FINAL)
     Q_PROPERTY(MediaStopAction mediaStopAction READ getMediaStopAction WRITE setMediaStopAction NOTIFY mediaStopActionChanged FINAL)
     Q_PROPERTY(int currentIndex READ currentIndex NOTIFY currentIndexChanged FINAL)
+    /* "Add to the Queue instead of replacing it": Play appends and jumps */
+    Q_PROPERTY(bool playAddsToQueue READ playAddsToQueue WRITE setPlayAddsToQueue NOTIFY playAddsToQueueChanged FINAL)
+    /* true for a while after Play replaced the Queue */
+    Q_PROPERTY(bool canUndoReplace READ canUndoReplace NOTIFY canUndoReplaceChanged FINAL)
 
 
 public:
@@ -129,6 +135,19 @@ public:
 
     void append(const QVector<Media> &, bool startPlaying = false);
     void insert(size_t index, const QVector<Media> &, bool startPlaying = false);
+
+    /**
+     * The Play rule: replace the Queue with the media and play the first one,
+     * keeping the previous Queue for undoReplace(). When playAddsToQueue is
+     * set, append the media and jump to the first one instead.
+     */
+    Q_INVOKABLE void playMedia(const QVariantList&);
+    void playMedia(const QVector<Media> &);
+    /* Insert the media right after the current item */
+    Q_INVOKABLE void playNext(const QVariantList&);
+    void playNext(const QVector<Media> &);
+    /* Restore the Queue that the last playMedia() replaced */
+    Q_INVOKABLE void undoReplace();
     void move(const QVector<PlaylistItem> &, size_t target, ssize_t indexHint);
     void remove(const QVector<PlaylistItem> &, ssize_t indexHint);
 
@@ -161,6 +180,10 @@ public:
     int currentIndex() const;
     SortOrder getSortOrder() const;
     bool isInitialized() const;
+    bool playAddsToQueue() const;
+    bool canUndoReplace() const;
+    std::chrono::milliseconds undoReplaceTimeout() const;
+    void setUndoReplaceTimeout(std::chrono::milliseconds timeout);
 
 public slots:
     PlaylistItem getCurrentItem() const;
@@ -171,6 +194,7 @@ public slots:
     void setSortKey(SortKey sortKey);
     void setSortOrder(SortOrder sortOrder);
     void switchSortOrder();
+    void setPlayAddsToQueue(bool);
 
     QVariantList getSortKeyTitleList() const;
     Playlist getPlaylist() const;
@@ -198,6 +222,11 @@ signals:
     void itemsUpdated(size_t index, const QVector<PlaylistItem>&);
 
     void initializedChanged();
+
+    void playAddsToQueueChanged();
+    void canUndoReplaceChanged();
+    /* Play replaced a non-empty Queue */
+    void queueReplaced();
 
 private:
     Q_DECLARE_PRIVATE(PlaylistController)

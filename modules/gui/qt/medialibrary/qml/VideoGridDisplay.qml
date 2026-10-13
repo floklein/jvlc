@@ -108,6 +108,9 @@ Widgets.ExpandGridItemView {
 
         labels: gridView.labels(model)
 
+        viewModel: gridView.model
+        viewIndex: index
+
         // Events
 
         onItemClicked: (modifier, select) => { gridView.leftClickOnItem(modifier, index, select) }

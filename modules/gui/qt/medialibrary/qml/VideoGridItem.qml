@@ -31,8 +31,16 @@ Widgets.GridItem {
     
     property var labels
 
+    // the view's model and the row of this item in it, so that Play follows
+    // the Play rule (the video and the videos after it in the view)
+    property var viewModel: null
+    property int viewIndex: -1
+
     function play() {
-        if ( model.id !== undefined ) {
+        if (viewModel && viewIndex >= 0) {
+            viewModel.addAndPlay([viewModel.index(viewIndex, 0)])
+            MainCtx.playerView = true
+        } else if ( model.id !== undefined ) {
             MediaLib.addAndPlay( model.id )
             MainCtx.playerView = true
         }

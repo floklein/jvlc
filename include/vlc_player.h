@@ -165,6 +165,32 @@ VLC_API void
 vlc_player_SetPlayAndPause(vlc_player_t *player, bool play_and_pause);
 
 /**
+ * Pause when reaching EOF of the last media
+ *
+ * The player pauses on the last frame, instead of stopping, when it reaches
+ * EOF while no next media is set (see vlc_player_SetNextMedia()). Contrary to
+ * vlc_player_SetPlayAndPause(), it does not pause between medias.
+ *
+ * @param player locked player instance
+ * @param pause_at_end true to pause at the end of the last media
+ */
+VLC_API void
+vlc_player_SetPauseAtEnd(vlc_player_t *player, bool pause_at_end);
+
+/**
+ * Check if the player is paused on the last frame
+ *
+ * True once the player paused at the end of the last media (see
+ * vlc_player_SetPauseAtEnd()), until it seeks or plays another media.
+ * vlc_player_Resume() then plays the media again from its start.
+ *
+ * @param player locked player instance
+ * @return true if paused at the end of the last media
+ */
+VLC_API bool
+vlc_player_IsEnded(vlc_player_t *player);
+
+/**
  * Repeat playback when reaching EOF
  *
  * @param player locked player instance

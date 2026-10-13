@@ -41,6 +41,103 @@ test_play_pause(struct ctx *ctx)
 }
 
 static void
+test_pause_at_end(struct ctx *ctx)
+{
+    test_log("pause_at_end\n");
+
+    vlc_player_t *player = ctx->player;
+    vlc_player_SetPauseAtEnd(player, true);
+
+    struct media_params params = DEFAULT_MEDIA_PARAMS(VLC_TICK_FROM_MS(100));
+    player_set_next_mock_media(ctx, "media1", &params);
+    player_set_next_mock_media(ctx, "media2", &params);
+    player_start(ctx);
+
+    /* The last media has no next media: the player pauses on it instead of
+     * stopping */
+    wait_state(ctx, VLC_PLAYER_STATE_PLAYING);
+    wait_state(ctx, VLC_PLAYER_STATE_PAUSED);
+
+    /* Check the first media did not pause, since it had a next media */
+    vec_on_current_media_changed *vec = &ctx->report.on_current_media_changed;
+    assert(vec->size == 2);
+    assert(vlc_player_GetCurrentMedia(player) == vec->data[1]);
+
+    /* Check we stay paused */
+    vlc_tick_sleep(VLC_TICK_FROM_MS(100));
+    assert_state(ctx, VLC_PLAYER_STATE_PAUSED);
+    assert(vlc_player_IsEnded(player));
+    test_prestop(ctx);
+
+    vlc_player_Stop(player);
+
+    test_end(ctx);
+}
+
+static void
+test_pause_at_end_resume(struct ctx *ctx)
+{
+    test_log("pause_at_end_resume\n");
+
+    vlc_player_t *player = ctx->player;
+    vlc_player_SetPauseAtEnd(player, true);
+
+    const vlc_tick_t length = VLC_TICK_FROM_MS(200);
+    struct media_params params = DEFAULT_MEDIA_PARAMS(length);
+    player_set_next_mock_media(ctx, "media1", &params);
+    player_start(ctx);
+
+    wait_state(ctx, VLC_PLAYER_STATE_PLAYING);
+    wait_state(ctx, VLC_PLAYER_STATE_PAUSED);
+    assert(vlc_player_IsEnded(player));
+
+    /* Resuming at the end plays the media again from its start, instead of
+     * pausing again right away */
+    const size_t buffering_count = get_buffering_count(ctx);
+    const vlc_tick_t resume_date = vlc_tick_now();
+    vlc_player_Resume(player);
+    assert(!vlc_player_IsEnded(player));
+
+    wait_state(ctx, VLC_PLAYER_STATE_PLAYING);
+    wait_state(ctx, VLC_PLAYER_STATE_PAUSED);
+    assert(vlc_player_IsEnded(player));
+
+    /* the media was played again: it went back to its start (new buffering)
+     * and took about its length to end */
+    assert(get_buffering_count(ctx) > buffering_count);
+    assert(vlc_tick_now() - resume_date >= length / 2);
+
+    /* A seek away from the end is not the end any more */
+    vlc_player_SetTime(player, length / 2);
+    assert(!vlc_player_IsEnded(player));
+
+    test_prestop(ctx);
+    vlc_player_Stop(player);
+
+    test_end(ctx);
+}
+
+static void
+test_pause_at_end_no_pause(struct ctx *ctx)
+{
+    test_log("pause_at_end_no_pause\n");
+
+    vlc_player_t *player = ctx->player;
+    vlc_player_SetPauseAtEnd(player, true);
+
+    struct media_params params = DEFAULT_MEDIA_PARAMS(VLC_TICK_FROM_MS(100));
+    params.can_pause = false;
+    player_set_next_mock_media(ctx, "media1", &params);
+    player_start(ctx);
+
+    /* A media that can't pause stops at its end */
+    wait_state(ctx, VLC_PLAYER_STATE_PLAYING);
+    wait_state(ctx, VLC_PLAYER_STATE_STOPPED);
+
+    test_end(ctx);
+}
+
+static void
 test_repeat(struct ctx *ctx)
 {
     test_log("repeat\n");
@@ -94,6 +191,9 @@ main(void)
     struct ctx ctx;
     ctx_init(&ctx, 0);
     test_play_pause(&ctx);
+    test_pause_at_end(&ctx);
+    test_pause_at_end_resume(&ctx);
+    test_pause_at_end_no_pause(&ctx);
     test_repeat(&ctx);
     test_audio_end(&ctx, 2.f);
     test_audio_end(&ctx, 4.f);

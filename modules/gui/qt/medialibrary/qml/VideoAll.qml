@@ -122,8 +122,8 @@ MainViewLoader {
     }
 
     function onDoubleClick(object) {
-        MediaLib.addAndPlay(object.id)
-        MainCtx.playerView = true
+        // the Play rule: the video and the videos after it in the view
+        onAction([model.index(object.index, 0)])
     }
 
 

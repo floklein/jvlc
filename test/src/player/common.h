@@ -1157,6 +1157,7 @@ test_end(struct ctx *ctx)
     player_set_rate(ctx, 1.0f);
     vlc_player_SetStartPaused(player, false);
     vlc_player_SetPlayAndPause(player, false);
+    vlc_player_SetPauseAtEnd(player, false);
     vlc_player_SetRepeatCount(player, 0);
 
     ctx_reset(ctx);

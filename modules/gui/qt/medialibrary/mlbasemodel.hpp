@@ -103,6 +103,8 @@ public:
     bool getFavoriteOnly() const;
     void setFavoriteOnly(const bool favoriteOnly);
 
+    // Play the rows, following the Play rule: a single media row plays with
+    // the media rows after it, several rows play as they are
     Q_INVOKABLE void addAndPlay(const QModelIndexList &list, const QStringList &options = {});
 
     vlc_ml_sorting_criteria_t getMLSortingCriteria() const;

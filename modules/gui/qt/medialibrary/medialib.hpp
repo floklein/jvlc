@@ -53,10 +53,13 @@ public:
     Q_INVOKABLE void addToPlaylist(const QUrl& mrl, const QStringList &options = {});
     Q_INVOKABLE void addToPlaylist(const QVariantList& itemIdList, const QStringList &options = {});
 
+    // Play, following the Play rule (see PlaylistController::playMedia)
     Q_INVOKABLE void addAndPlay(const MLItemId &itemId, const QStringList &options = {});
     Q_INVOKABLE void addAndPlay(const QString& mrl, const QStringList &options = {});
     Q_INVOKABLE void addAndPlay(const QUrl& mrl, const QStringList &options = {});
     Q_INVOKABLE void addAndPlay(const QVariantList&itemIdList, const QStringList &options = {});
+    // Insert after the current item of the Queue
+    Q_INVOKABLE void playNext(const QVariantList &itemIdList, const QStringList &options = {});
     Q_INVOKABLE void insertIntoPlaylist(size_t index, const QVariantList &itemIds /*QList<MLParentId>*/, const QStringList &options = {});
 
     Q_INVOKABLE void reload();

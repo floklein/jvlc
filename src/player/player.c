@@ -1327,6 +1327,13 @@ vlc_player_SetPlayAndPause(vlc_player_t *player, bool play_and_pause)
 }
 
 void
+vlc_player_SetPauseAtEnd(vlc_player_t *player, bool pause_at_end)
+{
+    vlc_player_assert_locked(player);
+    player->pause_at_end = pause_at_end;
+}
+
+void
 vlc_player_SetRepeatCount(vlc_player_t *player, unsigned repeat_count)
 {
     vlc_player_assert_locked(player);
@@ -1358,7 +1365,21 @@ vlc_player_Pause(vlc_player_t *player)
 void
 vlc_player_Resume(vlc_player_t *player)
 {
+    struct vlc_player_input *input = vlc_player_get_input_locked(player);
+
+    /* Resuming on the last frame plays the media again from its start */
+    if (input && input->paused_at_end)
+        vlc_player_input_SeekByPos(input, 0, VLC_PLAYER_SEEK_PRECISE,
+                                   VLC_PLAYER_WHENCE_ABSOLUTE);
+
     vlc_player_SetPause(player, false);
+}
+
+bool
+vlc_player_IsEnded(vlc_player_t *player)
+{
+    struct vlc_player_input *input = vlc_player_get_input_locked(player);
+    return input && input->paused_at_end;
 }
 
 void
@@ -2129,6 +2150,7 @@ vlc_player_New(vlc_object_t *parent, enum vlc_player_lock_type lock_type)
     player->sub_string_ids = NULL;
 
     player->play_and_pause = false;
+    player->pause_at_end = false;
     player->repeat = 0;
 
 #define VAR_CREATE(var, flag) do { \

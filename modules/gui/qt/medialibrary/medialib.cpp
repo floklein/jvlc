@@ -180,7 +180,7 @@ void MediaLib::addAndPlay(const MLItemId & itemId, const QStringList &options )
     //UI thread
     [this](quint64, Context& ctx){
         if (!ctx.medias.empty())
-            m_playlistController->append(ctx.medias, true);
+            m_playlistController->playMedia(ctx.medias);
     });
 
 
@@ -189,13 +189,13 @@ void MediaLib::addAndPlay(const MLItemId & itemId, const QStringList &options )
 void MediaLib::addAndPlay(const QString& mrl, const QStringList &options)
 {
     vlc::playlist::Media media{ mrl, mrl, options };
-    m_playlistController->append( QVector<vlc::playlist::Media>{media}, true );
+    m_playlistController->playMedia( QVector<vlc::playlist::Media>{media} );
 }
 
 void MediaLib::addAndPlay(const QUrl& mrl, const QStringList &options)
 {
     vlc::playlist::Media media{ mrl.toString(QUrl::FullyEncoded), mrl.fileName(), options };
-    m_playlistController->append( QVector<vlc::playlist::Media>{media}, true );
+    m_playlistController->playMedia( QVector<vlc::playlist::Media>{media} );
 }
 
 
@@ -214,7 +214,26 @@ void MediaLib::addAndPlay(const QVariantList& itemIdList, const QStringList &opt
     //UI thread
     [this](quint64, Context& ctx){
         if (!ctx.medias.empty())
-            m_playlistController->append(ctx.medias, true);
+            m_playlistController->playMedia(ctx.medias);
+    });
+}
+
+void MediaLib::playNext(const QVariantList &itemIdList, const QStringList &options)
+{
+    struct Context {
+        QVector<vlc::playlist::Media> medias;
+    };
+    runOnMLThread<Context>(this,
+    //ML thread
+    [itemIdList, options]
+    (vlc_medialibrary_t* ml, Context& ctx)
+    {
+        convertQVariantListToPlaylistMedias(ml, itemIdList, options, ctx.medias);
+    },
+    //UI thread
+    [this](quint64, Context& ctx){
+        if (!ctx.medias.empty())
+            m_playlistController->playNext(ctx.medias);
     });
 }
 

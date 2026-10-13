@@ -255,11 +255,21 @@ static inline void action_handler_Player##name(intf_thread_t *intf, \
 
 PLAYER_ACTION_HANDLER(State)
 {
-    VLC_UNUSED(intf);
     switch (action_id)
     {
         case ACTIONID_PLAY_PAUSE:
         {
+            /* At the end of the playlist (paused on the last frame), play it
+             * again from its first item. The playlist and the player share
+             * the lock. */
+            vlc_playlist_t *playlist = intf->p_sys->playlist;
+            if (vlc_player_IsEnded(player) && vlc_playlist_Count(playlist) > 0)
+            {
+                if (vlc_playlist_GoTo(playlist, 0) == VLC_SUCCESS)
+                    vlc_playlist_Start(playlist);
+                break;
+            }
+
             enum vlc_player_state state = vlc_player_GetState(player);
             if (state == VLC_PLAYER_STATE_PAUSED)
                 vlc_player_Resume(player);
