@@ -12,6 +12,22 @@ _Avoid_: Playlist (for this meaning), play queue
 A saved, named collection of media that the user curates; it plays only once added to the Queue.
 _Avoid_: Queue
 
+**Library pane**:
+The narrow library list that opens beside the video, as opposed to the full-window library.
+_Avoid_: Sidebar (for this meaning), compact library
+
+**Mini player**:
+The small video and controls in a corner of the full-window library while media plays.
+_Avoid_: PiP, floating player
+
+**Pin**:
+A user-added shortcut in the library sidebar to a folder, Playlist or stream.
+_Avoid_: Favorite, bookmark
+
+**Favorite**:
+A heart the user puts on a media file or Playlist, gathered in a Favorites row on Home.
+_Avoid_: Pin, star
+
 **Theme**:
 The interface's color mode: Light, Dark, or System (follows the operating system's light/dark setting).
 _Avoid_: Color scheme, Day/Night, skin
