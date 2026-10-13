@@ -64,6 +64,10 @@ _Avoid_: Profile (for this meaning), toolbar configuration
 A named bundle of all preferences, Theme, Accent color, scale and Layouts that the user switches between; the library, history and per-show presets are shared by all Profiles.
 _Avoid_: Preset, configuration, Layout
 
+**Settings**:
+The window of all of VLC's preferences, grouped into categories, each showing basic options first and Advanced Options below.
+_Avoid_: Preferences, options, simple/all settings
+
 **Track menu**:
 The popover from the Control bar's audio or subtitle button for picking video, audio and subtitle tracks and the audio output.
 _Avoid_: Track selector, quick menu
