@@ -61,7 +61,8 @@ moc_headers = files(
     'dialogs/preferences/preferences.hpp',
     'dialogs/preferences/preferences_widgets.hpp',
     'dialogs/preferences/simple_preferences.hpp',
-    'dialogs/sout/convert.hpp',
+    'dialogs/convert/conversion_manager.hpp',
+    'dialogs/convert/conversion_profile_model.hpp',
     'dialogs/sout/profile_selector.hpp',
     'dialogs/sout/sout.hpp',
     'dialogs/sout/sout_widgets.hpp',
@@ -266,8 +267,10 @@ qt_plugin_sources = files(
     'dialogs/preferences/preferences_widgets.hpp',
     'dialogs/preferences/simple_preferences.cpp',
     'dialogs/preferences/simple_preferences.hpp',
-    'dialogs/sout/convert.cpp',
-    'dialogs/sout/convert.hpp',
+    'dialogs/convert/conversion_manager.cpp',
+    'dialogs/convert/conversion_manager.hpp',
+    'dialogs/convert/conversion_profile_model.cpp',
+    'dialogs/convert/conversion_profile_model.hpp',
     'dialogs/sout/profile_selector.cpp',
     'dialogs/sout/profile_selector.hpp',
     'dialogs/sout/profiles.hpp',
@@ -612,6 +615,9 @@ qml_modules += {
     'target' : 'dialogs',
     'outdir' : 'VLC/Dialogs',
     'sources': files(
+        'dialogs/convert/qml/ConversionProfileEditor.qml',
+        'dialogs/convert/qml/ConversionsIndicator.qml',
+        'dialogs/convert/qml/ConvertDialog.qml',
         'dialogs/dialogs/qml/CustomDialog.qml',
         'dialogs/dialogs/qml/Dialogs.qml',
         'dialogs/dialogs/qml/ModalDialog.qml',
@@ -1387,6 +1393,54 @@ if qt6_dep.found()
             ),
             'moc_headers': files(
                 'util/renderer_manager.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_conversion_profile_model',
+            'sources': files(
+                'tests/test_conversion_profile_model.cpp',
+                'dialogs/convert/conversion_profile_model.hpp',
+                'dialogs/convert/conversion_profile_model.cpp',
+                'util/soutchain.hpp',
+                'util/soutchain.cpp'
+            ),
+            'moc_sources': files(
+                'tests/test_conversion_profile_model.cpp'
+            ),
+            'moc_headers': files(
+                'dialogs/convert/conversion_profile_model.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_conversion_manager',
+            'sources': files(
+                'tests/vlc_stub_modules.cpp',
+                'tests/test_conversion_manager.cpp',
+                'dialogs/convert/conversion_manager.hpp',
+                'dialogs/convert/conversion_manager.cpp',
+                'dialogs/convert/conversion_profile_model.hpp',
+                'dialogs/convert/conversion_profile_model.cpp',
+                'util/soutchain.hpp',
+                'util/soutchain.cpp'
+            ),
+            'moc_sources': files(
+                'tests/test_conversion_manager.cpp'
+            ),
+            'moc_headers': files(
+                'dialogs/convert/conversion_manager.hpp',
+                'dialogs/convert/conversion_profile_model.hpp'
             ),
             'suite': ['qt'],
             'include_directories' : qt_include_dir,

@@ -295,6 +295,8 @@ public:
 signals:
     void releaseMouseEvents();
     void showToolbarEditorDialog();
+    /* opens Convert with these media, if any */
+    void showConvertDialog(const QStringList& mrls);
     /* Shows the Properties & Metadata window of a media. The live window,
      * which follows the player, toggles when shown again on the same tab */
     void showMediaProperties( MediaPropertiesModel *model, int tab );

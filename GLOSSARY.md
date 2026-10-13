@@ -28,6 +28,14 @@ _Avoid_: Bookmark, favorite stream, URL history
 Sending what is playing to another device on the network, such as a Chromecast, instead of playing it in VLC.
 _Avoid_: Render, renderer, stream (for this meaning)
 
+**Conversion profile**:
+A named set of output format, codecs and quality settings that Convert uses to turn files into another format; VLC ships ready-made ones and the user can add custom ones.
+_Avoid_: Profile (for this meaning), transcoding profile, preset
+
+**Conversions**:
+The files Convert is turning into another format in the background, shown with their progress and Cancel in the Top bar's Conversions indicator.
+_Avoid_: Jobs, transcodes, tasks
+
 **Onboarding**:
 The short welcome sequence on first start that sets library folders, Theme, Accent color and online metadata, and shows the basic shortcuts.
 _Avoid_: First-run wizard, setup assistant, tour

@@ -242,6 +242,29 @@ Item {
             source: "qrc:///qt/qml/VLC/Playlist/PlaylistDetachedWindow.qml"
         }
 
+        // Convert: kept here so that it survives switching between the
+        // library and the player
+        Loader {
+            id: convertDialogLoader
+
+            active: false
+            source: "qrc:///qt/qml/VLC/Dialogs/ConvertDialog.qml"
+
+            Connections {
+                target: DialogsProvider
+
+                function onShowConvertDialog(mrls) {
+                    convertDialogLoader.active = true
+                    const dialog = convertDialogLoader.item
+                    if (mrls.length > 0 || !dialog.visible)
+                        dialog.setSources(mrls)
+                    dialog.open()
+                    dialog.raise()
+                    dialog.requestActivate()
+                }
+            }
+        }
+
         // Properties & Metadata windows, one per media. They live here so
         // they survive switching between the player and the library.
         Connections {

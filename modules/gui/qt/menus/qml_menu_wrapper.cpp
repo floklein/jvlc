@@ -1089,7 +1089,7 @@ void PlaylistContextMenu::popup(int selectedIndex, QPoint pos )
             DialogsProvider::getInstance()->streamingDialog(selectedUrlList, false);
         });
 
-        action = m_menu->addAction( qtr("Save") );
+        action = m_menu->addAction( qtr("Convert...") );
         connect(action, &QAction::triggered, [selectedUrlList]( ) {
             DialogsProvider::getInstance()->streamingDialog(selectedUrlList, true);
         });

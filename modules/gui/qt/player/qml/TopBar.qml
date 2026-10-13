@@ -28,6 +28,7 @@ import VLC.Player
 import VLC.Widgets as Widgets
 import VLC.Menus as Menus
 import VLC.Util
+import VLC.Dialogs
 
 // The player's Top bar (Figma 247:447): the cone, the VLC menu, the library
 // toggle and the folder button on the left, the media title in the center,
@@ -447,6 +448,18 @@ FocusScope {
             anchors.verticalCenter: parent.verticalCenter
 
             height: VLCStyle.dp(24, VLCStyle.scale)
+
+            // the background Conversions, while there are some
+            ConversionsIndicator {
+                height: parent.height
+                width: VLCStyle.dp(36, VLCStyle.scale)
+                font.pixelSize: VLCStyle.icon_normal
+
+                Navigation.parentItem: root
+
+                onRequestLockUnlockAutoHide: (lock) => root.requestLockUnlockAutoHide(lock)
+                onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
+            }
 
             // without our window buttons (fullscreen, system decorations),
             // fullscreen stands alone

@@ -58,7 +58,6 @@ private slots:
     void editProfile();
     void deleteProfile();
     void updateOptions( int i );
-    void updateOptionsOldFormat( int i );
 signals:
     void optionsChanged();
 };

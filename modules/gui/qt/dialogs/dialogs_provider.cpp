@@ -47,7 +47,6 @@
 #include "dialogs/extended/extended.hpp"
 #include "dialogs/vlm/vlm.hpp"
 #include "dialogs/sout/sout.hpp"
-#include "dialogs/sout/convert.hpp"
 #include "dialogs/open/open.hpp"
 #include "dialogs/open/openurl.hpp"
 #include "dialogs/help/help.hpp"
@@ -944,40 +943,28 @@ void DialogsProvider::streamingDialog( QWindow *parent,
                                        bool b_transcode_only,
                                        QStringList options )
 {
+    /* Convert runs in the background, without touching the Queue */
+    if( b_transcode_only )
+    {
+        emit showConvertDialog( mrls );
+        return;
+    }
+
     QStringList outputMRLs;
 
     /* Stream */
     // Does streaming multiple files make sense?  I suppose so, just stream one
     // after the other, but not at the moment.
-    if( !b_transcode_only )
+    SoutDialog *s = new SoutDialog( parent, p_intf, mrls[0] );
+    s->setAttribute( Qt::WA_QuitOnClose, false ); // See #4883
+    if( s->exec() == QDialog::Accepted )
     {
-        SoutDialog *s = new SoutDialog( parent, p_intf, mrls[0] );
-        s->setAttribute( Qt::WA_QuitOnClose, false ); // See #4883
-        if( s->exec() == QDialog::Accepted )
-        {
-            outputMRLs.append(s->getChain());
-            delete s;
-        }
-        else
-        {
-            delete s; return;
-        }
-    } else {
-    /* Convert */
-        ConvertDialog *s = new ConvertDialog( parent, p_intf, mrls );
-        s->setAttribute( Qt::WA_QuitOnClose, false ); // See #4883
-        if( s->exec() == QDialog::Accepted )
-        {
-            /* Clear the playlist.  This is because we're going to be populating
-               it */
-            THEMPL->clear();
-            outputMRLs = s->getMrls();
-            delete s;
-        }
-        else
-        {
-            delete s; return;
-        }
+        outputMRLs.append(s->getChain());
+        delete s;
+    }
+    else
+    {
+        delete s; return;
     }
 
     /* Get SoutChain(s) */
@@ -1016,8 +1003,18 @@ void DialogsProvider::openAndStreamingDialogs()
 
 void DialogsProvider::openAndTranscodingDialogs()
 {
-    ensureDialog(m_openDialog);
-    m_openDialog->showTab( OpenDialog::OPEN_FILE_TAB, OpenDialog::OPEN_AND_SAVE );
+    /* Convert the current file, if any */
+    QStringList mrls;
+    if( input_item_t *p_item = THEMIM->getInput() )
+    {
+        char *uri = input_item_GetURI( p_item );
+        if( uri )
+        {
+            mrls.append( qfu( uri ) );
+            free( uri );
+        }
+    }
+    emit showConvertDialog( mrls );
 }
 
 void  DialogsProvider::loadMediaFile( const es_format_category_e category, const int filter , const QString &dialogTitle)

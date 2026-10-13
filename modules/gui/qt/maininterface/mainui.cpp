@@ -63,6 +63,8 @@
 #include "dialogs/help/aboutmodel.hpp"
 #include "dialogs/dialogs_provider.hpp"
 #include "dialogs/dialogs/dialogmodel.hpp"
+#include "dialogs/convert/conversion_manager.hpp"
+#include "dialogs/convert/conversion_profile_model.hpp"
 #include "dialogs/mediainfo/media_properties_model.hpp"
 #include "dialogs/open/disc_model.hpp"
 #ifdef UPDATE_CHECK
@@ -286,6 +288,8 @@ void MainUI::registerQMLTypes()
         qmlRegisterSingletonInstance<DialogsProvider>(uri, versionMajor, versionMinor, "DialogsProvider", DialogsProvider::getInstance());
         assert(DialogErrorModel::getInstance<false>());
         qmlRegisterSingletonInstance<DialogErrorModel>(uri, versionMajor, versionMinor, "DialogErrorModel", DialogErrorModel::getInstance<false>());
+        qmlRegisterType<ConversionProfileModel>( uri, versionMajor, versionMinor, "ConversionProfileModel" );
+        qmlRegisterSingletonInstance<ConversionManager>(uri, versionMajor, versionMinor, "Conversions", new ConversionManager(VLC_OBJECT(m_intf), this));
         qmlRegisterUncreatableType<MediaPropertiesModel>( uri, versionMajor, versionMinor, "MediaPropertiesModel", "");
         qmlRegisterType<DiscModel>( uri, versionMajor, versionMinor, "DiscModel" );
 

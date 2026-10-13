@@ -29,6 +29,7 @@ import VLC.Playlist
 import VLC.Widgets as Widgets
 import VLC.Menus as Menus
 import VLC.Util
+import VLC.Dialogs
 
 T.ToolBar {
     id: root
@@ -182,6 +183,8 @@ T.ToolBar {
 
                 Navigation.parentItem: root
                 Navigation.leftItem: navigationButtons
+
+                ConversionsIndicator { }
 
                 PlaylistPane.PlaylistToggleButton {
                     id: playlistBtn

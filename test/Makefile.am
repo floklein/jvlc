@@ -11,6 +11,7 @@ player_programs = \
 	test_src_player_abloop \
 	test_src_player_attachments \
 	test_src_player_capabilities \
+	test_src_player_conversion \
 	test_src_player_discontinuities \
 	test_src_player_eof \
 	test_src_player_errors \
@@ -284,7 +285,10 @@ test_src_player_pause_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)
 test_src_player_programs_SOURCES = src/player/common.h src/player/modules.c \
 	src/player/programs.c
 test_src_player_programs_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)
-test_src_player_seeks_SOURCES = src/player/common.h src/player/modules.c \
+test_src_player_conversion_SOURCES = src/player/common.h src/player/modules.c \
+	src/player/conversion.c
+test_src_player_conversion_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)
+test_src_player_seeks_SOURCES =src/player/common.h src/player/modules.c \
 	src/player/seeks.c
 test_src_player_seeks_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)
 test_src_player_teletext_SOURCES = src/player/common.h src/player/modules.c \

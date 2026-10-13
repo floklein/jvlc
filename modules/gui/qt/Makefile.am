@@ -144,7 +144,10 @@ libqt_plugin_la_SOURCES = \
 	dialogs/preferences/preferences_widgets.hpp \
 	dialogs/preferences/simple_preferences.cpp \
 	dialogs/preferences/simple_preferences.hpp \
-	dialogs/sout/convert.cpp dialogs/sout/convert.hpp \
+	dialogs/convert/conversion_manager.cpp \
+	dialogs/convert/conversion_manager.hpp \
+	dialogs/convert/conversion_profile_model.cpp \
+	dialogs/convert/conversion_profile_model.hpp \
 	dialogs/sout/profile_selector.cpp \
 	dialogs/sout/profile_selector.hpp \
 	dialogs/sout/profiles.hpp \
@@ -432,7 +435,8 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/preferences/preferences.moc.cpp \
 	dialogs/preferences/preferences_widgets.moc.cpp \
 	dialogs/preferences/simple_preferences.moc.cpp \
-	dialogs/sout/convert.moc.cpp \
+	dialogs/convert/conversion_manager.moc.cpp \
+	dialogs/convert/conversion_profile_model.moc.cpp \
 	dialogs/sout/profile_selector.moc.cpp \
 	dialogs/sout/sout.moc.cpp \
 	dialogs/sout/sout_widgets.moc.cpp \
@@ -1042,6 +1046,9 @@ libqml_module_dialogs_a_ModulePath = VLC/Dialogs
 libqml_module_dialogs_a_CXXFLAGS = $(libqt_plugin_la_CXXFLAGS)
 libqml_module_dialogs_a_CPPFLAGS = $(libqt_plugin_la_CPPFLAGS)
 libqml_module_dialogs_a_QML = \
+	dialogs/convert/qml/ConversionProfileEditor.qml \
+	dialogs/convert/qml/ConversionsIndicator.qml \
+	dialogs/convert/qml/ConvertDialog.qml \
 	dialogs/dialogs/qml/CustomDialog.qml \
 	dialogs/dialogs/qml/Dialogs.qml \
 	dialogs/dialogs/qml/ModalDialog.qml \
@@ -1843,6 +1850,52 @@ test_renderer_manager_model_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_renderer_manager_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_renderer_manager_model
 TESTS += test_renderer_manager_model
+
+# test_conversion_profile_model
+
+test_conversion_profile_model_SOURCES = \
+	tests/test_conversion_profile_model.cpp \
+	dialogs/convert/conversion_profile_model.hpp \
+	dialogs/convert/conversion_profile_model.cpp \
+	util/soutchain.hpp util/soutchain.cpp
+
+nodist_test_conversion_profile_model_SOURCES = \
+	tests/test_conversion_profile_model.moc \
+	dialogs/convert/conversion_profile_model.moc.cpp
+
+BUILT_SOURCES += tests/test_conversion_profile_model.moc
+CLEANFILES += tests/test_conversion_profile_model.moc
+test_conversion_profile_model_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_conversion_profile_model_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_conversion_profile_model_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_conversion_profile_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_conversion_profile_model
+TESTS += test_conversion_profile_model
+
+# test_conversion_manager
+
+test_conversion_manager_SOURCES = \
+	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
+	tests/test_conversion_manager.cpp \
+	dialogs/convert/conversion_manager.hpp \
+	dialogs/convert/conversion_manager.cpp \
+	dialogs/convert/conversion_profile_model.hpp \
+	dialogs/convert/conversion_profile_model.cpp \
+	util/soutchain.hpp util/soutchain.cpp
+
+nodist_test_conversion_manager_SOURCES = \
+	tests/test_conversion_manager.moc \
+	dialogs/convert/conversion_manager.moc.cpp \
+	dialogs/convert/conversion_profile_model.moc.cpp
+
+BUILT_SOURCES += tests/test_conversion_manager.moc
+CLEANFILES += tests/test_conversion_manager.moc
+test_conversion_manager_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_conversion_manager_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_conversion_manager_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_conversion_manager_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_conversion_manager
+TESTS += test_conversion_manager
 
 # test_thread_runner
 
