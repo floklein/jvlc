@@ -25,20 +25,17 @@ import VLC.Util
 import VLC.Style
 import VLC.Player
 
+// The speaker button and the volume cone (Figma 491:1731). The full cone spans
+// 0 to the maximum volume (125% by default); the orange-to-red end of its
+// gradient marks the boost above 100%.
 T.Pane {
     id: root
 
     property bool paintOnly: false
 
-    readonly property color sliderColor: {
-        const theme = volControl.colorContext
-        return (volControl.position > _fullvolpos) ? theme.fg.negative : theme.fg.primary
-    }
-
     readonly property var _player: paintOnly ? ({ muted: false, volume: .5 }) : Player
+    // the cone works in percent
     readonly property int _maxvol: MainCtx.maxVolume
-    readonly property real _fullvolpos: 100 / _maxvol
-    readonly property real _maxvolpos: _maxvol / 100
 
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
                             implicitContentWidth + leftPadding + rightPadding)
@@ -55,7 +52,7 @@ T.Pane {
         id: volumeWidget
 
         anchors.fill: parent
-        spacing: 0
+        spacing: VLCStyle.spacing_8
 
         Widgets.IconToolButton{
             id: volumeBtn
@@ -74,7 +71,8 @@ T.Pane {
                 else
                     return VLCIcons.volume_high
             }
-            description: qsTr("Mute")
+            description: _player.muted ? qsTr("Unmute") : qsTr("Mute")
+            shortcut: MainCtx.actionShortcut("vol-mute")
 
             AccessibleCompat.id: "muteButton"
 
@@ -97,8 +95,8 @@ T.Pane {
         Widgets.SliderExt {
             id: volControl
 
-            // FIXME: use VLCStyle
-            implicitWidth: VLCStyle.dp(100, VLCStyle.scale)
+            implicitWidth: VLCStyle.dp(88, VLCStyle.scale)
+            implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
 
             // WARNING: Directly setting the insets break handle and background positioning.
             Binding on topInset {
@@ -110,8 +108,7 @@ T.Pane {
                 value: VLCStyle.touchHandlerMargin
             }
 
-            Layout.fillHeight: true
-            Layout.margins: VLCStyle.margin_xsmall
+            Layout.alignment: Qt.AlignVCenter
 
             property bool _inhibitPlayerVolumeUpdate: false
 
@@ -119,17 +116,16 @@ T.Pane {
             //        could be fixed with a custom Slider based on a MouseArea.
             property bool _shiftPressed: false
 
-            property real _clamp: 0.01
-
             property bool _keyPressed: false
 
             property bool filterEvents: false
 
-            color: root.sliderColor
-
+            // in percent, so that screen readers read the volume as a percentage
             from: 0
-            to: root._maxvolpos
-            opacity: _player.muted ? 0.5 : 1
+            to: root._maxvol
+            stepSize: 1
+
+            handleWidth: 0
 
             enabled: !root.paintOnly // disables event handling depending on this
 
@@ -143,6 +139,81 @@ T.Pane {
 
             Accessible.name: qsTr("Volume")
             AccessibleCompat.id: "volumeSlider"
+
+            // the cone has no handle
+            handle: Item {
+                x: volControl.leftPadding + volControl.visualPosition * volControl.availableWidth
+                y: volControl.topPadding + volControl.availableHeight / 2
+
+                implicitWidth: 0
+                implicitHeight: 0
+            }
+
+            background: Item {
+                x: volControl.leftPadding
+                y: volControl.topPadding
+
+                implicitWidth: VLCStyle.dp(88, VLCStyle.scale)
+                implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
+
+                width: volControl.availableWidth
+                height: volControl.availableHeight
+
+                Image {
+                    id: coneTrack
+
+                    anchors.centerIn: parent
+
+                    width: parent.width
+                    height: parent.height * (27.3633 / 28)
+
+                    sourceSize: Qt.size(width * Screen.devicePixelRatio, height * Screen.devicePixelRatio)
+                    fillMode: Image.Stretch
+
+                    source: SVGColorImage.colorize("qrc:///misc/volume_cone_track.svg")
+                                .color1(volControl.colorContext.bg.primary)
+                                .uri()
+                }
+
+                // the level: the gradient cone, cut at the current volume
+                Item {
+                    x: parent.width * (1.5 / 88)
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    width: (parent.width * (86 / 88)) * volControl.visualPosition
+                    height: coneLevel.height
+
+                    clip: true
+
+                    opacity: root._player.muted ? 0.5 : 1
+
+                    Image {
+                        id: coneLevel
+
+                        width: coneTrack.width * (86 / 88)
+                        height: coneTrack.height * (24.56 / 27.3633)
+
+                        sourceSize: Qt.size(width * Screen.devicePixelRatio, height * Screen.devicePixelRatio)
+                        fillMode: Image.Stretch
+
+                        source: "qrc:///misc/volume_cone_level.svg"
+                    }
+                }
+
+                // keyboard focus ring
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: -VLCStyle.focus_border
+
+                    radius: VLCStyle.radius_small
+
+                    color: "transparent"
+                    border.width: VLCStyle.focus_border
+                    border.color: volControl.colorContext.visualFocus
+
+                    visible: volControl.visualFocus
+                }
+            }
 
             Keys.onPressed: (event) => {
                 if (KeyHelper.matchOk(event)) {
@@ -167,7 +238,7 @@ T.Pane {
 
             function _syncVolumeWithPlayer() {
                 volControl._inhibitPlayerVolumeUpdate = true
-                volControl.value = _player.volume
+                volControl.value = _player.volume * 100
                 volControl._inhibitPlayerVolumeUpdate = false
             }
 
@@ -177,14 +248,10 @@ T.Pane {
                 let value = volControl.value
 
                 // NOTE: We are clamping the value to make it easier to restore the default volume.
-                if (_shiftPressed === false) {
-                    if (Math.abs(value - 1.0) < _clamp)
-                        value = 1.0
-                    else
-                        _clamp = 0.01
-                }
+                if (_shiftPressed === false && Math.abs(value - 100) < 1)
+                    value = 100
 
-                Player.volume = value
+                Player.volume = value / 100
 
                 volControl.value = value
             }
@@ -235,41 +302,6 @@ T.Pane {
                 }
             }
 
-            Rectangle{
-                id: tickmark
-
-                parent: volControl.background
-
-                x : parent.width * root._fullvolpos
-                width: VLCStyle.dp(1, VLCStyle.scale)
-                height: parent.height
-                radius: VLCStyle.dp(2, VLCStyle.scale)
-
-                // NOTE: This shouldn't be visible when the volume stops before a 100.
-                visible: (root._maxvol > 100)
-
-                // FIXME: tick mark is not visible when it's over slider
-                color: root.sliderColor
-
-                // NOTE: This is a helper to select the default volume when clicking on the
-                //       tickmark. We apply a higher clamp value to achieve that behavior on
-                //       the Slider.
-                MouseArea {
-                    anchors.fill: parent
-
-                    anchors.margins: -(VLCStyle.dp(4, VLCStyle.scale))
-
-                    onPressed: (mouse) => {
-                        mouse.accepted = false
-
-                        if (mouse.modifiers === Qt.ShiftModifier)
-                            return
-
-                        volControl._clamp = 0.1
-                    }
-                }
-            }
-
             MouseArea {
                 id: sliderMouseArea
 
@@ -311,7 +343,7 @@ T.Pane {
 
                         if (wheel.inverted)
                             delta = -delta
-                        volControl.value += 0.001 * delta
+                        volControl.value += 0.1 * delta
                     }
                     else
                         wheelToVLC.qmlWheelEvent(wheel)
@@ -319,19 +351,20 @@ T.Pane {
                     wheel.accepted = true
                 }
 
+                // right button: snap to 0, 50, 100 or the maximum
                 function adjustVolume(mouse) {
                     mouse.accepted = true
 
-                    const pos = mouse.x * root._maxvolpos / width
+                    const pos = mouse.x * root._maxvol / width
 
-                    if (pos < 0.25)
+                    if (pos < 25)
                         volControl.value = 0
-                    else if (pos < 0.75)
-                        volControl.value = 0.5
-                    else if (pos < 1.125)
-                        volControl.value = 1
+                    else if (pos < 75)
+                        volControl.value = 50
+                    else if (pos < (100 + root._maxvol) / 2)
+                        volControl.value = 100
                     else
-                        volControl.value = 1.25
+                        volControl.value = root._maxvol
                 }
 
                 WheelToVLCConverter {

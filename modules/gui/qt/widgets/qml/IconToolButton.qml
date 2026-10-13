@@ -34,6 +34,10 @@ T.ToolButton {
 
     required property string description
 
+    // key that triggers the same action, read by screen readers ("Play, Space")
+    // and shown in the tooltip
+    property string shortcut: ""
+
     property color color: (control.checked) ? theme.accent : theme.fg.primary
 
     property color backgroundColor: theme.bg.primary
@@ -66,7 +70,7 @@ T.ToolButton {
 
     Accessible.onPressAction: control.clicked()
 
-    Accessible.name: description
+    Accessible.name: Helpers.accessibleName(description, shortcut)
 
     // Tooltip
 
@@ -74,7 +78,7 @@ T.ToolButton {
 
     T.ToolTip.delay: VLCStyle.delayToolTipAppear
 
-    T.ToolTip.text: description
+    T.ToolTip.text: shortcut ? qsTr("%1 (%2)").arg(description).arg(shortcut) : description
 
     // Events
 

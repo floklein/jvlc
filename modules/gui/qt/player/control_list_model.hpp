@@ -82,9 +82,9 @@ public:
         NAVIGATION_BUTTONS,
         PROGRAM_BUTTON,
         NAVIGATION_BOX,
-        RESERVED_0X2B,
-        RESERVED_0X2C,
-        RESERVED_0X2D,
+        SEEK_BAR, // current time, seek bar and duration, inline in the Control bar
+        AUDIO_BUTTON,
+        SUBTITLES_BUTTON,
         RESERVED_0X2E,
         RESERVED_0X2F,
         RESERVED_0X30,
@@ -111,7 +111,8 @@ public:
     Q_ENUM(ControlType)
 
     static_assert(RESERVED_0X1F == 0x1F, "missaligned");
-    static_assert(RESERVED_0X2B == 0x2B, "missaligned");
+    static_assert(SEEK_BAR == 0x2B, "missaligned");
+    static_assert(RESERVED_0X2E == 0x2E, "missaligned");
     static_assert(RESERVED_0X3F == 0x3F, "missaligned");
 
     // Basic functionality:
@@ -129,6 +130,8 @@ public:
 
     QVector<int> getControls() const;
     void setControls(const QVector<int>& list);
+
+    Q_INVOKABLE bool contains(int control) const;
 
     bool operator==(const ControlListModel& model) const
     {

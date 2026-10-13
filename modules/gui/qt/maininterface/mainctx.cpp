@@ -676,6 +676,11 @@ QUrl MainCtx::folderMRL(const QUrl &fileMRL) const
     return {};
 }
 
+QString MainCtx::actionShortcut(const QString &action) const
+{
+    return vlcActionKeyText(VLC_OBJECT(vlc_object_instance(p_intf)), qtu(action));
+}
+
 QString MainCtx::displayMRL(const QUrl &mrl) const
 {
     return urlToDisplayString(mrl);

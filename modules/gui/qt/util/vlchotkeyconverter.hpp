@@ -19,6 +19,17 @@ int qtEventToVLCKey( QKeyEvent *e );
 int qtWheelEventToVLCKey( const QWheelEvent& e );
 QString VLCKeyToString( unsigned val, bool );
 
+struct vlc_object_t;
+
+/**
+ * @brief the first key currently bound to a hotkey action, for display
+ * @param obj object the key bindings are inherited from
+ * @param action action name without the "key-" prefix, e.g. "play-pause"
+ * @return the translated key ("Space", "Shift+R"), or an empty string if
+ * the action has no key
+ */
+QString vlcActionKeyText( struct vlc_object_t *obj, const char *action );
+
 /**
  * @brief The WheelToVLCConverter class aggregates wheel events and
  * emit a signal once it gathers a full scroll step, as VLC doesn't handle

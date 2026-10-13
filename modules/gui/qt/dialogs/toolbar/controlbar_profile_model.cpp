@@ -101,23 +101,21 @@ decltype (ControlbarProfileModel::m_defaults)
                         PlayerControlbarModel::Videoplayer,
                         {
                             {
+                                // The redesign's Control bar (Figma 491:1779)
                                 {
-                                    ControlListModel::LANG_BUTTON,
-                                    ControlListModel::BOOKMARK_BUTTON,
-                                    ControlListModel::EXTENDED_BUTTON,
-                                    ControlListModel::NAVIGATION_BUTTONS
-                                },
-                                {
-                                    ControlListModel::SKIP_BACK_BUTTON,
                                     ControlListModel::PREVIOUS_BUTTON,
                                     ControlListModel::PLAY_BUTTON,
-                                    ControlListModel::NEXT_BUTTON,
-                                    ControlListModel::SKIP_FW_BUTTON
+                                    ControlListModel::NEXT_BUTTON
+                                },
+                                {
+                                    ControlListModel::SEEK_BAR
                                 },
                                 {
                                     ControlListModel::VOLUME,
-                                    ControlListModel::RENDERER_BUTTON,
-                                    ControlListModel::FULLSCREEN_BUTTON
+                                    ControlListModel::AUDIO_BUTTON,
+                                    ControlListModel::SUBTITLES_BUTTON,
+                                    ControlListModel::EXTENDED_BUTTON,
+                                    ControlListModel::PLAYLIST_BUTTON
                                 }
                             }
                         }
@@ -126,22 +124,21 @@ decltype (ControlbarProfileModel::m_defaults)
                         PlayerControlbarModel::Audioplayer,
                         {
                             {
+                                // Music drops the subtitles button but keeps
+                                // the adjustments (equalizer)
                                 {
-                                    ControlListModel::LANG_BUTTON,
-                                    ControlListModel::BOOKMARK_BUTTON,
-                                    ControlListModel::EXTENDED_BUTTON
-                                },
-                                {
-                                    ControlListModel::RANDOM_BUTTON,
                                     ControlListModel::PREVIOUS_BUTTON,
                                     ControlListModel::PLAY_BUTTON,
-                                    ControlListModel::NEXT_BUTTON,
-                                    ControlListModel::LOOP_BUTTON
+                                    ControlListModel::NEXT_BUTTON
+                                },
+                                {
+                                    ControlListModel::SEEK_BAR
                                 },
                                 {
                                     ControlListModel::VOLUME,
-                                    ControlListModel::RENDERER_BUTTON,
-                                    ControlListModel::FULLSCREEN_BUTTON
+                                    ControlListModel::AUDIO_BUTTON,
+                                    ControlListModel::EXTENDED_BUTTON,
+                                    ControlListModel::PLAYLIST_BUTTON
                                 }
                             }
                         }
@@ -518,7 +515,8 @@ QString ControlbarProfileModel::generateUniqueName(const QString &name)
     // to check only for name existence but for cases when the
     // config file is edited explicitly, using count_if might
     // be helpful.
-    static const auto sameNameCount = [this](const auto& name) {
+    // NOTE: not static, it captures this model
+    const auto sameNameCount = [this](const auto& name) {
         return std::count_if(m_profiles.begin(),
                              m_profiles.end(),
                              [name](const ControlbarProfile* i) {

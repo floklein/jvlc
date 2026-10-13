@@ -44,6 +44,12 @@ T.ProgressBar {
     property color backgroundColor: theme.bg.primary
     property real touchHandlerMargin: VLCStyle.touchHandlerMargin
 
+    // The redesign's thick seek bar (Figma 1908:7387): a rounded track, the
+    // played part inset in it and a bar-shaped handle at its end.
+    // TODO: chapter ticks (#37); thin bars still draw one segment per chapter
+    readonly property bool _thick: barHeight >= VLCStyle.dp(12, VLCStyle.scale)
+    readonly property real _inset: _thick ? VLCStyle.dp(2, VLCStyle.scale) : 0
+
     Keys.onRightPressed: Player.jumpFwd()
     Keys.onLeftPressed: Player.jumpBwd()
 
@@ -321,10 +327,24 @@ T.ProgressBar {
 
         Rectangle {
             id: sliderRect
-            visible: !Player.hasChapters
+            visible: control._thick || !Player.hasChapters
             color: control.backgroundColor
             anchors.fill: parent
-            radius: implicitHeight
+            radius: control._thick ? VLCStyle.radius_normal : implicitHeight
+
+            // keyboard focus ring
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: -VLCStyle.focus_border
+
+                radius: parent.radius + VLCStyle.focus_border
+
+                color: "transparent"
+                border.width: VLCStyle.focus_border
+                border.color: theme.visualFocus
+
+                visible: control._thick && control.visualFocus
+            }
         }
 
         Repeater {
@@ -333,7 +353,7 @@ T.ProgressBar {
             anchors.left: parent.left
             anchors.right: parent.right
             height: control.barHeight
-            visible: Player.hasChapters
+            visible: !control._thick && Player.hasChapters
 
             model: Player.chapters
             Item {
@@ -429,11 +449,13 @@ T.ProgressBar {
 
         Rectangle {
             id: progressRect
-            width: control.visualPosition * parent.width
-            visible: !Player.hasChapters
-            color: theme.fg.primary
-            height: control.barHeight
-            radius: control._seekPointsRadius
+            x: control._inset
+            y: control._inset
+            width: control.visualPosition * (parent.width - control._inset * 2)
+            visible: control._thick || !Player.hasChapters
+            color: control._thick ? theme.bg.highlight : theme.fg.primary
+            height: control.barHeight - control._inset * 2
+            radius: control._thick ? VLCStyle.radius_small : control._seekPointsRadius
 
             // We use dynamic mutability group because time interpolation
             // may induce rapid change:
@@ -570,12 +592,15 @@ T.ProgressBar {
 
         property int _size: control.barHeight * 3
 
-        x: (control.visualPosition * control.availableWidth) - width / 2
+        // thick bar: an 8 px bar ending the played part, always shown
+        x: control._thick ? Math.max(control._inset,
+                                     control._inset + control.visualPosition * (control.availableWidth - control._inset * 2) - width)
+                          : (control.visualPosition * control.availableWidth) - width / 2
         y: (control.barHeight - height) / 2
 
-        implicitWidth: sliderHandle._size
-        implicitHeight: sliderHandle._size
-        radius: VLCStyle.margin_small
+        implicitWidth: control._thick ? VLCStyle.dp(8, VLCStyle.scale) : sliderHandle._size
+        implicitHeight: control._thick ? control.barHeight - control._inset * 2 : sliderHandle._size
+        radius: control._thick ? VLCStyle.radius_small : VLCStyle.margin_small
         color: theme.fg.primary
 
         // We use dynamic mutability group because time interpolation
@@ -625,8 +650,12 @@ T.ProgressBar {
             }
         ]
 
-        state: (hoverHandler.hovered || control.visualFocus)
-               ? ((control._currentChapterHovered || (Player.hasChapters && fsm._state === fsm.fsmHeld)) ? "visibleLarge" : "visible")
-               : "hidden"
+        state: {
+            if (control._thick)
+                return ""
+            return (hoverHandler.hovered || control.visualFocus)
+                   ? ((control._currentChapterHovered || (Player.hasChapters && fsm._state === fsm.fsmHeld)) ? "visibleLarge" : "visible")
+                   : "hidden"
+        }
     }
 }

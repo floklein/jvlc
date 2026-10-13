@@ -22,6 +22,7 @@ import QtQuick.Layouts
 import VLC.Widgets as Widgets
 import VLC.MainInterface
 import VLC.Style
+import VLC.Util
 
 
 T.Button {
@@ -30,6 +31,8 @@ T.Button {
     property color color
     property color hoverColor
     property string iconTxt: ""
+    property string description: ""
+    property string shortcut: ""
     property bool showHovered: false
     property bool isThemeDark: false
     property bool externalPressed: false
@@ -37,7 +40,8 @@ T.Button {
     readonly property bool _paintHovered: control.hovered || showHovered
 
     padding: 0
-    width: VLCStyle.dp(40, VLCStyle.scale)
+    // Figma 247:464: 36 x 24 window buttons
+    width: VLCStyle.dp(36, VLCStyle.scale)
 
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
                             implicitContentWidth + leftPadding + rightPadding)
@@ -45,6 +49,21 @@ T.Button {
                              implicitContentHeight + topPadding + bottomPadding)
 
     focusPolicy: Qt.NoFocus
+
+    readonly property ColorContext colorContext: ColorContext {
+        id: theme
+        colorSet: ColorContext.ToolButton
+
+        focused: control.visualFocus
+    }
+
+    Accessible.role: Accessible.Button
+    Accessible.name: Helpers.accessibleName(description, shortcut)
+    Accessible.onPressAction: control.clicked()
+
+    T.ToolTip.visible: (hovered || visualFocus) && description !== ""
+    T.ToolTip.delay: VLCStyle.delayToolTipAppear
+    T.ToolTip.text: shortcut ? qsTr("%1 (%2)").arg(description).arg(shortcut) : description
 
     background: Rectangle {
         height: control.height
@@ -59,6 +78,10 @@ T.Button {
 
             return "transparent"
         }
+
+        // keyboard focus ring
+        border.width: control.visualFocus ? VLCStyle.focus_border : 0
+        border.color: theme.visualFocus
     }
 
     contentItem: Item {
@@ -67,20 +90,8 @@ T.Button {
             anchors.centerIn: parent
             text: control.iconTxt
 
-            font.family:{
-                if (MainCtx.osName === MainCtx.Windows)
-                {
-                    if(MainCtx.osVersion === 10)
-                        return "Segoe MDL2 Assets"
-
-                    else if(MainCtx.osVersion >= 11)
-                        return "Segoe Fluent Icons"
-                }
-     
-                return VLCIcons.fontFamily
-            }
-
-            font.pixelSize: VLCStyle.icon_CSD
+            font.family: VLCIcons.fontFamily
+            font.pixelSize: VLCStyle.icon_normal
             color: control.color
         }
     }

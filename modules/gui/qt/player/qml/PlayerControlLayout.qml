@@ -63,6 +63,43 @@ FocusScope {
     implicitHeight: loaderLeftRight.active ? loaderLeftRight.implicitHeight
                                            : Math.max(loaderLeft.implicitHeight, loaderCenter.implicitHeight, loaderRight.implicitHeight)
 
+    // When the center zone holds an item that stretches (the inline seek bar),
+    // the left and right zones keep their natural width and the center zone
+    // takes the rest, instead of being centered.
+    readonly property bool _centerExpands: !loaderLeftRight.active
+                                           && (loaderCenter.item?.expanding ?? false)
+
+    states: State {
+        name: "centerExpands"
+        when: playerControlLayout._centerExpands
+
+        AnchorChanges {
+            target: loaderLeft
+            anchors.right: undefined
+        }
+
+        PropertyChanges {
+            loaderLeft.width: loaderLeft.item?.Layout.maximumWidth ?? 0
+        }
+
+        AnchorChanges {
+            target: loaderCenter
+            anchors.horizontalCenter: undefined
+            anchors.left: loaderLeft.right
+            anchors.right: loaderRight.left
+        }
+
+        AnchorChanges {
+            target: loaderRight
+            anchors.left: undefined
+            anchors.right: playerControlLayout.right
+        }
+
+        PropertyChanges {
+            loaderRight.width: loaderRight.item?.Layout.maximumWidth ?? 0
+        }
+    }
+
     // Events
 
     Component.onCompleted: console.assert(identifier >= 0)
@@ -229,7 +266,7 @@ FocusScope {
 
         Binding on width {
             delayed: true
-            when: loaderCenter._componentCompleted
+            when: loaderCenter._componentCompleted && !playerControlLayout._centerExpands
             value: {
                 const item = loaderCenter.item
 

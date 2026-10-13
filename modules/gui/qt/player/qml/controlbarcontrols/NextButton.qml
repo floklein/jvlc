@@ -18,6 +18,7 @@
 import QtQuick
 
 
+import VLC.MainInterface
 import VLC.Widgets as Widgets
 import VLC.Style
 import VLC.Playlist
@@ -30,6 +31,13 @@ Widgets.IconToolButton {
     enabled: MainPlaylistController.hasNext
     onClicked: MainPlaylistController.next()
     description: qsTr("Next")
+    shortcut: MainCtx.actionShortcut("next")
+
+    // Figma: 24 px icon in a 30x28 slot
+    leftPadding: VLCStyle.dp(3, VLCStyle.scale)
+    rightPadding: VLCStyle.dp(3, VLCStyle.scale)
+    topPadding: VLCStyle.dp(2, VLCStyle.scale)
+    bottomPadding: VLCStyle.dp(2, VLCStyle.scale)
 
     AccessibleCompat.id: "nextButton"
 }

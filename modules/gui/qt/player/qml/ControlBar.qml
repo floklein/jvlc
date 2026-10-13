@@ -26,6 +26,7 @@ import VLC.MainInterface
 import VLC.Style
 import VLC.Widgets as Widgets
 import VLC.Player
+import VLC.PlayerControls
 import VLC.Util
 
 T.Pane {
@@ -46,7 +47,20 @@ T.Pane {
 
     bottomPadding: VLCStyle.margin_xsmall
 
-    readonly property real sliderY: mapFromItem(contentItem, 0, contentItem.sliderY).y
+    // the Layout places the seek bar among the controls: the bar draws no
+    // seek bar row of its own and its top is where the seek bar starts
+    readonly property bool seekBarInline: {
+        const model = contentItem.playerControlLayout.model
+        if (!model)
+            return false
+        // re-evaluate when the zones change
+        void (model.left.count + model.center.count + model.right.count)
+        return model.left.contains(ControlListModel.SEEK_BAR)
+               || model.center.contains(ControlListModel.SEEK_BAR)
+               || model.right.contains(ControlListModel.SEEK_BAR)
+    }
+
+    readonly property real sliderY: seekBarInline ? 0 : mapFromItem(contentItem, 0, contentItem.sliderY).y
     property int textPosition: ControlBar.TimeTextPosition.AboveSlider
     property int identifier: -1
     property real sliderHeight: VLCStyle.heightBar_xxsmall
@@ -70,7 +84,8 @@ T.Pane {
     AccessibleCompat.id: "playerControlBar"
 
     function showChapterMarks() {
-        if (contentItem.trackPositionSlider)
+        // the inline seek bar flashes its marks by itself when shown
+        if (contentItem.trackPositionSlider && !seekBarInline)
             contentItem.trackPositionSlider.showChapterMarks()
     }
 
@@ -241,7 +256,8 @@ T.Pane {
                 id: bookmarksLoader
 
                 parent: root
-                active: MainCtx.mediaLibraryAvailable
+                // TODO: bookmarks on the inline seek bar
+                active: MainCtx.mediaLibraryAvailable && !root.seekBarInline
                 source: "qrc:///qt/qml/VLC/MediaLibrary/Bookmarks.qml"
 
                 x: root.leftPadding + trackPositionSlider.x + row2.Layout.leftMargin
@@ -273,6 +289,9 @@ T.Pane {
             visible: children.length > 0
 
             children: {
+                if (root.seekBarInline)
+                    return []
+
                 switch (textPosition) {
                 case ControlBar.TimeTextPosition.AboveSlider:
                     return [mediaTime, mediaRemainingTime]
@@ -288,6 +307,9 @@ T.Pane {
             id: row2
 
             children: {
+                if (root.seekBarInline)
+                    return []
+
                 switch (textPosition) {
                 case ControlBar.TimeTextPosition.Hide:
                 case ControlBar.TimeTextPosition.AboveSlider:
@@ -316,17 +338,26 @@ T.Pane {
 
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.leftMargin: VLCStyle.margin_large
-            Layout.rightMargin: VLCStyle.margin_large
+            Layout.leftMargin: root.seekBarInline ? 0 : VLCStyle.margin_large
+            Layout.rightMargin: root.seekBarInline ? 0 : VLCStyle.margin_large
 
             identifier: root.identifier
 
-            implicitHeight: MainCtx.pinVideoControls ? VLCStyle.controlLayoutHeightPinned
-                                                     : VLCStyle.controlLayoutHeight
+            // Figma 491:1779: one 32 px row, 8 px between items, 20 px between zones
+            spacing: root.seekBarInline ? VLCStyle.spacing_8 : VLCStyle.margin_normal
+            layoutSpacing: root.seekBarInline ? VLCStyle.spacing_20 : VLCStyle.margin_xxlarge
+
+            implicitHeight: {
+                if (root.seekBarInline)
+                    return VLCStyle.dp(32, VLCStyle.scale)
+                return MainCtx.pinVideoControls ? VLCStyle.controlLayoutHeightPinned
+                                                : VLCStyle.controlLayoutHeight
+            }
 
             visible: !model?.empty ?? false
 
-            Navigation.upItem: trackPositionSlider.enabled ? trackPositionSlider : root.Navigation.upItem
+            Navigation.upItem: (trackPositionSlider.enabled && !root.seekBarInline) ? trackPositionSlider
+                                                                                  : root.Navigation.upItem
 
             onRequestLockUnlockAutoHide: (lock) => root.requestLockUnlockAutoHide(lock)
 

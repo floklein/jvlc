@@ -982,10 +982,6 @@ FocusScope {
         topMargin: VLCStyle.applicationVerticalMargin
         sideMargin: VLCStyle.applicationHorizontalMargin
 
-        textWidth: playlistVisibility.isPlaylistVisible
-                 ? rootPlayer.width - playlistpopup.width
-                 : rootPlayer.width
-
         // NOTE: With pinned controls, the top controls are hidden when switching to
         //       fullScreen. Except when resume is visible
         visible: (MainCtx.pinVideoControls === false
@@ -995,22 +991,13 @@ FocusScope {
                   resumeVisible)
 
         focus: true
-        title: Player.title
+        // the metadata title, else the file name
+        title: Player.title || Player.name
 
         pinControls: MainCtx.pinVideoControls
 
         showCSD: MainCtx.clientSideDecoration && (MainCtx.intfMainWindow.visibility !== Window.FullScreen)
         showToolbar: MainCtx.hasToolbarMenu && (MainCtx.intfMainWindow.visibility !== Window.FullScreen)
-        playlistVisible: playlistVisibility.isPlaylistVisible
-
-        plListView: {
-            if (playlistpopup.active)
-                return playlistpopup.item
-            else if (playlistWindowLoader?.status === Loader.Ready)
-                return playlistWindowLoader.item.playlistView
-            else
-                return null
-        }
 
         Navigation.parentItem: rootPlayer
         Navigation.downItem: {
@@ -1028,8 +1015,6 @@ FocusScope {
             when: playerToolbarVisibilityFSM.started
             value: (playerToolbarVisibilityFSM.isVisible || rootPlayer._controlsUnderVideo) ? "visible" : "hidden"
         }
-
-        onTogglePlaylistVisibility: playlistVisibility.togglePlaylistVisibility()
 
         onRequestLockUnlockAutoHide: (lock) => {
             rootPlayer.lockUnlockAutoHide(lock)
@@ -1064,7 +1049,19 @@ FocusScope {
 
             tintColor: windowTheme.bg.primary
 
-            visible: MainCtx.pinVideoControls
+            visible: MainCtx.pinVideoControls && !MainCtx.hasEmbededVideo
+        }
+
+        // docked above the video: the Theme's window background (Figma BG/A3)
+        Rectangle {
+            z: -1
+
+            anchors.fill: parent
+
+            color: windowTheme.bg.primary
+            opacity: topBarAcrylicBg.opacity
+
+            visible: MainCtx.pinVideoControls && MainCtx.hasEmbededVideo
         }
 
         Rectangle {
@@ -1341,9 +1338,12 @@ FocusScope {
 
         focus: true
 
-        rightPadding: VLCStyle.applicationHorizontalMargin
-        leftPadding: VLCStyle.applicationHorizontalMargin
-        bottomPadding: VLCStyle.applicationVerticalMargin + VLCStyle.margin_xsmall
+        // Figma 491:1779: 20 px on the sides, 11 px above and below the inline row
+        rightPadding: VLCStyle.applicationHorizontalMargin + (seekBarInline ? VLCStyle.spacing_20 : 0)
+        leftPadding: VLCStyle.applicationHorizontalMargin + (seekBarInline ? VLCStyle.spacing_20 : 0)
+        topPadding: seekBarInline ? VLCStyle.dp(11, VLCStyle.scale) : 0
+        bottomPadding: VLCStyle.applicationVerticalMargin
+                       + (seekBarInline ? VLCStyle.dp(11, VLCStyle.scale) : VLCStyle.margin_xsmall)
 
         textPosition: (MainCtx.pinVideoControls)
                       ? ControlBar.TimeTextPosition.LeftRightSlider
@@ -1392,7 +1392,7 @@ FocusScope {
                     return 1.0 // the Tint is translucent
                 } else if ((Window.visibility === Window.FullScreen) && MainCtx.hasEmbededVideo) {
                     return MainCtx.pinOpacity
-                } else if (AcrylicController.enabled || !MainCtx.hasEmbededVideo) {
+                } else if (!MainCtx.hasEmbededVideo) {
                     return 0.7
                 } else {
                     return 1.0
@@ -1400,6 +1400,19 @@ FocusScope {
             }
 
             color: rootPlayer._panelsOverVideo ? windowTheme.tint : windowTheme.bg.primary
+
+            // Figma: Divider/Dim along the top edge
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+
+                height: VLCStyle.border
+
+                color: windowTheme.separator
+
+                visible: controlBar.seekBarInline
+            }
         }
 
         FadeControllerStateGroup {

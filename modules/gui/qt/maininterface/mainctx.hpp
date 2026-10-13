@@ -419,6 +419,10 @@ public:
 
     Q_INVOKABLE QString displayMRL(const QUrl &mrl) const;
 
+    /// the key currently bound to the hotkey @a action ("play-pause"), for
+    /// accessible names and tooltips; empty when the action has no key
+    Q_INVOKABLE QString actionShortcut(const QString &action) const;
+
     double artistAlbumsWidth() const;
     void setArtistAlbumsWidth(double newArtistAlbumsWidth);
 

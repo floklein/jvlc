@@ -22,6 +22,8 @@ import QtQuick.Window
 import VLC.MainInterface
 import VLC.Style
 
+// The window buttons drawn by VLC: minimize, maximize and close, with the
+// optional fullscreen button next to maximize (Figma 247:464)
 Row {
     id: windowButtonGroup
 
@@ -33,13 +35,18 @@ Row {
     property color color: theme.fg.primary
     property color hoverColor: theme.bg.primary.alpha(0.5)
 
-    readonly property bool useWinIcons: ((MainCtx.osName === MainCtx.Windows)&&(MainCtx.osVersion >= 10))
+    // the player's Top bar puts its fullscreen button among the window buttons
+    property bool showFullscreen: false
+    property bool fullscreenChecked: false
+    property string fullscreenShortcut: ""
+
+    signal fullscreenClicked()
 
     readonly property bool buttonHovered: {
         let h = false
         for (let i = 0; i < repeater.count; ++i) {
             const button = repeater.itemAt(i)
-            h = h || button.hovered || button.showHovered
+            h = h || button.anyHovered
         }
 
         return h
@@ -55,78 +62,105 @@ Row {
 
         model: MainCtx.csdButtonModel.windowCSDButtons
 
-        CSDWindowButton {
+        Row {
+            id: buttonSlot
+
             required property var modelData
+
+            readonly property bool anyHovered: windowButton.hovered || windowButton.showHovered
+                                               || fullscreenButton.hovered
 
             height: windowButtonGroup.height
 
-            showHovered: modelData.showHovered
+            // the fullscreen button sits between maximize and close
+            CSDWindowButton {
+                id: fullscreenButton
 
-            externalPressed: modelData.externalPressed
+                height: windowButtonGroup.height
 
-            color: (modelData.type === CSDButton.Close && (hovered || modelData.showHovered))
-                   ? theme.fg.negative
-                   : windowButtonGroup.color
+                visible: windowButtonGroup.showFullscreen && (buttonSlot.modelData.type === CSDButton.Close)
 
-            hoverColor: (modelData.type === CSDButton.Close) ? theme.bg.negative : windowButtonGroup.hoverColor
+                focusPolicy: Qt.TabFocus
 
-            isThemeDark: theme.palette.isDark
+                color: windowButtonGroup.color
+                hoverColor: windowButtonGroup.hoverColor
+                isThemeDark: theme.palette.isDark
 
-            iconTxt:{
-                switch (modelData.type) {
-                case CSDButton.Minimize:
-                {
-                    if (useWinIcons)
-                        return "\uE921"
+                iconTxt: windowButtonGroup.fullscreenChecked ? VLCIcons.fullscreen_active : VLCIcons.fullscreen
+                description: windowButtonGroup.fullscreenChecked ? qsTr("Exit fullscreen") : qsTr("Fullscreen")
+                shortcut: windowButtonGroup.fullscreenShortcut
 
-                    else
-                        return VLCIcons.window_minimize
-                }
+                onClicked: windowButtonGroup.fullscreenClicked()
+            }
 
-                case CSDButton.MaximizeRestore:
-                {
-                    if (useWinIcons)
-                        return (MainCtx.intfMainWindow.visibility === Window.Maximized)
-                                ? "\uE923"
-                                : "\uE922"
+            CSDWindowButton {
+                id: windowButton
 
-                    else
+                height: windowButtonGroup.height
+
+                showHovered: buttonSlot.modelData.showHovered
+
+                externalPressed: buttonSlot.modelData.externalPressed
+
+                color: (buttonSlot.modelData.type === CSDButton.Close && (hovered || buttonSlot.modelData.showHovered))
+                       ? theme.fg.negative
+                       : windowButtonGroup.color
+
+                hoverColor: (buttonSlot.modelData.type === CSDButton.Close) ? theme.bg.negative : windowButtonGroup.hoverColor
+
+                isThemeDark: theme.palette.isDark
+
+                iconTxt: {
+                    switch (buttonSlot.modelData.type) {
+                    case CSDButton.Minimize:
+                        return VLCIcons.minimize
+
+                    case CSDButton.MaximizeRestore:
                         return (MainCtx.intfMainWindow.visibility === Window.Maximized)
                                 ? VLCIcons.window_restore
-                                : VLCIcons.window_maximize
+                                : VLCIcons.maximize
+
+                    case CSDButton.Close:
+                        return VLCIcons.close
+                    }
+                    console.assert(false, "unreachable")
+                    return ""
                 }
 
-                case CSDButton.Close:
-                {
-                    if (useWinIcons)
-                        return "\uE8BB"
-
-                    else
-                        return VLCIcons.window_close
+                description: {
+                    switch (buttonSlot.modelData.type) {
+                    case CSDButton.Minimize:
+                        return qsTr("Minimize")
+                    case CSDButton.MaximizeRestore:
+                        return (MainCtx.intfMainWindow.visibility === Window.Maximized) ? qsTr("Restore")
+                                                                                        : qsTr("Maximize")
+                    case CSDButton.Close:
+                        return qsTr("Close")
+                    }
+                    return ""
                 }
+
+                onClicked: buttonSlot.modelData.click()
+
+                // handles VLCStyle.scale changes
+                onWidthChanged: Qt.callLater(updateRect)
+                onHeightChanged: Qt.callLater(updateRect)
+                onXChanged: Qt.callLater(updateRect)
+
+                Connections {
+                    target: VLCStyle
+
+                    // handle window resize
+                    function onAppWidthChanged() { Qt.callLater(windowButton.updateRect) }
+                    function onAppHeightChanged() { Qt.callLater(windowButton.updateRect) }
                 }
-                console.assert(false, "unreachable")
-            }
 
-            onClicked: modelData.click()
+                function updateRect() {
+                    const point = mapToItem(null, 0, 0)
+                    const rect = Qt.rect(point.x, point.y, width, height)
 
-            // handles VLCStyle.scale changes
-            onWidthChanged: Qt.callLater(updateRect)
-            onHeightChanged: Qt.callLater(updateRect)
-
-            Connections {
-                target: VLCStyle
-
-                // handle window resize
-                function onAppWidthChanged() { Qt.callLater(updateRect) }
-                function onAppHeightChanged() { Qt.callLater(updateRect) }
-            }
-
-            function updateRect() {
-                const point = mapToItem(null, 0, 0)
-                const rect = Qt.rect(point.x, point.y, width, height)
-
-                modelData.rect = rect
+                    buttonSlot.modelData.rect = rect
+                }
             }
         }
     }

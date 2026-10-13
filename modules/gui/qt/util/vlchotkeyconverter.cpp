@@ -350,3 +350,24 @@ QString VLCKeyToString( unsigned val, bool locale )
     free( base );
     return r;
 }
+
+QString vlcActionKeyText( vlc_object_t *obj, const char *action )
+{
+    uint_fast32_t *keycodes = nullptr;
+    const size_t count = vlc_actions_get_keycodes( obj, action, false, &keycodes );
+
+    QString text;
+    for( size_t i = 0; i < count && text.isEmpty(); ++i )
+    {
+        if( keycodes[i] != KEY_UNSET )
+            text = VLCKeyToString( keycodes[i], true );
+    }
+    free( keycodes );
+
+    // show letter keys as they are printed on the keyboard: "Shift+R"
+    const qsizetype last = text.lastIndexOf( '+', -2 ) + 1;
+    if( text.size() - last == 1 )
+        text[last] = text[last].toUpper();
+
+    return text;
+}

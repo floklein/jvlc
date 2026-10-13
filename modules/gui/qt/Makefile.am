@@ -941,6 +941,8 @@ libqt_plugin_la_RES = \
 	pixmaps/misc/theme_dark.svg \
 	pixmaps/misc/theme_daynight.svg \
 	pixmaps/misc/theme_light.svg \
+	pixmaps/misc/volume_cone_level.svg \
+	pixmaps/misc/volume_cone_track.svg \
 	pixmaps/misc/wait1.svg \
 	pixmaps/misc/wait2.svg \
 	pixmaps/misc/wait3.svg \
@@ -1206,6 +1208,9 @@ libqml_module_playercontrols_a_QML = \
 	player/qml/controlbarcontrols/ArtworkInfoWidget.qml \
 	player/qml/controlbarcontrols/AspectRatioWidget.qml \
 	player/qml/controlbarcontrols/AtoBButton.qml \
+	player/qml/controlbarcontrols/AudioButton.qml \
+	player/qml/controlbarcontrols/SeekBarWidget.qml \
+	player/qml/controlbarcontrols/SubtitlesButton.qml \
 	player/qml/controlbarcontrols/BackButton.qml \
 	player/qml/controlbarcontrols/BookmarkButton.qml \
 	player/qml/controlbarcontrols/ChapterNextButton.qml \
@@ -1871,6 +1876,33 @@ test_theme_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_theme
 TESTS += test_theme
 
+# test_player_bars
+
+test_player_bars_SOURCES = \
+	tests/test_player_bars.cpp \
+	dialogs/toolbar/controlbar_profile.cpp dialogs/toolbar/controlbar_profile.hpp \
+	dialogs/toolbar/controlbar_profile_model.cpp dialogs/toolbar/controlbar_profile_model.hpp \
+	player/player_controlbar_model.cpp player/player_controlbar_model.hpp \
+	player/control_list_model.cpp player/control_list_model.hpp \
+	util/vlchotkeyconverter.cpp util/vlchotkeyconverter.hpp
+
+nodist_test_player_bars_SOURCES = \
+	tests/test_player_bars.moc \
+	dialogs/toolbar/controlbar_profile.moc.cpp \
+	dialogs/toolbar/controlbar_profile_model.moc.cpp \
+	player/player_controlbar_model.moc.cpp \
+	player/control_list_model.moc.cpp \
+	util/vlchotkeyconverter.moc.cpp
+
+BUILT_SOURCES += tests/test_player_bars.moc
+CLEANFILES += tests/test_player_bars.moc
+test_player_bars_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_player_bars_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_player_bars_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_player_bars_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_player_bars
+TESTS += test_player_bars
+
 # test_vlc_dialog_model
 
 test_vlc_dialog_model_SOURCES = \
@@ -1998,5 +2030,7 @@ qml_test_LDFLAGS = $(AM_LDFLAGS) $(QT_QUICK_TEST_LDFLAGS)
 check_PROGRAMS += qml_test
 EXTRA_DIST += tests/tst_FSM.qml
 TESTS += tests/tst_FSM.qml
+EXTRA_DIST += tests/tst_Helpers.qml
+TESTS += tests/tst_Helpers.qml
 endif
 endif

@@ -90,7 +90,8 @@ QtObject {
 
     // Borders
     readonly property int border: MainCtx.dp(1, scale)
-    readonly property int focus_border: border
+    // the keyboard focus ring: 2 px in the Accent color
+    readonly property int focus_border: MainCtx.dp(2, scale)
 
     readonly property int fontSize_xxsmall: fontMetrics_xxsmall.font.pixelSize
     readonly property int fontSize_xsmall: fontMetrics_xsmall.font.pixelSize

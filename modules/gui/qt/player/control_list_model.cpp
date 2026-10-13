@@ -96,6 +96,11 @@ QVector<int> ControlListModel::getControls() const
     return list;
 }
 
+bool ControlListModel::contains(int control) const
+{
+    return m_controls.contains(static_cast<ControlType>(control));
+}
+
 void ControlListModel::setControls(const QVector<int> &list)
 {
     beginResetModel();

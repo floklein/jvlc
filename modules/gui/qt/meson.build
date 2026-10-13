@@ -767,8 +767,11 @@ qml_modules += {
    'sources': files(
        'player/qml/controlbarcontrols/HighResolutionTimeWidget.qml',
        'player/qml/controlbarcontrols/ArtworkInfoWidget.qml',
+       'player/qml/controlbarcontrols/SeekBarWidget.qml',
+       'player/qml/controlbarcontrols/SubtitlesButton.qml',
        'player/qml/controlbarcontrols/AspectRatioWidget.qml',
        'player/qml/controlbarcontrols/AtoBButton.qml',
+       'player/qml/controlbarcontrols/AudioButton.qml',
        'player/qml/controlbarcontrols/BackButton.qml',
        'player/qml/controlbarcontrols/BookmarkButton.qml',
        'player/qml/controlbarcontrols/ChapterNextButton.qml',
@@ -955,6 +958,7 @@ qml_modules += {
 
 qml_tests = {
     'tst_FSM': files('tests/tst_FSM.qml'),
+    'tst_Helpers': files('tests/tst_Helpers.qml'),
 }
 
 qmllibs = []
@@ -1445,6 +1449,38 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_player_bars',
+            'sources': files(
+                'tests/test_player_bars.cpp',
+                'dialogs/toolbar/controlbar_profile.cpp',
+                'dialogs/toolbar/controlbar_profile.hpp',
+                'dialogs/toolbar/controlbar_profile_model.cpp',
+                'dialogs/toolbar/controlbar_profile_model.hpp',
+                'player/player_controlbar_model.cpp',
+                'player/player_controlbar_model.hpp',
+                'player/control_list_model.cpp',
+                'player/control_list_model.hpp',
+                'util/vlchotkeyconverter.cpp',
+                'util/vlchotkeyconverter.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_player_bars.cpp'
+            ),
+            'moc_headers': files(
+                'dialogs/toolbar/controlbar_profile.hpp',
+                'dialogs/toolbar/controlbar_profile_model.hpp',
+                'player/player_controlbar_model.hpp',
+                'player/control_list_model.hpp',
+                'util/vlchotkeyconverter.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qtest_qt6_dep]
         }

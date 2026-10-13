@@ -53,6 +53,38 @@ QtObject {
             item.focusReason = reason // Control's focus reason sometimes is not adjusted with `forceActiveFocus()`, Qt bug?
     }
 
+    // name of the folder holding a local file, "" for anything else
+    // (streams, discs, files at the root of a drive)
+    function folderName(url: var) : string {
+        const str = (url ?? "").toString()
+        if (!str.startsWith("file://"))
+            return ""
+
+        let path
+        try {
+            path = decodeURIComponent(str.substring("file://".length).replace(/[?#].*$/, ""))
+        } catch (e) {
+            return ""
+        }
+        const segments = path.split("/").filter((s) => s.length > 0)
+        if (segments.length < 2)
+            return ""
+
+        const folder = segments[segments.length - 2]
+        // a Windows drive ("C:") is not a folder name
+        if (/^[A-Za-z]:$/.test(folder))
+            return ""
+
+        return folder
+    }
+
+    // accessible name of an icon-only control: its tooltip plus its shortcut
+    function accessibleName(name: string, shortcut: string) : string {
+        if (!shortcut)
+            return name
+        return qsTr("%1, %2").arg(name).arg(shortcut)
+    }
+
     function pointInRadius(x: real, y: real, radius: real) : bool {
          return (x * x + y * y < radius * radius)
     }

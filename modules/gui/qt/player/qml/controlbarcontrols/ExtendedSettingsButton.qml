@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Copyright (C) 2021 VLC authors and VideoLAN
+ * Copyright (C) 2019 VLC authors and VideoLAN
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,12 +23,21 @@ import VLC.Style
 import VLC.Dialogs
 import VLC.Util
 
+// The adjustments button of the Control bar
+// TODO: open the Adjustments sidebar (#50) instead of the dialog
 Widgets.IconToolButton {
     id: extdSettingsBtn
 
-    text: VLCIcons.effect_filter
+    text: VLCIcons.settings
 
-    description: qsTr("Extended settings")
+    description: qsTr("Adjustments")
+    shortcut: "Ctrl+E" // GlobalShortcuts.qml
+
+    // Figma "Icon Wrapper": 24 px icon, 4 px padding, 30 px wide
+    leftPadding: VLCStyle.dp(3, VLCStyle.scale)
+    rightPadding: VLCStyle.dp(3, VLCStyle.scale)
+    topPadding: VLCStyle.dp(4, VLCStyle.scale)
+    bottomPadding: VLCStyle.dp(4, VLCStyle.scale)
 
     AccessibleCompat.id: "extendedSettingsButton"
 

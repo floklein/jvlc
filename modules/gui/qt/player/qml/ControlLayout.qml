@@ -80,6 +80,17 @@ FocusScope {
 
     property alias alignment: repeater.alignment
 
+    // whether an item stretches to fill the zone, like the inline seek bar
+    readonly property bool expanding: {
+        for (let i = 0; i < repeater.count; ++i) {
+            const item = repeater.itemAt(i)
+
+            if (item && item.Layout.fillWidth)
+                return true
+        }
+        return false
+    }
+
 
     ///@type {function}
     required property var altFocusAction

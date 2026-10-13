@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Copyright (C) 2021 VLC authors and VideoLAN
+ * Copyright (C) 2019 VLC authors and VideoLAN
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,10 +24,11 @@ import VLC.Style
 import VLC.Util
 
 
+// The Queue button of the Control bar
 Widgets.IconToolButton {
     id: playlistBtn
 
-    text: VLCIcons.playlist
+    text: VLCIcons.queue
     onClicked: {
         MainCtx.playqueuePanel.visible = !MainCtx.playqueuePanel.visible
         if (MainCtx.playqueuePanel.visible && MainCtx.playqueuePanel.docked) {
@@ -36,7 +37,17 @@ Widgets.IconToolButton {
     }
     checked: MainCtx.playqueuePanel.visible
 
-    description: qsTr("Play Queue")
+    description: qsTr("Queue")
+    shortcut: "Ctrl+L" // GlobalShortcuts.qml
+
+    // Figma "Icon Wrapper": 24 px icon, 4 px padding, 30 px wide
+    leftPadding: VLCStyle.dp(3, VLCStyle.scale)
+    rightPadding: VLCStyle.dp(3, VLCStyle.scale)
+    topPadding: VLCStyle.dp(4, VLCStyle.scale)
+    bottomPadding: VLCStyle.dp(4, VLCStyle.scale)
+
+    Accessible.checkable: true
+    Accessible.checked: checked
 
     AccessibleCompat.id: "playqueueButton"
 }

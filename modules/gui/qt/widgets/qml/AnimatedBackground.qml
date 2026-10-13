@@ -32,7 +32,7 @@ Rectangle {
 
     property int animationDuration: VLCStyle.duration_long
 
-    readonly property bool animationRunning: borderAnimation.running || bgAnimation.running
+    readonly property bool animationRunning: bgAnimation.running
 
     //---------------------------------------------------------------------------------------------
     // Implementation
@@ -47,15 +47,7 @@ Rectangle {
     // Animations
     //---------------------------------------------------------------------------------------------
 
-    DelayedBehavior on border.color {
-        delayedEnabled: root.enabled
-
-        ColorAnimation {
-            id: borderAnimation
-
-            duration: root.animationDuration
-        }
-    }
+    // NOTE: the focus ring (border) follows keyboard focus instantly
 
     DelayedBehavior on color {
         delayedEnabled: root.enabled
