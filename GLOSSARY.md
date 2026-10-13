@@ -52,6 +52,14 @@ _Avoid_: Profile (for this meaning), toolbar configuration
 A named bundle of all preferences, Theme, Accent color, scale and Layouts that the user switches between; the library, history and per-show presets are shared by all Profiles.
 _Avoid_: Preset, configuration, Layout
 
+**Track menu**:
+The popover from the Control bar's audio or subtitle button for picking video, audio and subtitle tracks and the audio output.
+_Avoid_: Track selector, quick menu
+
+**Adjustments sidebar**:
+The right-hand panel with Playback, Video, Audio and Subtitles tabs for live adjustments such as delays, filters, speed and subtitle appearance.
+_Avoid_: Effects dialog, adjustments and effects, settings panel
+
 **Hide UI**:
 A mode where both bars stay hidden and appear only when the pointer nears their edge, as in fullscreen.
 _Avoid_: Minimal view, zen mode
