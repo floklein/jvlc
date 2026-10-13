@@ -30,6 +30,7 @@
 #include <memory>
 
 #include <QCoreApplication>
+#include <QDir>
 #include <QFile>
 #include <QSignalSpy>
 #include <QStringList>
@@ -371,6 +372,109 @@ private slots:
         QVERIFY(content.contains("example.com/a.mp4"));
         QVERIFY(!content.contains("secret"));
         QVERIFY(!content.contains("user"));
+    }
+
+    void testCredentialsAreStrippedAsTheCoreParsesThem()
+    {
+        QTemporaryDir dir;
+        const QString file = dir.filePath("queue.json");
+        m_controller->append(QVector<Media>{
+            /* the core takes the user information up to the last '@' */
+            Media(QStringLiteral("http://user:p@ss@example.com/a.mp4"), "a"),
+            /* the rest of the MRL, a signed query included, is kept as is */
+            Media(QStringLiteral("https://user:secret@example.com/b.mp4?sig=x%2Fy%3D&t=1"), "b"),
+            /* an '@' after the authority is not user information */
+            Media(QStringLiteral("http://example.com/c@d.mp4?to=e@f"), "c"),
+        }, false);
+
+        QueueStore(m_controller.get(), file).save();
+
+        QFile saved(file);
+        QVERIFY(saved.open(QIODevice::ReadOnly));
+        const QByteArray content = saved.readAll();
+        QVERIFY(!content.contains("ss@"));
+        QVERIFY(!content.contains("secret"));
+        cleanup();
+        init();
+        QVERIFY(QueueStore(m_controller.get(), file).restore());
+
+        vlc_playlist_locker locker(playlist());
+        QCOMPARE(vlc_playlist_Count(playlist()), size_t{3});
+        const auto mrl = [this](size_t i) {
+            return qfu(vlc_playlist_item_GetMedia(vlc_playlist_Get(playlist(), i))->psz_uri);
+        };
+        QCOMPARE(mrl(0), QStringLiteral("http://example.com/a.mp4"));
+        QCOMPARE(mrl(1), QStringLiteral("https://example.com/b.mp4?sig=x%2Fy%3D&t=1"));
+        QCOMPARE(mrl(2), QStringLiteral("http://example.com/c@d.mp4?to=e@f"));
+    }
+
+    void testNameWithCredentialsIsNotSaved()
+    {
+        QTemporaryDir dir;
+        const QString file = dir.filePath("queue.json");
+        /* e.g. a playlist entry named after the URL it was opened from */
+        m_controller->append(QVector<Media>{
+            Media(QStringLiteral("http://example.com/a.mp4"),
+                  QStringLiteral("from ftp://user:secret@example.com/a.mp4")),
+            Media(QStringLiteral("http://example.com/b.mp4"), QStringLiteral("b @ home: part 1")),
+        }, false);
+
+        QueueStore(m_controller.get(), file).save();
+
+        QFile saved(file);
+        QVERIFY(saved.open(QIODevice::ReadOnly));
+        const QByteArray content = saved.readAll();
+        QVERIFY(content.contains("example.com/a.mp4"));
+        QVERIFY(!content.contains("secret"));
+        QVERIFY(content.contains("b @ home: part 1"));
+    }
+
+    void testSavedQueueIsOnlyReadableByTheUser()
+    {
+#ifdef _WIN32
+        QSKIP("the file inherits the per-user ACL of its folder on Windows");
+#else
+        const QFileDevice::Permissions othersAndGroup =
+            QFileDevice::ReadGroup | QFileDevice::WriteGroup | QFileDevice::ExeGroup |
+            QFileDevice::ReadOther | QFileDevice::WriteOther | QFileDevice::ExeOther;
+        QTemporaryDir dir;
+        const QString file = dir.filePath("queue.json");
+        fillQueue();
+
+        QueueStore(m_controller.get(), file).save();
+
+        QVERIFY(QFile::exists(file));
+        QCOMPARE(QFile::permissions(file) & othersAndGroup, QFileDevice::Permissions());
+
+        /* a file written before, readable by others, is made private too */
+        QVERIFY(QFile::setPermissions(file, QFile::permissions(file) | QFileDevice::ReadOther
+                                            | QFileDevice::ReadGroup));
+
+        QueueStore(m_controller.get(), file).save();
+
+        QCOMPARE(QFile::permissions(file) & othersAndGroup, QFileDevice::Permissions());
+        QVERIFY(QFile::permissions(file) & QFileDevice::ReadOwner);
+        QVERIFY(QFile::permissions(file) & QFileDevice::WriteOwner);
+#endif
+    }
+
+    void testSaveReplacesTheFileWithoutLeftovers()
+    {
+        QTemporaryDir dir;
+        const QString file = dir.filePath("queue.json");
+        fillQueue();
+
+        QueueStore(m_controller.get(), file).save();
+        m_controller->goTo(2);
+        QueueStore(m_controller.get(), file).save();
+
+        /* written to a temporary file then renamed over the previous one */
+        QCOMPARE(QDir(dir.path()).entryList(QDir::Files | QDir::Hidden),
+                 QStringList({"queue.json"}));
+        cleanup();
+        init();
+        QVERIFY(QueueStore(m_controller.get(), file).restore());
+        QCOMPARE(currentIndex(), 2);
     }
 
     void testRestoreValidatesTheFile()
