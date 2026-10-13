@@ -203,8 +203,10 @@ bool VLCTestingEnv::init()
         qputenv("QTEST_FUNCTION_TIMEOUT", alarm_timeout);
     }
 
-    setenv("VLC_PLUGIN_PATH", TOP_BUILDDIR"/modules", 1);
-    setenv("VLC_LIB_PATH", TOP_BUILDDIR"/modules", 1);
+    // keep paths set by the caller, e.g. when the tests run on another
+    // machine than the build one (cross-built Windows tests)
+    setenv("VLC_PLUGIN_PATH", TOP_BUILDDIR"/modules", 0);
+    setenv("VLC_LIB_PATH", TOP_BUILDDIR"/modules", 0);
 
     libvlc = libvlc_new(test_defaults_nargs, test_defaults_args);
     if (!libvlc)

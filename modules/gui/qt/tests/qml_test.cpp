@@ -17,7 +17,18 @@
 *****************************************************************************/
 
 #include <QtQuickTest>
+#include <qconfig.h>
+#include <QtPlugin>
 #include "qml_test.hpp"
+
+#ifdef QT_STATIC
+// static Qt (Windows contribs): import the plugins the tests need
+QT_BEGIN_NAMESPACE
+#include "../plugins.hpp"
+Q_IMPORT_PLUGIN(QOffscreenIntegrationPlugin)
+Q_IMPORT_QML_PLUGIN(QtTestPlugin)
+QT_END_NAMESPACE
+#endif
 
 // not much right now, type registration & initialisation may be required later on
 // https://doc.qt.io/qt-5/qtquicktest-index.html#executing-c-before-qml-tests

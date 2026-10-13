@@ -638,8 +638,8 @@ TestCase {
     function test_mixed_children() {
         fsmMixed.atob()
         tryCompare(mixedB, "active", true)
-        wait(30)
-        verify(mixedC.active, true)
+        // the 20 ms timer may fire later than 30 ms (Windows timer resolution)
+        tryCompare(mixedC, "active", true)
     }
 
 }

@@ -39,6 +39,9 @@
 #ifdef HAVE_SEARCH_H
 # include <search.h>
 #endif
+#ifdef _WIN32
+# include <windows.h>
+#endif
 
 #include <vlc_common.h>
 #include <vlc_plugin.h>
@@ -196,6 +199,23 @@ static void module_InitStaticModules(void)
     for (unsigned i = 0; vlc_static_modules[i]; i++)
     {
         vlc_plugin_t *lib = module_InitStatic(vlc_static_modules[i]);
+        if (likely(lib != NULL))
+            vlc_plugin_store(lib);
+    }
+}
+#elif defined(_WIN32) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+/* PE has no weak symbols: look for vlc_static_modules exported by the
+ * executable (e.g. the test programs that provide stand-in modules). */
+static void module_InitStaticModules(void)
+{
+    const vlc_plugin_cb *modules = (const vlc_plugin_cb *)
+        GetProcAddress(GetModuleHandle(NULL), "vlc_static_modules");
+    if (modules == NULL)
+        return;
+
+    for (unsigned i = 0; modules[i]; i++)
+    {
+        vlc_plugin_t *lib = module_InitStatic(modules[i]);
         if (likely(lib != NULL))
             vlc_plugin_store(lib);
     }

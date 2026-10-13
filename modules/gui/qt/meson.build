@@ -1031,7 +1031,8 @@ if qt6_dep.found()
     #endif
     '''
 
-    if cpp.compiles(qt_static_check, dependencies: qt6_dep, name: 'Qt6 compiled with static libraries')
+    qt_static = cpp.compiles(qt_static_check, dependencies: qt6_dep, name: 'Qt6 compiled with static libraries')
+    if qt_static
         qt_install_bin_directory = qt6_dep.get_variable(pkgconfig: 'bindir', configtool: '-query QT_INSTALL_BINS')
         qmake6 = find_program(qt_install_bin_directory + '/qmake6', required: true)
         if qmake6.found()
@@ -1356,6 +1357,7 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep]
         }
 
@@ -1429,6 +1431,12 @@ if qt6_dep.found()
             headers : files('tests/qml_test.hpp'),
             dependencies : [quicktest_qt6_dep, qt6_dep]
         )
+        qml_test_link_args = qt_link_args
+        if qt_static
+            # qml_test forces the offscreen platform
+            qt_plugins_dir = qt6_dep.get_variable(pkgconfig: 'plugindir', configtool: '-query QT_INSTALL_PLUGINS')
+            qml_test_link_args += qt_plugins_dir / 'platforms' / 'libqoffscreen.a'
+        endif
         qml_test = executable(
           'qml_test',
           [files('tests/qml_test.cpp', 'tests/qml_test.hpp'), qml_test_moc],
@@ -1436,6 +1444,7 @@ if qt6_dep.found()
           build_by_default: false,
           dependencies: [quicktest_qt6_dep, qt6_dep, qtest_qt6_dep],
           link_with: qmllibs,
+          link_args: qml_test_link_args,
           cpp_args: ['-DQUICK_TEST_SOURCE_DIR="' + meson.current_source_dir() + '/tests"']
         )
         foreach test_name, test_file : qml_tests

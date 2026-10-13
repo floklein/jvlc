@@ -153,7 +153,12 @@ void test_invalidate_on_invalidate()
 
     // bug of MR!4485 MR!4684
     m.connect(&m, &Model::loadingChanged, [&m]() { m.setLimit(1); });
-    await(1);
+    // the loading may take more than 1 ms on a busy machine
+    QElapsedTimer timer;
+    timer.start();
+    do
+        await(1);
+    while (m.loading() && !timer.hasExpired(5000));
     assert(!m.loading());
 }
 
