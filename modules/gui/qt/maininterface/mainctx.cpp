@@ -840,6 +840,14 @@ VideoSurfaceProvider* MainCtx::getVideoSurfaceProvider() const
     return m_videoSurfaceProvider;
 }
 
+void MainCtx::setVideoBlurProvider(VideoBlurProvider* videoBlurProvider)
+{
+    if (m_videoBlurProvider == videoBlurProvider)
+        return;
+    m_videoBlurProvider = videoBlurProvider;
+    emit videoBlurProviderChanged();
+}
+
 /************************************************************************
  * Events stuff
  ************************************************************************/

@@ -36,6 +36,7 @@ Q_MOC_INCLUDE( "util/csdbuttonmodel.hpp" )
 Q_MOC_INCLUDE( "playlist/playlist_controller.hpp" )
 Q_MOC_INCLUDE( "maininterface/mainctx_submodels.hpp" )
 Q_MOC_INCLUDE( "maininterface/videosurface.hpp" )
+Q_MOC_INCLUDE( "maininterface/videoblur.hpp" )
 Q_MOC_INCLUDE( "medialibrary/medialib.hpp" )
 Q_MOC_INCLUDE( "player/player_controller.hpp" )
 Q_MOC_INCLUDE( "util/color_scheme_model.hpp" )
@@ -60,6 +61,7 @@ class QSystemTrayIcon;
 class StandardPLPanel;
 struct vlc_window;
 class VideoSurfaceProvider;
+class VideoBlurProvider;
 class ControlbarProfileModel;
 class SearchCtx;
 class SortCtx;
@@ -129,6 +131,7 @@ class MainCtx : public QObject
     Q_PROPERTY(int maxVolume READ maxVolume NOTIFY maxVolumeChanged FINAL)
     Q_PROPERTY(float safeArea READ safeArea NOTIFY safeAreaChanged FINAL)
     Q_PROPERTY(VideoSurfaceProvider* videoSurfaceProvider READ getVideoSurfaceProvider WRITE setVideoSurfaceProvider NOTIFY hasEmbededVideoChanged FINAL)
+    Q_PROPERTY(VideoBlurProvider* videoBlurProvider READ videoBlurProvider NOTIFY videoBlurProviderChanged FINAL)
     Q_PROPERTY(int mouseHideTimeout READ mouseHideTimeout NOTIFY mouseHideTimeoutChanged FINAL)
     Q_PROPERTY(bool albumSections READ albumSections WRITE setAlbumSections NOTIFY albumSectionsChanged FINAL)
     Q_PROPERTY(bool lyricsMode READ lyricsMode WRITE setLyricsMode NOTIFY lyricsModeChanged FINAL)
@@ -277,6 +280,10 @@ public:
     bool hasEmbededVideo() const;
     VideoSurfaceProvider* getVideoSurfaceProvider() const;
     void setVideoSurfaceProvider(VideoSurfaceProvider* videoSurfaceProvider);
+
+    // null when the compositor can not draw the Video blur
+    VideoBlurProvider* videoBlurProvider() const { return m_videoBlurProvider; }
+    void setVideoBlurProvider(VideoBlurProvider* videoBlurProvider);
 
     int mouseHideTimeout() const { return m_mouseHideTimeout; }
 
@@ -428,6 +435,7 @@ protected:
 
     bool m_hasEmbededVideo = false;
     VideoSurfaceProvider* m_videoSurfaceProvider = nullptr;
+    VideoBlurProvider* m_videoBlurProvider = nullptr;
     bool m_showRemainingTime = false;
 
     /* */
@@ -567,6 +575,7 @@ signals:
     void playerPlaylistWidthChanged(double);
     void interfaceAlwaysOnTopChanged(bool);
     void hasEmbededVideoChanged(bool);
+    void videoBlurProviderChanged();
     void showRemainingTimeChanged(bool);
     void gridViewChanged( bool );
     void hasGridListModeChanged( bool );

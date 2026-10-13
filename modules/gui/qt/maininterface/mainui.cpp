@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "maininterface/navigationmodel.hpp"
+#include "maininterface/videoblur.hpp"
 
 #include "medialibrary/medialib.hpp"
 #include "medialibrary/mlqmltypes.hpp"
@@ -238,6 +239,8 @@ void MainUI::registerQMLTypes()
         qmlRegisterSingletonInstance<UINotifier>(uri, versionMajor, versionMinor, "UINotifier", new UINotifier(m_mainCtx, m_mainCtx));
         qmlRegisterSingletonInstance<NavigationHistory>(uri, versionMajor, versionMinor, "History", new NavigationHistory(this));
         qmlRegisterType<VideoSurface>(uri, versionMajor, versionMinor, "VideoSurface");
+        qmlRegisterType<VideoBlur>(uri, versionMajor, versionMinor, "VideoBlur");
+        qmlRegisterUncreatableType<VideoBlurProvider>(uri, versionMajor, versionMinor, "VideoBlurProvider", "");
         qmlRegisterUncreatableType<BaseModel>( uri, versionMajor, versionMinor, "BaseModel", "Base Model is uncreatable." );
         qmlRegisterUncreatableType<VLCVarChoiceModel>(uri, versionMajor, versionMinor, "VLCVarChoiceModel", "generic variable with choice model" );
         qmlRegisterUncreatableType<CSDButton>(uri, versionMajor, versionMinor, "CSDButton", "");

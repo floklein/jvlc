@@ -82,6 +82,7 @@ moc_headers = files(
     'maininterface/mainui.hpp',
     'maininterface/navigationmodel.hpp',
     'maininterface/videosurface.hpp',
+    'maininterface/videoblur.hpp',
     'maininterface/video_window_handler.hpp',
     'medialibrary/medialib.hpp',
     'medialibrary/mlmediastore.hpp',
@@ -176,6 +177,7 @@ if host_system == 'windows'
         'maininterface/compositor_win7.hpp',
         'maininterface/compositor_dcomp.hpp',
         'maininterface/compositor_dcomp_acrylicsurface.hpp',
+        'maininterface/compositor_dcomp_videoblur.hpp',
     )
 endif
 
@@ -308,7 +310,9 @@ qt_plugin_sources = files(
     'maininterface/navigationmodel.cpp',
     'maininterface/navigationmodel.hpp',
     'maininterface/videosurface.cpp',
+    'maininterface/videoblur.cpp',
     'maininterface/videosurface.hpp',
+    'maininterface/videoblur.hpp',
     'maininterface/video_window_handler.cpp',
     'maininterface/video_window_handler.hpp',
     'maininterface/windoweffects_module.hpp',
@@ -551,6 +555,7 @@ if host_system == 'windows'
         'util/csdmenu_win32.h',
         'maininterface/compositor_dcomp.cpp',
         'maininterface/compositor_dcomp_acrylicsurface.cpp',
+        'maininterface/compositor_dcomp_videoblur.cpp',
     )
 endif
 
@@ -1373,6 +1378,30 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        test_videoblur_link_args = qt_link_args
+        if qt_static
+            # the test forces the offscreen platform
+            test_videoblur_link_args += qt6_dep.get_variable(pkgconfig: 'plugindir', configtool: '-query QT_INSTALL_PLUGINS') / 'platforms' / 'libqoffscreen.a'
+        endif
+        vlc_tests += {
+            'name': 'test_qt_videoblur',
+            'sources': files(
+                'tests/test_videoblur.cpp',
+                'maininterface/videoblur.cpp',
+                'maininterface/videoblur.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_videoblur.cpp'
+            ),
+            'moc_headers': files(
+                'maininterface/videoblur.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_args': test_videoblur_link_args,
             'dependencies': [qt6_dep, qtest_qt6_dep]
         }
 

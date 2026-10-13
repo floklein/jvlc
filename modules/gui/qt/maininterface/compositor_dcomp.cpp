@@ -49,6 +49,7 @@
 #endif
 
 #include "compositor_dcomp_acrylicsurface.hpp"
+#include "compositor_dcomp_videoblur.hpp"
 #include "maininterface/interface_window_handler.hpp"
 
 #include <memory>
@@ -65,7 +66,12 @@ int CompositorDirectComposition::windowEnable(const vlc_window_cfg_t *)
 
     commonWindowEnable();
 
-    const auto ret = m_rootVisual->AddVisual(m_videoVisual.Get(), FALSE, m_uiVisual);
+    auto ret = m_rootVisual->AddVisual(m_videoVisual.Get(), FALSE, m_uiVisual);
+    if (ret == S_OK && m_videoBlur)
+    {
+        // Above the video, below the UI:
+        ret = m_rootVisual->AddVisual(m_videoBlur->rootVisual(), FALSE, m_uiVisual);
+    }
     m_dcompDevice->Commit();
 
     if (ret == S_OK)
@@ -84,11 +90,16 @@ void CompositorDirectComposition::windowDisable()
 
     const auto ret = m_rootVisual->RemoveVisual(m_videoVisual.Get());
     assert(ret == S_OK);
+    if (m_videoBlur)
+        m_rootVisual->RemoveVisual(m_videoBlur->rootVisual());
     m_dcompDevice->Commit();
 }
 
 void CompositorDirectComposition::windowDestroy()
 {
+    if (m_videoBlur)
+        m_videoBlur->clearVideoContent();
+    m_voutVisual.Reset();
     m_videoVisual.Reset();
     CompositorVideo::windowDestroy();
 }
@@ -244,6 +255,20 @@ bool CompositorDirectComposition::setup()
     res = m_rootVisual->AddVisual(m_uiVisual, FALSE, NULL);
     assert(res == S_OK);
 
+    // Before signaling readiness: setupVoutWindow() needs it.
+    if (var_InheritBool(m_intf, "qt-video-blur"))
+    {
+        try
+        {
+            m_videoBlur = std::make_unique<CompositorDCompositionVideoBlur>(m_intf, m_dcompDevice);
+            m_mainCtx->setVideoBlurProvider(m_videoBlur->provider());
+        }
+        catch (const std::exception& exception)
+        {
+            msg_Warn(m_intf, "%s", exception.what());
+        }
+    }
+
     m_setupState = SetupState::Success;
     m_setupStateCond.notify_all();
     lock.unlock();
@@ -276,8 +301,18 @@ bool CompositorDirectComposition::setup()
 
 void CompositorDirectComposition::cleanup()
 {
+    m_voutVisual.Reset();
     m_videoVisual.Reset();
     m_acrylicSurface.reset();
+
+    if (m_videoBlur)
+    {
+        if (m_mainCtx)
+            m_mainCtx->setVideoBlurProvider(nullptr);
+        if (m_rootVisual)
+            m_rootVisual->RemoveVisual(m_videoBlur->rootVisual());
+        m_videoBlur.reset();
+    }
 
     if (m_rootVisual && m_uiVisual)
     {
@@ -371,6 +406,9 @@ void CompositorDirectComposition::onSurfacePositionChanged(const QPointF& positi
     m_videoVisual->SetOffsetX(position.x());
     m_videoVisual->SetOffsetY(position.y());
 
+    if (m_videoBlur)
+        m_videoBlur->setVideoPosition(position);
+
     // WARNING: Commit is requested explicitly through `::commitSurface()` after size
     //          and position changes are applied.
 }
@@ -458,7 +496,10 @@ bool CompositorDirectComposition::setupVoutWindow(vlc_window_t *p_wnd, VoutDestr
     p_wnd->type = VLC_WINDOW_TYPE_DCOMP;
 
     p_wnd->display.dcomp_device = m_dcompDevice;
-    p_wnd->handle.dcomp_visual = m_videoVisual.Get();
+    // With the Video blur, the video output gets a visual that also hands
+    // its swap chain to the blur:
+    m_voutVisual = m_videoBlur ? m_videoBlur->wrapVideoVisual(m_videoVisual.Get()) : m_videoVisual;
+    p_wnd->handle.dcomp_visual = m_voutVisual.Get();
 
     return true;
 }

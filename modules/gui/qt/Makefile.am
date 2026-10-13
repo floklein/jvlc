@@ -183,6 +183,8 @@ libqt_plugin_la_SOURCES = \
 	maininterface/navigationmodel.cpp maininterface/navigationmodel.hpp \
 	maininterface/videosurface.cpp \
 	maininterface/videosurface.hpp \
+	maininterface/videoblur.cpp \
+	maininterface/videoblur.hpp \
 	maininterface/video_window_handler.cpp \
 	maininterface/video_window_handler.hpp \
 	maininterface/windoweffects_module.hpp \
@@ -451,6 +453,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	maininterface/mainui.moc.cpp \
 	maininterface/navigationmodel.moc.cpp \
 	maininterface/videosurface.moc.cpp \
+	maininterface/videoblur.moc.cpp \
 	maininterface/video_window_handler.moc.cpp \
 	medialibrary/medialib.moc.cpp \
 	medialibrary/mlmediastore.moc.cpp \
@@ -586,10 +589,13 @@ libqt_plugin_la_SOURCES += \
 	maininterface/compositor_dcomp.hpp \
 	maininterface/compositor_dcomp_error.hpp \
 	maininterface/compositor_dcomp_acrylicsurface.hpp \
-	maininterface/compositor_dcomp_acrylicsurface.cpp
+	maininterface/compositor_dcomp_acrylicsurface.cpp \
+	maininterface/compositor_dcomp_videoblur.hpp \
+	maininterface/compositor_dcomp_videoblur.cpp
 
 nodist_libqt_plugin_la_SOURCES += \
 	maininterface/compositor_dcomp_acrylicsurface.moc.cpp \
+	maininterface/compositor_dcomp_videoblur.moc.cpp \
 	maininterface/compositor_dcomp.moc.cpp
 
 endif

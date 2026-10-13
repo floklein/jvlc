@@ -43,6 +43,7 @@ class IDCompositionTarget;
 namespace vlc {
 
 class CompositorDCompositionAcrylicSurface;
+class CompositorDCompositionVideoBlur;
 
 class CompositorDirectComposition : public CompositorVideo
 {
@@ -103,9 +104,12 @@ private:
     IDCompositionDevice *m_dcompDevice = nullptr;
     Microsoft::WRL::ComPtr<IDCompositionVisual> m_rootVisual;
     Microsoft::WRL::ComPtr<IDCompositionVisual> m_videoVisual;
+    // What the video output gets instead of m_videoVisual when the Video blur is on:
+    Microsoft::WRL::ComPtr<IDCompositionVisual> m_voutVisual;
     IDCompositionVisual *m_uiVisual = nullptr;
 
     std::unique_ptr<CompositorDCompositionAcrylicSurface> m_acrylicSurface;
+    std::unique_ptr<CompositorDCompositionVideoBlur> m_videoBlur;
 };
 
 }

@@ -943,6 +943,33 @@ FocusScope {
         }
     }
 
+    // Video blur beneath the bars while they float over the video. It paints
+    // nothing in the scene: the compositor draws it under the interface.
+    component BarVideoBlur : VideoBlur {
+        required property Item bar
+        required property bool overVideo
+
+        x: bar.x
+        y: bar.y
+        width: bar.width
+        height: bar.height
+        opacity: bar.opacity
+
+        visible: bar.visible && overVideo
+
+        provider: MainCtx.videoBlurProvider
+    }
+
+    BarVideoBlur {
+        bar: topBar
+        overVideo: MainCtx.hasEmbededVideo && !rootPlayer._controlsUnderVideo
+    }
+
+    BarVideoBlur {
+        bar: controlBar
+        overVideo: MainCtx.hasEmbededVideo && !rootPlayer._controlsUnderVideo
+    }
+
     TopBar {
         id: topBar
 
