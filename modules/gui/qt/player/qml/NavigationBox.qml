@@ -162,7 +162,7 @@ T.Control {
 
     background: Rectangle {
         id: navBoxBackgound
-        color: "black"
+        color: theme.shadow.alpha(1.0)
         opacity: 0.4
         radius: VLCStyle.navBoxButton_radius
         border.color: theme.bg.secondary

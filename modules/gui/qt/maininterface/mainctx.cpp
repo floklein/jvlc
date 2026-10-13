@@ -170,10 +170,10 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
         Qt::ColorScheme scheme;
         switch (colorScheme->currentScheme())
         {
-        case ColorSchemeModel::ColorScheme::Day:
+        case ColorSchemeModel::ColorScheme::Light:
             scheme = Qt::ColorScheme::Light;
             break;
-        case ColorSchemeModel::ColorScheme::Night:
+        case ColorSchemeModel::ColorScheme::Dark:
             scheme = Qt::ColorScheme::Dark;
             break;
         case ColorSchemeModel::ColorScheme::System:

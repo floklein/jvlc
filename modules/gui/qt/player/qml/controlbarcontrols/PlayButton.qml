@@ -218,7 +218,7 @@ T.Control {
         }
 
         color: cursorInside ? theme.accent
-                            : "black"  //foreground is always black
+                            : theme.bg.secondary // contrasts with the inner disk
 
         font.pixelSize: Math.round(parent.height / 1.7)
 
@@ -260,10 +260,13 @@ T.Control {
 
             radius: width / 2
 
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: "#e25b01" }
-                GradientStop { position: 1.0; color: "#f89a06" }
+            readonly property ColorContext colorContext: ColorContext {
+                id: accentTheme
+
+                colorSet: ColorContext.ButtonAccent
             }
+
+            color: accentTheme.bg.primary
 
             Widgets.RoundedRectangleShadow {
                 id: hoverShadow
@@ -280,7 +283,7 @@ T.Control {
             Rectangle {
                 id: innerRectangle
 
-                color: "white"
+                color: theme.fg.secondary
 
                 anchors.fill: parent
                 anchors.margins: _diminished ? (parent.width / 2)

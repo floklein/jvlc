@@ -65,10 +65,10 @@ Row {
             externalPressed: modelData.externalPressed
 
             color: (modelData.type === CSDButton.Close && (hovered || modelData.showHovered))
-                   ? "white"
+                   ? theme.fg.negative
                    : windowButtonGroup.color
 
-            hoverColor: (modelData.type === CSDButton.Close) ? "red" : windowButtonGroup.hoverColor
+            hoverColor: (modelData.type === CSDButton.Close) ? theme.bg.negative : windowButtonGroup.hoverColor
 
             isThemeDark: theme.palette.isDark
 

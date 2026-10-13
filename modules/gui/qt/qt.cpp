@@ -53,6 +53,7 @@ extern "C" char **environ;
 
 #include <QApplication>
 #include <QDate>
+#include <QFontDatabase>
 #include <QMutex>
 #include <QtQuickControls2/QQuickStyle>
 #include <QLoggingCategory>
@@ -509,11 +510,6 @@ vlc_module_begin ()
         set_capability( "qtcsdmenu", 10 )
         set_callback( QtWin32CSDMenuOpen )
 #endif
-    add_submodule()
-        set_capability("qt theme provider", 1)
-        set_description( "Qt basic system theme" )
-        set_callback( SystemPaletteThemeProviderOpen )
-        add_shortcut("qt-themeprovider-systempalette")
 vlc_module_end ()
 
 /*****************************************/
@@ -911,6 +907,31 @@ static void *Thread( void *obj )
     /* Start the QApplication here */
     QApplication app( argc, argv );
     app.setProperty("initialStyle", app.style()->name());
+
+    {
+        /* Bundled interface fonts: Inter for the text, DM Mono for key caps */
+        static const char* const fontFiles[] = {
+            ":/fonts/Inter-Regular.ttf",
+            ":/fonts/Inter-Medium.ttf",
+            ":/fonts/Inter-SemiBold.ttf",
+            ":/fonts/Inter-Bold.ttf",
+            ":/fonts/DMMono-Regular.ttf",
+        };
+        for (const char* fontFile : fontFiles)
+        {
+            if (QFontDatabase::addApplicationFont(QString::fromLatin1(fontFile)) < 0)
+                msg_Warn(p_intf, "unable to load the font %s", fontFile);
+        }
+
+        QFont font = QGuiApplication::font();
+        font.setFamilies({ QStringLiteral("Inter") });
+        QGuiApplication::setFont(font);
+
+        /* The interface only uses the Basic controls. Its theme takes the
+         * application font, while platform styles (e.g. Fusion) would impose
+         * the desktop font on the controls. */
+        QQuickStyle::setStyle(QStringLiteral("Basic"));
+    }
 
     {
         // Install custom translator:

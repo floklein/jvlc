@@ -30,7 +30,11 @@ ViewBlockingRectangle {
 
     readonly property bool usingAcrylic: visible && enabled && AcrylicController.enabled
 
-    property color tintColor: "gray"
+    readonly property ColorContext colorContext: ColorContext {
+        id: theme
+    }
+
+    property color tintColor: theme.bg.primary
 
     property color alternativeColor: tintColor
 

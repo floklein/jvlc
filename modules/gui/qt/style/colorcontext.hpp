@@ -119,7 +119,8 @@ public:
         Accent = VQTC_NAME_ACCENT,
         Shadow = VQTC_NAME_SHADOW,
         Separator = VQTC_NAME_SEPARATOR,
-        Indicator = VQTC_NAME_INDICATOR
+        Indicator = VQTC_NAME_INDICATOR,
+        Tint = VQTC_NAME_TINT
     };
 
     Q_PROPERTY(SystemPalette* palette READ palette WRITE setPalette NOTIFY paletteChanged FINAL)
@@ -145,6 +146,8 @@ public:
     Q_PROPERTY(QColor indicator READ indicator NOTIFY colorsChanged FINAL)
     Q_PROPERTY(QColor shadow READ shadow NOTIFY colorsChanged FINAL)
     Q_PROPERTY(QColor accent READ accent NOTIFY colorsChanged FINAL)
+    // translucent background of panels over the video
+    Q_PROPERTY(QColor tint READ tint NOTIFY colorsChanged FINAL)
 
 
     Q_PROPERTY(bool initialized READ initialized NOTIFY initializedChanged FINAL)
@@ -167,6 +170,7 @@ public:
     QColor indicator() const;
     QColor shadow() const;
     QColor accent() const;
+    QColor tint() const;
 
     void setPalette(SystemPalette*);
     void setColorSet(ColorSet);

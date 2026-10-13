@@ -204,10 +204,10 @@ void FirstRunWizard::updateColorLabel( QAbstractButton* btn )
         case ColorSchemeModel::System:
             ui.explainerLabel->setText( qtr( "<i>VLC will automatically switch to dark mode accordingly with system settings</i>" ) );
             break;
-        case ColorSchemeModel::Day:
+        case ColorSchemeModel::Light:
             ui.explainerLabel->setText( qtr( "<i>VLC will automatically use light mode</i>" ) );
             break;
-        case ColorSchemeModel::Night:
+        case ColorSchemeModel::Dark:
             ui.explainerLabel->setText( qtr( "<i>VLC will automatically use dark mode</i>" ) );
             break;
     }

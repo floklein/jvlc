@@ -4268,7 +4268,6 @@ AC_ARG_ENABLE([qt],
     enable_qt="no"
   ])
 ])
-have_qt_gtk="no"
 have_qt_qtest="no"
 have_qt_quick_test="no"
 have_qt_gui_private="no"
@@ -4535,11 +4534,6 @@ AS_IF([test "${enable_qt}" != "no"], [
             AC_MSG_RESULT([no])
             ;;
       esac
-
-      dnl gtk theme provider
-      PKG_CHECK_MODULES([GTK3], [gtk+-3.0 >= 3.20], [
-        have_qt_gtk="yes"
-      ], [:])
     ], [
       AC_MSG_RESULT([no])
       have_qt="no"
@@ -4571,7 +4565,6 @@ AS_IF([test "${enable_qt}" != "no"], [
 ])
 AC_SUBST([QT_INDIRECT_LIBS])
 AM_CONDITIONAL([ENABLE_QT], [test "$enable_qt" != "no"])
-AM_CONDITIONAL([HAVE_QT_GTK], [test "${have_qt_gtk}" = "yes"])
 AM_CONDITIONAL([HAVE_QT_QTEST], [test "${have_qt_qtest}" = "yes"])
 AM_CONDITIONAL([HAVE_QT_QUICK_TEST], [test "${have_qt_quick_test}" = "yes"])
 AM_CONDITIONAL([HAVE_QT_GUI_PRIVATE], [test "${have_qt_gui_private}" = "yes"])

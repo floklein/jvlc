@@ -95,9 +95,6 @@ endif
 if QT_QML_DEBUG
 libqt_plugin_la_CPPFLAGS += -DQT_QML_DEBUG
 endif
-if HAVE_QT_GTK
-libqt_plugin_la_CPPFLAGS += -DQT_HAS_GTK
-endif
 
 libqt_plugin_la_SOURCES = \
 	qt.cpp qt.hpp plugins.hpp \
@@ -283,9 +280,10 @@ libqt_plugin_la_SOURCES = \
 	style/colorcontext.hpp \
 	style/systempalette.cpp \
 	style/systempalette.hpp \
+	style/themetokens.cpp \
+	style/themetokens.hpp \
 	style/vlcicons.cpp 	style/vlcicons.hpp \
 	style/defaultthemeproviders.hpp \
-	style/systempalettethemeprovider.cpp \
 	player/input_models.cpp player/input_models.hpp \
 	player/delay_estimator.cpp \
 	player/delay_estimator.hpp \
@@ -791,6 +789,11 @@ ui_%.h: %.ui
 
 libqt_plugin_la_RES = \
 	pixmaps/VLCIcons.ttf \
+	fonts/Inter-Regular.ttf \
+	fonts/Inter-Medium.ttf \
+	fonts/Inter-SemiBold.ttf \
+	fonts/Inter-Bold.ttf \
+	fonts/DMMono-Regular.ttf \
 	pixmaps/addons/addon_default.svg \
 	pixmaps/addons/addon_broken.svg \
 	pixmaps/addons/addon_blue.svg \
@@ -1539,6 +1542,7 @@ nodist_libqt_plugin_la_SOURCES += windows.cpp
 endif
 
 EXTRA_DIST += $(lib_qt_plugin_la_QRC) $(libqt_plugin_la_RES) $(libqt_plugin_la_SHADER)
+EXTRA_DIST += fonts/Inter-OFL.txt fonts/DMMono-OFL.txt
 
 nodist_libqt_plugin_la_SOURCES += assets.cpp  shaders/shaders.cpp
 endif
@@ -1703,24 +1707,6 @@ assets.cpp: assets.qrc
 	$(AM_V_GEN)$(RCC) $(RCC_EXTRA_PARAMS) --name assets -o $@ $<
 
 
-if HAVE_QT_GTK
-libqt_gtktheme_plugin_la_CXXFLAGS = $(AM_CXXFLAGS) $(GTK3_CFLAGS) $(QT_CFLAGS)
-libqt_gtktheme_CPPFLAGS = $(AM_CPPFLAGS)
-libqt_gtktheme_plugin_la_LIBADD = $(GTK3_LIBS) $(QT_LIBS)
-libqt_gtktheme_plugin_la_LDFLAGS = $(AM_LDFLAGS) $(QT_LDFLAGS)
-libqt_gtktheme_plugin_la_SOURCES = \
-	style/gtkthemeprovider/gtk_compat.cpp \
-	style/gtkthemeprovider/gtk_compat.h \
-	style/gtkthemeprovider/gtkthemeprovider.cpp \
-	style/gtkthemeprovider/gtk_util.cpp \
-	style/gtkthemeprovider/gtk_util.h \
-	style/gtkthemeprovider/nav_button_provider_gtk.cpp \
-	style/gtkthemeprovider/nav_button_provider_gtk.h \
-	style/gtkthemeprovider/scoped_gobject.h
-if ENABLE_QT
-gui_PLUGINS += libqt_gtktheme_plugin.la
-endif
-endif
 
 if ENABLE_QT
 gui_PLUGINS += libqt_plugin.la
@@ -1837,6 +1823,26 @@ test_thread_runner_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_thread_runner_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_thread_runner
 TESTS += test_thread_runner
+
+# test_theme
+
+test_theme_SOURCES = \
+	tests/test_theme.cpp \
+	style/themetokens.cpp style/themetokens.hpp \
+	util/color_scheme_model.cpp util/color_scheme_model.hpp
+
+nodist_test_theme_SOURCES = \
+	tests/test_theme.moc \
+	util/color_scheme_model.moc.cpp
+
+BUILT_SOURCES += tests/test_theme.moc
+CLEANFILES += tests/test_theme.moc
+test_theme_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_theme_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_theme_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_theme_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_theme
+TESTS += test_theme
 
 # test_vlc_dialog_model
 

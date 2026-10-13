@@ -121,7 +121,7 @@ T.Pane {
         visible: root._initialFetchCompleted
 
         // NOTE: Transparent rectangle has an optimization that it does not use a scene graph node.
-        color: blurEffect.visible ? "transparent" : (theme.palette?.isDark ? "black" : "white")
+        color: blurEffect.visible ? "transparent" : theme.bg.secondary
 
         // NOTE: `FrostedGlassEffect` is purposefully not used here. It should be only used when depth
         //       is relevant and exposed to the user, such as for popups, or the mini player (mini
@@ -153,7 +153,7 @@ T.Pane {
                      !!root.contentItem?.artworkTextureProvider
 
             postprocess: true
-            tint: root.theme.palette?.isDark ? "black" : "white"
+            tint: root.theme.bg.secondary
             tintStrength: 0.7
             backgroundColor: theme.bg.secondary
         }

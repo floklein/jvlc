@@ -173,14 +173,20 @@ MainViewLoader {
                 pictureOverlay: Item {
                     id: overlay
 
+                    // text drawn over the artwork
+                    readonly property ColorContext colorContext: ColorContext {
+                        id: overlayTheme
+                        colorSet: ColorContext.Badge
+                    }
+
                     Rectangle {
                         anchors.fill: parent
 
                         radius: VLCStyle.gridCover_radius
 
                         gradient: Gradient {
-                            GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.3) }
-                            GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.7) }
+                            GradientStop { position: 0.0; color: overlayTheme.shadow.alpha(0.3) }
+                            GradientStop { position: 1.0; color: overlayTheme.shadow.alpha(0.7) }
                         }
                     }
 
@@ -194,7 +200,7 @@ MainViewLoader {
                             font.pixelSize: VLCStyle.fontSize_large
                             font.weight: Font.DemiBold
                             text: model.name || qsTr("Unknown genre")
-                            color: "white"
+                            color: overlayTheme.fg.primary
                             horizontalAlignment: Text.AlignHCenter
                         }
 
@@ -202,7 +208,7 @@ MainViewLoader {
                             width: overlay.width
                             text: qsTr("%1 Track", "%1 Tracks", model.nb_tracks).arg(model.nb_tracks)
                             opacity: .7
-                            color: "white"
+                            color: overlayTheme.fg.primary
                             horizontalAlignment: Text.AlignHCenter
                         }
                     }

@@ -90,14 +90,7 @@ public:
     std::unique_ptr<CSDMetrics> m_csdMetrics;
 };
 
-#define COLOR_DEFINITION(name, value) \
-    Q_PROPERTY(QColor name READ get_##name NOTIFY paletteChanged FINAL) \
-public: \
-    inline QColor get_## name() const { return name; } \
-private: \
-    QColor name {value}
-
-
+struct ThemeTokens;
 
 class SystemPalette : public QObject, public QQmlParserStatus
 {
@@ -109,31 +102,6 @@ public:
     Q_PROPERTY(bool isDark MEMBER m_isDark NOTIFY paletteChanged FINAL)
     Q_PROPERTY(bool hasCSDImage READ hasCSDImage NOTIFY hasCSDImageChanged FINAL)
     Q_PROPERTY(CSDMetrics* csdMetrics READ getCSDMetrics NOTIFY CSDMetricsChanged FINAL)
-
-    //standard color definitions used by light/dark themes
-    COLOR_DEFINITION(orange500, "#FF8800");
-    COLOR_DEFINITION(orange800, "#FF610A");
-
-    COLOR_DEFINITION(orange400, "#f89a06"); //FIXME name have been chosen randomly by me
-    COLOR_DEFINITION(orange200, "#e29a06"); //FIXME name have been chosen randomly by me
-
-    COLOR_DEFINITION(darkGrey200, "#1E1E1E");
-    COLOR_DEFINITION(darkGrey300, "#212121");
-    COLOR_DEFINITION(darkGrey400, "#242424");
-    COLOR_DEFINITION(darkGrey500, "#272727");
-    COLOR_DEFINITION(darkGrey600, "#2A2A2A");
-    COLOR_DEFINITION(darkGrey700, "#2D2D2D");
-    COLOR_DEFINITION(darkGrey800, "#303030");
-
-    COLOR_DEFINITION(lightGrey100, "#FAFAFA");
-    COLOR_DEFINITION(lightGrey200, "#F6F6F6");
-    COLOR_DEFINITION(lightGrey300, "#F2F2F2");
-    COLOR_DEFINITION(lightGrey400, "#EDEDED");
-    COLOR_DEFINITION(lightGrey500, "#E9E9E9");
-    COLOR_DEFINITION(lightGrey600, "#E5E5E5");
-    COLOR_DEFINITION(lightGrey700, "#E0E0E0");
-
-    COLOR_DEFINITION(red500, "#FF0000");
 
 public:
     SystemPalette(QObject* parent = nullptr);
@@ -168,24 +136,23 @@ signals:
 private:
     void updatePalette();
 
-    void makeLightPalette();
-    void makeDarkPalette();
-    void makeSystemPalette();
+    void makeThemePalette(const ThemeTokens& t);
+    bool isSystemThemeDark() const;
 
 private:
     MainCtx* m_ctx = nullptr;
 
-    ColorSchemeModel::ColorScheme m_source = ColorSchemeModel::ColorScheme::Day;
+    ColorSchemeModel::ColorScheme m_source = ColorSchemeModel::ColorScheme::Light;
     bool m_isDark = false;
     bool m_hasCSDImage = false;
+
+    // user's Accent color, invalid for the default one
+    QColor m_accent;
 
     std::unique_ptr<ExternalPaletteImpl> m_palettePriv;
 
     QMap<quint64, QColor> m_colorMap;
 
 };
-
-#undef COLOR_PROPERTY
-#undef COLOR_DEFINITION
 
 #endif // VLC_SYSTEMPALETTE_H

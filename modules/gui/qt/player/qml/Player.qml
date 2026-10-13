@@ -120,16 +120,30 @@ FocusScope {
         History.previous()
     }
 
+    // Whether the bars sit over the video on a Tint
+    readonly property bool _panelsOverVideo: MainCtx.hasEmbededVideo
+                                             && !MainCtx.pinVideoControls
+                                             && !displayFadeRectangles
+
     //we draw both the view and the window here
     ColorContext {
         id: windowTheme
 
-        // NOTE: We force the night theme when playing a video.
-        palette: (MainCtx.hasEmbededVideo && MainCtx.pinVideoControls === false)
+        // NOTE: We force the dark theme when the controls are drawn right over the
+        //       video scrims. Panels over the video use the Theme's Tint.
+        palette: (MainCtx.hasEmbededVideo && !MainCtx.pinVideoControls && rootPlayer.displayFadeRectangles)
                  ? VLCStyle.darkPalette
                  : VLCStyle.palette
 
         colorSet: ColorContext.Window
+    }
+
+    // scrims darkening the video under the controls
+    ColorContext {
+        id: scrimTheme
+
+        palette: VLCStyle.darkPalette
+        colorSet: ColorContext.View
     }
 
     PlayerToolbarVisibilityFSM {
@@ -323,8 +337,8 @@ FocusScope {
                     visible: rootPlayer.displayFadeRectangles && !topBarAcrylicBg.visible
 
                     gradient: Gradient {
-                        GradientStop { position: 0; color: Qt.rgba(0, 0, 0, .8) }
-                        GradientStop { position: 1; color: "transparent" }
+                        GradientStop { position: 0; color: scrimTheme.bg.secondary.alpha(.8) }
+                        GradientStop { position: 1; color: scrimTheme.bg.secondary.alpha(0) }
                     }
                 }
 
@@ -336,9 +350,9 @@ FocusScope {
                     opacity: controlBar.opacity
 
                     gradient: Gradient {
-                        GradientStop { position: 0; color: "transparent" }
-                        GradientStop { position: .64; color: Qt.rgba(0, 0, 0, .8) }
-                        GradientStop { position: 1; color: "black" }
+                        GradientStop { position: 0; color: scrimTheme.bg.secondary.alpha(0) }
+                        GradientStop { position: .64; color: scrimTheme.bg.secondary.alpha(.8) }
+                        GradientStop { position: 1; color: scrimTheme.bg.secondary }
                     }
 
                     visible: rootPlayer.displayFadeRectangles && !(controlBar.background && controlBar.background.visible)
@@ -394,7 +408,7 @@ FocusScope {
                     source: textureProviderIndirection
 
                     postprocess: true
-                    tint: bgtheme.palette.isDark ? "black" : "white"
+                    tint: bgtheme.bg.secondary
                     tintStrength: 0.5
                     backgroundColor: bgtheme.bg.primary
 
@@ -654,13 +668,13 @@ FocusScope {
                                 }
 
                                 Widgets.RoundedRectangleShadow {
-                                    color: Qt.rgba(0, 0, 0, .18)
+                                    color: bgtheme.shadow.alpha(.18)
                                     yOffset: VLCStyle.dp(24, VLCStyle.scale)
                                     blurRadius: VLCStyle.dp(54, VLCStyle.scale)
                                 }
 
                                 Widgets.RoundedRectangleShadow {
-                                    color: Qt.rgba(0, 0, 0, .22)
+                                    color: bgtheme.shadow.alpha(.22)
                                     yOffset: VLCStyle.dp(5, VLCStyle.scale)
                                     blurRadius: VLCStyle.dp(14, VLCStyle.scale)
                                 }
@@ -1014,9 +1028,7 @@ FocusScope {
             anchors.fill: parent
 
             opacity: {
-                if (MainCtx.hasEmbededVideo && !MainCtx.pinVideoControls && !rootPlayer.displayFadeRectangles) {
-                    return 0.6
-                } else if (MainCtx.intfMainWindow.visibility === Window.FullScreen && MainCtx.hasEmbededVideo) {
+                if (MainCtx.intfMainWindow.visibility === Window.FullScreen && MainCtx.hasEmbededVideo) {
                     return MainCtx.pinOpacity
                 } else {
                     return 1.0
@@ -1025,7 +1037,17 @@ FocusScope {
 
             tintColor: windowTheme.bg.primary
 
-            visible: MainCtx.pinVideoControls || (MainCtx.hasEmbededVideo && !rootPlayer.displayFadeRectangles)
+            visible: MainCtx.pinVideoControls
+        }
+
+        Rectangle {
+            z: -1
+
+            anchors.fill: parent
+
+            color: windowTheme.tint
+
+            visible: rootPlayer._panelsOverVideo
         }
     }
 
@@ -1119,7 +1141,7 @@ FocusScope {
             bottomPadding: 0
 
             background: Rectangle {
-                color: windowTheme.bg.primary.alpha(0.8)
+                color: MainCtx.hasEmbededVideo ? windowTheme.tint : windowTheme.bg.primary
             }
 
             view.fadingEdge.pixelAlignedForDPR: !controlBar.visible
@@ -1339,8 +1361,8 @@ FocusScope {
             visible: !MainCtx.hasEmbededVideo || MainCtx.pinVideoControls || !rootPlayer.displayFadeRectangles
 
             opacity: {
-                if (MainCtx.hasEmbededVideo && !MainCtx.pinVideoControls && !rootPlayer.displayFadeRectangles) {
-                    return 0.6
+                if (rootPlayer._panelsOverVideo) {
+                    return 1.0 // the Tint is translucent
                 } else if ((Window.visibility === Window.FullScreen) && MainCtx.hasEmbededVideo) {
                     return MainCtx.pinOpacity
                 } else if (AcrylicController.enabled || !MainCtx.hasEmbededVideo) {
@@ -1350,7 +1372,7 @@ FocusScope {
                 }
             }
 
-            color: windowTheme.bg.primary
+            color: rootPlayer._panelsOverVideo ? windowTheme.tint : windowTheme.bg.primary
         }
 
         FadeControllerStateGroup {

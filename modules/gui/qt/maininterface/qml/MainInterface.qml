@@ -175,7 +175,7 @@ Item {
 
                 text: VLCIcons.back
 
-                font.pixelSize: VLCStyle.fontSize_xxxlarge * 1.2
+                font.pixelSize: VLCStyle.fontSize_xxlarge * 1.2
 
                 color: (historyDragHandler.accumulatedDelta >= historyDragHandler.threshold) ? theme.bg.primary
                                                                                              : theme.accent
@@ -366,7 +366,7 @@ Item {
         // blending. Note that this optimization relies on hollow mode that discards the inner pixels, so the actual content area is still painted.
         blending: false
         visible: _extendedFrameVisible && !MainCtx.platformHandlesShadowsWithCSD()
-        color: Qt.rgba(0.0, 0.0, 0.0, 0.5) // sg opacity < 1.0 force enables blending, so we adjust the color instead
+        color: theme.shadow.alpha(0.5) // sg opacity < 1.0 force enables blending, so we adjust the color instead
 
         // If there is depth buffer, we enable hollow mode. The inner area is discarded, so we can do this:
         z: hasDepthBuffer ? 99 : -1

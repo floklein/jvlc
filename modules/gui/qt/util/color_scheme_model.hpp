@@ -30,11 +30,12 @@ class ColorSchemeModel : public QAbstractListModel
     Q_PROPERTY(ColorScheme scheme READ currentScheme NOTIFY currentChanged FINAL)
 
 public:
+    // Theme choices, in the order of the rows: the current row index is saved
     enum ColorScheme
     {
         System,
-        Day,
-        Night
+        Light,
+        Dark
     };
 
     struct Item

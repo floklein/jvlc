@@ -26,11 +26,17 @@ import VLC.Widgets as Widgets
 T.Button {
     id: control
 
-    property color color: "white"
+    // icon drawn over the video or artwork
+    readonly property ColorContext colorContext: ColorContext {
+        id: theme
+        colorSet: ColorContext.Badge
+    }
+
+    property color color: theme.fg.primary
     property string description
 
     property int textStyle: Text.Normal
-    property color textStyleColor: "black"
+    property color textStyleColor: theme.shadow.alpha(1.0)
 
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
                             implicitContentWidth + leftPadding + rightPadding)

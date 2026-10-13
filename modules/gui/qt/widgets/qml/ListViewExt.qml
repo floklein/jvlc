@@ -273,7 +273,7 @@ ListView {
 
                     text: VLCIcons.add
 
-                    font.pixelSize: VLCStyle.fontHeight_xxxlarge
+                    font.pixelSize: VLCStyle.fontHeight_xxlarge
 
                     color: theme.accent
                 }

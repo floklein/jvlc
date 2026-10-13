@@ -154,8 +154,8 @@ FocusScope {
     Rectangle {
         anchors.fill: background
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, .5) }
-            GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, .7) }
+            GradientStop { position: 0.0; color: theme.shadow.alpha(.5) }
+            GradientStop { position: 1.0; color: theme.shadow.alpha(.7) }
         }
     }
 

@@ -319,14 +319,14 @@ T.Pane {
                 // ES6 does not have replaceAll(), but this works too with regex, which we need to use
                 // anyway to match case insensitive:
                 text: UpdateModel.description.replace(/security/gi,
-                                                      (match) => { return "<font color=\"red\">" + match + "</font>" })
+                                                      (match) => { return "<font color=\"" + theme.fg.negative + "\">" + match + "</font>" })
 
                 wrapMode: Text.WordWrap
 
                 padding: VLCStyle.margin_xxsmall
 
                 style: Text.Raised
-                styleColor: Qt.rgba(0.0, 0.0, 0.0, 0.2)
+                styleColor: theme.shadow.alpha(0.2)
             }
 
             Widgets.FadingEdge {

@@ -26,14 +26,20 @@ QtObject {
 
     readonly property real scale: MainCtx.intfScaleFactor
 
-    readonly property FontMetrics fontMetrics_xxsmall  : FontMetrics { font.pixelSize: MainCtx.dp(6, scale);  }
-    readonly property FontMetrics fontMetrics_xsmall   : FontMetrics { font.pixelSize: MainCtx.dp(8, scale);  }
-    readonly property FontMetrics fontMetrics_small    : FontMetrics { font.pixelSize: MainCtx.dp(10, scale); }
-    readonly property FontMetrics fontMetrics_normal   : FontMetrics { font.pixelSize: MainCtx.dp(12, scale); }
-    readonly property FontMetrics fontMetrics_large    : FontMetrics { font.pixelSize: MainCtx.dp(14, scale); }
-    readonly property FontMetrics fontMetrics_xlarge   : FontMetrics { font.pixelSize: MainCtx.dp(16, scale); }
-    readonly property FontMetrics fontMetrics_xxlarge  : FontMetrics { font.pixelSize: MainCtx.dp(20, scale); }
-    readonly property FontMetrics fontMetrics_xxxlarge : FontMetrics { font.pixelSize: MainCtx.dp(24, scale); }
+    // Fonts, bundled and registered at startup (qt.cpp)
+    readonly property string fontFamily: "Inter"
+    // key caps only
+    readonly property string fontFamily_mono: "DM Mono"
+
+    // Type scale, from the Figma design; normal is the body text
+    readonly property FontMetrics fontMetrics_xxsmall  : FontMetrics { font.pixelSize: MainCtx.dp(8, scale);  font.family: fontFamily }
+    readonly property FontMetrics fontMetrics_xsmall   : FontMetrics { font.pixelSize: MainCtx.dp(10, scale); font.family: fontFamily }
+    readonly property FontMetrics fontMetrics_small    : FontMetrics { font.pixelSize: MainCtx.dp(12, scale); font.family: fontFamily }
+    readonly property FontMetrics fontMetrics_normal   : FontMetrics { font.pixelSize: MainCtx.dp(14, scale); font.family: fontFamily }
+    readonly property FontMetrics fontMetrics_large    : FontMetrics { font.pixelSize: MainCtx.dp(15, scale); font.family: fontFamily }
+    readonly property FontMetrics fontMetrics_xlarge   : FontMetrics { font.pixelSize: MainCtx.dp(16, scale); font.family: fontFamily }
+    readonly property FontMetrics fontMetrics_xxlarge  : FontMetrics { font.pixelSize: MainCtx.dp(24, scale); font.family: fontFamily }
+    readonly property FontMetrics fontMetrics_xxxlarge : FontMetrics { font.pixelSize: MainCtx.dp(32, scale); font.family: fontFamily }
 
     readonly property SystemPalette palette:  SystemPalette {
         objectName: "themePalette"
@@ -43,7 +49,7 @@ QtObject {
 
     readonly property SystemPalette darkPalette: SystemPalette {
         objectName: "darkPalette"
-        source: ColorSchemeModel.Night
+        source: ColorSchemeModel.Dark
         ctx: MainCtx
     }
 
@@ -59,6 +65,25 @@ QtObject {
     readonly property double margin_xlarge: MainCtx.dp(32, scale);
     readonly property double margin_xxlarge: MainCtx.dp(36, scale);
 
+    // Spacing scale of the Figma design (auto-layout gaps and paddings);
+    // spacing_10 is the dominant rhythm
+    readonly property int spacing_4: MainCtx.dp(4, scale)
+    readonly property int spacing_5: MainCtx.dp(5, scale)
+    readonly property int spacing_6: MainCtx.dp(6, scale)
+    readonly property int spacing_8: MainCtx.dp(8, scale)
+    readonly property int spacing_10: MainCtx.dp(10, scale)
+    readonly property int spacing_12: MainCtx.dp(12, scale)
+    readonly property int spacing_14: MainCtx.dp(14, scale)
+    readonly property int spacing_20: MainCtx.dp(20, scale)
+
+    // Corner radius scale of the Figma design
+    readonly property real radius_xxsmall: MainCtx.dp(2, scale) // settings category
+    readonly property real radius_xsmall: MainCtx.dp(3, scale)  // toggle knob
+    readonly property real radius_small: MainCtx.dp(4, scale)   // buttons, options
+    readonly property real radius_normal: MainCtx.dp(6, scale)  // dropdowns, toggles, play button
+    readonly property real radius_large: MainCtx.dp(10, scale)  // menus
+    readonly property real radius_xlarge: MainCtx.dp(14, scale) // sheet tops
+
     readonly property real resizeHandleWidth: (scrollBarInteractingSize / 2)
 
     readonly property real touchHandlerMargin: margin_large
@@ -67,6 +92,7 @@ QtObject {
     readonly property int border: MainCtx.dp(1, scale)
     readonly property int focus_border: border
 
+    readonly property int fontSize_xxsmall: fontMetrics_xxsmall.font.pixelSize
     readonly property int fontSize_xsmall: fontMetrics_xsmall.font.pixelSize
     readonly property int fontSize_small:  fontMetrics_small.font.pixelSize
     readonly property int fontSize_normal: fontMetrics_normal.font.pixelSize
@@ -75,6 +101,7 @@ QtObject {
     readonly property int fontSize_xxlarge: fontMetrics_xxlarge.font.pixelSize
     readonly property int fontSize_xxxlarge: fontMetrics_xxxlarge.font.pixelSize
 
+    readonly property int fontHeight_xxsmall: Math.ceil(fontMetrics_xxsmall.lineSpacing)
     readonly property int fontHeight_xsmall: Math.ceil(fontMetrics_xsmall.lineSpacing)
     readonly property int fontHeight_small:  Math.ceil(fontMetrics_small.lineSpacing)
     readonly property int fontHeight_normal: Math.ceil(fontMetrics_normal.lineSpacing)
@@ -92,10 +119,10 @@ QtObject {
 
     readonly property int listAlbumCover_height: MainCtx.dp(32, scale)
     readonly property int listAlbumCover_width: listAlbumCover_height * 16.0/9
-    readonly property int listAlbumCover_radius: MainCtx.dp(3, scale)
+    readonly property int listAlbumCover_radius: radius_xsmall
     readonly property int trackListAlbumCover_width: MainCtx.dp(32, scale)
     readonly property int trackListAlbumCover_heigth: MainCtx.dp(32, scale)
-    readonly property int trackListAlbumCover_radius: MainCtx.dp(3, scale)
+    readonly property int trackListAlbumCover_radius: radius_xsmall
 
     readonly property int tableCoverRow_height: Math.max(listAlbumCover_height, fontHeight_normal) + margin_xsmall * 2
     readonly property int tableRow_height: fontHeight_normal + margin_small * 2
@@ -175,7 +202,7 @@ QtObject {
     readonly property int button_width_normal: MainCtx.dp(96, scale)
     readonly property int button_width_large: MainCtx.dp(128, scale)
 
-    readonly property real button_radius: MainCtx.dp(4, scale)
+    readonly property real button_radius: radius_small
 
     readonly property int contextButton_width: icon_normal
     readonly property int contextButton_margin: margin_xxsmall
@@ -203,7 +230,7 @@ QtObject {
     readonly property int gridCover_video_height: ( gridCover_video_width * 10.0 ) / 16
     readonly property int gridCover_video_border: MainCtx.dp(4, scale)
 
-    readonly property int gridCover_radius: MainCtx.dp(4, scale)
+    readonly property int gridCover_radius: radius_small
 
     readonly property int expandCover_music_height: MainCtx.dp(171, scale)
     readonly property int expandCover_music_width: MainCtx.dp(171, scale)

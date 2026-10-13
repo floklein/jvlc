@@ -467,7 +467,7 @@ Item {
 
             yOffset: VLCStyle.dp(4, VLCStyle.scale)
 
-            color: Qt.rgba(0, 0, 0, .2)
+            color: theme.shadow.alpha(.2)
 
             compensationFactor: 4.0 // Large compensation factor is to prevent clipping and strong shadow at the same time
         }

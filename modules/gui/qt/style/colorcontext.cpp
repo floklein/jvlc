@@ -426,3 +426,8 @@ QColor ColorContext::accent() const
 {
     return getColor(Decoration, Accent);
 }
+
+QColor ColorContext::tint() const
+{
+    return getColor(Decoration, Tint);
+}

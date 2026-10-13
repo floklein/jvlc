@@ -32,6 +32,12 @@ T.Control {
 
     objectName: "pip window"
 
+    // controls are drawn right over the video
+    readonly property ColorContext colorContext: ColorContext {
+        id: pipTheme
+        colorSet: ColorContext.Badge
+    }
+
     property real dragXMin: 0
     property real dragXMax: 0
     property real dragYMin: undefined
@@ -117,7 +123,7 @@ T.Control {
         color: (hoverHandler.hovered ||
                 playButton?.hovered ||
                 closeButton?.hovered ||
-                fullscreenButton?.hovered) ? "#10000000" : "transparent"
+                fullscreenButton?.hovered) ? pipTheme.shadow.alpha(0.06) : "transparent"
 
         // It is acceptable for effects to exceed the boundaries of the
         // parent. They are an exception to the "hypothetical clip test".

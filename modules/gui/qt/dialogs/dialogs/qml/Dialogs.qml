@@ -258,7 +258,7 @@ Item {
 
                 visible: (color.a > 0.0)
 
-                color: Qt.darker(parent.color)
+                color: errorMsgTheme.shadow
             }
         }
 

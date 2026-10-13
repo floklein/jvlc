@@ -80,7 +80,7 @@ Item {
 
         radius: width / 2
 
-        color: "white"
+        color: theme.fg.secondary
 
         Widgets.DefaultShadow {
 
@@ -92,7 +92,7 @@ Item {
 
         text: VLCIcons.play_filled
 
-        color: (root.hovered) ? theme.accent : "black"
+        color: (root.hovered) ? theme.accent : theme.bg.secondary
 
         font.pixelSize: Math.round(parent.width / 2)
     }

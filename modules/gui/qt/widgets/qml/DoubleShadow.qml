@@ -18,6 +18,8 @@
 
 import QtQuick
 
+import VLC.Style
+
 // A convenience file to encapsulate two drop shadow rectangles stacked
 Item {
     id: root
@@ -34,8 +36,12 @@ Item {
     property alias secondaryHorizontalOffset: secondaryShadow.xOffset
     property alias secondaryBlurRadius: secondaryShadow.blurRadius
 
-    primaryColor: Qt.rgba(0, 0, 0, .18)
-    secondaryColor: Qt.rgba(0, 0, 0, .22)
+    readonly property ColorContext colorContext: ColorContext {
+        id: theme
+    }
+
+    primaryColor: theme.shadow.alpha(.18)
+    secondaryColor: theme.shadow.alpha(.22)
 
     RoundedRectangleShadow {
         id: primaryShadow

@@ -536,7 +536,7 @@ FocusScope {
             height: parent.height - g_mainDisplay.displayMargin
 
             visible: VLCStyle.isScreenSmall && (playlistLoader.shown || (sidebar.visible && (sidebar.state === "expanded")))
-            color: "black"
+            color: theme.shadow.alpha(1.0)
             opacity: 0.4
 
             MouseArea {

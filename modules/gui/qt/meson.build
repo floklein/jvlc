@@ -407,10 +407,11 @@ qt_plugin_sources = files(
     'style/colorcontext.hpp',
     'style/systempalette.cpp',
     'style/systempalette.hpp',
+    'style/themetokens.cpp',
+    'style/themetokens.hpp',
     'style/vlcicons.cpp',
     'style/vlcicons.hpp',
     'style/defaultthemeproviders.hpp',
-    'style/systempalettethemeprovider.cpp',
     'player/input_models.cpp',
     'player/delay_estimator.cpp',
     'player/input_models.hpp',
@@ -1199,34 +1200,6 @@ if qt6_dep.found()
         qt_cppargs += libcom_cppflags
     endif
 
-    #Qt GTK theme module
-    gtk_dep = dependency(
-        'gtk+-3.0',
-        version: '>=3.20',
-        required: get_option('qt_gtk').disable_auto_if(host_system in ['windows', 'darwin'])
-    )
-
-    vlc_modules += {
-        'name' : 'qt_gtktheme',
-        'sources' : files(
-            'style/gtkthemeprovider/gtk_compat.cpp',
-            'style/gtkthemeprovider/gtk_compat.h',
-            'style/gtkthemeprovider/gtkthemeprovider.cpp',
-            'style/gtkthemeprovider/gtk_util.cpp',
-            'style/gtkthemeprovider/gtk_util.h',
-            'style/gtkthemeprovider/nav_button_provider_gtk.cpp',
-            'style/gtkthemeprovider/nav_button_provider_gtk.h',
-            'style/gtkthemeprovider/scoped_gobject.h'
-        ),
-        'dependencies' : [gtk_dep, qt6_dep],
-        'plugin_dir' : 'gui',
-        'enabled' : gtk_dep.found()
-    }
-
-    if gtk_dep.found()
-        qt_extra_flags += '-DQT_HAS_GTK'
-    endif
-
     if host_system == 'windows'
         qt_plugin_sources += files('maininterface/win32windoweffects_module.cpp',
                               'maininterface/win32windoweffects_module.hpp')
@@ -1398,6 +1371,28 @@ if qt6_dep.found()
             ),
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_theme',
+            'sources': files(
+                'tests/test_theme.cpp',
+                'style/themetokens.cpp',
+                'style/themetokens.hpp',
+                'util/color_scheme_model.cpp',
+                'util/color_scheme_model.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_theme.cpp'
+            ),
+            'moc_headers': files(
+                'util/color_scheme_model.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qtest_qt6_dep]
         }

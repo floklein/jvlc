@@ -94,7 +94,7 @@ Dialog {
 
             opacity: 0.2
 
-            color: "black"
+            color: theme.shadow.alpha(1.0)
         }
     }
 

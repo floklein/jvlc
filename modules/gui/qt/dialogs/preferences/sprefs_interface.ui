@@ -336,7 +336,7 @@ with no client-side decoration.</string>
              <item row="13" column="0">
               <widget class="QLabel" name="colorSchemeLabel">
                <property name="text">
-                <string>Color scheme:</string>
+                <string>Theme:</string>
                </property>
                <property name="buddy">
                 <cstring>colorSchemeComboBox</cstring>
