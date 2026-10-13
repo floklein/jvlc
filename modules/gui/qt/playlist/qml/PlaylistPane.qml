@@ -563,19 +563,12 @@ T.Pane {
                     value: (listView.count === 0 && !listView.footerItem.firstItemIndicatorVisible)
                 }
 
-                Widgets.IconLabel {
-                    id: label
-
+                Widgets.TwoToneIcon {
                     anchors.horizontalCenter: parent.horizontalCenter
 
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                    name: "queue"
 
-                    text: VLCIcons.playlist
-
-                    color: theme.fg.primary
-
-                    font.pixelSize: VLCStyle.dp(48, VLCStyle.scale)
+                    pixelSize: VLCStyle.dp(48, VLCStyle.scale)
                 }
 
                 T.Label {
@@ -591,7 +584,7 @@ T.Pane {
                            listView.count !== root.model.count) ? qsTr("No results")
                                                                 : qsTr("No content yet")
 
-                    color: label.color
+                    color: theme.fg.primary
 
                     font.pixelSize: VLCStyle.fontSize_xxlarge
                 }
@@ -606,7 +599,7 @@ T.Pane {
                     visible: (listView.proxyModel && listView.model === listView.proxyModel) ? (listView.count === root.model.count)
                                                                                              : true
 
-                    color: label.color
+                    color: theme.fg.primary
 
                     font.pixelSize: VLCStyle.fontSize_large
                 }

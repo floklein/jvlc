@@ -29,8 +29,9 @@ Widgets.IconToolButton {
 
     enabled: !paintOnly && Player.isStarted
 
-    color: colorContext.fg.negative //red means recording
-    text: VLCIcons.record
+    // the active (accent) icon means recording
+    color: Player.recording ? control.colorContext.accent : control.colorContext.fg.primary
+    text: Player.recording ? VLCIcons.record_active : VLCIcons.record
     description: qsTr("record")
 
     AccessibleCompat.id: "recordButton"
@@ -39,32 +40,34 @@ Widgets.IconToolButton {
 
     //IconToolButton already contains a color animation that would conflict
     contentItem: Widgets.IconLabel {
+        id: recordLabel
+
         text: control.text
 
         color: control.color
 
-        SequentialAnimation on color {
+        SequentialAnimation on opacity {
             loops: Animation.Infinite
             running: control.enabled && Player.recording
 
-            ColorAnimation  {
-                from: control.colorContext.fg.negative
-                to: control.colorContext.fg.negative.alpha(0)
+            NumberAnimation {
+                from: 1
+                to: 0
                 //this is an animation and not a transisition, we explicitly want a long duration
                 duration: 1000
                 easing.type: Easing.InSine
             }
 
-            ColorAnimation  {
-                from: control.colorContext.fg.negative.alpha(0)
-                to: control.colorContext.fg.negative
+            NumberAnimation {
+                from: 0
+                to: 1
                 //this is an animation and not a transisition, we explicitly want a long duration
                 duration: 1000
                 easing.type: Easing.OutSine
             }
 
             onStopped: {
-                color = Qt.binding(() => control.color)
+                recordLabel.opacity = 1
             }
         }
         font: control.font

@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="VLCIcons.ttf">../pixmaps/VLCIcons.ttf</file>
+    </qresource>
+</RCC>

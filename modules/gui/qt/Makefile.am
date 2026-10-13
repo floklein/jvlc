@@ -1338,6 +1338,7 @@ libqml_module_widgets_a_QML = \
 	widgets/qml/IconButton.qml \
 	widgets/qml/IconToolButton.qml \
 	widgets/qml/IconTrackButton.qml \
+	widgets/qml/TwoToneIcon.qml \
 	widgets/qml/ImageToolButton.qml \
 	widgets/qml/ListViewExt.qml \
 	widgets/qml/TableViewExt.qml \
@@ -1863,6 +1864,30 @@ test_vlc_dialog_model_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_vlc_dialog_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_vlc_dialog_model
 TESTS += test_vlc_dialog_model
+
+# test_vlcicons
+
+test_vlcicons_SOURCES = \
+	tests/test_vlcicons.cpp \
+	style/vlcicons.cpp style/vlcicons.hpp
+
+nodist_test_vlcicons_SOURCES = \
+	tests/test_vlcicons.moc \
+	tests/test_vlcicons.cpp.qrc.cpp \
+	style/vlcicons.moc.cpp
+
+tests/test_vlcicons.cpp.qrc.cpp: tests/test_vlcicons.qrc pixmaps/VLCIcons.ttf
+	$(AM_V_GEN)$(RCC) $(RCC_EXTRA_PARAMS) --name test_vlcicons -o $@ $<
+
+EXTRA_DIST += tests/test_vlcicons.qrc
+BUILT_SOURCES += tests/test_vlcicons.moc
+CLEANFILES += tests/test_vlcicons.moc tests/test_vlcicons.cpp.qrc.cpp
+test_vlcicons_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_vlcicons_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_vlcicons_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_vlcicons_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_vlcicons
+TESTS += test_vlcicons
 
 
 test_qt_navigation_model_SOURCES = \

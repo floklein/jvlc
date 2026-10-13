@@ -110,6 +110,246 @@ class VLCIcons : public QObject {
     Q_PROPERTY(QChar medialibrary_remove MEMBER medialibrary_remove CONSTANT FINAL)
     Q_PROPERTY(QChar regex MEMBER regex CONSTANT FINAL)
     Q_PROPERTY(QChar ic_fluent_text_change_case_24_regular MEMBER ic_fluent_text_change_case_24_regular CONSTANT FINAL)
+    Q_PROPERTY(QChar settings_tt_base MEMBER settings_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar settings_tt_accent MEMBER settings_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar playback_settings MEMBER playback_settings CONSTANT FINAL)
+    Q_PROPERTY(QChar playback_settings_active MEMBER playback_settings_active CONSTANT FINAL)
+    Q_PROPERTY(QChar settings_active MEMBER settings_active CONSTANT FINAL)
+    Q_PROPERTY(QChar preferences MEMBER preferences CONSTANT FINAL)
+    Q_PROPERTY(QChar preferences_active MEMBER preferences_active CONSTANT FINAL)
+    Q_PROPERTY(QChar playlists MEMBER playlists CONSTANT FINAL)
+    Q_PROPERTY(QChar playlists_tt_base MEMBER playlists_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar playlists_tt_accent MEMBER playlists_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar playlists_active MEMBER playlists_active CONSTANT FINAL)
+    Q_PROPERTY(QChar lists MEMBER lists CONSTANT FINAL)
+    Q_PROPERTY(QChar lists_active MEMBER lists_active CONSTANT FINAL)
+    Q_PROPERTY(QChar hotkeys MEMBER hotkeys CONSTANT FINAL)
+    Q_PROPERTY(QChar hotkeys_tt_base MEMBER hotkeys_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar hotkeys_tt_accent MEMBER hotkeys_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar hotkeys_active MEMBER hotkeys_active CONSTANT FINAL)
+    Q_PROPERTY(QChar subtitles MEMBER subtitles CONSTANT FINAL)
+    Q_PROPERTY(QChar subtitles_tt_base MEMBER subtitles_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar subtitles_tt_accent MEMBER subtitles_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar subtitles_active MEMBER subtitles_active CONSTANT FINAL)
+    Q_PROPERTY(QChar audio MEMBER audio CONSTANT FINAL)
+    Q_PROPERTY(QChar audio_tt_base MEMBER audio_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar audio_tt_accent MEMBER audio_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar audio_active MEMBER audio_active CONSTANT FINAL)
+    Q_PROPERTY(QChar playback MEMBER playback CONSTANT FINAL)
+    Q_PROPERTY(QChar playback_selected_tt_base MEMBER playback_selected_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar playback_selected_tt_accent MEMBER playback_selected_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar playback_tt_accent MEMBER playback_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar playback_active MEMBER playback_active CONSTANT FINAL)
+    Q_PROPERTY(QChar pause MEMBER pause CONSTANT FINAL)
+    Q_PROPERTY(QChar next_tt_accent MEMBER next_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar stop_tt_accent MEMBER stop_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar previous_tt_accent MEMBER previous_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar forward_10_sec MEMBER forward_10_sec CONSTANT FINAL)
+    Q_PROPERTY(QChar forward_15_sec MEMBER forward_15_sec CONSTANT FINAL)
+    Q_PROPERTY(QChar backward_10_sec MEMBER backward_10_sec CONSTANT FINAL)
+    Q_PROPERTY(QChar backward_15_sec MEMBER backward_15_sec CONSTANT FINAL)
+    Q_PROPERTY(QChar refresh MEMBER refresh CONSTANT FINAL)
+    Q_PROPERTY(QChar refresh_tt_base MEMBER refresh_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar refresh_tt_accent MEMBER refresh_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar replay MEMBER replay CONSTANT FINAL)
+    Q_PROPERTY(QChar recent MEMBER recent CONSTANT FINAL)
+    Q_PROPERTY(QChar recent_tt_base MEMBER recent_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar recent_tt_accent MEMBER recent_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar volume_none MEMBER volume_none CONSTANT FINAL)
+    Q_PROPERTY(QChar move MEMBER move CONSTANT FINAL)
+    Q_PROPERTY(QChar minimize MEMBER minimize CONSTANT FINAL)
+    Q_PROPERTY(QChar maximize MEMBER maximize CONSTANT FINAL)
+    Q_PROPERTY(QChar fullscreen_active MEMBER fullscreen_active CONSTANT FINAL)
+    Q_PROPERTY(QChar folder MEMBER folder CONSTANT FINAL)
+    Q_PROPERTY(QChar folder_tt_base MEMBER folder_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar folder_tt_accent MEMBER folder_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar new_folder MEMBER new_folder CONSTANT FINAL)
+    Q_PROPERTY(QChar new_folder_tt_base MEMBER new_folder_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar new_folder_tt_accent MEMBER new_folder_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar folder_active MEMBER folder_active CONSTANT FINAL)
+    Q_PROPERTY(QChar folder_selected MEMBER folder_selected CONSTANT FINAL)
+    Q_PROPERTY(QChar sidebar_left MEMBER sidebar_left CONSTANT FINAL)
+    Q_PROPERTY(QChar sidebar_right MEMBER sidebar_right CONSTANT FINAL)
+    Q_PROPERTY(QChar album MEMBER album CONSTANT FINAL)
+    Q_PROPERTY(QChar album_tt_base MEMBER album_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar album_tt_accent MEMBER album_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar expand_sidebar MEMBER expand_sidebar CONSTANT FINAL)
+    Q_PROPERTY(QChar collapse_sidebar MEMBER collapse_sidebar CONSTANT FINAL)
+    Q_PROPERTY(QChar sidebar_active MEMBER sidebar_active CONSTANT FINAL)
+    Q_PROPERTY(QChar music MEMBER music CONSTANT FINAL)
+    Q_PROPERTY(QChar video MEMBER video CONSTANT FINAL)
+    Q_PROPERTY(QChar video_tt_base MEMBER video_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar video_tt_accent MEMBER video_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar video_active MEMBER video_active CONSTANT FINAL)
+    Q_PROPERTY(QChar songs MEMBER songs CONSTANT FINAL)
+    Q_PROPERTY(QChar songs_active MEMBER songs_active CONSTANT FINAL)
+    Q_PROPERTY(QChar songs_selected MEMBER songs_selected CONSTANT FINAL)
+    Q_PROPERTY(QChar videos MEMBER videos CONSTANT FINAL)
+    Q_PROPERTY(QChar videos_active MEMBER videos_active CONSTANT FINAL)
+    Q_PROPERTY(QChar videos_selected MEMBER videos_selected CONSTANT FINAL)
+    Q_PROPERTY(QChar streaming MEMBER streaming CONSTANT FINAL)
+    Q_PROPERTY(QChar streaming_tt_base MEMBER streaming_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar streaming_tt_accent MEMBER streaming_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar streaming_active MEMBER streaming_active CONSTANT FINAL)
+    Q_PROPERTY(QChar streaming_selected MEMBER streaming_selected CONSTANT FINAL)
+    Q_PROPERTY(QChar tv_active MEMBER tv_active CONSTANT FINAL)
+    Q_PROPERTY(QChar tv_selected MEMBER tv_selected CONSTANT FINAL)
+    Q_PROPERTY(QChar home_active MEMBER home_active CONSTANT FINAL)
+    Q_PROPERTY(QChar home_selected MEMBER home_selected CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_down MEMBER arrow_down CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_down_tt_base MEMBER arrow_down_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_down_tt_accent MEMBER arrow_down_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_up MEMBER arrow_up CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_up_tt_base MEMBER arrow_up_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_up_tt_accent MEMBER arrow_up_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar upload_tt_base MEMBER upload_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar upload_tt_accent MEMBER upload_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_right MEMBER arrow_right CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_right_tt_base MEMBER arrow_right_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_right_tt_accent MEMBER arrow_right_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_left MEMBER arrow_left CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_left_tt_base MEMBER arrow_left_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar arrow_left_tt_accent MEMBER arrow_left_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar open MEMBER open CONSTANT FINAL)
+    Q_PROPERTY(QChar repeat MEMBER repeat CONSTANT FINAL)
+    Q_PROPERTY(QChar repeat_tt_base MEMBER repeat_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar repeat_tt_accent MEMBER repeat_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar shuffle_tt_base MEMBER shuffle_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar shuffle_tt_accent MEMBER shuffle_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar chevron_right MEMBER chevron_right CONSTANT FINAL)
+    Q_PROPERTY(QChar chevron_left MEMBER chevron_left CONSTANT FINAL)
+    Q_PROPERTY(QChar vlc MEMBER vlc CONSTANT FINAL)
+    Q_PROPERTY(QChar view MEMBER view CONSTANT FINAL)
+    Q_PROPERTY(QChar view_active_base MEMBER view_active_base CONSTANT FINAL)
+    Q_PROPERTY(QChar view_active_accent MEMBER view_active_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar link MEMBER link CONSTANT FINAL)
+    Q_PROPERTY(QChar link_active MEMBER link_active CONSTANT FINAL)
+    Q_PROPERTY(QChar link_tt_base MEMBER link_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar link_tt_accent MEMBER link_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar check_active MEMBER check_active CONSTANT FINAL)
+    Q_PROPERTY(QChar check_selected MEMBER check_selected CONSTANT FINAL)
+    Q_PROPERTY(QChar check_selected_tt_base MEMBER check_selected_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar check_selected_tt_accent MEMBER check_selected_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar sort MEMBER sort CONSTANT FINAL)
+    Q_PROPERTY(QChar sort_active_base MEMBER sort_active_base CONSTANT FINAL)
+    Q_PROPERTY(QChar sort_active_accent MEMBER sort_active_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar zoom MEMBER zoom CONSTANT FINAL)
+    Q_PROPERTY(QChar artist MEMBER artist CONSTANT FINAL)
+    Q_PROPERTY(QChar profile MEMBER profile CONSTANT FINAL)
+    Q_PROPERTY(QChar profile_tt_base MEMBER profile_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar profile_tt_accent MEMBER profile_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar artist_active MEMBER artist_active CONSTANT FINAL)
+    Q_PROPERTY(QChar accessibility MEMBER accessibility CONSTANT FINAL)
+    Q_PROPERTY(QChar info_tt_base MEMBER info_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar info_tt_accent MEMBER info_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar interface MEMBER interface CONSTANT FINAL)
+    Q_PROPERTY(QChar interface_active MEMBER interface_active CONSTANT FINAL)
+    Q_PROPERTY(QChar subtitle MEMBER subtitle CONSTANT FINAL)
+    Q_PROPERTY(QChar subtitle_tt_base MEMBER subtitle_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar subtitle_tt_accent MEMBER subtitle_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar file MEMBER file CONSTANT FINAL)
+    Q_PROPERTY(QChar file_tt_base MEMBER file_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar file_tt_accent MEMBER file_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar swap MEMBER swap CONSTANT FINAL)
+    Q_PROPERTY(QChar swap_tt_base MEMBER swap_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar swap_tt_accent MEMBER swap_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar window MEMBER window CONSTANT FINAL)
+    Q_PROPERTY(QChar window_tt_base MEMBER window_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar window_tt_accent MEMBER window_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar wrench MEMBER wrench CONSTANT FINAL)
+    Q_PROPERTY(QChar paint MEMBER paint CONSTANT FINAL)
+    Q_PROPERTY(QChar paint_tt_base MEMBER paint_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar paint_tt_accent MEMBER paint_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar paint_active MEMBER paint_active CONSTANT FINAL)
+    Q_PROPERTY(QChar speed MEMBER speed CONSTANT FINAL)
+    Q_PROPERTY(QChar speed_active MEMBER speed_active CONSTANT FINAL)
+    Q_PROPERTY(QChar record_active MEMBER record_active CONSTANT FINAL)
+    Q_PROPERTY(QChar record_tt_accent MEMBER record_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar queue MEMBER queue CONSTANT FINAL)
+    Q_PROPERTY(QChar queue_tt_base MEMBER queue_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar queue_tt_accent MEMBER queue_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar chapters MEMBER chapters CONSTANT FINAL)
+    Q_PROPERTY(QChar chapters_tt_base MEMBER chapters_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar chapters_tt_accent MEMBER chapters_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar bookmarks MEMBER bookmarks CONSTANT FINAL)
+    Q_PROPERTY(QChar bookmarks_tt_base MEMBER bookmarks_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar bookmarks_tt_accent MEMBER bookmarks_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar add_bookmark MEMBER add_bookmark CONSTANT FINAL)
+    Q_PROPERTY(QChar spectrometer_tt_base MEMBER spectrometer_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar spectrometer_tt_accent MEMBER spectrometer_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar spectrum_tt_base MEMBER spectrum_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar spectrum_tt_accent MEMBER spectrum_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar scope_tt_base MEMBER scope_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar scope_tt_accent MEMBER scope_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar waveform_tt_base MEMBER waveform_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar waveform_tt_accent MEMBER waveform_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar pip MEMBER pip CONSTANT FINAL)
+    Q_PROPERTY(QChar hdr MEMBER hdr CONSTANT FINAL)
+    Q_PROPERTY(QChar eq MEMBER eq CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_classical_base MEMBER eq_classical_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_classical_accent MEMBER eq_classical_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_club_base MEMBER eq_club_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_club_accent MEMBER eq_club_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_dance_base MEMBER eq_dance_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_dance_accent MEMBER eq_dance_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_full_bass_base MEMBER eq_full_bass_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_full_bass_accent MEMBER eq_full_bass_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_full_bass_and_treble_base MEMBER eq_full_bass_and_treble_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_full_bass_and_treble_accent MEMBER eq_full_bass_and_treble_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_full_treble_base MEMBER eq_full_treble_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_full_treble_accent MEMBER eq_full_treble_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_headphones_base MEMBER eq_headphones_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_headphones_accent MEMBER eq_headphones_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_rock_base MEMBER eq_rock_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_rock_accent MEMBER eq_rock_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_ska_base MEMBER eq_ska_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_ska_accent MEMBER eq_ska_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_soft_base MEMBER eq_soft_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_soft_accent MEMBER eq_soft_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_techno_base MEMBER eq_techno_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_techno_accent MEMBER eq_techno_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_soft_rock_base MEMBER eq_soft_rock_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_soft_rock_accent MEMBER eq_soft_rock_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_large_hall_base MEMBER eq_large_hall_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_large_hall_accent MEMBER eq_large_hall_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_reggae_base MEMBER eq_reggae_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_reggae_accent MEMBER eq_reggae_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_pop_base MEMBER eq_pop_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_pop_accent MEMBER eq_pop_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_party_base MEMBER eq_party_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_party_accent MEMBER eq_party_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_live_base MEMBER eq_live_base CONSTANT FINAL)
+    Q_PROPERTY(QChar eq_live_accent MEMBER eq_live_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar favorite MEMBER favorite CONSTANT FINAL)
+    Q_PROPERTY(QChar favorite_tt_accent MEMBER favorite_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar favorite_active MEMBER favorite_active CONSTANT FINAL)
+    Q_PROPERTY(QChar edit MEMBER edit CONSTANT FINAL)
+    Q_PROPERTY(QChar save MEMBER save CONSTANT FINAL)
+    Q_PROPERTY(QChar save_tt_base MEMBER save_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar save_tt_accent MEMBER save_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar disc_tt_base MEMBER disc_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar disc_tt_accent MEMBER disc_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar disc MEMBER disc CONSTANT FINAL)
+    Q_PROPERTY(QChar capture_device MEMBER capture_device CONSTANT FINAL)
+    Q_PROPERTY(QChar capture_device_tt_base MEMBER capture_device_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar capture_device_tt_accent MEMBER capture_device_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar plugins MEMBER plugins CONSTANT FINAL)
+    Q_PROPERTY(QChar plugins_tt_base MEMBER plugins_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar plugins_tt_accent MEMBER plugins_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar plugins_active MEMBER plugins_active CONSTANT FINAL)
+    Q_PROPERTY(QChar privacy MEMBER privacy CONSTANT FINAL)
+    Q_PROPERTY(QChar privacy_tt_base MEMBER privacy_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar privacy_tt_accent MEMBER privacy_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar privacy_active MEMBER privacy_active CONSTANT FINAL)
+    Q_PROPERTY(QChar quit MEMBER quit CONSTANT FINAL)
+    Q_PROPERTY(QChar quit_tt_base MEMBER quit_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar quit_tt_accent MEMBER quit_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar ui MEMBER ui CONSTANT FINAL)
+    Q_PROPERTY(QChar ui_tt_base MEMBER ui_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar ui_tt_accent MEMBER ui_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar genre MEMBER genre CONSTANT FINAL)
+    Q_PROPERTY(QChar genre_tt_base MEMBER genre_tt_base CONSTANT FINAL)
+    Q_PROPERTY(QChar genre_tt_accent MEMBER genre_tt_accent CONSTANT FINAL)
 
 
 public:
@@ -216,6 +456,246 @@ public:
     static constexpr inline QChar medialibrary_remove{ u'\ue05d' };
     static constexpr inline QChar regex{ u'\ue05e' };
     static constexpr inline QChar ic_fluent_text_change_case_24_regular{ u'\ue05f' };
+    static constexpr inline QChar settings_tt_base{ u'\ue060' };
+    static constexpr inline QChar settings_tt_accent{ u'\ue061' };
+    static constexpr inline QChar playback_settings{ u'\ue062' };
+    static constexpr inline QChar playback_settings_active{ u'\ue063' };
+    static constexpr inline QChar settings_active{ u'\ue064' };
+    static constexpr inline QChar preferences{ u'\ue065' };
+    static constexpr inline QChar preferences_active{ u'\ue066' };
+    static constexpr inline QChar playlists{ u'\ue067' };
+    static constexpr inline QChar playlists_tt_base{ u'\ue068' };
+    static constexpr inline QChar playlists_tt_accent{ u'\ue069' };
+    static constexpr inline QChar playlists_active{ u'\ue06a' };
+    static constexpr inline QChar lists{ u'\ue06b' };
+    static constexpr inline QChar lists_active{ u'\ue06c' };
+    static constexpr inline QChar hotkeys{ u'\ue06d' };
+    static constexpr inline QChar hotkeys_tt_base{ u'\ue06e' };
+    static constexpr inline QChar hotkeys_tt_accent{ u'\ue06f' };
+    static constexpr inline QChar hotkeys_active{ u'\ue070' };
+    static constexpr inline QChar subtitles{ u'\ue071' };
+    static constexpr inline QChar subtitles_tt_base{ u'\ue072' };
+    static constexpr inline QChar subtitles_tt_accent{ u'\ue073' };
+    static constexpr inline QChar subtitles_active{ u'\ue074' };
+    static constexpr inline QChar audio{ u'\ue075' };
+    static constexpr inline QChar audio_tt_base{ u'\ue076' };
+    static constexpr inline QChar audio_tt_accent{ u'\ue077' };
+    static constexpr inline QChar audio_active{ u'\ue078' };
+    static constexpr inline QChar playback{ u'\ue079' };
+    static constexpr inline QChar playback_selected_tt_base{ u'\ue07a' };
+    static constexpr inline QChar playback_selected_tt_accent{ u'\ue07b' };
+    static constexpr inline QChar playback_tt_accent{ u'\ue07c' };
+    static constexpr inline QChar playback_active{ u'\ue07d' };
+    static constexpr inline QChar pause{ u'\ue07e' };
+    static constexpr inline QChar next_tt_accent{ u'\ue07f' };
+    static constexpr inline QChar stop_tt_accent{ u'\ue080' };
+    static constexpr inline QChar previous_tt_accent{ u'\ue081' };
+    static constexpr inline QChar forward_10_sec{ u'\ue082' };
+    static constexpr inline QChar forward_15_sec{ u'\ue083' };
+    static constexpr inline QChar backward_10_sec{ u'\ue084' };
+    static constexpr inline QChar backward_15_sec{ u'\ue085' };
+    static constexpr inline QChar refresh{ u'\ue086' };
+    static constexpr inline QChar refresh_tt_base{ u'\ue087' };
+    static constexpr inline QChar refresh_tt_accent{ u'\ue088' };
+    static constexpr inline QChar replay{ u'\ue089' };
+    static constexpr inline QChar recent{ u'\ue08a' };
+    static constexpr inline QChar recent_tt_base{ u'\ue08b' };
+    static constexpr inline QChar recent_tt_accent{ u'\ue08c' };
+    static constexpr inline QChar volume_none{ u'\ue08d' };
+    static constexpr inline QChar move{ u'\ue08e' };
+    static constexpr inline QChar minimize{ u'\ue08f' };
+    static constexpr inline QChar maximize{ u'\ue090' };
+    static constexpr inline QChar fullscreen_active{ u'\ue091' };
+    static constexpr inline QChar folder{ u'\ue092' };
+    static constexpr inline QChar folder_tt_base{ u'\ue093' };
+    static constexpr inline QChar folder_tt_accent{ u'\ue094' };
+    static constexpr inline QChar new_folder{ u'\ue095' };
+    static constexpr inline QChar new_folder_tt_base{ u'\ue096' };
+    static constexpr inline QChar new_folder_tt_accent{ u'\ue097' };
+    static constexpr inline QChar folder_active{ u'\ue098' };
+    static constexpr inline QChar folder_selected{ u'\ue099' };
+    static constexpr inline QChar sidebar_left{ u'\ue09a' };
+    static constexpr inline QChar sidebar_right{ u'\ue09b' };
+    static constexpr inline QChar album{ u'\ue09c' };
+    static constexpr inline QChar album_tt_base{ u'\ue09d' };
+    static constexpr inline QChar album_tt_accent{ u'\ue09e' };
+    static constexpr inline QChar expand_sidebar{ u'\ue09f' };
+    static constexpr inline QChar collapse_sidebar{ u'\ue0a0' };
+    static constexpr inline QChar sidebar_active{ u'\ue0a1' };
+    static constexpr inline QChar music{ u'\ue0a2' };
+    static constexpr inline QChar video{ u'\ue0a3' };
+    static constexpr inline QChar video_tt_base{ u'\ue0a4' };
+    static constexpr inline QChar video_tt_accent{ u'\ue0a5' };
+    static constexpr inline QChar video_active{ u'\ue0a6' };
+    static constexpr inline QChar songs{ u'\ue0a7' };
+    static constexpr inline QChar songs_active{ u'\ue0a8' };
+    static constexpr inline QChar songs_selected{ u'\ue0a9' };
+    static constexpr inline QChar videos{ u'\ue0aa' };
+    static constexpr inline QChar videos_active{ u'\ue0ab' };
+    static constexpr inline QChar videos_selected{ u'\ue0ac' };
+    static constexpr inline QChar streaming{ u'\ue0ad' };
+    static constexpr inline QChar streaming_tt_base{ u'\ue0ae' };
+    static constexpr inline QChar streaming_tt_accent{ u'\ue0af' };
+    static constexpr inline QChar streaming_active{ u'\ue0b0' };
+    static constexpr inline QChar streaming_selected{ u'\ue0b1' };
+    static constexpr inline QChar tv_active{ u'\ue0b2' };
+    static constexpr inline QChar tv_selected{ u'\ue0b3' };
+    static constexpr inline QChar home_active{ u'\ue0b4' };
+    static constexpr inline QChar home_selected{ u'\ue0b5' };
+    static constexpr inline QChar arrow_down{ u'\ue0b6' };
+    static constexpr inline QChar arrow_down_tt_base{ u'\ue0b7' };
+    static constexpr inline QChar arrow_down_tt_accent{ u'\ue0b8' };
+    static constexpr inline QChar arrow_up{ u'\ue0b9' };
+    static constexpr inline QChar arrow_up_tt_base{ u'\ue0ba' };
+    static constexpr inline QChar arrow_up_tt_accent{ u'\ue0bb' };
+    static constexpr inline QChar upload_tt_base{ u'\ue0bc' };
+    static constexpr inline QChar upload_tt_accent{ u'\ue0bd' };
+    static constexpr inline QChar arrow_right{ u'\ue0be' };
+    static constexpr inline QChar arrow_right_tt_base{ u'\ue0bf' };
+    static constexpr inline QChar arrow_right_tt_accent{ u'\ue0c0' };
+    static constexpr inline QChar arrow_left{ u'\ue0c1' };
+    static constexpr inline QChar arrow_left_tt_base{ u'\ue0c2' };
+    static constexpr inline QChar arrow_left_tt_accent{ u'\ue0c3' };
+    static constexpr inline QChar open{ u'\ue0c4' };
+    static constexpr inline QChar repeat{ u'\ue0c5' };
+    static constexpr inline QChar repeat_tt_base{ u'\ue0c6' };
+    static constexpr inline QChar repeat_tt_accent{ u'\ue0c7' };
+    static constexpr inline QChar shuffle_tt_base{ u'\ue0c8' };
+    static constexpr inline QChar shuffle_tt_accent{ u'\ue0c9' };
+    static constexpr inline QChar chevron_right{ u'\ue0ca' };
+    static constexpr inline QChar chevron_left{ u'\ue0cb' };
+    static constexpr inline QChar vlc{ u'\ue0cc' };
+    static constexpr inline QChar view{ u'\ue0cd' };
+    static constexpr inline QChar view_active_base{ u'\ue0ce' };
+    static constexpr inline QChar view_active_accent{ u'\ue0cf' };
+    static constexpr inline QChar link{ u'\ue0d0' };
+    static constexpr inline QChar link_active{ u'\ue0d1' };
+    static constexpr inline QChar link_tt_base{ u'\ue0d2' };
+    static constexpr inline QChar link_tt_accent{ u'\ue0d3' };
+    static constexpr inline QChar check_active{ u'\ue0d4' };
+    static constexpr inline QChar check_selected{ u'\ue0d5' };
+    static constexpr inline QChar check_selected_tt_base{ u'\ue0d6' };
+    static constexpr inline QChar check_selected_tt_accent{ u'\ue0d7' };
+    static constexpr inline QChar sort{ u'\ue0d8' };
+    static constexpr inline QChar sort_active_base{ u'\ue0d9' };
+    static constexpr inline QChar sort_active_accent{ u'\ue0da' };
+    static constexpr inline QChar zoom{ u'\ue0db' };
+    static constexpr inline QChar artist{ u'\ue0dc' };
+    static constexpr inline QChar profile{ u'\ue0dd' };
+    static constexpr inline QChar profile_tt_base{ u'\ue0de' };
+    static constexpr inline QChar profile_tt_accent{ u'\ue0df' };
+    static constexpr inline QChar artist_active{ u'\ue0e0' };
+    static constexpr inline QChar accessibility{ u'\ue0e1' };
+    static constexpr inline QChar info_tt_base{ u'\ue0e2' };
+    static constexpr inline QChar info_tt_accent{ u'\ue0e3' };
+    static constexpr inline QChar interface{ u'\ue0e4' };
+    static constexpr inline QChar interface_active{ u'\ue0e5' };
+    static constexpr inline QChar subtitle{ u'\ue0e6' };
+    static constexpr inline QChar subtitle_tt_base{ u'\ue0e7' };
+    static constexpr inline QChar subtitle_tt_accent{ u'\ue0e8' };
+    static constexpr inline QChar file{ u'\ue0e9' };
+    static constexpr inline QChar file_tt_base{ u'\ue0ea' };
+    static constexpr inline QChar file_tt_accent{ u'\ue0eb' };
+    static constexpr inline QChar swap{ u'\ue0ec' };
+    static constexpr inline QChar swap_tt_base{ u'\ue0ed' };
+    static constexpr inline QChar swap_tt_accent{ u'\ue0ee' };
+    static constexpr inline QChar window{ u'\ue0ef' };
+    static constexpr inline QChar window_tt_base{ u'\ue0f0' };
+    static constexpr inline QChar window_tt_accent{ u'\ue0f1' };
+    static constexpr inline QChar wrench{ u'\ue0f2' };
+    static constexpr inline QChar paint{ u'\ue0f3' };
+    static constexpr inline QChar paint_tt_base{ u'\ue0f4' };
+    static constexpr inline QChar paint_tt_accent{ u'\ue0f5' };
+    static constexpr inline QChar paint_active{ u'\ue0f6' };
+    static constexpr inline QChar speed{ u'\ue0f7' };
+    static constexpr inline QChar speed_active{ u'\ue0f8' };
+    static constexpr inline QChar record_active{ u'\ue0f9' };
+    static constexpr inline QChar record_tt_accent{ u'\ue0fa' };
+    static constexpr inline QChar queue{ u'\ue0fb' };
+    static constexpr inline QChar queue_tt_base{ u'\ue0fc' };
+    static constexpr inline QChar queue_tt_accent{ u'\ue0fd' };
+    static constexpr inline QChar chapters{ u'\ue0fe' };
+    static constexpr inline QChar chapters_tt_base{ u'\ue0ff' };
+    static constexpr inline QChar chapters_tt_accent{ u'\ue100' };
+    static constexpr inline QChar bookmarks{ u'\ue101' };
+    static constexpr inline QChar bookmarks_tt_base{ u'\ue102' };
+    static constexpr inline QChar bookmarks_tt_accent{ u'\ue103' };
+    static constexpr inline QChar add_bookmark{ u'\ue104' };
+    static constexpr inline QChar spectrometer_tt_base{ u'\ue105' };
+    static constexpr inline QChar spectrometer_tt_accent{ u'\ue106' };
+    static constexpr inline QChar spectrum_tt_base{ u'\ue107' };
+    static constexpr inline QChar spectrum_tt_accent{ u'\ue108' };
+    static constexpr inline QChar scope_tt_base{ u'\ue109' };
+    static constexpr inline QChar scope_tt_accent{ u'\ue10a' };
+    static constexpr inline QChar waveform_tt_base{ u'\ue10b' };
+    static constexpr inline QChar waveform_tt_accent{ u'\ue10c' };
+    static constexpr inline QChar pip{ u'\ue10d' };
+    static constexpr inline QChar hdr{ u'\ue10e' };
+    static constexpr inline QChar eq{ u'\ue10f' };
+    static constexpr inline QChar eq_classical_base{ u'\ue110' };
+    static constexpr inline QChar eq_classical_accent{ u'\ue111' };
+    static constexpr inline QChar eq_club_base{ u'\ue112' };
+    static constexpr inline QChar eq_club_accent{ u'\ue113' };
+    static constexpr inline QChar eq_dance_base{ u'\ue114' };
+    static constexpr inline QChar eq_dance_accent{ u'\ue115' };
+    static constexpr inline QChar eq_full_bass_base{ u'\ue116' };
+    static constexpr inline QChar eq_full_bass_accent{ u'\ue117' };
+    static constexpr inline QChar eq_full_bass_and_treble_base{ u'\ue118' };
+    static constexpr inline QChar eq_full_bass_and_treble_accent{ u'\ue119' };
+    static constexpr inline QChar eq_full_treble_base{ u'\ue11a' };
+    static constexpr inline QChar eq_full_treble_accent{ u'\ue11b' };
+    static constexpr inline QChar eq_headphones_base{ u'\ue11c' };
+    static constexpr inline QChar eq_headphones_accent{ u'\ue11d' };
+    static constexpr inline QChar eq_rock_base{ u'\ue11e' };
+    static constexpr inline QChar eq_rock_accent{ u'\ue11f' };
+    static constexpr inline QChar eq_ska_base{ u'\ue120' };
+    static constexpr inline QChar eq_ska_accent{ u'\ue121' };
+    static constexpr inline QChar eq_soft_base{ u'\ue122' };
+    static constexpr inline QChar eq_soft_accent{ u'\ue123' };
+    static constexpr inline QChar eq_techno_base{ u'\ue124' };
+    static constexpr inline QChar eq_techno_accent{ u'\ue125' };
+    static constexpr inline QChar eq_soft_rock_base{ u'\ue126' };
+    static constexpr inline QChar eq_soft_rock_accent{ u'\ue127' };
+    static constexpr inline QChar eq_large_hall_base{ u'\ue128' };
+    static constexpr inline QChar eq_large_hall_accent{ u'\ue129' };
+    static constexpr inline QChar eq_reggae_base{ u'\ue12a' };
+    static constexpr inline QChar eq_reggae_accent{ u'\ue12b' };
+    static constexpr inline QChar eq_pop_base{ u'\ue12c' };
+    static constexpr inline QChar eq_pop_accent{ u'\ue12d' };
+    static constexpr inline QChar eq_party_base{ u'\ue12e' };
+    static constexpr inline QChar eq_party_accent{ u'\ue12f' };
+    static constexpr inline QChar eq_live_base{ u'\ue130' };
+    static constexpr inline QChar eq_live_accent{ u'\ue131' };
+    static constexpr inline QChar favorite{ u'\ue132' };
+    static constexpr inline QChar favorite_tt_accent{ u'\ue133' };
+    static constexpr inline QChar favorite_active{ u'\ue134' };
+    static constexpr inline QChar edit{ u'\ue135' };
+    static constexpr inline QChar save{ u'\ue136' };
+    static constexpr inline QChar save_tt_base{ u'\ue137' };
+    static constexpr inline QChar save_tt_accent{ u'\ue138' };
+    static constexpr inline QChar disc_tt_base{ u'\ue139' };
+    static constexpr inline QChar disc_tt_accent{ u'\ue13a' };
+    static constexpr inline QChar disc{ u'\ue13b' };
+    static constexpr inline QChar capture_device{ u'\ue13c' };
+    static constexpr inline QChar capture_device_tt_base{ u'\ue13d' };
+    static constexpr inline QChar capture_device_tt_accent{ u'\ue13e' };
+    static constexpr inline QChar plugins{ u'\ue13f' };
+    static constexpr inline QChar plugins_tt_base{ u'\ue140' };
+    static constexpr inline QChar plugins_tt_accent{ u'\ue141' };
+    static constexpr inline QChar plugins_active{ u'\ue142' };
+    static constexpr inline QChar privacy{ u'\ue143' };
+    static constexpr inline QChar privacy_tt_base{ u'\ue144' };
+    static constexpr inline QChar privacy_tt_accent{ u'\ue145' };
+    static constexpr inline QChar privacy_active{ u'\ue146' };
+    static constexpr inline QChar quit{ u'\ue147' };
+    static constexpr inline QChar quit_tt_base{ u'\ue148' };
+    static constexpr inline QChar quit_tt_accent{ u'\ue149' };
+    static constexpr inline QChar ui{ u'\ue14a' };
+    static constexpr inline QChar ui_tt_base{ u'\ue14b' };
+    static constexpr inline QChar ui_tt_accent{ u'\ue14c' };
+    static constexpr inline QChar genre{ u'\ue14d' };
+    static constexpr inline QChar genre_tt_base{ u'\ue14e' };
+    static constexpr inline QChar genre_tt_accent{ u'\ue14f' };
 
 };
 

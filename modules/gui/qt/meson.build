@@ -895,6 +895,7 @@ qml_modules += {
         'widgets/qml/IconButton.qml',
         'widgets/qml/IconToolButton.qml',
         'widgets/qml/IconTrackButton.qml',
+        'widgets/qml/TwoToneIcon.qml',
         'widgets/qml/ImageToolButton.qml',
         'widgets/qml/ListViewExt.qml',
         'widgets/qml/TableViewExt.qml',
@@ -1417,6 +1418,35 @@ if qt6_dep.found()
             'link_with': [libvlccore, libvlc],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+        }
+
+        test_vlcicons_qrc = qt6.preprocess(
+            qresources: files('tests/test_vlcicons.qrc'),
+            dependencies: qt6_dep,
+            rcc_extra_arguments: qt_rcc_extra_arguments)
+        test_vlcicons_link_args = qt_link_args
+        if qt_static
+            # test_qt_vlcicons renders on the offscreen platform
+            qt_plugins_dir = qt6_dep.get_variable(pkgconfig: 'plugindir', configtool: '-query QT_INSTALL_PLUGINS')
+            test_vlcicons_link_args += qt_plugins_dir / 'platforms' / 'libqoffscreen.a'
+        endif
+        vlc_tests += {
+            'name': 'test_qt_vlcicons',
+            'sources': [files(
+                'tests/test_vlcicons.cpp',
+                'style/vlcicons.hpp',
+                'style/vlcicons.cpp'
+            ), test_vlcicons_qrc],
+            'moc_sources': files(
+                'tests/test_vlcicons.cpp'
+            ),
+            'moc_headers': files(
+                'style/vlcicons.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_args': test_vlcicons_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
         }
     endif
 
