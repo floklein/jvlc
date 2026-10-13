@@ -32,6 +32,10 @@ _Avoid_: Render, renderer, stream (for this meaning)
 The short welcome sequence on first start that sets library folders, Theme, Accent color and online metadata, and shows the basic shortcuts.
 _Avoid_: First-run wizard, setup assistant, tour
 
+**Picture-in-picture**:
+The whole VLC window shrunk into a small always-on-top video (or cover art) for watching while using other apps.
+_Avoid_: Mini player, PiP window, floating player
+
 **Pin**:
 A user-added shortcut in the library sidebar to a folder, Playlist or stream.
 _Avoid_: Favorite, bookmark
