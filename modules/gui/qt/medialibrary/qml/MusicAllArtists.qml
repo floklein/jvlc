@@ -48,6 +48,11 @@ MainViewLoader {
     property alias searchPattern: artistModel.searchPattern
     property alias sortOrder: artistModel.sortOrder
     property alias sortCriteria: artistModel.sortCriteria
+    property alias limit: artistModel.limit
+
+    property bool interactive: true // false, when as a row
+
+    property int headerPositioning: ListView.OverlayHeader
 
     signal artistAlbumViewRequested(var id, int reason)
 
@@ -114,6 +119,8 @@ MainViewLoader {
 
             displayMarginBeginning: root.displayMarginBeginning
             displayMarginEnd: root.displayMarginEnd
+
+            interactive: root.interactive
 
             headerDelegate: root.header
             Navigation.parentItem: root
@@ -221,7 +228,10 @@ MainViewLoader {
             fadingEdge.enableBeginningFade: root.enableBeginningFade
             fadingEdge.enableEndFade: root.enableEndFade
 
+            interactive: root.interactive
+
             preferredHeader: root.header
+            headerPositioning: root.headerPositioning
             Navigation.parentItem: root
 
             onActionForSelection: (selection) => {

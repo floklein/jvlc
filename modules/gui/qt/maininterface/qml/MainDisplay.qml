@@ -94,7 +94,28 @@ FocusScope {
         History.previous(Qt.BacktabFocusReason)
     }
 
+    // F6 moves the focus to the next area of the window, Shift+F6 to the previous one
+    function cycleFocusArea(backward) {
+        const areas = [sidebar, localTopbar, stackView, playlistLoader, miniPlayer]
+            .filter((area) => area.visible && area.enabled && area.width > 0)
+        if (areas.length === 0)
+            return
+
+        let current = areas.findIndex((area) => area.activeFocus)
+        if (current === -1)
+            current = backward ? 0 : areas.length - 1
+
+        const next = (current + (backward ? areas.length - 1 : 1)) % areas.length
+        areas[next].forceActiveFocus(backward ? Qt.BacktabFocusReason : Qt.TabFocusReason)
+    }
+
     Keys.onPressed: (event) => {
+        if (event.key === Qt.Key_F6
+            && (event.modifiers & ~Qt.ShiftModifier) === Qt.NoModifier) {
+            cycleFocusArea(event.modifiers & Qt.ShiftModifier)
+            event.accepted = true
+            return
+        }
         if (KeyHelper.matchSearch(event)) {
             MainCtx.search.askShow()
             event.accepted = true
@@ -120,11 +141,11 @@ FocusScope {
             name: "network",
             url: "qrc:///qt/qml/VLC/Network/BrowseDisplay.qml"
         }, {
-            name: "discover",
-            url: "qrc:///qt/qml/VLC/Network/DiscoverDisplay.qml"
+            name: "playlists",
+            url: "qrc:///qt/qml/VLC/MediaLibrary/PlaylistsDisplay.qml"
         }, {
-            name: "mlsettings",
-            url: "qrc:///qt/qml/VLC/MediaLibrary/MLFoldersSettings.qml"
+            name: "recent",
+            url: "qrc:///qt/qml/VLC/MediaLibrary/RecentDisplay.qml"
         }
     ]
 

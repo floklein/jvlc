@@ -34,26 +34,22 @@ Widgets.PageLoader {
     AccessibleCompat.id: "musicDisplay"
 
     pageModel: [{
-            displayText: qsTr("Artists"),
-            name: "artists",
+            displayText: qsTr("Songs"),
+            name: "tracks" ,
             default: true,
-            url: "qrc:///qt/qml/VLC/MediaLibrary/MusicArtistsDisplay.qml"
+            url: "qrc:///qt/qml/VLC/MediaLibrary/MusicTracksDisplay.qml"
         }, {
             displayText: qsTr("Albums"),
             name: "albums",
             url: "qrc:///qt/qml/VLC/MediaLibrary/MusicAlbumsDisplay.qml"
         }, {
-            displayText: qsTr("Tracks"),
-            name: "tracks" ,
-            url: "qrc:///qt/qml/VLC/MediaLibrary/MusicTracksDisplay.qml"
+            displayText: qsTr("Artists"),
+            name: "artists",
+            url: "qrc:///qt/qml/VLC/MediaLibrary/MusicArtistsDisplay.qml"
         }, {
             displayText: qsTr("Genres"),
             name: "genres" ,
             url: "qrc:///qt/qml/VLC/MediaLibrary/MusicGenresDisplay.qml"
-        }, {
-            displayText: qsTr("Playlists"),
-            name: "playlists" ,
-            url: "qrc:///qt/qml/VLC/MediaLibrary/MusicPlaylistsDisplay.qml"
         }
     ]
 

@@ -31,7 +31,6 @@ Widgets.PageLoader {
 
     property int displayMarginBeginning: 0
     property int displayMarginEnd: 0
-
     property bool enableBeginningFade: true
     property bool enableEndFade: true
 
@@ -61,12 +60,13 @@ Widgets.PageLoader {
             title: qsTr("Playlists")
 
             PlaylistMediaList {
+                id: playlistView
 
                 anchors.fill: parent
 
                 focus: true
 
-                isMusic: true
+                playlistType: MLPlaylistListModel.PLAYLIST_TYPE_ALL
 
                 searchPattern: playlistPage.search.pattern
                 sortOrder: playlistPage.sort.order
@@ -85,6 +85,7 @@ Widgets.PageLoader {
                 }
             }
         }
+
     }
 
     Component {
@@ -93,7 +94,7 @@ Widgets.PageLoader {
         PlaylistMediaDisplay {
             id: playlist
 
-            isMusic: true
+            isMusic: false
 
             searchPattern: playlist.search.pattern
             sortOrder: playlist.sort.order

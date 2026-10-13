@@ -55,7 +55,7 @@ Widgets.PageExt {
 
     // Aliases
 
-    property alias model: foldersSection.model
+    property alias model: lanSection.model
 
     // Signals
 
@@ -64,7 +64,7 @@ Widgets.PageExt {
 
     signal browse(var tree, int reason)
 
-    title: qsTr("Browse")
+    title: qsTr("Network")
 
     focus: true
 
@@ -93,13 +93,7 @@ Widgets.PageExt {
     }
 
     function setCurrentItemFocus(reason) {
-        if (foldersSection.visible)
-            foldersSection.setCurrentItemFocus(reason);
-        else if (computerSection.visible)
-            computerSection.setCurrentItemFocus(reason);
-        else if (deviceSection.visible)
-            deviceSection.setCurrentItemFocus(reason);
-        else if (lanSection.visible)
+        if (lanSection.visible)
             lanSection.setCurrentItemFocus(reason);
     }
 
@@ -112,7 +106,7 @@ Widgets.PageExt {
     T.Label {
         anchors.centerIn: parent
 
-        visible: [foldersSection, computerSection, deviceSection, lanSection]
+        visible: [lanSection]
                  .every(section => !section.model.loading && section.model.count === 0)
 
         font.pixelSize: VLCStyle.fontHeight_xxlarge
@@ -202,94 +196,9 @@ Widgets.PageExt {
             Navigation.upItem: root.header
 
             HomeDeviceTitle {
-                view: foldersSection
-
-                text: qsTr("Folders")
-
-                topPadding: 0
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-            }
-
-            HomeDeviceView {
-                id: foldersSection
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-
-                model: StandardPathModel {
-                    //we only have a handfull of standard path (5 or 6)
-                    //so we don't limit them
-
-                    sortCriteria: root.sort.criteria
-                    sortOrder: root.sort.order
-                    searchPattern: root.search.pattern
-                }
-            }
-
-            HomeDeviceTitle {
-                view: computerSection
-
-                text: qsTr("Computer")
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-            }
-
-            HomeDeviceView {
-                id: computerSection
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-
-                model: NetworkDeviceModel {
-                    ctx: MainCtx
-
-                    sd_source: NetworkDeviceModel.CAT_MYCOMPUTER
-                    source_name: "*"
-
-                    limit: computerSection.maximumCount
-
-                    sortOrder: root.sort.order
-                    sortCriteria: root.sort.criteria
-                    searchPattern: root.search.pattern
-                }
-            }
-
-            HomeDeviceTitle {
-                view: deviceSection
-
-                text: qsTr("Devices")
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-            }
-
-            HomeDeviceView {
-                id: deviceSection
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-
-                model: NetworkDeviceModel {
-                    ctx: MainCtx
-
-                    limit: deviceSection.maximumCount
-
-                    sortOrder: root.sort.order
-                    sortCriteria: root.sort.criteria
-                    searchPattern: root.search.pattern
-
-                    sd_source: NetworkDeviceModel.CAT_DEVICES
-                    source_name: "*"
-                }
-            }
-
-            HomeDeviceTitle {
                 view: lanSection
 
-                text: qsTr("Network")
+                text: qsTr("Local Network")
 
                 anchors.left: parent.left
                 anchors.right: parent.right

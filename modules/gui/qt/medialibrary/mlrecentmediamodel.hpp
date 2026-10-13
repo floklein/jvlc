@@ -28,16 +28,35 @@
 class MLRecentMediaModel : public MLMediaModel
 {
     Q_OBJECT
+
+    // Which media the model lists: every played media (default) or only the
+    // played local files or network streams
+    Q_PROPERTY(HistoryType historyType READ historyType WRITE setHistoryType NOTIFY historyTypeChanged FINAL)
+
 public:
     enum Roles
     {
         RECENT_MEDIA_URL = MLMediaModel::MEDIA_ROLES_COUNT,
     };
 
+    enum HistoryType
+    {
+        GLOBAL = VLC_ML_HISTORY_TYPE_GLOBAL,
+        LOCAL = VLC_ML_HISTORY_TYPE_LOCAL,
+        NETWORK = VLC_ML_HISTORY_TYPE_NETWORK,
+    };
+    Q_ENUM(HistoryType)
+
     explicit MLRecentMediaModel( QObject* parent = nullptr );
     virtual ~MLRecentMediaModel() = default;
 
     Q_INVOKABLE void clearHistory();
+
+    HistoryType historyType() const { return m_historyType; }
+    void setHistoryType( HistoryType type );
+
+signals:
+    void historyTypeChanged();
 
 protected:
     QHash<int, QByteArray> roleNames() const override;
@@ -51,11 +70,18 @@ private:
 
     struct Loader : public MLListCacheLoader::MLOp
     {
-        using MLListCacheLoader::MLOp::MLOp;
+        Loader(const MLRecentMediaModel& model)
+            : MLOp(model)
+            , m_historyType(static_cast<vlc_ml_history_type_t>(model.m_historyType))
+        {}
         size_t count(vlc_medialibrary_t* ml, const vlc_ml_query_params_t* queryParams) const override;
         std::vector<std::unique_ptr<MLItem>> load(vlc_medialibrary_t* ml, const vlc_ml_query_params_t* queryParams) const override;
         std::unique_ptr<MLItem> loadItemById(vlc_medialibrary_t* ml, MLItemId itemId) const override;
+
+        vlc_ml_history_type_t m_historyType;
     };
+
+    HistoryType m_historyType = GLOBAL;
 };
 
 #endif // ML_RECENT_MEDIA_MODEL_H

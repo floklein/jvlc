@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include "mlartistmodel.hpp"
+#include "mlplaycountrank.hpp"
 
 MLArtistModel::MLArtistModel(QObject *parent)
     : MLBaseModel(parent)
@@ -64,6 +65,7 @@ vlc_ml_sorting_criteria_t MLArtistModel::nameToCriteria(QByteArray name) const
     return QHash<QByteArray, vlc_ml_sorting_criteria_t> {
         {QByteArrayLiteral("name"), VLC_ML_SORTING_ALPHA},
         {QByteArrayLiteral("nb_tracks"), VLC_ML_SORTING_TRACKNUMBER},
+        {QByteArrayLiteral("playcount"), VLC_ML_SORTING_PLAYCOUNT},
     }.value(name, VLC_ML_SORTING_DEFAULT);
 }
 
@@ -91,6 +93,11 @@ void MLArtistModel::onVlcMlEvent(const MLEvent &event)
                  m_parent.id == event.deletion.i_entity_id )
                 emit resetRequested();
             return;
+        case VLC_ML_EVENT_HISTORY_CHANGED:
+            // playing a track changes the play counts of its artist
+            if ( getMLSortingCriteria() == VLC_ML_SORTING_PLAYCOUNT )
+                emit resetRequested();
+            return;
     }
 
     MLBaseModel::onVlcMlEvent(event);
@@ -99,7 +106,8 @@ void MLArtistModel::onVlcMlEvent(const MLEvent &event)
 std::unique_ptr<MLListCacheLoader>
 MLArtistModel::createMLLoader() const
 {
-    return std::make_unique<MLListCacheLoader>(m_mediaLib, std::make_shared<MLArtistModel::Loader>(*this));
+    return std::make_unique<MLListCacheLoader>(m_mediaLib,
+        MLPlayCountRank::rankIfSortedByPlayCount(*this, std::make_shared<MLArtistModel::Loader>(*this)));
 }
 
 size_t MLArtistModel::Loader::count(vlc_medialibrary_t* ml, const vlc_ml_query_params_t* queryParams) const

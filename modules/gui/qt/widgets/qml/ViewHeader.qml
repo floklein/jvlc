@@ -45,6 +45,9 @@ T.Pane {
 
     property alias seeAllButton: button
 
+    // Shows the "See All" button as a chevron right after the title
+    property bool seeAllChevron: false
+
     // Signals
 
     signal seeAllButtonClicked(int reason)
@@ -86,7 +89,7 @@ T.Pane {
         SubtitleLabel {
             id: label
 
-            Layout.fillWidth: true
+            Layout.fillWidth: !root.seeAllChevron
 
             color: theme.fg.primary
         }
@@ -105,13 +108,22 @@ T.Pane {
                 value: root.focusReason
             }
 
-            text: qsTr("See All")
+            text: root.seeAllChevron ? VLCIcons.ic_fluent_chevron_right_24 : qsTr("See All")
 
-            font.pixelSize: VLCStyle.fontSize_large
+            font.family: root.seeAllChevron ? VLCIcons.fontFamily : VLCStyle.fontFamily
+            font.pixelSize: root.seeAllChevron ? VLCStyle.fontSize_xlarge : VLCStyle.fontSize_large
+
+            Accessible.name: qsTr("See All")
 
             Navigation.parentItem: root
 
             onClicked: root.seeAllButtonClicked(focusReason)
+        }
+
+        Item {
+            visible: root.seeAllChevron
+
+            Layout.fillWidth: true
         }
     }
 }

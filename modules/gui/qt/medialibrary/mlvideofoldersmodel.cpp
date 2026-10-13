@@ -35,6 +35,7 @@
 #include "mlcustomcover.hpp"
 #include "mlfolder.hpp"
 #include "mlhelper.hpp"
+#include "mlplaycountrank.hpp"
 
 // Static variables
 
@@ -103,13 +104,15 @@ vlc_ml_sorting_criteria_t MLVideoFoldersModel::nameToCriteria(QByteArray name) c
     return QHash<QByteArray, vlc_ml_sorting_criteria_t> {
         { QByteArrayLiteral("title"),    VLC_ML_SORTING_ALPHA    },
         { QByteArrayLiteral("duration"), VLC_ML_SORTING_DURATION },
+        { QByteArrayLiteral("playcount"), VLC_ML_SORTING_PLAYCOUNT },
     }.value(name, VLC_ML_SORTING_DEFAULT);
 }
 
 std::unique_ptr<MLListCacheLoader>
 MLVideoFoldersModel::createMLLoader() const /* override */
 {
-    return std::make_unique<MLListCacheLoader>(m_mediaLib, std::make_shared<MLVideoFoldersModel::Loader>(*this));
+    return std::make_unique<MLListCacheLoader>(m_mediaLib,
+        MLPlayCountRank::rankIfSortedByPlayCount(*this, std::make_shared<MLVideoFoldersModel::Loader>(*this)));
 }
 
 // Protected MLBaseModel reimplementation
@@ -135,6 +138,13 @@ void MLVideoFoldersModel::onVlcMlEvent(const MLEvent & event) /* override */
         {
             MLItemId itemId(event.deletion.i_entity_id, VLC_ML_PARENT_FOLDER);
             deleteItemInCache(itemId);
+            return;
+        }
+        case VLC_ML_EVENT_HISTORY_CHANGED:
+        {
+            // playing a media changes the play counts of its folder
+            if (getMLSortingCriteria() == VLC_ML_SORTING_PLAYCOUNT)
+                emit resetRequested();
             return;
         }
         default:

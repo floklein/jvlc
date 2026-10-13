@@ -21,6 +21,7 @@
 #endif
 
 #include "../medialibrary/mlbasemodel.hpp"
+#include "../medialibrary/mlplaycountrank.hpp"
 #include "../medialibrary/medialib.hpp"
 #include "../playlist/playlist_controller.hpp"
 #include "vlc_stub_modules.hpp"
@@ -114,6 +115,83 @@ protected:
 
 
     std::vector<MLItemId> m_items;
+};
+
+// Folders (or playlists, artists) ranked by the play counts of their media.
+// The play counts are given per entity instead of being read from the media
+// library.
+class MLRankTestModel : public MLBaseModel
+{
+    Q_OBJECT
+
+public:
+    QVariant itemRoleData(const MLItem *item, int role) const override
+    {
+        VLC_UNUSED(role);
+        if (!item)
+            return {};
+        return QVariant::fromValue(item->getId());
+    }
+
+    void addFolder(int64_t id, uint64_t playCount, time_t lastPlayed = 0)
+    {
+        m_folders.emplace_back(id, VLC_ML_PARENT_FOLDER);
+        m_playCounts[id] = { playCount, lastPlayed };
+    }
+
+    QVector<int64_t> rows() const
+    {
+        QVector<int64_t> ids;
+        for (int row = 0; row < rowCount(); ++row)
+            ids.push_back(data(index(row), Qt::DisplayRole).value<MLItemId>().id);
+        return ids;
+    }
+
+protected:
+    std::unique_ptr<MLListCacheLoader> createMLLoader() const override
+    {
+        auto playCounts = m_playCounts;
+        auto counter = [playCounts](vlc_medialibrary_t*, const MLItemId& id) {
+            return playCounts.value(id.id);
+        };
+        return std::make_unique<MLListCacheLoader>(m_mediaLib,
+            std::make_shared<MLPlayCountRank>(*this, std::make_shared<Loader>(*this), counter));
+    }
+
+    struct Loader : public MLListCacheLoader::MLOp
+    {
+        Loader(const MLRankTestModel& model)
+            : MLOp(model)
+            , m_folders(model.m_folders)
+        {}
+
+        size_t count(vlc_medialibrary_t*, const vlc_ml_query_params_t*) const override
+        {
+            return m_folders.size();
+        }
+
+        std::vector<std::unique_ptr<MLItem>> load(vlc_medialibrary_t*, const vlc_ml_query_params_t* queryParams) const override
+        {
+            size_t first = std::min<size_t>(queryParams->i_offset, m_folders.size());
+            size_t last = queryParams->i_nbResults == 0
+                ? m_folders.size()
+                : std::min<size_t>(first + queryParams->i_nbResults, m_folders.size());
+            std::vector<std::unique_ptr<MLItem>> ret;
+            for (size_t i = first; i < last; ++i)
+                ret.emplace_back(std::make_unique<MLItem>(m_folders[i]));
+            return ret;
+        }
+
+        std::unique_ptr<MLItem> loadItemById(vlc_medialibrary_t*, MLItemId itemId) const override
+        {
+            return std::make_unique<MLItem>(itemId);
+        }
+
+        std::vector<MLItemId> m_folders;
+    };
+
+    std::vector<MLItemId> m_folders;
+    QHash<int64_t, MLPlayCountRank::PlayCount> m_playCounts;
 };
 
 class TestVLCMLModel : public QObject
@@ -210,6 +288,88 @@ private slots:
         const int mid = (low + high) / 2;
         m_model->getIndexFromId2(MLItemId{mid, VLC_ML_PARENT_UNKNOWN}, cb);
         QCOMPARE(row, mid - 1);
+    }
+
+    void testPlayCountRankMostPlayedFirst()
+    {
+        MLRankTestModel model;
+        model.classBegin();
+        model.setMl(m_medialib.get());
+        model.setSortOrder(Qt::DescendingOrder);
+        model.addFolder(1, 2);
+        model.addFolder(2, 0);
+        model.addFolder(3, 5);
+        model.addFolder(4, 1);
+        model.addFolder(5, 0);
+        model.componentComplete();
+
+        QVERIFY(QTest::qWaitFor([&model]() { return !model.loading(); }));
+        // folders never played are left out
+        QCOMPARE(model.getCount(), 3u);
+        QCOMPARE(model.rows(), (QVector<int64_t>{ 3, 1, 4 }));
+    }
+
+    void testPlayCountRankTieMostRecentFirst()
+    {
+        MLRankTestModel model;
+        model.classBegin();
+        model.setMl(m_medialib.get());
+        model.setSortOrder(Qt::DescendingOrder);
+        model.addFolder(1, 2, 100);
+        model.addFolder(2, 2, 300);
+        model.addFolder(3, 2, 200);
+        model.componentComplete();
+
+        QVERIFY(QTest::qWaitFor([&model]() { return !model.loading(); }));
+        QCOMPARE(model.rows(), (QVector<int64_t>{ 2, 3, 1 }));
+    }
+
+    void testPlayCountRankAscending()
+    {
+        MLRankTestModel model;
+        model.classBegin();
+        model.setMl(m_medialib.get());
+        model.setSortOrder(Qt::AscendingOrder);
+        model.addFolder(1, 2);
+        model.addFolder(2, 0);
+        model.addFolder(3, 5);
+        model.addFolder(4, 1);
+        model.componentComplete();
+
+        QVERIFY(QTest::qWaitFor([&model]() { return !model.loading(); }));
+        QCOMPARE(model.rows(), (QVector<int64_t>{ 4, 1, 3 }));
+    }
+
+    void testPlayCountRankLimit()
+    {
+        MLRankTestModel model;
+        model.classBegin();
+        model.setMl(m_medialib.get());
+        model.setSortOrder(Qt::DescendingOrder);
+        model.setLimit(2);
+        model.addFolder(1, 2);
+        model.addFolder(2, 0);
+        model.addFolder(3, 5);
+        model.addFolder(4, 1);
+        model.componentComplete();
+
+        QVERIFY(QTest::qWaitFor([&model]() { return !model.loading(); }));
+        QCOMPARE(model.getMaximumCount(), 3u);
+        QCOMPARE(model.getCount(), 2u);
+        QCOMPARE(model.rows(), (QVector<int64_t>{ 3, 1 }));
+    }
+
+    void testPlayCountRankNothingPlayed()
+    {
+        MLRankTestModel model;
+        model.classBegin();
+        model.setMl(m_medialib.get());
+        model.addFolder(1, 0);
+        model.addFolder(2, 0);
+        model.componentComplete();
+
+        QVERIFY(QTest::qWaitFor([&model]() { return !model.loading(); }));
+        QCOMPARE(model.getCount(), 0u);
     }
 
     // The Play rule from the library

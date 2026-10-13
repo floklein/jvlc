@@ -36,14 +36,23 @@ Widgets.PageLoader {
         name: "continueWatching",
         component: continueWatchingComponent
     }, {
+        name: "listenAgain",
+        component: listenAgainComponent
+    }, {
+        name: "folders",
+        component: foldersComponent
+    }, {
+        name: "playlists",
+        component: playlistsComponent
+    }, {
+        name: "artists",
+        component: artistsComponent
+    }, {
+        name: "streams",
+        component: streamsComponent
+    }, {
         name: "favorites",
         component: favoritesComponent
-    }, {
-        name: "newVideo",
-        component: newVideoComponent
-    }, {
-        name: "newMusic",
-        component: newMusicComponent
     }]
 
     property int displayMarginBeginning: 0
@@ -56,6 +65,20 @@ Widgets.PageLoader {
     Accessible.name: qsTr("Home View")
     AccessibleCompat.id: "homeDisplay"
 
+    // Home lists what lives in the other sections: open it there
+
+    function showFolder(model, reason) {
+        History.push(["video", "all", "group"], { parentId: model.id, title: model.title }, reason)
+    }
+
+    function showPlaylist(model, reason) {
+        History.push(["playlists", "list"], { parentId: model.id, title: model.name }, reason)
+    }
+
+    function showArtist(id, reason) {
+        History.push(["music", "artists", "albums"], { artistId: id }, reason)
+    }
+
 
     Component {
         id: homeComponent
@@ -66,6 +89,10 @@ Widgets.PageLoader {
             onSeeAllButtonClicked: (name, reason) => {
                 History.push([...root.pagePrefix, name], reason)
             }
+
+            onFolderRequested: (model, reason) => root.showFolder(model, reason)
+            onPlaylistRequested: (model, reason) => root.showPlaylist(model, reason)
+            onArtistRequested: (id, reason) => root.showArtist(id, reason)
         }
     }
 
@@ -118,6 +145,154 @@ Widgets.PageLoader {
     }
 
     Component {
+        id: listenAgainComponent
+
+        Widgets.PageExt {
+            id: listenAgainPage
+
+            title: qsTr("Listen Again")
+
+            MediaView {
+                focus: true
+
+                anchors.fill: parent
+
+                model: MLRecentAudioModel {
+                    ml: MediaLib
+
+                    searchPattern: listenAgainPage.search.pattern
+                }
+
+                displayMarginBeginning: root.displayMarginBeginning
+                displayMarginEnd: root.displayMarginEnd
+
+                enableBeginningFade: root.enableBeginningFade
+                enableEndFade: root.enableEndFade
+            }
+        }
+    }
+
+    Component {
+        id: foldersComponent
+
+        Widgets.PageExt {
+            id: foldersPage
+
+            title: qsTr("Frequently Visited Folders")
+
+            FrequentFoldersView {
+                focus: true
+
+                anchors.fill: parent
+
+                searchPattern: foldersPage.search.pattern
+
+                displayMarginBeginning: root.displayMarginBeginning
+                displayMarginEnd: root.displayMarginEnd
+
+                enableBeginningFade: root.enableBeginningFade
+                enableEndFade: root.enableEndFade
+
+                onFolderRequested: (model, reason) => root.showFolder(model, reason)
+            }
+        }
+    }
+
+    Component {
+        id: playlistsComponent
+
+        Widgets.PageExt {
+            id: playlistsPage
+
+            title: qsTr("Frequently Visited Playlists")
+
+            PlaylistMediaList {
+                focus: true
+
+                anchors.fill: parent
+
+                playlistType: MLPlaylistListModel.PLAYLIST_TYPE_ALL
+
+                sortCriteria: "playcount"
+                sortOrder: Qt.DescendingOrder
+                searchPattern: playlistsPage.search.pattern
+
+                // ranked rows, the page offers no other sort
+                sortModel: []
+
+                displayMarginBeginning: root.displayMarginBeginning
+                displayMarginEnd: root.displayMarginEnd
+
+                enableBeginningFade: root.enableBeginningFade
+                enableEndFade: root.enableEndFade
+
+                onShowList: (model, reason) => root.showPlaylist(model, reason)
+            }
+        }
+    }
+
+    Component {
+        id: artistsComponent
+
+        Widgets.PageExt {
+            id: artistsPage
+
+            title: qsTr("Frequently Listened Artists")
+
+            MusicAllArtists {
+                focus: true
+
+                anchors.fill: parent
+
+                sortCriteria: "playcount"
+                sortOrder: Qt.DescendingOrder
+                searchPattern: artistsPage.search.pattern
+
+                // ranked rows, the page offers no other sort
+                sortModel: []
+
+                displayMarginBeginning: root.displayMarginBeginning
+                displayMarginEnd: root.displayMarginEnd
+
+                enableBeginningFade: root.enableBeginningFade
+                enableEndFade: root.enableEndFade
+
+                onArtistAlbumViewRequested: (id, reason) => root.showArtist(id, reason)
+            }
+        }
+    }
+
+    Component {
+        id: streamsComponent
+
+        Widgets.PageExt {
+            id: streamsPage
+
+            title: qsTr("Latest Streams")
+
+            MediaView {
+                focus: true
+
+                anchors.fill: parent
+
+                model: MLRecentMediaModel {
+                    ml: MediaLib
+
+                    historyType: MLRecentMediaModel.NETWORK
+
+                    searchPattern: streamsPage.search.pattern
+                }
+
+                displayMarginBeginning: root.displayMarginBeginning
+                displayMarginEnd: root.displayMarginEnd
+
+                enableBeginningFade: root.enableBeginningFade
+                enableEndFade: root.enableEndFade
+            }
+        }
+    }
+
+    Component {
         id: favoritesComponent
 
         Widgets.PageExt {
@@ -138,76 +313,6 @@ Widgets.PageLoader {
                     sortCriteria: favoritesPage.sort.criteria || "insertion"
                     sortOrder: favoritesPage.sort.order
                     searchPattern: favoritesPage.search.pattern
-                }
-
-                displayMarginBeginning: root.displayMarginBeginning
-                displayMarginEnd: root.displayMarginEnd
-
-                enableBeginningFade: root.enableBeginningFade
-                enableEndFade: root.enableEndFade
-            }
-        }
-    }
-
-    Component {
-        id: newVideoComponent
-
-        Widgets.PageExt {
-            id: newVideoPage
-
-            title: qsTr("New Videos")
-
-            VideoAll {
-                id: newVideo
-
-                anchors.fill: parent
-
-                focus: true
-
-                model: MLVideoModel {
-                    ml: MediaLib
-
-                    sortCriteria: newVideoPage.sort.criteria || "insertion"
-                    sortOrder: newVideoPage.sort.order
-                    searchPattern: newVideoPage.search.pattern
-                }
-
-                sectionProperty: model.sortCriteria === "title" ? "title_first_symbol" : ""
-
-                contextMenu: MLContextMenu {
-                    model: newVideo.model
-
-                    showPlayAsAudioAction: true
-                }
-
-                displayMarginBeginning: root.displayMarginBeginning
-                displayMarginEnd: root.displayMarginEnd
-
-                enableBeginningFade: root.enableBeginningFade
-                enableEndFade: root.enableEndFade
-            }
-        }
-    }
-
-    Component {
-        id: newMusicComponent
-
-        Widgets.PageExt {
-            id: newMusicPage
-
-            title: qsTr("New Music")
-
-            MediaView {
-                focus: true
-
-                anchors.fill: parent
-
-                model: MLAudioModel {
-                    ml: MediaLib
-
-                    sortCriteria: newMusicPage.sort.criteria || "insertion"
-                    sortOrder: newMusicPage.sort.order
-                    searchPattern: newMusicPage.search.pattern
                 }
 
                 displayMarginBeginning: root.displayMarginBeginning

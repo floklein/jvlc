@@ -24,6 +24,7 @@ import VLC.MainInterface
 import VLC.Style
 import VLC.Widgets as Widgets
 import VLC.Util
+import VLC.Dialogs
 
 EmptyLabel {
     id: root
@@ -39,7 +40,8 @@ EmptyLabel {
     // Functions
 
     function onNavigate(reason) {
-        History.push(["network"], reason)
+        // An empty library view offers to add a folder to the library
+        DialogsProvider.addLibraryFolderDialog()
     }
 
     // Keys
@@ -75,8 +77,8 @@ EmptyLabel {
 
         focus: true
 
-        text: qsTr("Browse")
-        iconTxt: VLCIcons.topbar_network
+        text: qsTr("Add a folder")
+        iconTxt: VLCIcons.add
 
         Navigation.parentItem: root
 

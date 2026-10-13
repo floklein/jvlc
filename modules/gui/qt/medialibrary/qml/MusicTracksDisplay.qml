@@ -25,7 +25,7 @@ import VLC.Widgets as Widgets
 Widgets.PageExt {
     id: root
 
-    title: qsTr("Tracks")
+    title: qsTr("Songs")
 
     hasGridListMode: false
     isSearchable: tracklistdisplay_id.isSearchable

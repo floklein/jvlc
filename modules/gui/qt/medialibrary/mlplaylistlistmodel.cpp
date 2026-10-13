@@ -33,6 +33,7 @@
 #include "mlhelper.hpp"
 #include "mlcustomcover.hpp"
 #include "mlplaylist.hpp"
+#include "mlplaycountrank.hpp"
 
 //-------------------------------------------------------------------------------------------------
 // Static variables
@@ -334,7 +335,15 @@ QVariant MLPlaylistListModel::headerData(int section, Qt::Orientation orientatio
 
 std::unique_ptr<MLListCacheLoader> MLPlaylistListModel::createMLLoader() const /* override */
 {
-    return std::make_unique<MLListCacheLoader>(m_mediaLib, std::make_shared<MLPlaylistListModel::Loader>(*this, m_playlistType));
+    return std::make_unique<MLListCacheLoader>(m_mediaLib,
+        MLPlayCountRank::rankIfSortedByPlayCount(*this, std::make_shared<MLPlaylistListModel::Loader>(*this, m_playlistType)));
+}
+
+vlc_ml_sorting_criteria_t MLPlaylistListModel::nameToCriteria(QByteArray name) const /* override */
+{
+    return QHash<QByteArray, vlc_ml_sorting_criteria_t> {
+        { QByteArrayLiteral("playcount"), VLC_ML_SORTING_PLAYCOUNT },
+    }.value(name, VLC_ML_SORTING_DEFAULT);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -408,6 +417,13 @@ void MLPlaylistListModel::onVlcMlEvent(const MLEvent & event) /* override */
     {
         emit resetRequested();
         break;
+    }
+    case VLC_ML_EVENT_HISTORY_CHANGED:
+    {
+        // playing a media changes the play counts of its playlists
+        if (getMLSortingCriteria() == VLC_ML_SORTING_PLAYCOUNT)
+            emit resetRequested();
+        return;
     }
     default:
         break;

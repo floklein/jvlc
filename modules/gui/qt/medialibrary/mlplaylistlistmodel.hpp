@@ -94,6 +94,8 @@ protected: // MLBaseModel implementation
 
     std::unique_ptr<MLListCacheLoader> createMLLoader() const override;
 
+    vlc_ml_sorting_criteria_t nameToCriteria(QByteArray name) const override;
+
 private: // Functions
     QString getCover(const MLPlaylist* playlist) const;
 

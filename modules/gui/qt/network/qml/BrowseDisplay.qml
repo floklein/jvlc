@@ -54,7 +54,7 @@ Widgets.PageLoader {
     }]
 
     Accessible.role: Accessible.Client
-    Accessible.name: qsTr("Browse view")
+    Accessible.name: qsTr("Network view")
 
     //functions
 

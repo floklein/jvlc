@@ -60,6 +60,14 @@ MainViewLoader {
     property alias searchPattern: playlistModel.searchPattern
     property alias sortOrder: playlistModel.sortOrder
     property alias sortCriteria: playlistModel.sortCriteria
+    property alias limit: playlistModel.limit
+
+    property int playlistType: isMusic ? MLPlaylistListModel.PLAYLIST_TYPE_AUDIO
+                                       : MLPlaylistListModel.PLAYLIST_TYPE_VIDEO
+
+    property bool interactive: true // false, when as a row
+
+    property int headerPositioning: ListView.OverlayHeader
 
     //---------------------------------------------------------------------------------------------
     // Private
@@ -109,8 +117,7 @@ MainViewLoader {
         id: playlistModel
         ml: MediaLib
 
-        playlistType: isMusic ? MLPlaylistListModel.PLAYLIST_TYPE_AUDIO
-                              : MLPlaylistListModel.PLAYLIST_TYPE_VIDEO
+        playlistType: root.playlistType
 
         coverSize: (isMusic) ? Qt.size(512, 512)
                              : Qt.size(1024, 640)
@@ -299,6 +306,8 @@ MainViewLoader {
             displayMarginBeginning: root.displayMarginBeginning
             displayMarginEnd: root.displayMarginEnd
 
+            interactive: root.interactive
+
             Navigation.parentItem: root
 
             delegate: VideoGridItem {
@@ -462,6 +471,7 @@ MainViewLoader {
             dragItem: dragItemPlaylist
 
             preferredHeader: root.header
+            headerPositioning: root.headerPositioning
 
             rowContextMenu: contextMenu
 
@@ -470,6 +480,8 @@ MainViewLoader {
 
             fadingEdge.enableBeginningFade: root.enableBeginningFade
             fadingEdge.enableEndFade: root.enableEndFade
+
+            interactive: root.interactive
 
             isDropAcceptableFunc: function(drag, index) {
                 root._adjustDragAccepted(drag)

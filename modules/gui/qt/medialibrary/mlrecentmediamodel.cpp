@@ -50,6 +50,15 @@ QHash<int, QByteArray> MLRecentMediaModel::roleNames() const
     return hash;
 }
 
+void MLRecentMediaModel::setHistoryType( HistoryType type )
+{
+    if ( m_historyType == type )
+        return;
+    m_historyType = type;
+    emit historyTypeChanged();
+    emit resetRequested();
+}
+
 void MLRecentMediaModel::clearHistory()
 {
     m_mediaLib->runOnMLThread(this,
@@ -82,14 +91,14 @@ MLRecentMediaModel::createMLLoader() const
 
 size_t MLRecentMediaModel::Loader::count(vlc_medialibrary_t* ml, const vlc_ml_query_params_t* queryParams) const
 {
-    return vlc_ml_count_history( ml, queryParams, VLC_ML_HISTORY_TYPE_GLOBAL );
+    return vlc_ml_count_history( ml, queryParams, m_historyType );
 }
 
 std::vector<std::unique_ptr<MLItem>>
 MLRecentMediaModel::Loader::load(vlc_medialibrary_t* ml, const vlc_ml_query_params_t* queryParams) const
 {
     ml_unique_ptr<vlc_ml_media_list_t> media_list{ vlc_ml_list_history(
-                ml, queryParams, VLC_ML_HISTORY_TYPE_GLOBAL ) };
+                ml, queryParams, m_historyType ) };
     if ( media_list == nullptr )
         return {};
 

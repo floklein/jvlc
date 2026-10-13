@@ -252,6 +252,9 @@ public slots:
     void openNetDialog();
     void openCaptureDialog();
 
+    // Picks a folder and adds it to the media library
+    void addLibraryFolderDialog();
+
     void PLOpenDir();
     void PLAppendDir();
 

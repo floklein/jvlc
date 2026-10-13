@@ -221,8 +221,12 @@ libqt_plugin_la_SOURCES = \
 	medialibrary/mlthreadpool.hpp \
 	medialibrary/mlqmltypes.hpp \
 	medialibrary/mlmedia.hpp \
+	medialibrary/mlplaycountrank.cpp \
+	medialibrary/mlplaycountrank.hpp \
 	medialibrary/mlqueryparams.cpp \
 	medialibrary/mlqueryparams.hpp \
+	medialibrary/mlrecentaudiomodel.cpp \
+	medialibrary/mlrecentaudiomodel.hpp \
 	medialibrary/mlrecentmediamodel.cpp \
 	medialibrary/mlrecentmediamodel.hpp \
 	medialibrary/mlrecentvideomodel.cpp \
@@ -459,6 +463,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	medialibrary/mlgenremodel.moc.cpp \
 	medialibrary/mlthreadpool.moc.cpp \
 	medialibrary/mlqmltypes.moc.cpp \
+	medialibrary/mlrecentaudiomodel.moc.cpp \
 	medialibrary/mlrecentmediamodel.moc.cpp \
 	medialibrary/mlrecentvideomodel.moc.cpp \
 	medialibrary/mlurlmodel.moc.cpp \
@@ -1085,6 +1090,7 @@ libqml_module_medialibrary_a_CPPFLAGS = $(libqt_plugin_la_CPPFLAGS)
 libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/ArtistTopBanner.qml \
 	medialibrary/qml/AudioGridItem.qml \
+	medialibrary/qml/FrequentFoldersView.qml \
 	medialibrary/qml/HomeDisplay.qml \
 	medialibrary/qml/HomePage.qml \
 	medialibrary/qml/MediaView.qml \
@@ -1100,7 +1106,6 @@ libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/MusicDisplay.qml \
 	medialibrary/qml/MusicGenres.qml \
 	medialibrary/qml/MusicGenresDisplay.qml \
-	medialibrary/qml/MusicPlaylistsDisplay.qml \
 	medialibrary/qml/MusicTrackListDisplay.qml \
 	medialibrary/qml/MusicTracksDisplay.qml \
 	medialibrary/qml/UrlListDisplay.qml \
@@ -1111,7 +1116,8 @@ libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/PlaylistMediaList.qml \
 	medialibrary/qml/PlaylistMedia.qml \
 	medialibrary/qml/PlaylistMediaDisplay.qml \
-	medialibrary/qml/VideoPlaylistsDisplay.qml \
+	medialibrary/qml/PlaylistsDisplay.qml \
+	medialibrary/qml/RecentDisplay.qml \
 	medialibrary/qml/VideoGridItem.qml \
 	medialibrary/qml/VideoInfoExpandPanel.qml \
 	medialibrary/qml/VideoListDisplay.qml \
@@ -1790,6 +1796,7 @@ test_ml_model_SOURCES = \
 	util/locallistcacheloader.hpp \
 	medialibrary/mlqmltypes.hpp \
 	medialibrary/mlbasemodel.hpp medialibrary/mlbasemodel.cpp \
+	medialibrary/mlplaycountrank.hpp medialibrary/mlplaycountrank.cpp \
 	medialibrary/medialib.hpp medialibrary/medialib.cpp \
 	medialibrary/mlthreadpool.hpp medialibrary/mlthreadpool.cpp \
 	playlist/playlist_controller.hpp playlist/playlist_controller.cpp \
