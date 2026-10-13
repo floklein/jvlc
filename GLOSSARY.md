@@ -20,6 +20,14 @@ _Avoid_: Sidebar (for this meaning), compact library
 The small video and controls in a corner of the full-window library while media plays.
 _Avoid_: PiP, floating player
 
+**Saved stream**:
+A network address the user has opened or saved, listed in the library's Network section.
+_Avoid_: Bookmark, favorite stream, URL history
+
+**Cast**:
+Sending what is playing to another device on the network, such as a Chromecast, instead of playing it in VLC.
+_Avoid_: Render, renderer, stream (for this meaning)
+
 **Pin**:
 A user-added shortcut in the library sidebar to a folder, Playlist or stream.
 _Avoid_: Favorite, bookmark
