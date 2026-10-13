@@ -72,6 +72,10 @@ _Avoid_: Track selector, quick menu
 The right-hand panel with Playback, Video, Audio and Subtitles tabs for live adjustments such as delays, filters, speed and subtitle appearance.
 _Avoid_: Effects dialog, adjustments and effects, settings panel
 
+**VLC menu**:
+The "…" menu at the left of the Top bar, holding the open actions, Profiles, customization, Settings and app-level items.
+_Avoid_: Main menu, hamburger menu, menu bar
+
 **Hide UI**:
 A mode where both bars stay hidden and appear only when the pointer nears their edge, as in fullscreen.
 _Avoid_: Minimal view, zen mode
