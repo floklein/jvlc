@@ -125,6 +125,7 @@ libqt_plugin_la_SOURCES = \
 	dialogs/help/help.cpp dialogs/help/help.hpp \
 	dialogs/mediainfo/media_properties_model.cpp dialogs/mediainfo/media_properties_model.hpp \
 	dialogs/messages/messages.cpp dialogs/messages/messages.hpp \
+	dialogs/open/disc_model.cpp dialogs/open/disc_model.hpp \
 	dialogs/open/open.cpp dialogs/open/open.hpp \
 	dialogs/open/open_panels.cpp dialogs/open/open_panels.hpp \
 	dialogs/open/openurl.cpp dialogs/open/openurl.hpp \
@@ -415,6 +416,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/help/help.moc.cpp \
 	dialogs/mediainfo/media_properties_model.moc.cpp \
 	dialogs/messages/messages.moc.cpp \
+	dialogs/open/disc_model.moc.cpp \
 	dialogs/open/open.moc.cpp \
 	dialogs/open/open_panels.moc.cpp \
 	dialogs/open/openurl.moc.cpp \
@@ -1038,6 +1040,7 @@ libqml_module_dialogs_a_QML = \
 	dialogs/dialogs/qml/ModalDialog.qml \
 	dialogs/dialogs/qml/WindowDialog.qml \
 	dialogs/mediainfo/qml/MediaPropertiesDialog.qml \
+	dialogs/open/qml/OpenDiscDialog.qml \
 	dialogs/toolbar/qml/EditorDNDDelegate.qml \
 	dialogs/toolbar/qml/EditorDNDView.qml\
 	dialogs/toolbar/qml/EditorDummyButton.qml \
@@ -1909,6 +1912,31 @@ test_media_properties_model_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_media_properties_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_media_properties_model
 TESTS += test_media_properties_model
+
+# test_disc_model
+
+test_disc_model_SOURCES = \
+	tests/test_disc_model.cpp \
+	dialogs/open/disc_model.hpp dialogs/open/disc_model.cpp \
+	playlist/playlist_controller.hpp playlist/playlist_controller.cpp \
+	playlist/playlist_item.hpp playlist/playlist_item.cpp \
+	util/vlctick.cpp util/vlctick.hpp
+
+nodist_test_disc_model_SOURCES = \
+	tests/test_disc_model.moc \
+	dialogs/open/disc_model.moc.cpp \
+	playlist/playlist_controller.moc.cpp \
+	playlist/playlist_item.moc.cpp \
+	util/vlctick.moc.cpp
+
+BUILT_SOURCES += tests/test_disc_model.moc
+CLEANFILES += tests/test_disc_model.moc
+test_disc_model_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_disc_model_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_disc_model_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_disc_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_disc_model
+TESTS += test_disc_model
 
 # test_vlcicons
 

@@ -63,6 +63,7 @@
 #include "dialogs/dialogs_provider.hpp"
 #include "dialogs/dialogs/dialogmodel.hpp"
 #include "dialogs/mediainfo/media_properties_model.hpp"
+#include "dialogs/open/disc_model.hpp"
 #ifdef UPDATE_CHECK
 #include "dialogs/help/help.hpp" // UpdateModel
 #endif
@@ -285,6 +286,7 @@ void MainUI::registerQMLTypes()
         assert(DialogErrorModel::getInstance<false>());
         qmlRegisterSingletonInstance<DialogErrorModel>(uri, versionMajor, versionMinor, "DialogErrorModel", DialogErrorModel::getInstance<false>());
         qmlRegisterUncreatableType<MediaPropertiesModel>( uri, versionMajor, versionMinor, "MediaPropertiesModel", "");
+        qmlRegisterType<DiscModel>( uri, versionMajor, versionMinor, "DiscModel" );
 
         qmlRegisterModule(uri, versionMajor, versionMinor);
         qmlProtectModule(uri, versionMajor);

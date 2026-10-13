@@ -608,4 +608,26 @@ Item {
             }
         }
     }
+
+    Loader {
+        id: openDiscDialogLoader
+        active: false
+
+        source: "qrc:///qt/qml/VLC/Dialogs/OpenDiscDialog.qml"
+
+        onLoaded: {
+            item.rootWindow = Qt.binding(() => root.bgContent)
+            item.aboutToHide.connect(root.restoreFocus)
+        }
+
+        Connections {
+            target: DialogsProvider
+
+            function onShowOpenDiscDialog() {
+                openDiscDialogLoader.active = true
+                // a popup can't open in the event loop iteration that creates it
+                Qt.callLater(() => openDiscDialogLoader.item?.open())
+            }
+        }
+    }
 }

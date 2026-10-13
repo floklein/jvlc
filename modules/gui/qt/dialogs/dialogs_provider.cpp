@@ -675,7 +675,8 @@ void DialogsProvider::openFileDialog()
 }
 void DialogsProvider::openDiscDialog()
 {
-    openDialog( OpenDialog::OPEN_DISC_TAB );
+    /* the QML Open Disc dialog, hosted by Dialogs.qml */
+    emit showOpenDiscDialog();
 }
 void DialogsProvider::openNetDialog()
 {

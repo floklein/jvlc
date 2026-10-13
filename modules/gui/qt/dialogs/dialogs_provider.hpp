@@ -295,6 +295,7 @@ signals:
     /* Shows the Properties & Metadata window of a media. The live window,
      * which follows the player, toggles when shown again on the same tab */
     void showMediaProperties( MediaPropertiesModel *model, int tab );
+    void showOpenDiscDialog();
 
     //visiblity signal
     void openDialogVisibleChanged();

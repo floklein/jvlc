@@ -49,6 +49,7 @@ moc_headers = files(
     'dialogs/help/help.hpp',
     'dialogs/mediainfo/media_properties_model.hpp',
     'dialogs/messages/messages.hpp',
+    'dialogs/open/disc_model.hpp',
     'dialogs/open/open.hpp',
     'dialogs/open/open_panels.hpp',
     'dialogs/open/openurl.hpp',
@@ -240,6 +241,8 @@ qt_plugin_sources = files(
     'dialogs/mediainfo/media_properties_model.hpp',
     'dialogs/messages/messages.cpp',
     'dialogs/messages/messages.hpp',
+    'dialogs/open/disc_model.cpp',
+    'dialogs/open/disc_model.hpp',
     'dialogs/open/open.cpp',
     'dialogs/open/open.hpp',
     'dialogs/open/open_panels.cpp',
@@ -609,6 +612,7 @@ qml_modules += {
         'dialogs/dialogs/qml/ModalDialog.qml',
         'dialogs/dialogs/qml/WindowDialog.qml',
         'dialogs/mediainfo/qml/MediaPropertiesDialog.qml',
+        'dialogs/open/qml/OpenDiscDialog.qml',
         'dialogs/toolbar/qml/EditorDNDDelegate.qml',
         'dialogs/toolbar/qml/EditorDNDView.qml',
         'dialogs/toolbar/qml/EditorDummyButton.qml',
@@ -1483,6 +1487,31 @@ if qt6_dep.found()
             'moc_headers': files(
                 'dialogs/mediainfo/media_properties_model.hpp',
                 'dialogs/fingerprint/chromaprint.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_disc_model',
+            'sources': files(
+                'tests/test_disc_model.cpp',
+                'dialogs/open/disc_model.cpp',
+                'playlist/playlist_controller.cpp',
+                'playlist/playlist_item.cpp',
+                'util/vlctick.cpp',
+            ),
+            'moc_sources': files(
+                'tests/test_disc_model.cpp'
+            ),
+            'moc_headers': files(
+                'dialogs/open/disc_model.hpp',
+                'playlist/playlist_controller.hpp',
+                'playlist/playlist_item.hpp',
+                'util/vlctick.hpp',
             ),
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
