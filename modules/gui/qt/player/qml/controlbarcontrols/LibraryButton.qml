@@ -38,12 +38,10 @@ Widgets.IconToolButton {
 
     AccessibleCompat.id: "topBarLibraryButton"
 
+    checked: LibraryPages.paneOpen
+
     onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
 
-    // TODO: open the Library pane (#65)
-    onClicked: {
-        if (MainCtx.hasEmbededVideo && !MainCtx.canShowVideoPIP)
-            MainPlaylistController.stop()
-        MainCtx.playerView = false
-    }
+    // opens and closes the Library pane beside the video
+    onClicked: LibraryPages.paneOpen = !LibraryPages.paneOpen
 }

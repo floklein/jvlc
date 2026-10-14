@@ -73,11 +73,18 @@ T.Button {
 
     onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
 
-    // TODO: open the Library pane at the playing Show (#59, #65)
+    // opens the Library pane at the folder of the playing file
     onClicked: {
-        if (MainCtx.hasEmbededVideo && !MainCtx.canShowVideoPIP)
-            MainPlaylistController.stop()
-        MainCtx.playerView = false
+        LibraryPages.showFolder(mediaFolder.folderId, Player.hasVideoOutput, Qt.MouseFocusReason)
+        LibraryPages.paneOpen = true
+    }
+
+    // the folder in the library, found by its path
+    MLMediaFolder {
+        id: mediaFolder
+
+        ml: MainCtx.mediaLibrary
+        url: root.paintOnly ? "" : Player.url
     }
 
     readonly property ColorContext colorContext: ColorContext {

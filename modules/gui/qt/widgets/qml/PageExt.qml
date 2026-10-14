@@ -215,19 +215,30 @@ T.Page {
         }
 
         background: Rectangle {
+            // the Library pane draws its own background (the Tint over the video)
+            visible: !defaultPageHeader.compact
             color: theme.bg.primary
         }
 
-        RowLayout {
+        // In the Library pane (Figma 187:328), the header takes two rows: the
+        // history, the location, the page actions and ↗ above; the item count
+        // and the sort, view and search controls below.
+        readonly property bool compact: MainCtx.libraryPane
+
+        GridLayout {
             id: row
 
             anchors.fill: parent
 
-            spacing: VLCStyle.margin_normal
+            columnSpacing: VLCStyle.margin_normal
+            rowSpacing: VLCStyle.margin_xsmall
 
             // back and forward through the history of the whole interface
             NavigableRow {
                 id: historyButtons
+
+                Layout.row: 0
+                Layout.column: 0
 
                 spacing: VLCStyle.margin_xxsmall
 
@@ -264,6 +275,8 @@ T.Page {
             SubtitleLabel {
                 id: label
 
+                Layout.row: 0
+                Layout.column: 1
                 Layout.fillWidth: true
 
                 visible: !crumbs.visible
@@ -275,8 +288,11 @@ T.Page {
             Item {
                 id: crumbs
 
+                Layout.row: 0
+                Layout.column: 1
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.preferredHeight: historyButtons.implicitHeight
 
                 visible: Helpers.isArray(defaultPageHeader.breadcrumb)
                          && defaultPageHeader.breadcrumb.length > 0
@@ -383,6 +399,9 @@ T.Page {
             }
 
             CaptionLabel {
+                Layout.row: defaultPageHeader.compact ? 1 : 0
+                Layout.column: defaultPageHeader.compact ? 0 : 2
+
                 visible: defaultPageHeader.itemCount >= 0
 
                 text: defaultPageHeader.itemCount === 1 ? qsTr("1 item")
@@ -392,6 +411,12 @@ T.Page {
 
             GridSortFilterControls {
                 id: gridSortFilter
+
+                Layout.row: defaultPageHeader.compact ? 1 : 0
+                Layout.column: defaultPageHeader.compact ? 1 : 3
+                Layout.columnSpan: defaultPageHeader.compact ? 3 : 1
+                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+
                 focus: true
                 sort: _sortCtx
                 search: _searchCtx
@@ -403,10 +428,40 @@ T.Page {
             Loader {
                 id: actionsLoader
 
+                Layout.row: 0
+                Layout.column: defaultPageHeader.compact ? 2 : 4
+
                 visible: !!item
 
                 Navigation.parentItem: defaultPageHeader
                 Navigation.leftItem: gridSortFilter
+                Navigation.rightItem: expandButton.visible ? expandButton : null
+            }
+
+            // ↗: from the Library pane to the full-window library, the video
+            // goes on in the Mini player
+            IconToolButton {
+                id: expandButton
+
+                Layout.row: 0
+                Layout.column: 3
+
+                visible: defaultPageHeader.compact
+
+                font.pixelSize: VLCStyle.icon_banner
+                width: VLCStyle.bannerButton_width
+                height: VLCStyle.bannerButton_height
+
+                text: VLCIcons.open
+                description: qsTr("Open the full library")
+
+                Navigation.parentItem: defaultPageHeader
+                Navigation.leftItem: actionsLoader.item ?? gridSortFilter
+
+                onClicked: {
+                    LibraryPages.paneOpen = false
+                    MainCtx.playerView = false
+                }
             }
         }
     }

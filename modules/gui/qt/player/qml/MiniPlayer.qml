@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Copyright (C) 2021 VLC authors and VideoLAN
+ * Copyright (C) 2026 VLC authors and VideoLAN
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,88 +16,336 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 import QtQuick
-
+import QtQuick.Layouts
+import QtQuick.Templates as T
 
 import VLC.MainInterface
-import VLC.Dialogs
-import VLC.Player
-import VLC.PlayerControls
 import VLC.Style
+import VLC.Widgets as Widgets
+import VLC.Playlist
+import VLC.Player
 import VLC.Util
 
-ControlBar {
+// The Mini player (Figma 970:3308): the video, or the cover of the music, in
+// a corner of the full-window library while media plays. It can be dragged to
+// any corner, and clicking the video returns to the player.
+T.Control {
     id: root
 
+    // Properties
+
+    // where the Mini player moves, in the coordinates of its parent
+    property rect area: Qt.rect(0, 0, parent?.width ?? 0, parent?.height ?? 0)
+
+    // Qt.TopLeftCorner, Qt.TopRightCorner, Qt.BottomLeftCorner or
+    // Qt.BottomRightCorner; kept across restarts
+    property int corner: Qt.BottomRightCorner
+
+    // the space between the Mini player and the edges of the area
+    property real edgeMargin: VLCStyle.spacing_8
+
+    // the video plays in the Mini player, else the cover shows
+    readonly property bool showsVideo: MainCtx.hasEmbededVideo && MainCtx.canShowVideoPIP
+
+    readonly property bool _playing: Player.playingState === Player.PLAYING_STATE_PLAYING
+
+    // set while the Mini player glides to its corner
+    property bool _snapping: false
+
+    readonly property string _settingKey: "MainWindow/mini-player-corner"
+
+    // Settings
+
+    // there is no Mini player when nothing plays
+    visible: Player.playingState !== Player.PLAYING_STATE_STOPPED
+    enabled: visible
+
+    // Figma: 390 x 340 in a 1920 px window; at most 2/5 of a narrow one
+    width: Math.min(VLCStyle.dp(390, VLCStyle.scale), Math.round(area.width * 2 / 5))
+    height: implicitHeight
+
+    implicitHeight: implicitContentHeight + topPadding + bottomPadding
+
+    padding: VLCStyle.spacing_8
+
+    focusPolicy: Qt.TabFocus
+
+    Accessible.role: Accessible.Pane
     Accessible.name: qsTr("Mini player")
-    AccessibleCompat.id: "miniplayerControlBar"
+    AccessibleCompat.id: "miniPlayer"
 
-    visible: (-anchors.bottomMargin < height) || (state === "inViewport")
+    // Functions
 
-    anchors.bottomMargin: (state === "outViewport") ? -height : 0
-
-    height: _delayedImplicitHeight
-
-    state: Player.isStarted ? "inViewport"
-                            : "outViewport"
-
-    Binding on state {
-        id: stateBinding
-        when: false
-        delayed: true
-        value: Player.isStarted ? "inViewport"
-                                : "outViewport"
+    function placeAtCorner() {
+        const pos = Helpers.cornerPosition(root.corner, Qt.size(root.width, root.height),
+                                           root.area, root.edgeMargin)
+        root.x = pos.x
+        root.y = pos.y
     }
+
+    // Events
 
     Component.onCompleted: {
-        Qt.callLater(() => { stateBinding.when = true })
+        const saved = parseInt(MainCtx.settingValue(_settingKey, Qt.BottomRightCorner))
+        if ([Qt.TopLeftCorner, Qt.TopRightCorner, Qt.BottomLeftCorner, Qt.BottomRightCorner].includes(saved))
+            corner = saved
+        placeAtCorner()
     }
 
-    textPosition: (MainCtx.pinVideoControls) ? ControlBar.TimeTextPosition.LeftRightSlider
-                                             : ControlBar.TimeTextPosition.Hide
+    onCornerChanged: placeAtCorner()
+    onAreaChanged: if (!dragHandler.active) placeAtCorner()
+    onWidthChanged: if (!dragHandler.active) placeAtCorner()
+    onHeightChanged: if (!dragHandler.active) placeAtCorner()
 
-    sliderHeight: (MainCtx.pinVideoControls) ? VLCStyle.heightBar_xxsmall
-                                             : VLCStyle.dp(3, VLCStyle.scale)
+    Behavior on x {
+        enabled: root._snapping && !MainCtx.reduceMotion
 
-    bookmarksHeight: (MainCtx.pinVideoControls) ? VLCStyle.controlBarBookmarksHeight
-                                                : VLCStyle.icon_xsmall * 0.7
-
-    identifier: PlayerControlbarModel.Miniplayer
-
-    Connections {
-        target: DialogsProvider
-        enabled: root.visible
-
-        function onShowJumpToTime() { root.openJumpToTime() }
-    }
-
-    property real _delayedImplicitHeight
-
-    onImplicitHeightChanged: {
-        if (!animation.running) {
-            // Animation should not be based on the implicit height change
-            // but rather the visibility state:
-            behavior.enabled = false
-            Qt.callLater(() => { behavior.enabled = true })
+        NumberAnimation {
+            duration: VLCStyle.duration_short * 1.5
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
         }
     }
 
-    Binding on _delayedImplicitHeight {
-        // eliminate intermediate adjustments until implicit height is calculated fully
-        // we can not delay on component load because we do not want twitching
-        // NOTE: The delay here can be removed, as long as a direct height is set
-        //       for the whole control instead of implicit height.
-        delayed: behavior.enabled
-        value: root.implicitHeight
+    Behavior on y {
+        enabled: root._snapping && !MainCtx.reduceMotion
+
+        NumberAnimation {
+            duration: VLCStyle.duration_short * 1.5
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
+        }
     }
 
-    Behavior on anchors.bottomMargin {
-        id: behavior
-        enabled: false
-        NumberAnimation {
-            id: animation
-            easing.type: Easing.InOutSine
-            duration: VLCStyle.duration_long
+    Timer {
+        id: snapEnd
+
+        interval: VLCStyle.duration_short * 2
+        onTriggered: root._snapping = false
+    }
+
+    // dropped anywhere, it goes to the nearest corner
+    DragHandler {
+        id: dragHandler
+
+        target: root
+
+        cursorShape: active ? Qt.DragMoveCursor : undefined
+
+        onActiveChanged: {
+            if (active)
+                return
+
+            const corner = Helpers.nearestCorner(Qt.rect(root.x, root.y, root.width, root.height),
+                                                 root.area)
+            MainCtx.setSettingValue(root._settingKey, corner)
+
+            root._snapping = true
+            snapEnd.restart()
+            if (corner === root.corner)
+                root.placeAtCorner()
+            else
+                root.corner = corner
+        }
+    }
+
+    // Children
+
+    readonly property ColorContext colorContext: ColorContext {
+        id: theme
+        colorSet: ColorContext.Window
+    }
+
+    background: Rectangle {
+        radius: VLCStyle.radius_large
+        color: theme.bg.primary
+        border.width: VLCStyle.border
+        border.color: theme.border
+
+        // It is acceptable for effects to exceed the boundaries of the
+        // parent. They are an exception to the "hypothetical clip test".
+        Widgets.DefaultShadow {
+        }
+    }
+
+    contentItem: ColumnLayout {
+        spacing: VLCStyle.spacing_8
+
+        // the video, or the cover; clicking it returns to the player
+        Item {
+            id: picture
+
+            Layout.fillWidth: true
+            Layout.preferredHeight: Math.round(width * 9 / 16)
+
+            Accessible.role: Accessible.Button
+            Accessible.name: qsTr("Back to the player")
+            Accessible.onPressAction: MainCtx.playerView = true
+
+            Rectangle {
+                anchors.fill: parent
+
+                visible: !root.showsVideo
+
+                radius: VLCStyle.radius_small
+                color: theme.bg.secondary
+
+                Image {
+                    anchors.fill: parent
+
+                    source: (Player.artwork && Player.artwork.toString())
+                            ? Player.artwork
+                            : (Player.hasVideoOutput ? VLCStyle.noArtVideoCover
+                                                     : VLCStyle.noArtAlbumCover)
+                    fillMode: Image.PreserveAspectFit
+                    sourceSize: Qt.size(width, height)
+                    asynchronous: true
+                }
+            }
+
+            Loader {
+                anchors.fill: parent
+
+                active: root.showsVideo
+
+                sourceComponent: VideoSurface {
+                    videoSurfaceProvider: MainCtx.videoSurfaceProvider
+                }
+            }
+
+            DoubleClickIgnoringItem {
+                anchors.fill: parent
+
+                TapHandler {
+                    gesturePolicy: TapHandler.WithinBounds
+
+                    onTapped: MainCtx.playerView = true
+                }
+
+                HoverHandler {
+                    id: pictureHover
+
+                    cursorShape: Qt.PointingHandCursor
+                }
+            }
+
+            // play and pause without leaving the library
+            Widgets.IconButton {
+                id: playButton
+
+                anchors.centerIn: parent
+
+                visible: pictureHover.hovered || hovered || visualFocus || MainCtx.usingTouch
+
+                font.pixelSize: VLCStyle.icon_large
+
+                description: root._playing ? qsTr("Pause") : qsTr("Play")
+
+                AccessibleCompat.id: "miniPlayerPlayButton"
+
+                text: root._playing ? VLCIcons.pause_filled : VLCIcons.play_filled
+
+                textStyle: Text.Outline
+
+                Navigation.parentItem: root
+                Navigation.downItem: folderButton.visible ? folderButton : queueButton
+
+                onClicked: MainPlaylistController.togglePlayPause()
+            }
+        }
+
+        // how far it played
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: VLCStyle.spacing_8
+
+            radius: height / 2
+            color: progressTheme.bg.primary
+
+            ColorContext {
+                id: progressTheme
+                colorSet: ColorContext.Slider
+            }
+
+            Accessible.role: Accessible.ProgressBar
+            Accessible.name: qsTr("%1 of %2").arg(Player.time.formatHMS()).arg(Player.length.formatHMS())
+
+            Rectangle {
+                width: parent.width * Helpers.clamp(Player.position, 0, 1)
+                height: parent.height
+
+                radius: parent.radius
+                color: progressTheme.bg.highlight
+            }
+        }
+
+        T.Label {
+            Layout.fillWidth: true
+            Layout.topMargin: VLCStyle.spacing_4
+
+            text: Player.title || Player.name
+            elide: Text.ElideRight
+            color: theme.fg.primary
+            font.pixelSize: VLCStyle.fontSize_normal
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+
+            spacing: VLCStyle.spacing_4
+
+            // the folder of the playing file, in the library
+            Widgets.ButtonExt {
+                id: folderButton
+
+                readonly property string folderName: Helpers.folderName(Player.url)
+
+                Layout.maximumWidth: parent.width - queueButton.width - parent.spacing
+
+                visible: folderName !== ""
+
+                iconTxt: VLCIcons.folder
+                text: folderName
+
+                colorContext.colorSet: ColorContext.ToolButton
+
+                Accessible.name: qsTr("Folder %1").arg(folderName)
+
+                T.ToolTip.text: qsTr("Show %1 in the library").arg(folderName)
+
+                Navigation.parentItem: root
+                Navigation.upItem: playButton
+                Navigation.rightItem: queueButton
+
+                onClicked: LibraryPages.showFolder(mediaFolder.folderId, Player.hasVideoOutput,
+                                                   Qt.MouseFocusReason)
+
+                MLMediaFolder {
+                    id: mediaFolder
+
+                    ml: MainCtx.mediaLibrary
+                    url: folderButton.visible ? Player.url : ""
+                }
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
+
+            Widgets.IconToolButton {
+                id: queueButton
+
+                text: VLCIcons.queue
+                description: qsTr("Queue")
+
+                checked: MainCtx.playqueuePanel.visible
+
+                Navigation.parentItem: root
+                Navigation.upItem: playButton
+                Navigation.leftItem: folderButton.visible ? folderButton : null
+
+                onClicked: MainCtx.playqueuePanel.visible = !MainCtx.playqueuePanel.visible
+            }
         }
     }
 }
-

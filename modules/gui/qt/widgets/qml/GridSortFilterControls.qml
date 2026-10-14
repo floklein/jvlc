@@ -45,7 +45,8 @@ NavigableRow {
     IconToolButton {
         id: gridListBtn
 
-        visible: MainCtx.hasGridListMode
+        // the Library pane is a list only
+        visible: MainCtx.hasGridListMode && !MainCtx.libraryPane
 
         enabled: visible
         width: VLCStyle.bannerButton_width

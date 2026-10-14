@@ -74,6 +74,42 @@ TestCase {
         compare(span.width, data.spanWidth)
     }
 
+    // The Mini player goes to the corner nearest to where it is dropped
+    function test_nearestCorner_data() {
+        // a 400x300 Mini player in a 1920x1040 library
+        return [
+            { tag: "bottom right", x: 1400, y: 700, corner: Qt.BottomRightCorner },
+            { tag: "bottom left", x: 100, y: 650, corner: Qt.BottomLeftCorner },
+            { tag: "top left", x: 10, y: 20, corner: Qt.TopLeftCorner },
+            { tag: "top right", x: 1500, y: 30, corner: Qt.TopRightCorner },
+            { tag: "dropped past the edge", x: 2000, y: -100, corner: Qt.TopRightCorner },
+            { tag: "left of the middle", x: 700, y: 300, corner: Qt.TopLeftCorner },
+            { tag: "right of the middle", x: 800, y: 300, corner: Qt.TopRightCorner },
+            { tag: "dead center", x: 760, y: 370, corner: Qt.BottomRightCorner },
+        ]
+    }
+
+    function test_nearestCorner(data) {
+        compare(Helpers.nearestCorner(Qt.rect(data.x, data.y, 400, 300), Qt.rect(0, 0, 1920, 1040)),
+                data.corner)
+    }
+
+    function test_cornerPosition_data() {
+        // a 400x300 Mini player, 8 px from the edges of a library below a 40 px header
+        return [
+            { tag: "bottom right", corner: Qt.BottomRightCorner, x: 1512, y: 772 },
+            { tag: "bottom left", corner: Qt.BottomLeftCorner, x: 8, y: 772 },
+            { tag: "top left", corner: Qt.TopLeftCorner, x: 8, y: 48 },
+            { tag: "top right", corner: Qt.TopRightCorner, x: 1512, y: 48 },
+        ]
+    }
+
+    function test_cornerPosition(data) {
+        const pos = Helpers.cornerPosition(data.corner, Qt.size(400, 300), Qt.rect(0, 40, 1920, 1040), 8)
+        compare(pos.x, data.x)
+        compare(pos.y, data.y)
+    }
+
     // The speed field of the Playback tab accepts 0.25x to 4x
     function test_parseSpeed_data() {
         return [

@@ -78,6 +78,26 @@ QtObject {
         return folder
     }
 
+    // the corner of area nearest to rect (Qt.TopLeftCorner, Qt.TopRightCorner,
+    // Qt.BottomLeftCorner or Qt.BottomRightCorner), by the center of rect;
+    // the bottom and the right win a tie
+    function nearestCorner(rect: rect, area: rect) : int {
+        const left = (rect.x + rect.width / 2) < (area.x + area.width / 2)
+        const top = (rect.y + rect.height / 2) < (area.y + area.height / 2)
+        if (top)
+            return left ? Qt.TopLeftCorner : Qt.TopRightCorner
+        return left ? Qt.BottomLeftCorner : Qt.BottomRightCorner
+    }
+
+    // the position of an item of the given size in a corner of area, margin
+    // away from its edges
+    function cornerPosition(corner: int, size: size, area: rect, margin: real) : point {
+        const left = (corner === Qt.TopLeftCorner || corner === Qt.BottomLeftCorner)
+        const top = (corner === Qt.TopLeftCorner || corner === Qt.TopRightCorner)
+        return Qt.point(left ? area.x + margin : area.x + area.width - size.width - margin,
+                        top ? area.y + margin : area.y + area.height - size.height - margin)
+    }
+
     // accessible name of an icon-only control: its tooltip plus its shortcut
     function accessibleName(name: string, shortcut: string) : string {
         if (!shortcut)

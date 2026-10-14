@@ -43,6 +43,7 @@
 #include "../../../../lib/libvlc_internal.h"
 
 #include "qt.hpp"
+#include <QUrl>
 
 #include <algorithm>
 
@@ -253,7 +254,8 @@ static QString fakeFolderMrl(const FakeFolder& folder)
 {
     const FakeFolder* parent = fakeFolder(folder.parentId);
     const QString parentMrl = parent ? fakeFolderMrl(*parent) : QStringLiteral("file:///library/");
-    return parentMrl + folder.name + QLatin1Char('/');
+    // percent-encoded, like the MRLs of the medialibrary
+    return parentMrl + QString::fromUtf8(QUrl::toPercentEncoding(folder.name)) + QLatin1Char('/');
 }
 
 static bool fakeFolderHolds(const FakeFolder& folder, int type)
@@ -334,7 +336,8 @@ static void fillFakeMedia(vlc_ml_media_t* out, const FakeMedia& media)
     out->p_files->i_nb_items = 1;
     vlc_ml_file_t& file = out->p_files->p_items[0];
     const FakeFolder* folder = fakeFolder(media.folderId);
-    file.psz_mrl = strdup(qtu((folder ? fakeFolderMrl(*folder) : QString()) + media.title + QStringLiteral(".mkv")));
+    file.psz_mrl = strdup(qtu((folder ? fakeFolderMrl(*folder) : QString())
+                              + QString::fromUtf8(QUrl::toPercentEncoding(media.title + QStringLiteral(".mkv")))));
     file.i_type = VLC_ML_FILE_TYPE_MAIN;
     file.b_present = true;
 
@@ -443,6 +446,22 @@ static void* MLGet( vlc_medialibrary_module_t*, int query, va_list args )
         auto res = static_cast<vlc_ml_folder_t*>(calloc(1, sizeof(vlc_ml_folder_t)));
         fillFolder(res, *folder);
         return res;
+    }
+    case VLC_ML_GET_FOLDER_BY_MRL:
+    {
+        // the medialibrary module adds the trailing slash itself
+        QString mrl = qfu(va_arg(args, const char*));
+        if (!mrl.endsWith(QLatin1Char('/')))
+            mrl += QLatin1Char('/');
+        for (const FakeFolder& folder : testenv->mlFolders)
+        {
+            if (fakeFolderMrl(folder) != mrl)
+                continue;
+            auto res = static_cast<vlc_ml_folder_t*>(calloc(1, sizeof(vlc_ml_folder_t)));
+            fillFolder(res, folder);
+            return res;
+        }
+        return nullptr;
     }
     case VLC_ML_GET_ARTIST:
     {

@@ -151,6 +151,10 @@ class MainCtx : public QObject
     // Expose Property Minimal View for Player View
     Q_PROPERTY(bool minimalView READ isMinimalView WRITE setMinimalView NOTIFY mainInterfaceModesChanged FINAL)
     Q_PROPERTY(bool playerView READ isPlayerView WRITE setPlayerView NOTIFY mainInterfaceModesChanged FINAL)
+    // The library shows as the Library pane beside the video in the player
+    // view, as the full-window library otherwise. The Library pane is a list
+    // only (gridView reads false there) with a compact header.
+    Q_PROPERTY(bool libraryPane READ isPlayerView NOTIFY mainInterfaceModesChanged FINAL)
 
     // This Property only works if hasAcrylicSurface is set
     Q_PROPERTY(bool acrylicActive READ acrylicActive WRITE setAcrylicActive NOTIFY acrylicActiveChanged FINAL)
@@ -235,7 +239,8 @@ public:
     inline MediaLib* getMediaLibrary() const { return m_medialib; }
     inline ShortcutMessage* shortcutMessage() const { return m_shortcutMessage; }
     inline SavedStreamsModel* getSavedStreams() const { return m_savedStreams; }
-    inline bool hasGridView() const { return m_gridView; }
+    // the Library pane is a list only
+    inline bool hasGridView() const { return m_gridView && !isPlayerView(); }
     inline bool albumSections() const { return m_albumSections; }
     inline bool lyricsMode() const { return m_lyricsMode; }
     inline bool showWaveform() const { return m_showWaveform; }

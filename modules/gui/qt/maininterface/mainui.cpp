@@ -20,6 +20,7 @@
 #include "medialibrary/mlrecentvideomodel.hpp"
 #include "medialibrary/mlfoldersmodel.hpp"
 #include "medialibrary/mlfoldertreemodel.hpp"
+#include "medialibrary/mlmediafolder.hpp"
 #include "medialibrary/mlmusicfoldertreemodel.hpp"
 #include "medialibrary/mlvideofoldersmodel.hpp"
 #include "medialibrary/mlplaylistlistmodel.hpp"
@@ -278,6 +279,9 @@ void MainUI::registerQMLTypes()
 
         qmlRegisterTypesAndRevisions<NavigationModel>( uri, versionMajor);
         qmlRegisterTypesAndRevisions<NavigationBarContextMenu>( uri, versionMajor );
+        // the folder button of the Top bar: also there without the media
+        // library, where it finds no folder
+        qmlRegisterType<MLMediaFolder>( uri, versionMajor, versionMinor, "MLMediaFolder" );
 
         // Foreign types:
         qmlRegisterTypesAndRevisions<vlc::QAbstractProxyModelForeign>(uri, versionMajor);

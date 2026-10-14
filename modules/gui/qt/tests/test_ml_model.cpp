@@ -22,6 +22,7 @@
 
 #include "../medialibrary/mlbasemodel.hpp"
 #include "../medialibrary/mlfoldertreemodel.hpp"
+#include "../medialibrary/mlmediafolder.hpp"
 #include "../medialibrary/mlmusicfoldertreemodel.hpp"
 #include "../medialibrary/mlplaycountrank.hpp"
 #include "../medialibrary/medialib.hpp"
@@ -33,6 +34,7 @@
 #include <vector>
 
 #include <QCoreApplication>
+#include <QSignalSpy>
 #include <QTest>
 
 struct vlc_medialibrary_t;
@@ -573,6 +575,86 @@ private slots:
 
         QCOMPARE(titles(*model), QStringList({"Extras", "E1", "E2"}));
         QCOMPARE(model->getMaximumCount(), 7u);
+    }
+
+    // The library folder of the playing file (the folder button)
+
+    void testMediaFolderOfAFile()
+    {
+        m_env->mlFolders = { {1, 0, "Shows"}, {2, 1, "The Wand"}, {3, 2, "S01"} };
+        m_env->mlMedia = { {10, 3, "The Wand S01E04"} };
+
+        MLMediaFolder folder;
+        folder.setMl(m_medialib.get());
+        folder.setUrl(QUrl("file:///library/Shows/The%20Wand/S01/The%20Wand%20S01E04.mkv"));
+
+        QTRY_VERIFY(folder.found());
+        QCOMPARE(folder.folderId().id, 3);
+        QCOMPARE(folder.folderId().type, VLC_ML_PARENT_FOLDER);
+        QVERIFY(!folder.loading());
+    }
+
+    void testMediaFolderOutsideTheLibrary()
+    {
+        m_env->mlFolders = { {1, 0, "Shows"} };
+
+        MLMediaFolder folder;
+        folder.setMl(m_medialib.get());
+        folder.setUrl(QUrl("file:///elsewhere/clip.mkv"));
+
+        QVERIFY(folder.loading());
+        QTRY_VERIFY(!folder.loading());
+        QVERIFY(!folder.found());
+    }
+
+    void testMediaFolderOfAStream()
+    {
+        m_env->mlFolders = { {1, 0, "Shows"} };
+
+        MLMediaFolder folder;
+        folder.setMl(m_medialib.get());
+        folder.setUrl(QUrl("https://example.com/live/stream.m3u8"));
+
+        // nothing to look up
+        QVERIFY(!folder.loading());
+        QVERIFY(!folder.found());
+    }
+
+    void testMediaFolderFollowsTheUrl()
+    {
+        m_env->mlFolders = { {1, 0, "The Wand"}, {2, 1, "S01"}, {3, 1, "S02"} };
+
+        MLMediaFolder folder;
+        folder.setMl(m_medialib.get());
+        QSignalSpy changes(&folder, &MLMediaFolder::folderChanged);
+
+        folder.setUrl(QUrl("file:///library/The%20Wand/S01/E01.mkv"));
+        QTRY_VERIFY(folder.found());
+        QCOMPARE(folder.folderId().id, 2);
+
+        folder.setUrl(QUrl("file:///library/The%20Wand/S02/E01.mkv"));
+        // the previous folder is not shown for the new file
+        QVERIFY(!folder.found());
+        QTRY_VERIFY(folder.found());
+        QCOMPARE(folder.folderId().id, 3);
+
+        folder.setUrl(QUrl());
+        QVERIFY(!folder.found());
+        QVERIFY(!folder.loading());
+        QCOMPARE(changes.count(), 4);
+    }
+
+    void testMediaFolderWaitsForTheLibrary()
+    {
+        m_env->mlFolders = { {1, 0, "Shows"} };
+
+        MLMediaFolder folder;
+        folder.setUrl(QUrl("file:///library/Shows/E01.mkv"));
+        QVERIFY(!folder.found());
+
+        folder.setMl(m_medialib.get());
+        QTRY_VERIFY(folder.found());
+        QCOMPARE(folder.folderId().id, 1);
     }
 
     // Songs: the music folder tree

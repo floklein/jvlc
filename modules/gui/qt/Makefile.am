@@ -216,6 +216,8 @@ libqt_plugin_la_SOURCES = \
 	medialibrary/mlvideofoldersmodel.hpp \
 	medialibrary/mlfoldertreemodel.cpp \
 	medialibrary/mlfoldertreemodel.hpp \
+	medialibrary/mlmediafolder.cpp \
+	medialibrary/mlmediafolder.hpp \
 	medialibrary/mlmusicfoldertreemodel.cpp \
 	medialibrary/mlmusicfoldertreemodel.hpp \
 	medialibrary/mlmediamodel.cpp \
@@ -467,6 +469,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	medialibrary/mlplaylistmodel.moc.cpp \
 	medialibrary/mlvideofoldersmodel.moc.cpp \
 	medialibrary/mlfoldertreemodel.moc.cpp \
+	medialibrary/mlmediafolder.moc.cpp \
 	medialibrary/mlmusicfoldertreemodel.moc.cpp \
 	medialibrary/thumbnailcollector.moc.cpp \
 	menus/custom_menus.moc.cpp \
@@ -1061,10 +1064,12 @@ libqml_module_maininterface_a_QML = \
 	maininterface/qml/MainDisplay.qml \
 	maininterface/qml/SideNavigationPane.qml \
 	maininterface/qml/SideNavigationDelegate.qml \
+	maininterface/qml/LibraryPane.qml \
 	maininterface/qml/NoMedialibHome.qml
 
 
-libqml_module_maininterface_a_Singleton_QML =
+libqml_module_maininterface_a_Singleton_QML = \
+	maininterface/qml/LibraryPages.qml
 libqml_module_maininterface_a_SOURCES = $(QML_MODULE_maininterface_SRC)
 nodist_libqml_module_maininterface_a_SOURCES = maininterface/qmlassets.cpp $(QML_MODULE_maininterface_NODIST_EXTRA)
 QML_MODULE_LIBS += libqml_module_maininterface.a
@@ -1164,7 +1169,6 @@ libqml_module_player_a_QML = \
 	player/qml/PlaybackSpeed.qml \
 	player/qml/LyricsFlickable.qml \
 	player/qml/MiniPlayer.qml \
-	player/qml/PIPPlayer.qml \
 	player/qml/Player.qml \
 	player/qml/PlayerControlLayout.qml \
 	player/qml/PlayerPlaylistVisibilityFSM.qml \
@@ -1869,6 +1873,7 @@ test_ml_model_SOURCES = \
 	medialibrary/mlrecenthidelist.hpp medialibrary/mlrecenthidelist.cpp \
 	medialibrary/mlthreadpool.hpp medialibrary/mlthreadpool.cpp \
 	medialibrary/mlfoldertreemodel.hpp medialibrary/mlfoldertreemodel.cpp \
+	medialibrary/mlmediafolder.hpp medialibrary/mlmediafolder.cpp \
 	medialibrary/mlmusicfoldertreemodel.hpp medialibrary/mlmusicfoldertreemodel.cpp \
 	medialibrary/mlaudiomodel.hpp medialibrary/mlaudiomodel.cpp \
 	medialibrary/mlvideomodel.hpp medialibrary/mlvideomodel.cpp \
@@ -1894,6 +1899,7 @@ nodist_test_ml_model_SOURCES = \
 	medialibrary/mlqmltypes.moc.cpp \
 	medialibrary/mlbasemodel.moc.cpp \
 	medialibrary/mlfoldertreemodel.moc.cpp \
+	medialibrary/mlmediafolder.moc.cpp \
 	medialibrary/mlmusicfoldertreemodel.moc.cpp \
 	medialibrary/mlaudiomodel.moc.cpp \
 	medialibrary/mlvideomodel.moc.cpp \

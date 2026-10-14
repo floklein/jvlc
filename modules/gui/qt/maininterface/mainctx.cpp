@@ -225,6 +225,9 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
     loadPrefs(false);
     loadFromSettingsImpl(false);
 
+    /* Test hook for screenshots without keyboard input: start in Hide UI */
+    m_hideUI = qEnvironmentVariableIsSet("VLC_QT_TEST_HIDE_UI");
+
     /* Get the available interfaces */
     m_extraInterfaces = new VLCVarChoiceModel(VLC_OBJECT(p_intf->intf), "intf-add", this);
 
@@ -809,6 +812,9 @@ void MainCtx::setPlayerView(bool enable)
 
     m_mainInterfaceModes.setFlag(MAININTERFACE_MODE_PLAYER, enable);
     emit mainInterfaceModesChanged(m_mainInterfaceModes);
+    // the library switches between the Library pane (a list) and the full window
+    if (m_gridView)
+        emit gridViewChanged(hasGridView());
 }
 
 void MainCtx::setShowRemainingTime( bool show )
@@ -820,7 +826,7 @@ void MainCtx::setShowRemainingTime( bool show )
 void MainCtx::setGridView(bool asGrid)
 {
     m_gridView = asGrid;
-    emit gridViewChanged( asGrid );
+    emit gridViewChanged( hasGridView() );
 }
 
 void MainCtx::setAlbumSections(bool enabled)

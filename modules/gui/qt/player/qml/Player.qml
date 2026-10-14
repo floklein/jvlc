@@ -62,6 +62,10 @@ FocusScope {
         }
     }
 
+    // the Library pane is open beside the video (the library toggle and the
+    // folder button of the Top bar)
+    readonly property bool libraryPaneOpen: LibraryPages.paneOpen
+
     readonly property string coverSource: {
         if (Player.artwork &&
             Player.artwork.toString())
@@ -112,6 +116,9 @@ FocusScope {
 
     Component.onCompleted: {
         MainCtx.preferHotkeys = true
+        // the Library pane was left open
+        if (libraryPaneOpen)
+            lockUnlockAutoHide(true)
 
         // the adjustments were asked for from the library
         const pending = MainCtx.takePendingAdjustments()
@@ -190,6 +197,20 @@ FocusScope {
         default:
             return RightPanelFSM.Subtitles
         }
+    }
+
+    // The Library pane follows the same rule on the left; both panels can be
+    // open at once.
+    readonly property bool _libraryPaneDocked: !_rightPanelOverlaid && libraryPaneLoader.visible
+
+    onLibraryPaneOpenChanged: {
+        // the bars show and stay while the pane is open over the video
+        if (libraryPaneOpen)
+            playerToolbarVisibilityFSM.askShow()
+        lockUnlockAutoHide(libraryPaneOpen)
+
+        if (!libraryPaneOpen && libraryPaneLoader.activeFocus)
+            controlBar.forceActiveFocus(Qt.OtherFocusReason)
     }
 
     function _isInEdgeZone(y) {
@@ -325,8 +346,8 @@ FocusScope {
         objectName: "playerSpecializationLoader"
 
         anchors {
-            left: parent.left
-            // a docked right-hand panel shrinks the video
+            // a docked Library pane or right-hand panel shrinks the video
+            left: rootPlayer._libraryPaneDocked ? libraryPaneLoader.right : parent.left
             right: rootPlayer._rightPanelDocked ? rootPlayer._rightPanel.left : parent.right
             rightMargin: rootPlayer._rightPanelDocked ? VLCStyle.spacing_20 : 0
             top: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? topBar.bottom : parent.top
@@ -1050,6 +1071,18 @@ FocusScope {
         overVideo: MainCtx.hasEmbededVideo && !rootPlayer._controlsUnderVideo
     }
 
+    // Video blur beneath the Library pane while it slides over the video
+    VideoBlur {
+        x: libraryPaneLoader.x
+        y: libraryPaneLoader.y
+        width: libraryPaneLoader.width
+        height: libraryPaneLoader.height
+
+        visible: libraryPaneLoader.visible && MainCtx.hasEmbededVideo && rootPlayer._rightPanelOverlaid
+
+        provider: MainCtx.videoBlurProvider
+    }
+
     TopBar {
         id: topBar
 
@@ -1354,11 +1387,11 @@ FocusScope {
         }
     }
 
-    // "Show Statistics" of the Playback tab
+    // "Show Statistics" of the Playback tab, beside the Library pane
     Loader {
         anchors {
             top: topBar.bottom
-            left: parent.left
+            left: libraryPaneLoader.visible ? libraryPaneLoader.right : parent.left
             topMargin: VLCStyle.spacing_20
             leftMargin: VLCStyle.spacing_20 + VLCStyle.applicationHorizontalMargin
         }
@@ -1366,6 +1399,89 @@ FocusScope {
         active: MainCtx.showStatistics && Player.isStarted
 
         sourceComponent: StatisticsOverlay { }
+    }
+
+    // The Library pane (Figma 187:328), about 400 px on the left, from under
+    // the Top bar to above the Control bar. Loaded when first opened, then
+    // kept so it stays where the user left it.
+    Loader {
+        id: libraryPaneLoader
+
+        anchors {
+            top: topBar.bottom
+            bottom: controlBar.top
+            left: parent.left
+        }
+
+        width: item ? item.implicitWidth : 0
+
+        active: false
+
+        focus: false
+
+        state: rootPlayer.libraryPaneOpen ? "open" : "closed"
+
+        onStateChanged: {
+            if (state === "open")
+                active = true
+        }
+
+        Component.onCompleted: {
+            if (state === "open")
+                active = true
+            Qt.callLater(() => { libraryPaneTransition.enabled = true })
+        }
+
+        states: [
+            State {
+                name: "open"
+                PropertyChanges {
+                    target: libraryPaneLoader
+                    anchors.leftMargin: 0
+                    visible: true
+                }
+            }, State {
+                name: "closed"
+                PropertyChanges {
+                    target: libraryPaneLoader
+                    anchors.leftMargin: - libraryPaneLoader.width
+                    visible: false
+                }
+            }
+        ]
+
+        // slides in and out, 150 ms; instant with reduced motion
+        transitions: Transition {
+            id: libraryPaneTransition
+
+            enabled: false
+
+            from: "closed"; to: "open"
+            reversible: true
+
+            SequentialAnimation {
+                PropertyAction { property: "visible" }
+
+                NumberAnimation {
+                    property: "anchors.leftMargin"
+                    duration: MainCtx.reduceMotion ? 0 : VLCStyle.duration_short * 1.5
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
+                }
+            }
+        }
+
+        sourceComponent: LibraryPane {
+            overlaid: rootPlayer._rightPanelOverlaid
+
+            Navigation.parentItem: rootPlayer
+            Navigation.upItem: topBar
+            Navigation.downItem: controlBar
+            Navigation.rightItem: MainCtx.hasEmbededVideo ? playerSpecializationLoader : controlBar
+            Navigation.cancelAction: function() {
+                LibraryPages.paneOpen = false
+            }
+        }
     }
 
     Dialogs {

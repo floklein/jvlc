@@ -38,22 +38,8 @@ FocusScope {
 
     property bool hasMiniPlayer: miniPlayer.visible
 
-    // NOTE: The main view must be above the indexing bar and the mini player.
-    property real displayMargin: (height - miniPlayer.y)
-
     //MainDisplay behave as a PageLoader
     property alias pagePrefix: stackView.pagePrefix
-
-    readonly property int positionSliderY: {
-        var size = miniPlayer.y + miniPlayer.sliderY
-
-        if (MainCtx.pinVideoControls)
-            return size - VLCStyle.margin_xxxsmall
-        else
-            return size
-    }
-
-    property bool _showMiniPlayer: false
 
     property bool _showCSD: MainCtx.clientSideDecoration
         && !(MainCtx.intfMainWindow.visibility === Window.FullScreen)
@@ -62,12 +48,7 @@ FocusScope {
 
     //MainDisplay behave as a PageLoader
     function loadView(path, properties, focusReason) {
-        const found = stackView.loadView(path, properties, focusReason)
-        if (!found)
-            return
-
-        if (Player.hasVideoOutput && MainCtx.hasEmbededVideo)
-            _showMiniPlayer = true
+        stackView.loadView(path, properties, focusReason)
     }
 
     function loadCurrentHistoryView(focusReason) {
@@ -76,14 +57,13 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        if (MainCtx.canShowVideoPIP) {
-            pipPlayerComponent.createObject(this)
-        } else {
-            if (MainCtx.hasEmbededVideo)
-                MainPlaylistController.stop()
-        }
+        // the video can only go on in the Mini player when the compositor can
+        // show it there
+        if (MainCtx.hasEmbededVideo && !MainCtx.canShowVideoPIP)
+            MainPlaylistController.stop()
 
-        if (History.previousEmpty) {
+        // the Library pane may already have taken the user somewhere
+        if (History.viewPath.length === 0) {
             History.update(["home"])
         }
         loadCurrentHistoryView(Qt.OtherFocusReason)
@@ -124,29 +104,7 @@ FocusScope {
             MainCtx.sendHotkey(event.key, event.modifiers);
     }
 
-    readonly property var pageModel: [
-        {
-            name: "home",
-            url: MainCtx.mediaLibraryAvailable ?
-                 "qrc:///qt/qml/VLC/MediaLibrary/HomeDisplay.qml" :
-                 "qrc:///qt/qml/VLC/MainInterface/NoMedialibHome.qml"
-        }, {
-            name: "video",
-            url: "qrc:///qt/qml/VLC/MediaLibrary/VideoDisplay.qml"
-        }, {
-            name: "music",
-            url: "qrc:///qt/qml/VLC/MediaLibrary/MusicDisplay.qml"
-        }, {
-            name: "network",
-            url: "qrc:///qt/qml/VLC/Network/NetworkDisplay.qml"
-        }, {
-            name: "playlists",
-            url: "qrc:///qt/qml/VLC/MediaLibrary/PlaylistsDisplay.qml"
-        }, {
-            name: "recent",
-            url: "qrc:///qt/qml/VLC/MediaLibrary/RecentDisplay.qml"
-        }
-    ]
+    readonly property var pageModel: LibraryPages.pageModel
 
     PinchHandler {
         id: interfaceScalePinchHandler
@@ -296,15 +254,8 @@ FocusScope {
         Rectangle {
             id: stackViewParent
 
-            // This rectangle is used to display the effect in
-            // the area of miniplayer background.
-            // We can not directly apply the effect on the
-            // view because its size is limited and the effect
-            // should exceed the size. Also, it is beneficial
-            // to have a rectangle here because if the background
-            // is transparent we would lose subpixel font rendering
-            // support.
-
+            // the background of the pages: an opaque Rectangle keeps the subpixel
+            // font rendering
             z: 1
 
             anchors.fill: parent
@@ -313,128 +264,6 @@ FocusScope {
             implicitHeight: stackView.implicitHeight
 
             color: theme.bg.primary
-
-            layer.enabled: MainCtx.backdropBlurRequested() &&
-                           (GraphicsInfo.shaderType === GraphicsInfo.RhiShader) &&
-                           miniPlayer.visible
-
-            // Blurring requires to access neighbour pixels, thus the source texture should be bigger than
-            // the effect so that the effect have access to the neighbor pixels for the pixels near the
-            // border, where the extra size would depend on the blur configuration. When the source is
-            // static, this problem is harder to notice, but when the source is not static, such as
-            // during scrolling, not considering this causes glitches in the bottom side. `PartialEffect`,
-            // since 03b0de26, already provides the effect the whole source texture with a proper sub-rect,
-            // so the effect here can sample the top edge neighbour pixels, but for the bottom edge we
-            // need to configure the layer:
-            readonly property int edgeExtension: 16
-            // The layer width is smaller than the item width, this is intentional because we do not want
-            // to include the area that playqueue occupies in the layer since it is empty. Note that we
-            // still want to do layering here, because even though the layer is smaller than the item
-            // size, what we display is covered by the item size. The effect, which needs to cover the
-            // item width is going to respect the empty area due to clamp to edge behavior, so we don't
-            // need to use background coloring. It is currently a todo to further reduce video memory
-            // consumption by covering the effect for only the area of interest, currently the blur
-            // effect does not support having an extension area for postprocessing.
-            layer.sourceRect: Qt.rect(stackView.x - edgeExtension,
-                                      0,
-                                      Helpers.alignUp(stackView.width + (2 * edgeExtension), alignNumber),
-                                      Helpers.alignUp(height + edgeExtension, alignNumber))
-
-            property real eDPR: MainCtx.effectiveDevicePixelRatio(Window.window) || 1.0
-            readonly property int alignNumber: Helpers.denominatorForFloat(eDPR)
-
-            Connections {
-                target: MainCtx
-
-                function onIntfDevicePixelRatioChanged() {
-                    stackViewParent.eDPR = MainCtx.effectiveDevicePixelRatio(stackViewParent.Window.window) || 1.0
-                }
-            }
-
-            Rectangle {
-                // Extension of parent rectangle for edge and fractional scale alignment extension.
-                anchors.fill: parent
-                anchors.margins: -(stackViewParent.edgeExtension + fractionalScaleExtensionSize)
-
-                // With fractional scale, if we align up the layer size to make sure the size is
-                // an integer, we also need to extend here because the background must cover the
-                // extension area. 8 should be enough for the fractions that we care (.25, .5, .75).
-                // Note that the background extension here does not consume additional video memory.
-                readonly property real fractionalScaleExtensionSize: (stackViewParent.alignNumber > 1 ? 8.0 : 0.0)
-
-                visible: stackViewParent.layer.enabled && (height > 0 && width > 0)
-                // We can't simply adjust the color because the color might not be opaque,
-                // so we use border instead. Note that border is always placed inside the
-                // rectangle:
-                border.width: -anchors.margins
-                border.color: parent.color
-                color: "transparent"
-            }
-
-            layer.effect: Widgets.PartialEffect {
-                id: stackViewParentLayerEffect
-
-                // Setting `height` does not seem to work here. Anchoring the effect is not very nice, but it works:
-                anchors.fill: stackViewParent // WARNING: layered item is not necessarily the visual parent of its layer effect.
-                anchors.bottomMargin: (stackViewParent.height - stackViewParent.layer.sourceRect.height)
-                // Layer width is limited to `stackView` width to save memory, in `PartialEffect` the source visual uses the
-                // size of the `PartialEffect` unless `sourceVisualRect` is used, so we define the boundary in `PartialEffect`
-                // for the source visual here. The effect rect exceeds the boundaries of `PartialEffect` due to this (see
-                // `effectRect`), which is not particularly nice, but there is not much we can do about that here without
-                // using `sourceVisualRect`, and saving video memory is considered more important:
-                anchors.rightMargin: (stackViewParent.width - stackViewParent.layer.sourceRect.width - stackViewParent.layer.sourceRect.x)
-                anchors.leftMargin: stackViewParent.layer.sourceRect.x
-
-                blending: stackViewParent.color.a < (1.0 - Number.EPSILON)
-
-                // Each pass of the blur effect also suffers from the border neighbour pixel issue mentioned
-                // above, making all the borders problematic, to a less considerable extent. For that reason,
-                // we extend both the top and the bottom edges and use viewport to prevent overdraw:
-                effectRect: Qt.rect(-stackView.x,
-                                    stackView.height - stackViewParent.edgeExtension,
-                                    stackViewParent.width + 2 * stackViewParent.edgeExtension,
-                                    miniPlayer.height + 2 * stackViewParent.edgeExtension)
-
-                // WARNING: We are not using `sourceVisualRect` because it is not trivial to guarantee that
-                //          the visual (`ShaderEffect`) scene graph sizing and sub-texturing are synchronized.
-                //          This can cause the visual to deviate from 1:1 representation of the texture
-                //          momentarily, leading to sizing glitches during initialization and animations.
-
-                effect: frostedGlassEffect
-
-                Widgets.FrostedGlassEffect {
-                    id: frostedGlassEffect
-
-                    ColorContext {
-                        id: frostedTheme
-                        palette: VLCStyle.palette
-                        colorSet: ColorContext.Window
-                    }
-
-                    backgroundColor: (ready ? "transparent" : stackViewParent.color)
-                    tint: frostedTheme.bg.secondary
-
-                    // Prevent overdraw (the extension margin should not be painted).
-                    // This also saves video memory compared to solely using visual rect.
-                    // Note that viewport rect does not cover edge extension in y-axis
-                    // but covers edge extension in x-axis because we don't want to
-                    // have artifacts with regard to clamp-to-edge texture extension
-                    // in x-axis (relevant with delegate background coloring in list
-                    // view mode). Since we don't do texture extension in y-axis, we
-                    // don't need to cover the edge extension in y-axis, which allows
-                    // us to save some video memory (as opposed to `visualRect`).
-                    viewportRect: Qt.rect(stackView.x,
-                                          stackViewParent.edgeExtension,
-                                          stackView.width + (2 * stackViewParent.edgeExtension),
-                                          height - (2 * stackViewParent.edgeExtension))
-
-                    visualRect: (stackView.width < stackViewParent.width) ? Qt.rect(stackViewParent.edgeExtension,
-                                                                                    viewportRect.y,
-                                                                                    width - (2 * stackViewParent.edgeExtension),
-                                                                                    viewportRect.height)
-                                                                          : Qt.rect(0, 0, 0, 0)
-                }
-            }
 
             Widgets.PageLoader {
                 id: stackView
@@ -446,8 +275,6 @@ FocusScope {
                 anchors.rightMargin: (playlistLoader.shown && !VLCStyle.isScreenSmall)
                                      ? playlistLoader.width
                                      : 0
-                anchors.bottomMargin: g_mainDisplay.displayMargin
-
                 // Prevent animating x on collapse with overlayed side navigation bar:
                 Binding on anchors.leftMargin {
                     when: (VLCStyle.isScreenSmall && sidebar.state === "" && sidebarTransition.running)
@@ -497,20 +324,6 @@ FocusScope {
                     }
                 }
 
-                onCurrentItemChanged: {
-                    if (currentItem) {
-                        {
-                            // Main pages need to compensate for the mini player:
-
-                            if (currentItem.displayMarginEnd !== undefined)
-                                currentItem.displayMarginEnd = Qt.binding(() => { return g_mainDisplay.displayMargin })
-
-                            if (currentItem.enableEndFade !== undefined)
-                                currentItem.enableEndFade = Qt.binding(() => { return (g_mainDisplay.hasMiniPlayer === false) })
-                        }
-                    }
-                }
-
                 Navigation.parentItem: g_mainDisplay
                 Navigation.upItem: localTopbar
                 Navigation.rightItem: playlistLoader
@@ -529,7 +342,7 @@ FocusScope {
             anchors.left: parent.left
             anchors.right: parent.right
 
-            height: parent.height - g_mainDisplay.displayMargin
+            height: parent.height
 
             visible: VLCStyle.isScreenSmall && (playlistLoader.shown || (sidebar.visible && (sidebar.state === "expanded")))
             color: theme.shadow.alpha(1.0)
@@ -565,7 +378,7 @@ FocusScope {
 
             visible: (width > 0.0)
 
-            height: parent.height - g_mainDisplay.displayMargin
+            height: parent.height
 
             property int maximumWidth: Math.max(minimumWidth, (g_mainDisplay.width + sidebarResizeHandle.width) / 3)
 
@@ -695,7 +508,7 @@ FocusScope {
             width: 0
 
             visible: false
-            height: parent.height - g_mainDisplay.displayMargin
+            height: parent.height
 
             active: MainCtx.playqueuePanel.docked
 
@@ -752,7 +565,7 @@ FocusScope {
 
                 leftPadding: playqueueResizeHandle.visualBorder.width
                 rightPadding: VLCStyle.applicationHorizontalMargin
-                bottomPadding: Math.max(VLCStyle.applicationVerticalMargin - g_mainDisplay.displayMargin, 0)
+                bottomPadding: VLCStyle.applicationVerticalMargin
                 topPadding: VLCStyle.layoutTitle_top_padding
 
                 useAcrylic: !VLCStyle.isScreenSmall
@@ -870,61 +683,12 @@ FocusScope {
         }
     }
 
-    Component {
-        id: pipPlayerComponent
-
-        PIPPlayer {
-            id: playerPip
-            anchors {
-                bottom: miniPlayer.top
-                left: parent.left
-                bottomMargin: VLCStyle.margin_normal
-                leftMargin: VLCStyle.margin_normal + VLCStyle.applicationHorizontalMargin
-            }
-
-            width: VLCStyle.dp(320, VLCStyle.scale)
-            height: VLCStyle.dp(180, VLCStyle.scale)
-            z: 4
-            visible: g_mainDisplay._showMiniPlayer && MainCtx.hasEmbededVideo
-            enabled: g_mainDisplay._showMiniPlayer && MainCtx.hasEmbededVideo
-
-            Binding on visible {
-                id: visibleBinding
-                when: false
-                delayed: true
-                value: g_mainDisplay._showMiniPlayer && MainCtx.hasEmbededVideo
-            }
-
-            Component.onCompleted: {
-                Qt.callLater(() => { visibleBinding.when = true })
-            }
-
-            dragXMin: VLCStyle.applicationHorizontalMargin
-            dragXMax: g_mainDisplay.width - playerPip.width - VLCStyle.applicationHorizontalMargin
-            dragYMin: localTopbar.y + localTopbar.height
-            dragYMax: miniPlayer.y - playerPip.height
-
-            //keep the player visible on resize
-            Connections {
-                target: g_mainDisplay
-                function onWidthChanged() {
-                    if (playerPip.x > playerPip.dragXMax)
-                        playerPip.x = playerPip.dragXMax
-                }
-                function onHeightChanged() {
-                    if (playerPip.y > playerPip.dragYMax)
-                        playerPip.y = playerPip.dragYMax
-                }
-            }
-        }
-    }
-
     Dialogs {
         z: 10
         bgContent: g_mainDisplay
 
         anchors {
-            bottom: miniPlayer.visible ? miniPlayer.top : parent.bottom
+            bottom: parent.bottom
             left: parent.left
             right: parent.right
         }
@@ -935,26 +699,23 @@ FocusScope {
         z: 11
 
         anchors {
-            bottom: miniPlayer.top
+            bottom: parent.bottom
             left: parent.left
             right: parent.right
             margins: VLCStyle.margin_large
         }
     }
 
+    // the video, or the music, goes on in a corner of the library
     MiniPlayer {
         id: miniPlayer
 
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
+        z: 4
 
-        z: 3
-
-        horizontalPadding: VLCStyle.applicationHorizontalMargin
-        bottomPadding: VLCStyle.applicationVerticalMargin + VLCStyle.margin_xsmall
-
-        background.visible: !stackViewParent.layer.enabled
+        // below the header, beside the Queue panel
+        area: Qt.rect(0, mainRow.y,
+                      g_mainDisplay.width - (playlistLoader.shown ? playlistLoader.width : 0),
+                      mainRow.height)
 
         Navigation.parentItem: g_mainDisplay
         Navigation.upItem: mainRow
@@ -968,11 +729,8 @@ FocusScope {
     Connections {
         target: Player
         function onHasVideoOutputChanged() {
-            if (Player.hasVideoOutput && MainCtx.hasEmbededVideo) {
+            if (Player.hasVideoOutput && MainCtx.hasEmbededVideo)
                 MainCtx.playerView = true
-            } else {
-                _showMiniPlayer = false;
-            }
         }
     }
 
