@@ -44,10 +44,9 @@ Widgets.PageLoader {
     //---------------------------------------------------------------------------------------------
 
     pageModel: [{
-            name: "all",
+            name: "folders",
             default: true,
-            displayText: qsTr("All"),
-            url: "qrc:///qt/qml/VLC/MediaLibrary/VideoAllDisplay.qml"
+            url: "qrc:///qt/qml/VLC/MediaLibrary/VideoFoldersDisplay.qml"
         }
     ]
 

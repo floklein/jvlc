@@ -19,7 +19,7 @@
 #include "medialibrary/mlrecentaudiomodel.hpp"
 #include "medialibrary/mlrecentvideomodel.hpp"
 #include "medialibrary/mlfoldersmodel.hpp"
-#include "medialibrary/mlvideogroupsmodel.hpp"
+#include "medialibrary/mlfoldertreemodel.hpp"
 #include "medialibrary/mlvideofoldersmodel.hpp"
 #include "medialibrary/mlplaylistlistmodel.hpp"
 #include "medialibrary/mlplaylistmanager.hpp"
@@ -325,7 +325,6 @@ void MainUI::registerQMLTypes()
         // @uri VLC.Menus
         qmlRegisterType<StringListMenu>( uri, versionMajor, versionMinor, "StringListMenu" );
         qmlRegisterType<SortMenu>( uri, versionMajor, versionMinor, "SortMenu" );
-        qmlRegisterType<SortMenuVideo>( uri, versionMajor, versionMinor, "SortMenuVideo" );
         qmlRegisterType<SortMenuAlbums>( uri, versionMajor, versionMinor, "SortMenuAlbums" );
         qmlRegisterType<QmlGlobalMenu>( uri, versionMajor, versionMinor, "QmlGlobalMenu" );
 
@@ -510,7 +509,7 @@ void MainUI::registerQMLTypes()
         qmlRegisterType<MLVideoModel>( uri, versionMajor, versionMinor, "MLVideoModel" );
         qmlRegisterType<MLRecentVideoModel>( uri, versionMajor, versionMinor, "MLRecentVideoModel" );
         qmlRegisterType<MLRecentAudioModel>( uri, versionMajor, versionMinor, "MLRecentAudioModel" );
-        qmlRegisterType<MLVideoGroupsModel>( uri, versionMajor, versionMinor, "MLVideoGroupsModel" );
+        qmlRegisterType<MLFolderTreeModel>( uri, versionMajor, versionMinor, "MLFolderTreeModel" );
         qmlRegisterType<MLVideoFoldersModel>( uri, versionMajor, versionMinor, "MLVideoFoldersModel" );
         qmlRegisterType<MLPlaylistListModel>( uri, versionMajor, versionMinor, "MLPlaylistListModel" );
         qmlRegisterType<MLPlaylistModel>( uri, versionMajor, versionMinor, "MLPlaylistModel" );

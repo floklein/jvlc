@@ -107,7 +107,6 @@ class MainCtx : public QObject
     Q_PROPERTY(MediaLib* mediaLibrary READ getMediaLibrary CONSTANT FINAL)
     Q_PROPERTY(bool gridView READ hasGridView WRITE setGridView NOTIFY gridViewChanged FINAL)
     Q_PROPERTY(bool hasGridListMode MEMBER m_hasGridListMode NOTIFY hasGridListModeChanged FINAL)
-    Q_PROPERTY(Grouping grouping READ grouping WRITE setGrouping NOTIFY groupingChanged FINAL)
     Q_PROPERTY(ColorSchemeModel* colorScheme READ getColorScheme CONSTANT FINAL)
     Q_PROPERTY(bool hasVLM READ hasVLM CONSTANT FINAL)
     Q_PROPERTY(bool clientSideDecoration READ useClientSideDecoration NOTIFY useClientSideDecorationChanged FINAL)
@@ -189,14 +188,6 @@ public:
         RAISE_AUDIOVIDEO,
     };
 
-    enum Grouping
-    {
-        GROUPING_NONE,
-        GROUPING_NAME,
-        GROUPING_FOLDER
-    };
-    Q_ENUM(Grouping)
-
     enum OsType
     {
         Windows,
@@ -231,7 +222,6 @@ public:
     inline bool hasMediaLibrary() const { return b_hasMedialibrary; }
     inline MediaLib* getMediaLibrary() const { return m_medialib; }
     inline bool hasGridView() const { return m_gridView; }
-    inline Grouping grouping() const { return m_grouping; }
     inline bool albumSections() const { return m_albumSections; }
     inline bool lyricsMode() const { return m_lyricsMode; }
     inline ColorSchemeModel* getColorScheme() const { return m_colorScheme; }
@@ -465,7 +455,6 @@ protected:
     MLBookmarkModel*     m_bookmarks = nullptr;
     bool                 m_gridView = false;
     bool                 m_hasGridListMode = false;
-    Grouping             m_grouping = GROUPING_NONE;
     ColorSchemeModel*    m_colorScheme = nullptr;
     bool                 m_windowTitlebar = true;
     // NOTE: Ideally this should be a QVLCBool.
@@ -534,7 +523,6 @@ public slots:
     void setInterfaceAlwaysOnTop( bool );
     void setShowRemainingTime( bool );
     void setGridView( bool );
-    void setGrouping( Grouping );
     void setAlbumSections( bool );
     void setLyricsMode( bool );
     void incrementIntfUserScaleFactor( bool increment);
@@ -589,7 +577,6 @@ signals:
     void showRemainingTimeChanged(bool);
     void gridViewChanged( bool );
     void hasGridListModeChanged( bool );
-    void groupingChanged( Grouping );
     void albumSectionsChanged( bool );
     void lyricsModeChanged( bool );
     void colorSchemeChanged( QString );

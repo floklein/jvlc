@@ -42,6 +42,7 @@
 #include <medialibrary/IPlaylist.h>
 #include <medialibrary/IBookmark.h>
 #include <medialibrary/IFolder.h>
+#include <medialibrary/filesystem/Errors.h>
 
 #include <algorithm>
 #include <sstream>
@@ -80,6 +81,15 @@ private:
 
 namespace
 {
+
+/* libmedialibrary stores folder MRLs with a trailing '/' */
+std::string folderMrl( const char* psz_mrl )
+{
+    std::string mrl( psz_mrl );
+    if ( mrl.empty() || mrl.back() != '/' )
+        mrl += '/';
+    return mrl;
+}
 
 void assignToEvent( vlc_ml_event_t* ev, vlc_ml_media_t* m )    { ev->creation.p_media    = m; }
 void assignToEvent( vlc_ml_event_t* ev, vlc_ml_artist_t* a )   { ev->creation.p_artist   = a; }
@@ -1578,10 +1588,10 @@ int MediaLibrary::List( int listQuery, const vlc_ml_query_params_t* params, va_l
             const auto parent = m_ml->folder( va_arg( args, int64_t ) );
             if ( parent == nullptr )
                 return VLC_EGENERIC;
-            const auto query = parent->subfolders();
+            const auto query = parent->subfolders( paramsPtr );
             if ( query == nullptr )
                 return VLC_EGENERIC;
-            auto* res = ml_convert_list<vlc_ml_folder_list_t, vlc_ml_folder_t>( query->all() );
+            auto* res = ml_convert_list<vlc_ml_folder_list_t, vlc_ml_folder_t>( query->items( nbItems, offset ) );
             *( va_arg( args, vlc_ml_folder_list_t** ) ) = res;
             break;
         }
@@ -1590,7 +1600,7 @@ int MediaLibrary::List( int listQuery, const vlc_ml_query_params_t* params, va_l
             const auto parent = m_ml->folder( va_arg( args, int64_t ) );
             if ( parent == nullptr )
                 return VLC_EGENERIC;
-            const auto query = parent->subfolders();
+            const auto query = parent->subfolders( paramsPtr );
             *( va_arg( args, size_t* ) ) = query == nullptr ? 0 : query->count();
             break;
         }
@@ -1666,6 +1676,40 @@ void* MediaLibrary::Get( int query, va_list args )
             auto mrl = va_arg( args, const char* );
             auto media = m_ml->media( mrl );
             return CreateAndConvert<vlc_ml_media_t>( media.get() );
+        }
+        case VLC_ML_GET_FOLDER_BY_MRL:
+        {
+            auto mrl = va_arg( args, const char* );
+            auto folder = m_ml->folder( folderMrl( mrl ) );
+            return CreateAndConvert<vlc_ml_folder_t>( folder.get() );
+        }
+        case VLC_ML_GET_FOLDER_PARENT:
+        {
+            /* libmedialibrary keeps the parent id private: look the parent
+             * up by the MRL of the folder without its last segment */
+            auto id = va_arg( args, int64_t );
+            auto folder = m_ml->folder( id );
+            if ( folder == nullptr )
+                return nullptr;
+            std::string mrl;
+            try
+            {
+                mrl = folder->mrl();
+            }
+            catch ( const medialibrary::fs::errors::DeviceRemoved& )
+            {
+                return nullptr;
+            }
+            if ( mrl.size() > 1 && mrl.back() == '/' )
+                mrl.pop_back();
+            auto slash = mrl.find_last_of( '/' );
+            /* stop at the root of the scheme ("file:///") */
+            if ( slash == std::string::npos || slash < 2 ||
+                 mrl.compare( slash - 2, 3, "://" ) == 0 )
+                return nullptr;
+            mrl.resize( slash + 1 );
+            auto parent = m_ml->folder( mrl );
+            return CreateAndConvert<vlc_ml_folder_t>( parent.get() );
         }
         case VLC_ML_GET_INPUT_ITEM_BY_MRL:
         {

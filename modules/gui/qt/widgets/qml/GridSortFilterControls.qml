@@ -16,21 +16,6 @@ NavigableRow {
     required property SearchCtx search
 
 
-    //TODO: visible value of root.sort.available and MainCtx.hasGridListMode is initialised correctly but on first load still shows up
-    IconToolButton {
-        id: gridListBtn
-
-        visible: MainCtx.hasGridListMode
-
-        enabled: visible
-        width: VLCStyle.bannerButton_width
-        height: VLCStyle.bannerButton_height
-        font.pixelSize: VLCStyle.icon_banner
-        text: MainCtx.gridView ? VLCIcons.list : VLCIcons.grid
-        description: qsTr("List/Grid")
-        onClicked: MainCtx.gridView = !MainCtx.gridView
-    }
-
     SortControl {
         id: sortControl
 
@@ -54,6 +39,21 @@ NavigableRow {
         onSortOrderSelected: (type) => {
             root.sort.order = type
         }
+    }
+
+    //TODO: visible value of root.sort.available and MainCtx.hasGridListMode is initialised correctly but on first load still shows up
+    IconToolButton {
+        id: gridListBtn
+
+        visible: MainCtx.hasGridListMode
+
+        enabled: visible
+        width: VLCStyle.bannerButton_width
+        height: VLCStyle.bannerButton_height
+        font.pixelSize: VLCStyle.icon_banner
+        text: MainCtx.gridView ? VLCIcons.list : VLCIcons.grid
+        description: qsTr("List/Grid")
+        onClicked: MainCtx.gridView = !MainCtx.gridView
     }
 
     SearchBox {

@@ -44,6 +44,7 @@
 
 #include "qt.hpp"
 
+#include <algorithm>
 
 #include "vlc_stub_modules.hpp"
 
@@ -231,6 +232,105 @@ std::vector<VLCTestingEnv::Playlist> sortedPlaylists(const vlc_ml_query_params_t
 
 } // anonymous namespace
 
+using FakeFolder = VLCTestingEnv::FakeFolder;
+using FakeMedia = VLCTestingEnv::FakeMedia;
+
+static const FakeFolder* fakeFolder(int64_t id)
+{
+    for (const FakeFolder& folder : testenv->mlFolders)
+        if (folder.id == id)
+            return &folder;
+    return nullptr;
+}
+
+static QString fakeFolderMrl(const FakeFolder& folder)
+{
+    const FakeFolder* parent = fakeFolder(folder.parentId);
+    const QString parentMrl = parent ? fakeFolderMrl(*parent) : QStringLiteral("file:///library/");
+    return parentMrl + folder.name + QLatin1Char('/');
+}
+
+static bool fakeFolderHolds(const FakeFolder& folder, int type)
+{
+    for (const FakeMedia& media : testenv->mlMedia)
+        if (media.folderId == folder.id && (type == VLC_ML_MEDIA_TYPE_UNKNOWN || media.type == type))
+            return true;
+    return false;
+}
+
+static void fillFolder(vlc_ml_folder_t* out, const FakeFolder& folder)
+{
+    out->i_id = folder.id;
+    out->psz_name = strdup(qtu(folder.name));
+    out->psz_mrl = strdup(qtu(fakeFolderMrl(folder)));
+    for (const FakeMedia& media : testenv->mlMedia)
+    {
+        if (media.folderId != folder.id)
+            continue;
+        out->i_nb_media++;
+        if (media.type == VLC_ML_MEDIA_TYPE_VIDEO)
+            out->i_nb_video++;
+        else if (media.type == VLC_ML_MEDIA_TYPE_AUDIO)
+            out->i_nb_audio++;
+    }
+    out->b_present = true;
+}
+
+static void fillFakeMedia(vlc_ml_media_t* out, const FakeMedia& media)
+{
+    out->i_id = media.id;
+    out->i_type = media.type;
+    out->i_duration = 60000;
+    out->i_playcount = media.playCount;
+    out->f_progress = media.progress;
+    out->psz_title = strdup(qtu(media.title));
+    out->psz_filename = strdup(qtu(media.title + QStringLiteral(".mkv")));
+
+    out->p_files = static_cast<vlc_ml_file_list_t*>(
+        calloc(1, sizeof(vlc_ml_file_list_t) + sizeof(vlc_ml_file_t)));
+    out->p_files->i_nb_items = 1;
+    vlc_ml_file_t& file = out->p_files->p_items[0];
+    const FakeFolder* folder = fakeFolder(media.folderId);
+    file.psz_mrl = strdup(qtu((folder ? fakeFolderMrl(*folder) : QString()) + media.title + QStringLiteral(".mkv")));
+    file.i_type = VLC_ML_FILE_TYPE_MAIN;
+    file.b_present = true;
+
+    out->p_tracks = static_cast<vlc_ml_media_track_list_t*>(
+        calloc(1, sizeof(vlc_ml_media_track_list_t)));
+}
+
+static int outputFolders(bool list, const std::vector<const FakeFolder*>& folders, va_list args)
+{
+    if (!list)
+    {
+        *va_arg(args, size_t*) = folders.size();
+        return VLC_SUCCESS;
+    }
+    auto res = static_cast<vlc_ml_folder_list_t*>(
+        calloc(1, sizeof(vlc_ml_folder_list_t) + folders.size() * sizeof(vlc_ml_folder_t)));
+    res->i_nb_items = folders.size();
+    for (size_t i = 0; i < folders.size(); ++i)
+        fillFolder(&res->p_items[i], *folders[i]);
+    *va_arg(args, vlc_ml_folder_list_t**) = res;
+    return VLC_SUCCESS;
+}
+
+static int outputMedia(bool list, const std::vector<const FakeMedia*>& media, va_list args)
+{
+    if (!list)
+    {
+        *va_arg(args, size_t*) = media.size();
+        return VLC_SUCCESS;
+    }
+    auto res = static_cast<vlc_ml_media_list_t*>(
+        calloc(1, sizeof(vlc_ml_media_list_t) + media.size() * sizeof(vlc_ml_media_t)));
+    res->i_nb_items = media.size();
+    for (size_t i = 0; i < media.size(); ++i)
+        fillFakeMedia(&res->p_items[i], *media[i]);
+    *va_arg(args, vlc_ml_media_list_t**) = res;
+    return VLC_SUCCESS;
+}
+
 static void* MLGet( vlc_medialibrary_module_t*, int query, va_list args )
 {
     switch (query)
@@ -276,6 +376,31 @@ static void* MLGet( vlc_medialibrary_module_t*, int query, va_list args )
         }
         return nullptr;
     }
+    case VLC_ML_GET_MEDIA:
+    {
+        int64_t id = va_arg(args, int64_t);
+        for (const FakeMedia& media : testenv->mlMedia)
+        {
+            if (media.id != id)
+                continue;
+            auto res = static_cast<vlc_ml_media_t*>(calloc(1, sizeof(vlc_ml_media_t)));
+            fillFakeMedia(res, media);
+            return res;
+        }
+        return nullptr;
+    }
+    case VLC_ML_GET_FOLDER:
+    case VLC_ML_GET_FOLDER_PARENT:
+    {
+        const FakeFolder* folder = fakeFolder(va_arg(args, int64_t));
+        if (folder && query == VLC_ML_GET_FOLDER_PARENT)
+            folder = fakeFolder(folder->parentId);
+        if (!folder)
+            return nullptr;
+        auto res = static_cast<vlc_ml_folder_t*>(calloc(1, sizeof(vlc_ml_folder_t)));
+        fillFolder(res, *folder);
+        return res;
+    }
     default:
         return nullptr;
     }
@@ -285,6 +410,9 @@ static int MLList( vlc_medialibrary_module_t*, int query,
                 const vlc_ml_query_params_t* params, va_list args )
 {
     std::lock_guard<std::mutex> guard(stubML.lock);
+    std::vector<const FakeFolder*> folders;
+    std::vector<const FakeMedia*> media;
+
     switch (query)
     {
     case VLC_ML_LIST_PLAYLISTS:
@@ -327,6 +455,58 @@ static int MLList( vlc_medialibrary_module_t*, int query,
         else
             *va_arg(args, vlc_ml_media_list_t**) = newMediaList(playlist->media, params);
         return VLC_SUCCESS;
+    }
+    case VLC_ML_LIST_ENTRY_POINTS:
+    case VLC_ML_COUNT_ENTRY_POINTS:
+    {
+        const bool banned = va_arg(args, int);
+        for (const FakeFolder& folder : testenv->mlFolders)
+            if (!banned && folder.parentId == 0)
+                folders.push_back(&folder);
+        return outputFolders(query == VLC_ML_LIST_ENTRY_POINTS, folders, args);
+    }
+    case VLC_ML_LIST_SUBFOLDERS:
+    case VLC_ML_COUNT_SUBFOLDERS:
+    {
+        const int64_t parentId = va_arg(args, int64_t);
+        for (const FakeFolder& folder : testenv->mlFolders)
+            if (folder.parentId == parentId)
+                folders.push_back(&folder);
+        return outputFolders(query == VLC_ML_LIST_SUBFOLDERS, folders, args);
+    }
+    case VLC_ML_LIST_FOLDERS:
+    case VLC_ML_COUNT_FOLDERS:
+    case VLC_ML_LIST_FOLDERS_BY_TYPE:
+    case VLC_ML_COUNT_FOLDERS_BY_TYPE:
+    {
+        // the folders holding media themselves
+        int type = VLC_ML_MEDIA_TYPE_UNKNOWN;
+        if (query == VLC_ML_LIST_FOLDERS_BY_TYPE || query == VLC_ML_COUNT_FOLDERS_BY_TYPE)
+            type = va_arg(args, int);
+        for (const FakeFolder& folder : testenv->mlFolders)
+            if (fakeFolderHolds(folder, type))
+                folders.push_back(&folder);
+        return outputFolders(query == VLC_ML_LIST_FOLDERS || query == VLC_ML_LIST_FOLDERS_BY_TYPE,
+                             folders, args);
+    }
+    case VLC_ML_LIST_VIDEO_OF:
+    case VLC_ML_COUNT_VIDEO_OF:
+    {
+        const int parentType = va_arg(args, int);
+        const int64_t parentId = va_arg(args, int64_t);
+        if (parentType != VLC_ML_PARENT_FOLDER)
+            return VLC_EGENERIC;
+        for (const FakeMedia& item : testenv->mlMedia)
+            if (item.folderId == parentId && item.type == VLC_ML_MEDIA_TYPE_VIDEO)
+                media.push_back(&item);
+        // the insertion order is the order of the ids
+        if (params && params->i_sort == VLC_ML_SORTING_INSERTIONDATE)
+        {
+            std::sort(media.begin(), media.end(), [params](const FakeMedia* a, const FakeMedia* b) {
+                return params->b_desc ? a->id > b->id : a->id < b->id;
+            });
+        }
+        return outputMedia(query == VLC_ML_LIST_VIDEO_OF, media, args);
     }
     default:
         return VLC_EGENERIC;

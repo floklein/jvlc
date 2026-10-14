@@ -118,33 +118,10 @@ T.ToolBar {
                     onClicked: root.toggleNavigationVisibility()
 
                     Navigation.parentItem: navigationButtons
-                    Navigation.rightItem: historyBack
-                }
-
-                Widgets.IconToolButton {
-                    id: historyBack
-
-                    font.pixelSize: VLCStyle.icon_banner
-                    text: VLCIcons.back
-                    description: qsTr("Previous")
-
-                    AccessibleCompat.id: "historyBackButton"
-
-                    height: VLCStyle.bannerButton_height
-                    width: VLCStyle.bannerButton_width
-
-                    onClicked: History.previous()
-                    enabled: !History.previousEmpty
-
-                    onEnabledChanged: {
-                        if (historyBack.activeFocus)
-                            navigationVisibilty.focus = true
-                    }
-
-                    Navigation.parentItem: navigationButtons
-                    Navigation.leftItem: navigationVisibilty
                     Navigation.rightItem: playlistBtn
                 }
+
+                // NOTE: Back and forward are in the header of the library pages.
 
                 Widgets.BannerCone {
                     id: logo
@@ -192,7 +169,7 @@ T.ToolBar {
 
                     Navigation.parentItem: playqueueButtonsTop
                     Navigation.rightItem: menuBtn
-                    Navigation.leftItem: historyBack
+                    Navigation.leftItem: navigationVisibilty
 
                     onClicked:  root.togglePlayqueueVisibility()
                 }

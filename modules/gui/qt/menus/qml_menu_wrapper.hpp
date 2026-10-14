@@ -129,16 +129,6 @@ private:
     bool m_shown = false;
 };
 
-class SortMenuVideo : public SortMenu
-{
-    Q_OBJECT
-
-protected: // SortMenu reimplementation
-    void onPopup(QMenu * menu) override;
-
-signals:
-    void grouping(MainCtx::Grouping grouping);
-};
 
 class SortMenuAlbums : public SortMenu
 {

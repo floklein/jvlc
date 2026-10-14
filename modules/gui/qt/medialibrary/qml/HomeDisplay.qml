@@ -68,7 +68,7 @@ Widgets.PageLoader {
     // Home lists what lives in the other sections: open it there
 
     function showFolder(model, reason) {
-        History.push(["video", "all", "group"], { parentId: model.id, title: model.title }, reason)
+        History.push(["video", "folders"], { parentId: model.id }, reason)
     }
 
     function showPlaylist(model, reason) {

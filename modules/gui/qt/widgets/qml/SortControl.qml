@@ -53,6 +53,7 @@ Widgets.IconToolButton {
     // sortSelected is triggered with new sorting key when a different sorting key is selected
     // sortOrderSelected is triggered with Qt.AscendingOrder when different sorting key is selected
     // sortOrderSelected is triggered with Qt.AscendingOrder or Qt.DescendingOrder when the same sorting key is selected
+    // a model entry may set its own order ({ text, criteria, order }), it is then selected as is
     signal sortSelected(var key)
     signal sortOrderSelected(int type)
 
@@ -85,6 +86,15 @@ Widgets.IconToolButton {
         function onSelected(index: int) {
             const selectedSortKey = root.model[index].criteria
 
+            // an entry with its own order ("Title Z-A") sets both
+            const selectedOrder = root.model[index].order
+            if (selectedOrder !== undefined) {
+                if (root.sortKey !== selectedSortKey)
+                    root.sortSelected(selectedSortKey)
+                root.sortOrderSelected(selectedOrder)
+                return
+            }
+
             if (root.sortKey !== selectedSortKey) {
                 root.sortSelected(selectedSortKey)
                 root.sortOrderSelected(Qt.AscendingOrder)
@@ -99,8 +109,10 @@ Widgets.IconToolButton {
 
     function show() {
         const model = root.model.map(function(modelData) {
+            const ownOrder = modelData.order !== undefined
             const checked = modelData.criteria === sortKey
-            const order = checked ? root.sortOrder : undefined
+                            && (!ownOrder || modelData.order === root.sortOrder)
+            const order = (checked && !ownOrder) ? root.sortOrder : undefined
             return {
                 "text": modelData.text,
                 "checked": checked,

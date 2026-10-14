@@ -32,12 +32,15 @@
 #include <vlc_services_discovery.h>
 #include <vlc_renderer_discovery.h>
 #include <vlc_interface.h>
+#include <vlc_media_library.h>
 #include <vlc_cxx_helpers.hpp>
-
-#include "qt.hpp"
 
 #include <string>
 #include <vector>
+
+#include <QString>
+
+#include "qt.hpp"
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 4, 0)
 #define QCOMPARE_LT(a, b) QVERIFY((a) < (b))
@@ -109,6 +112,25 @@ struct VLCTestingEnv
     //(the "stubtracks://N" access demux plays N embedded subtitle tracks)
     audio_output_t* aout = nullptr;
     QString aoutDevice;
+
+    //folder tree served by the medialibrary module: folders the user added
+    //have no parent, their MRL is "file:///library/<name>/"; ids give the
+    //insertion order
+    struct FakeFolder {
+        int64_t id;
+        int64_t parentId; //0 for a folder the user added
+        QString name;
+    };
+    struct FakeMedia {
+        int64_t id;
+        int64_t folderId;
+        QString title;
+        double progress = -1.;
+        uint32_t playCount = 0;
+        vlc_ml_media_type_t type = VLC_ML_MEDIA_TYPE_VIDEO;
+    };
+    std::vector<FakeFolder> mlFolders;
+    std::vector<FakeMedia> mlMedia;
 };
 
 #endif /* QT_VLC_STUB_MODULES */

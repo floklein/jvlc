@@ -328,7 +328,6 @@ MainCtx::~MainCtx()
         settings->setValue( "artist-albums-width", QString::number( m_artistAlbumsWidth ) );
 
         settings->setValue( "grid-view", m_gridView );
-        settings->setValue( "grouping", m_grouping );
 
         settings->setValue( "color-scheme-index", m_colorScheme->currentIndex() );
 
@@ -499,8 +498,6 @@ void MainCtx::loadFromSettingsImpl(const bool callSignals)
     loadFromSettings(m_artistAlbumsWidth, "MainWindow/artist-albums-width", 120, this,  &MainCtx::artistAlbumsWidthChanged);
 
     loadFromSettings(m_gridView, "MainWindow/grid-view", true, this, &MainCtx::gridViewChanged);
-
-    loadFromSettings(m_grouping, "MainWindow/grouping", GROUPING_NONE, this, &MainCtx::groupingChanged);
 
     loadFromSettings(m_showRemainingTime, "MainWindow/ShowRemainingTime", false, this, &MainCtx::showRemainingTimeChanged);
 
@@ -755,13 +752,6 @@ void MainCtx::setGridView(bool asGrid)
 {
     m_gridView = asGrid;
     emit gridViewChanged( asGrid );
-}
-
-void MainCtx::setGrouping(Grouping grouping)
-{
-    m_grouping = grouping;
-
-    emit groupingChanged(grouping);
 }
 
 void MainCtx::setAlbumSections(bool enabled)

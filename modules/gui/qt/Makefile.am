@@ -186,8 +186,6 @@ libqt_plugin_la_SOURCES = \
 	medialibrary/mlgenre.hpp \
 	medialibrary/mlgenremodel.cpp \
 	medialibrary/mlgenremodel.hpp \
-	medialibrary/mlgroup.cpp \
-	medialibrary/mlgroup.hpp \
 	medialibrary/mlhelper.cpp \
 	medialibrary/mlhelper.hpp \
 	medialibrary/mlthreadpool.cpp \
@@ -210,8 +208,8 @@ libqt_plugin_la_SOURCES = \
 	medialibrary/mlvideo.hpp \
 	medialibrary/mlvideofoldersmodel.cpp \
 	medialibrary/mlvideofoldersmodel.hpp \
-	medialibrary/mlvideogroupsmodel.cpp \
-	medialibrary/mlvideogroupsmodel.hpp \
+	medialibrary/mlfoldertreemodel.cpp \
+	medialibrary/mlfoldertreemodel.hpp \
 	medialibrary/mlmediamodel.cpp \
 	medialibrary/mlmediamodel.hpp \
 	medialibrary/mlvideomodel.cpp \
@@ -442,7 +440,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	medialibrary/mlplaylistmanager.moc.cpp \
 	medialibrary/mlplaylistmodel.moc.cpp \
 	medialibrary/mlvideofoldersmodel.moc.cpp \
-	medialibrary/mlvideogroupsmodel.moc.cpp \
+	medialibrary/mlfoldertreemodel.moc.cpp \
 	medialibrary/thumbnailcollector.moc.cpp \
 	menus/custom_menus.moc.cpp \
 	menus/qml_menu_wrapper.moc.cpp \
@@ -1052,7 +1050,6 @@ libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/HomeDisplay.qml \
 	medialibrary/qml/HomePage.qml \
 	medialibrary/qml/MediaView.qml \
-	medialibrary/qml/VideoGroupDisplay.qml \
 	medialibrary/qml/MusicAlbums.qml \
 	medialibrary/qml/MusicAlbumsDisplay.qml \
 	medialibrary/qml/MusicAlbumsGridExpandDelegate.qml \
@@ -1068,9 +1065,8 @@ libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/MusicTracksDisplay.qml \
 	medialibrary/qml/UrlListDisplay.qml \
 	medialibrary/qml/VideoDisplay.qml \
+	medialibrary/qml/VideoFoldersDisplay.qml \
 	medialibrary/qml/VideoAll.qml \
-	medialibrary/qml/VideoAllDisplay.qml \
-	medialibrary/qml/VideoAllSubDisplay.qml \
 	medialibrary/qml/PlaylistMediaList.qml \
 	medialibrary/qml/NewPlaylistDialog.qml \
 	medialibrary/qml/PlaylistPicker.qml \
@@ -1832,6 +1828,17 @@ test_ml_model_SOURCES = \
 	medialibrary/medialib.hpp medialibrary/medialib.cpp \
 	medialibrary/mlplaylistmanager.hpp medialibrary/mlplaylistmanager.cpp \
 	medialibrary/mlthreadpool.hpp medialibrary/mlthreadpool.cpp \
+	medialibrary/mlfoldertreemodel.hpp medialibrary/mlfoldertreemodel.cpp \
+	medialibrary/mlvideomodel.hpp medialibrary/mlvideomodel.cpp \
+	medialibrary/mlmediamodel.hpp medialibrary/mlmediamodel.cpp \
+	medialibrary/mlvideo.hpp medialibrary/mlvideo.cpp \
+	medialibrary/mlaudio.hpp medialibrary/mlaudio.cpp \
+	medialibrary/mlfolder.hpp medialibrary/mlfolder.cpp \
+	medialibrary/mlhelper.hpp medialibrary/mlhelper.cpp \
+	medialibrary/mlcustomcover.hpp medialibrary/mlcustomcover.cpp \
+	medialibrary/thumbnailcollector.hpp medialibrary/thumbnailcollector.cpp \
+	util/covergenerator.hpp util/covergenerator.cpp \
+	util/asynctask.hpp \
 	playlist/playlist_controller.hpp playlist/playlist_controller.cpp \
 	playlist/playlist_item.hpp playlist/playlist_item.cpp
 
@@ -1841,8 +1848,14 @@ nodist_test_ml_model_SOURCES = \
 	util/listcache.moc.cpp \
 	util/locallistcacheloader.moc.cpp \
 	util/vlctick.moc.cpp \
+	util/asynctask.moc.cpp \
 	medialibrary/mlqmltypes.moc.cpp \
 	medialibrary/mlbasemodel.moc.cpp \
+	medialibrary/mlfoldertreemodel.moc.cpp \
+	medialibrary/mlvideomodel.moc.cpp \
+	medialibrary/mlmediamodel.moc.cpp \
+	medialibrary/mlvideo.moc.cpp \
+	medialibrary/thumbnailcollector.moc.cpp \
 	medialibrary/medialib.moc.cpp \
 	medialibrary/mlplaylistmanager.moc.cpp \
 	medialibrary/mlthreadpool.moc.cpp \
@@ -2309,6 +2322,26 @@ test_qt_navigation_model_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_qt_navigation_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_qt_navigation_model
 TESTS += test_qt_navigation_model
+
+test_qt_navigation_history_SOURCES = \
+	tests/test_navigation_history.cpp \
+	util/navigation_history.hpp \
+	util/navigation_history.cpp \
+	medialibrary/mlqmltypes.hpp
+
+nodist_test_qt_navigation_history_SOURCES = \
+	tests/test_navigation_history.moc \
+	util/navigation_history.moc.cpp \
+	medialibrary/mlqmltypes.moc.cpp
+
+BUILT_SOURCES += tests/test_navigation_history.moc
+CLEANFILES += tests/test_navigation_history.moc
+test_qt_navigation_history_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_qt_navigation_history_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_qt_navigation_history_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_qt_navigation_history_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_qt_navigation_history
+TESTS += test_qt_navigation_history
 
 
 endif

@@ -21,12 +21,14 @@
 #endif
 
 #include "../medialibrary/mlbasemodel.hpp"
+#include "../medialibrary/mlfoldertreemodel.hpp"
 #include "../medialibrary/mlplaycountrank.hpp"
 #include "../medialibrary/medialib.hpp"
 #include "../playlist/playlist_controller.hpp"
 #include "vlc_stub_modules.hpp"
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include <QCoreApplication>
@@ -220,6 +222,8 @@ private slots:
         m_model.reset();
         m_queueMedialib.reset();
         m_medialib.reset();
+        m_env->mlFolders.clear();
+        m_env->mlMedia.clear();
         resetQueue();
     }
 
@@ -434,7 +438,194 @@ private slots:
         QCOMPARE(queueNames().at(1), QStringLiteral("ml:3"));
     }
 
+    // The Videos folder tree
+
+    void testTreeTopListsAddedFoldersWithVideos()
+    {
+        m_env->mlFolders = {
+            {1, 0, "Shows"}, {2, 1, "The Wand"},
+            {3, 0, "Music"},
+            {4, 0, "Downloads"}, // added, not scanned yet
+        };
+        m_env->mlMedia = {
+            {10, 2, "The Wand S01E01"},
+            {11, 3, "Song", -1., 0, VLC_ML_MEDIA_TYPE_AUDIO},
+        };
+
+        auto model = makeTreeModel(std::nullopt);
+
+        QCOMPARE(titles(*model), QStringList({"Downloads", "Shows"}));
+        QCOMPARE(roleValues(*model, "isFolder"), QVariantList({true, true}));
+        QVERIFY(model->path().isEmpty());
+    }
+
+    void testTreeFolderListsSubfoldersThenVideos()
+    {
+        m_env->mlFolders = {
+            {1, 0, "Shows"}, {2, 1, "The Wand"},
+            {3, 2, "S10"}, {4, 2, "S2"}, {5, 2, "Extras"}, {6, 5, "Empty"},
+        };
+        m_env->mlMedia = {
+            {10, 3, "The Wand S10E01"},
+            {11, 4, "The Wand S02E01"},
+            {12, 2, "Trailer"},
+        };
+
+        auto model = makeTreeModel(2);
+
+        // Extras holds no video at any depth
+        QCOMPARE(titles(*model), QStringList({"S2", "S10", "Trailer"}));
+        QCOMPARE(roleValues(*model, "isFolder"), QVariantList({true, true, false}));
+        QCOMPARE(model->getCount(), 3u);
+    }
+
+    void testTreeShowsVideosBelowAFolder()
+    {
+        m_env->mlFolders = { {1, 0, "Shows"}, {2, 1, "The Wand"}, {3, 2, "S01"} };
+        m_env->mlMedia = { {10, 3, "The Wand S01E01"} };
+
+        auto model = makeTreeModel(1);
+
+        QCOMPARE(titles(*model), QStringList({"The Wand"}));
+    }
+
+    void testTreePathFromTheTop()
+    {
+        m_env->mlFolders = { {1, 0, "Shows"}, {2, 1, "The Wand"}, {3, 2, "S01"} };
+        m_env->mlMedia = { {10, 3, "The Wand S01E01"} };
+
+        auto model = makeTreeModel(3);
+
+        QTRY_COMPARE(model->path().size(), 3);
+        QStringList pathTitles;
+        QVector<int64_t> pathIds;
+        for (const QVariant &crumb : model->path())
+        {
+            pathTitles.push_back(crumb.toMap().value("title").toString());
+            pathIds.push_back(crumb.toMap().value("id").value<MLItemId>().id);
+        }
+        QCOMPARE(pathTitles, QStringList({"Shows", "The Wand", "S01"}));
+        QCOMPARE(pathIds, QVector<int64_t>({1, 2, 3}));
+
+        model->setParentId(MLItemId(1, VLC_ML_PARENT_FOLDER));
+        QTRY_COMPARE(model->path().size(), 1);
+
+        model->unsetParentId();
+        QTRY_VERIFY(model->path().isEmpty());
+    }
+
+    void testUnwatchedFirst()
+    {
+        setUpEpisodes();
+
+        auto model = makeTreeModel(1, "unwatched", Qt::AscendingOrder);
+
+        // folders first; then in progress, unwatched, watched, each by title
+        QCOMPARE(titles(*model), QStringList({"Extras", "E5", "E1", "E4", "E10", "E2", "E3"}));
+    }
+
+    void testWatchedFirst()
+    {
+        setUpEpisodes();
+
+        auto model = makeTreeModel(1, "unwatched", Qt::DescendingOrder);
+
+        QCOMPARE(titles(*model), QStringList({"Extras", "E2", "E3", "E5", "E1", "E4", "E10"}));
+    }
+
+    void testTitleZToA()
+    {
+        setUpEpisodes();
+        m_env->mlFolders.push_back({4, 1, "Bonus"});
+        m_env->mlMedia.push_back({30, 4, "Making of"});
+
+        auto model = makeTreeModel(1, "title", Qt::DescendingOrder);
+
+        QCOMPARE(titles(*model), QStringList({"Extras", "Bonus", "E10", "E5", "E4", "E3", "E2", "E1"}));
+    }
+
+    void testNewestFirst()
+    {
+        setUpEpisodes();
+
+        auto model = makeTreeModel(1, "insertion", Qt::DescendingOrder);
+
+        QCOMPARE(titles(*model), QStringList({"Extras", "E10", "E5", "E4", "E3", "E2", "E1"}));
+    }
+
+    void testSearchFiltersTheLevel()
+    {
+        setUpEpisodes();
+
+        auto model = makeTreeModel(1, "title", Qt::AscendingOrder, "e1");
+
+        QCOMPARE(titles(*model), QStringList({"E1", "E10"}));
+    }
+
+    void testTreeRowsPage()
+    {
+        setUpEpisodes();
+
+        auto model = makeTreeModel(1, "title", Qt::AscendingOrder);
+        model->setLimit(3);
+        QTRY_COMPARE(model->getCount(), 3u);
+
+        QCOMPARE(titles(*model), QStringList({"Extras", "E1", "E2"}));
+        QCOMPARE(model->getMaximumCount(), 7u);
+    }
+
 private:
+    // a show with a subfolder and episodes added in the order of their ids
+    void setUpEpisodes()
+    {
+        m_env->mlFolders = { {1, 0, "The Wand"}, {2, 1, "Extras"} };
+        m_env->mlMedia = {
+            {20, 1, "E1"},
+            {21, 1, "E2", -1., 1},  // watched
+            {22, 1, "E3", -1., 2},  // watched twice
+            {23, 1, "E4"},
+            {24, 1, "E5", 0.4, 0},  // in progress
+            {25, 1, "E10"},
+            {26, 2, "Interview"},
+        };
+    }
+
+    std::unique_ptr<MLFolderTreeModel> makeTreeModel(std::optional<int64_t> parent,
+                                                     const QString &criteria = {},
+                                                     Qt::SortOrder order = Qt::AscendingOrder,
+                                                     const QString &pattern = {})
+    {
+        auto model = std::make_unique<MLFolderTreeModel>();
+        model->classBegin();
+        if (parent)
+            model->setParentId(MLItemId(*parent, VLC_ML_PARENT_FOLDER));
+        model->setSortCriteria(criteria);
+        model->setSortOrder(order);
+        model->setSearchPattern(pattern);
+        model->setMl(m_medialib.get());
+        model->componentComplete();
+        [&] { QVERIFY(QTest::qWaitFor([&]() { return !model->loading(); })); }();
+        return model;
+    }
+
+    QVariantList roleValues(const QAbstractItemModel &model, const QByteArray &roleName) const
+    {
+        const int role = model.roleNames().key(roleName, -1);
+        Q_ASSERT(role != -1);
+        QVariantList values;
+        for (int row = 0; row < model.rowCount(); ++row)
+            values.push_back(model.data(model.index(row, 0), role));
+        return values;
+    }
+
+    QStringList titles(const QAbstractItemModel &model) const
+    {
+        QStringList result;
+        for (const QVariant &title : roleValues(model, "title"))
+            result.push_back(title.toString());
+        return result;
+    }
+
     /* A model of `count` media (ids 1 to count) whose medialib plays into
      * controller */
     std::unique_ptr<MLTestModel> makeModelWithQueue(PlaylistController &controller, int count)

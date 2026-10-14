@@ -42,6 +42,7 @@
 
 #include <vlc_media_library.h>
 #include <ftw.h>
+#include <sys/stat.h>
 
 #include "../lib/libvlc_internal.h"
 
@@ -59,6 +60,108 @@ static void ValidateThumbnail(void *data, const vlc_ml_event_t *event)
     vlc_sem_post(sem);
 }
 
+static const char *tempdir;
+
+static void WaitDiscovery(void *data, const vlc_ml_event_t *event)
+{
+    if (event->i_type != VLC_ML_EVENT_DISCOVERY_COMPLETED)
+        return;
+
+    vlc_sem_t *sem = data;
+    vlc_sem_post(sem);
+}
+
+static void MakeDir(const char *path)
+{
+    char *dir;
+    if (asprintf(&dir, "%s/%s", tempdir, path) < 0)
+        abort();
+    int ret = mkdir(dir, 0700);
+    assert(ret == 0);
+    (void) ret;
+    free(dir);
+}
+
+static char *FolderMrl(const char *path)
+{
+    char *mrl;
+    if (asprintf(&mrl, "file://%s/%s", tempdir, path) < 0)
+        abort();
+    return mrl;
+}
+
+static vlc_ml_folder_t *FolderByPath(vlc_medialibrary_t *ml, const char *path)
+{
+    char *mrl = FolderMrl(path);
+    vlc_ml_folder_t *folder = vlc_ml_get_folder_by_mrl(ml, mrl);
+    free(mrl);
+    return folder;
+}
+
+/* The folder tree of the library: subfolders with sort and paging, the parent
+ * of a folder and a folder found by its path */
+static void TestFolderTree(vlc_medialibrary_t *ml)
+{
+    MakeDir("lib");
+    MakeDir("lib/Shows");
+    MakeDir("lib/Shows/S01");
+    MakeDir("lib/Movies");
+
+    vlc_sem_t sem;
+    vlc_sem_init(&sem, 0);
+    vlc_ml_event_callback_t *listener =
+        vlc_ml_event_register_callback(ml, WaitDiscovery, &sem);
+
+    char *rootMrl = FolderMrl("lib/");
+    vlc_ml_add_folder(ml, rootMrl);
+    free(rootMrl);
+    vlc_sem_wait(&sem);
+    vlc_ml_event_unregister_callback(ml, listener);
+
+    /* by path, with or without the trailing slash */
+    vlc_ml_folder_t *root = FolderByPath(ml, "lib/");
+    assert(root != NULL);
+    assert(strcmp(root->psz_name, "lib") == 0);
+    vlc_ml_folder_t *shows = FolderByPath(ml, "lib/Shows");
+    assert(shows != NULL);
+    assert(strcmp(shows->psz_name, "Shows") == 0);
+    assert(FolderByPath(ml, "lib/Nothing") == NULL);
+
+    /* subfolders, sorted and paged */
+    vlc_ml_query_params_t params = vlc_ml_query_params_create();
+    params.i_sort = VLC_ML_SORTING_ALPHA;
+    params.b_desc = true;
+    vlc_ml_folder_list_t *list = vlc_ml_list_subfolders(ml, &params, root->i_id);
+    assert(list != NULL && list->i_nb_items == 2);
+    assert(strcmp(list->p_items[0].psz_name, "Shows") == 0);
+    assert(strcmp(list->p_items[1].psz_name, "Movies") == 0);
+    vlc_ml_folder_list_release(list);
+
+    params.b_desc = false;
+    params.i_nbResults = 1;
+    params.i_offset = 1;
+    list = vlc_ml_list_subfolders(ml, &params, root->i_id);
+    assert(list != NULL && list->i_nb_items == 1);
+    assert(strcmp(list->p_items[0].psz_name, "Shows") == 0);
+    vlc_ml_folder_list_release(list);
+    assert(vlc_ml_count_subfolders(ml, NULL, root->i_id) == 2);
+
+    /* parents, up to the folder the user added */
+    vlc_ml_folder_t *s01 = FolderByPath(ml, "lib/Shows/S01/");
+    assert(s01 != NULL);
+    vlc_ml_folder_t *parent = vlc_ml_get_folder_parent(ml, s01->i_id);
+    assert(parent != NULL && parent->i_id == shows->i_id);
+    vlc_ml_folder_release(parent);
+    parent = vlc_ml_get_folder_parent(ml, shows->i_id);
+    assert(parent != NULL && parent->i_id == root->i_id);
+    vlc_ml_folder_release(parent);
+    assert(vlc_ml_get_folder_parent(ml, root->i_id) == NULL);
+
+    vlc_ml_folder_release(s01);
+    vlc_ml_folder_release(shows);
+    vlc_ml_folder_release(root);
+}
+
 static int OpenIntf(vlc_object_t *root)
 {
     vlc_medialibrary_t *ml = vlc_ml_instance_get(root);
@@ -67,6 +170,8 @@ static int OpenIntf(vlc_object_t *root)
         exitcode = 77;
         return VLC_SUCCESS;
     }
+
+    TestFolderTree(ml);
 
     #define MOCK_URL "mock://video_track_count=1;length=100000000;" \
                      "video_width=800;video_height=600"
@@ -109,7 +214,7 @@ static int cleanup_tmpdir(const char *dirpath, const struct stat *sb,
 int main(void)
 {
     char template[] = "/tmp/vlc.test." MODULE_STRING ".XXXXXX";
-    const char *tempdir = mkdtemp(template);
+    tempdir = mkdtemp(template);
     if (tempdir == NULL)
     {
         assert(tempdir != NULL);

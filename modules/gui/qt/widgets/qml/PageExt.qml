@@ -50,8 +50,21 @@ T.Page {
     property bool enableBeginningFade: true
     property bool enableEndFade: true
 
+    // the trail of folders leading to the page, as a list of strings ending
+    // with the page itself; replaces the title when set
+    property var breadcrumb: []
+
+    // the number of items of the view, shown in the header when not negative
+    property int itemCount: -1
+
+    // buttons shown at the end of the header
+    property Component headerActions: null
+
     readonly property SearchCtx search: _searchCtx
     readonly property SortCtx sort: _sortCtx
+
+    // a crumb other than the last one was clicked
+    signal breadcrumbClicked(int index, int reason)
 
 
     SearchCtx {
@@ -68,7 +81,11 @@ T.Page {
         available: Helpers.isArray(root.sortModel) && (root.sortModel).length > 0
         model: root.sortModel
 
-        //save & restore setting of the page
+        property bool _restored: false
+
+        //restore the setting of the page, and save it as soon as it changes:
+        //the next page of the same section (a subfolder) may be created
+        //before this one is destroyed
         Component.onCompleted: {
             const criteria = MainCtx.settingValue(_sortCriteriaKey, undefined)
             if (criteria !== undefined)
@@ -77,11 +94,18 @@ T.Page {
             const order = MainCtx.settingValue(_sortOrderKey, undefined)
             if (order !== undefined)
                 _sortCtx.order = parseInt(order)
+
+            _restored = true
         }
 
-        Component.onDestruction: {
-            MainCtx.setSettingValue(_sortCriteriaKey, _sortCtx.criteria)
-            MainCtx.setSettingValue(_sortOrderKey, _sortCtx.order)
+        onCriteriaChanged: {
+            if (_restored)
+                MainCtx.setSettingValue(_sortCriteriaKey, _sortCtx.criteria)
+        }
+
+        onOrderChanged: {
+            if (_restored)
+                MainCtx.setSettingValue(_sortOrderKey, _sortCtx.order)
         }
     }
 
@@ -89,6 +113,16 @@ T.Page {
         target: MainCtx
         property: "hasGridListMode";
         value: root.hasGridListMode
+    }
+
+    // Ctrl+F searches the current view
+    Connections {
+        target: MainCtx.search
+
+        function onAskShow() {
+            if (root.visible && _searchCtx.available)
+                _searchCtx.askShow()
+        }
     }
 
     on_FirstChildChanged: {
@@ -112,6 +146,10 @@ T.Page {
     header: DefaultPageHeader {
         text: root.title
 
+        breadcrumb: root.breadcrumb
+        itemCount: root.itemCount
+        actions: root.headerActions
+
         leftPadding: VLCStyle.dynamicAppMargins(width) + VLCStyle.layout_left_margin + root.leftPadding
         rightPadding: VLCStyle.dynamicAppMargins(width) + VLCStyle.layout_right_margin + root.rightPadding
 
@@ -119,6 +157,8 @@ T.Page {
 
         search: _searchCtx
         sort: _sortCtx
+
+        onBreadcrumbClicked: (index, reason) => root.breadcrumbClicked(index, reason)
 
         Navigation.parentItem: root
         Navigation.downAction: function() {
@@ -137,10 +177,16 @@ T.Page {
         // Properties
         property alias text: label.text
 
+        property var breadcrumb: []
+        property int itemCount: -1
+        property alias actions: actionsLoader.sourceComponent
+
         property alias sortMenu: gridSortFilter.sortMenu
 
         property alias search: gridSortFilter.search
         property alias sort: gridSortFilter.sort
+
+        signal breadcrumbClicked(int index, int reason)
 
         position: T.ToolBar.Header
 
@@ -177,12 +223,165 @@ T.Page {
 
             anchors.fill: parent
 
+            spacing: VLCStyle.margin_normal
+
+            // back and forward through the history of the whole interface
+            NavigableRow {
+                id: historyButtons
+
+                spacing: VLCStyle.margin_xxsmall
+
+                Navigation.parentItem: defaultPageHeader
+                Navigation.rightItem: crumbs.Navigation.navigable ? crumbs : gridSortFilter
+
+                IconToolButton {
+                    font.pixelSize: VLCStyle.icon_banner
+                    width: VLCStyle.bannerButton_width
+                    height: VLCStyle.bannerButton_height
+
+                    text: VLCIcons.arrow_left
+                    description: qsTr("Back")
+
+                    enabled: !History.previousEmpty
+
+                    onClicked: History.previous(Qt.MouseFocusReason)
+                }
+
+                IconToolButton {
+                    font.pixelSize: VLCStyle.icon_banner
+                    width: VLCStyle.bannerButton_width
+                    height: VLCStyle.bannerButton_height
+
+                    text: VLCIcons.arrow_right
+                    description: qsTr("Forward")
+
+                    enabled: !History.nextEmpty
+
+                    onClicked: History.next(Qt.MouseFocusReason)
+                }
+            }
+
             SubtitleLabel {
                 id: label
 
                 Layout.fillWidth: true
 
+                visible: !crumbs.visible
+
                 color: theme.fg.primary
+            }
+
+            // a clickable trail of folders, the last one is the page itself
+            Item {
+                id: crumbs
+
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                visible: Helpers.isArray(defaultPageHeader.breadcrumb)
+                         && defaultPageHeader.breadcrumb.length > 0
+
+                clip: true
+
+                Accessible.role: Accessible.Grouping
+                Accessible.name: qsTr("Location")
+
+                Navigation.navigable: crumbRepeater.count > 1
+                Navigation.parentItem: defaultPageHeader
+                Navigation.leftItem: historyButtons
+                Navigation.rightItem: gridSortFilter
+
+                // the button of a crumb
+                function _crumbButton(index) {
+                    return crumbRepeater.itemAt(index)?.button ?? null
+                }
+
+                onActiveFocusChanged: {
+                    if (activeFocus && crumbRepeater.count > 1)
+                        _crumbButton(crumbRepeater.count - 2).forceActiveFocus(focusReason)
+                }
+
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    spacing: VLCStyle.margin_xxxsmall
+
+                    Repeater {
+                        id: crumbRepeater
+
+                        model: crumbs.visible ? defaultPageHeader.breadcrumb : []
+
+                        delegate: Row {
+                            id: crumb
+
+                            required property int index
+                            required property var modelData
+
+                            readonly property bool isLast: index === defaultPageHeader.breadcrumb.length - 1
+                            readonly property Item button: crumbButton
+
+                            spacing: VLCStyle.margin_xxxsmall
+
+                            IconLabel {
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                visible: crumb.index > 0
+
+                                text: VLCIcons.chevron_right
+                                font.pixelSize: VLCStyle.icon_small
+                                color: theme.fg.secondary
+                            }
+
+                            TextToolButton {
+                                id: crumbButton
+
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                text: crumb.modelData
+                                font.pixelSize: VLCStyle.fontSize_large
+                                font.weight: crumb.isLast ? Font.DemiBold : Font.Normal
+
+                                enabled: !crumb.isLast
+
+                                Accessible.name: crumb.isLast ? qsTr("%1, current folder").arg(text) : text
+
+                                contentItem: T.Label {
+                                    text: crumbButton.text
+                                    font: crumbButton.font
+                                    color: crumb.isLast ? theme.fg.primary : theme.fg.secondary
+                                    verticalAlignment: Text.AlignVCenter
+                                    elide: Text.ElideRight
+
+                                    Accessible.ignored: true
+                                }
+
+                                Navigation.parentItem: crumbs
+                                Navigation.leftAction: function() {
+                                    if (crumb.index > 0)
+                                        crumbs._crumbButton(crumb.index - 1).forceActiveFocus(Qt.BacktabFocusReason)
+                                    else
+                                        crumbs.Navigation.defaultNavigationLeft()
+                                }
+                                Navigation.rightAction: function() {
+                                    if (crumb.index < crumbRepeater.count - 2)
+                                        crumbs._crumbButton(crumb.index + 1).forceActiveFocus(Qt.TabFocusReason)
+                                    else
+                                        crumbs.Navigation.defaultNavigationRight()
+                                }
+
+                                onClicked: defaultPageHeader.breadcrumbClicked(crumb.index, Qt.MouseFocusReason)
+                            }
+                        }
+                    }
+                }
+            }
+
+            CaptionLabel {
+                visible: defaultPageHeader.itemCount >= 0
+
+                text: defaultPageHeader.itemCount === 1 ? qsTr("1 item")
+                                                         : qsTr("%1 items").arg(defaultPageHeader.itemCount)
+                color: theme.fg.secondary
             }
 
             GridSortFilterControls {
@@ -191,6 +390,17 @@ T.Page {
                 sort: _sortCtx
                 search: _searchCtx
                 Navigation.parentItem: defaultPageHeader
+                Navigation.leftItem: crumbs.Navigation.navigable ? crumbs : historyButtons
+                Navigation.rightItem: actionsLoader.item
+            }
+
+            Loader {
+                id: actionsLoader
+
+                visible: !!item
+
+                Navigation.parentItem: defaultPageHeader
+                Navigation.leftItem: gridSortFilter
             }
         }
     }

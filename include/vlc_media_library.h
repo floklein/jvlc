@@ -471,6 +471,8 @@ enum vlc_ml_get_queries
     VLC_ML_GET_PLAYLIST,          /**< arg1: Playlist ID; ret: vlc_ml_playlist_t* */
     VLC_ML_GET_GROUP,             /**< arg1: Group    ID; ret: vlc_ml_group_t*    */
     VLC_ML_GET_FOLDER,            /**< arg1: folder ID; ret: vlc_ml_folder_t*     */
+    VLC_ML_GET_FOLDER_BY_MRL,     /**< arg1: folder MRL; ret: vlc_ml_folder_t*    */
+    VLC_ML_GET_FOLDER_PARENT,     /**< arg1: folder ID; ret: vlc_ml_folder_t*, NULL when the parent isn't in the library */
 };
 
 enum vlc_ml_list_queries
@@ -1364,6 +1366,24 @@ static inline vlc_ml_folder_t* vlc_ml_get_folder( vlc_medialibrary_t* p_ml, int6
     return (vlc_ml_folder_t*)vlc_ml_get( p_ml, VLC_ML_GET_FOLDER, i_folder_id);
 }
 
+/**
+ * Get the library folder at the given MRL (with or without a trailing '/'),
+ * NULL if the library doesn't know it
+ */
+static inline vlc_ml_folder_t* vlc_ml_get_folder_by_mrl( vlc_medialibrary_t* p_ml, const char* psz_mrl )
+{
+    return (vlc_ml_folder_t*)vlc_ml_get( p_ml, VLC_ML_GET_FOLDER_BY_MRL, psz_mrl );
+}
+
+/**
+ * Get the folder holding the given folder, NULL for a folder the user added
+ * (unless it lies inside another library folder)
+ */
+static inline vlc_ml_folder_t* vlc_ml_get_folder_parent( vlc_medialibrary_t* p_ml, int64_t i_folder_id )
+{
+    return (vlc_ml_folder_t*)vlc_ml_get( p_ml, VLC_ML_GET_FOLDER_PARENT, i_folder_id );
+}
+
 static inline vlc_ml_playlist_t* vlc_ml_get_playlist( vlc_medialibrary_t* p_ml, int64_t i_playlist_id )
 {
     return (vlc_ml_playlist_t*)vlc_ml_get( p_ml, VLC_ML_GET_PLAYLIST, i_playlist_id );
@@ -2017,6 +2037,37 @@ static inline size_t vlc_ml_count_folders_by_type(vlc_medialibrary_t * p_ml,
     size_t count;
 
     if (vlc_ml_list(p_ml, VLC_ML_COUNT_FOLDERS_BY_TYPE, params, (int) type, &count) != VLC_SUCCESS)
+        return 0;
+
+    return count;
+}
+
+// Subfolders, every child folder (even one without media), sorted by name by
+// default
+
+static inline vlc_ml_folder_list_t * vlc_ml_list_subfolders(vlc_medialibrary_t * p_ml,
+                                                            const vlc_ml_query_params_t * params,
+                                                            int64_t i_folder_id)
+{
+    vlc_assert(p_ml != NULL);
+
+    vlc_ml_folder_list_t * res;
+
+    if (vlc_ml_list(p_ml, VLC_ML_LIST_SUBFOLDERS, params, i_folder_id, &res) != VLC_SUCCESS)
+        return NULL;
+
+    return res;
+}
+
+static inline size_t vlc_ml_count_subfolders(vlc_medialibrary_t * p_ml,
+                                             const vlc_ml_query_params_t * params,
+                                             int64_t i_folder_id)
+{
+    vlc_assert(p_ml != NULL);
+
+    size_t count;
+
+    if (vlc_ml_list(p_ml, VLC_ML_COUNT_SUBFOLDERS, params, i_folder_id, &count) != VLC_SUCCESS)
         return 0;
 
     return count;

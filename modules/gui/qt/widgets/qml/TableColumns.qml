@@ -40,6 +40,9 @@ Item {
     property int titleCover_height: VLCStyle.trackListAlbumCover_heigth
     property int titleCover_radius: VLCStyle.trackListAlbumCover_radius
 
+    // shows how much of the media was played, under its cover
+    property bool showProgress: false
+
     // function (model) -> [string...]
     // implement this function to show labels in title Cover
     property var titlecoverLabels: function(model) {
@@ -144,6 +147,19 @@ Item {
                         }
 
                         labels: root.titlecoverLabels(titleDel.rowModel)
+                    }
+
+                    Widgets.VideoProgressBar {
+                        anchors {
+                            left: parent.left
+                            right: parent.right
+                            bottom: parent.bottom
+                        }
+
+                        visible: root.showProgress && ((titleDel.rowModel?.progress ?? 0) > 0)
+
+                        radius: root.titleCover_radius
+                        value: Helpers.clamp(titleDel.rowModel?.progress ?? 0, 0, 1)
                     }
                 }
 

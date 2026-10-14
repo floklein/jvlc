@@ -134,6 +134,8 @@ Widgets.TableViewExt {
 
         criteriaCover: "thumbnail"
 
+        showProgress: true
+
         titleCover_height: listView_id.coverHeight
         titleCover_width: listView_id.coverWidth
         titleCover_radius: listView_id.coverRadius

@@ -36,7 +36,16 @@ Widgets.GridItem {
     property var viewModel: null
     property int viewIndex: -1
 
+    // a folder of the Videos tree opens instead of playing: its activation
+    // (Enter, screen readers) shows its content
+    readonly property bool isFolder: model?.isFolder === true
+
     function play() {
+        if (isFolder) {
+            root.itemDoubleClicked(Qt.NoModifier)
+            return
+        }
+
         if (viewModel && viewIndex >= 0) {
             viewModel.addAndPlay([viewModel.index(viewIndex, 0)])
             MainCtx.playerView = true
@@ -45,6 +54,8 @@ Widgets.GridItem {
             MainCtx.playerView = true
         }
     }
+
+    playCoverShowPlay: !isFolder && implicitPlayCoverShowPlay
 
     image: model.thumbnail || ""
     fallbackImage: VLCStyle.noArtVideoCover
