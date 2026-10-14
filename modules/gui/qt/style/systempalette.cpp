@@ -610,6 +610,8 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         setColor(CS, C::Fg, C::Positive, C::Normal, t.positive);
         setColor(CS, C::Fg, C::Neutral, C::Normal, t.neutral);
         setColor(CS, C::Fg, C::Negative, C::Normal, t.negative);
+        // outlines the track, which is as dark as the scrim over the video
+        setColor(CS, C::Decoration, C::Border, C::Normal, t.dividerDim);
     }
 
     //Combo box

@@ -261,8 +261,6 @@ T.Pane {
 
                 barHeight: root.sliderHeight
 
-                Accessible.role: Accessible.Slider
-                Accessible.name: qsTr("Progress")
                 AccessibleCompat.id: "progressSlider"
 
                 Layout.fillWidth: true

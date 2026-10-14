@@ -244,6 +244,8 @@ public slots:
     /// Jump to Time: seeks to a time from the start, in seconds
     void jumpToTime( int seconds );
     void jumpToPos( double );
+    // a fast (key frame) seek, for scrubbing
+    void scrubToPos( double );
     void frameNext();
     void framePrev();
 

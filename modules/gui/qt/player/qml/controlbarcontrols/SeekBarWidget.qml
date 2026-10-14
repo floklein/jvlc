@@ -118,9 +118,6 @@ FocusScope {
                      && (Player.playingState === Player.PLAYING_STATE_PLAYING
                          || Player.playingState === Player.PLAYING_STATE_PAUSED)
 
-            Accessible.role: Accessible.Slider
-            // read as "12:34 of 45:00"
-            Accessible.name: qsTr("%1 of %2").arg(Player.time.formatHMS()).arg(Player.length.formatHMS())
             AccessibleCompat.id: "progressSlider"
 
             Navigation.parentItem: root

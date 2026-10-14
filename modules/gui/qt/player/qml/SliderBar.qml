@@ -45,14 +45,38 @@ T.ProgressBar {
     property real touchHandlerMargin: VLCStyle.touchHandlerMargin
 
     // The redesign's thick seek bar (Figma 1908:7387): a rounded track, the
-    // played part inset in it and a bar-shaped handle at its end.
-    // TODO: chapter ticks (#37); thin bars still draw one segment per chapter
+    // played part inset in it, a bar-shaped handle at its end and one tick per
+    // chapter. Thin bars still draw one segment per chapter.
     readonly property bool _thick: barHeight >= VLCStyle.dp(12, VLCStyle.scale)
     readonly property real _inset: _thick ? VLCStyle.dp(2, VLCStyle.scale) : 0
+
+    // a press this close to a chapter start selects the chapter
+    readonly property real _chapterSnapDistance: VLCStyle.dp(4, VLCStyle.scale)
+
+    // the hovered or dragged point of the bar, -1 when neither
+    readonly property real _pointerX: {
+        if (dragHandler.active)
+            return Helpers.clamp(dragHandler.centroid.position.x, 0, control.width)
+        if (hoverHandler.hovered)
+            return Helpers.clamp(hoverHandler.point.position.x, 0, control.width)
+        if (thumbnailer.testPosition >= 0) // test hook
+            return thumbnailer.testPosition * control.width
+        return -1
+    }
+
+    // the seek thumbnail (spec #30: 176x99 while hovering or dragging a video)
+    readonly property bool _showThumbnail: control._thick
+                                           && control.enabled
+                                           && control._pointerX >= 0
+                                           && Player.hasVideoOutput
+                                           && Player.seekable
 
     Keys.onRightPressed: Player.jumpFwd()
     Keys.onLeftPressed: Player.jumpBwd()
 
+    // read as "12:34 of 45:00"
+    Accessible.role: Accessible.Slider
+    Accessible.name: qsTr("%1 of %2").arg(Player.time.formatHMS(0)).arg(Player.length.formatHMS(0))
     Accessible.onIncreaseAction: Player.jumpFwd()
     Accessible.onDecreaseAction: Player.jumpBwd()
 
@@ -77,7 +101,9 @@ T.ProgressBar {
         onTriggered: control._isSeekPointsShown = false
     }
 
-    Widgets.PointingToolTipAttached.visible: (hoverHandler.hovered || control.visualFocus || dragHandler.active)
+    // the seek thumbnail shows the time itself
+    Widgets.PointingToolTipAttached.visible: !control._showThumbnail
+                                             && (hoverHandler.hovered || control.visualFocus || dragHandler.active)
 
     Widgets.PointingToolTipAttached.text: {
         if (!Widgets.PointingToolTipAttached.instance?.visible)
@@ -126,17 +152,36 @@ T.ProgressBar {
             control.value = position
         }
 
-        function _seekToPosition(position, threshold, forcePrecise) {
+        // whether the video follows a drag with fast seeks, to be made precise
+        // on release
+        property bool _scrubbed: false
+
+        function _seekToPosition(position, threshold, forcePrecise, scrub) {
             position = Helpers.clamp(position, 0., 1.)
             control.value = position
             if (!forcePrecise) {
                 const chapter = Player.chapters.getClosestChapterFromPos(position, threshold)
                 if (chapter !== -1) {
                     Player.chapters.selectChapter(chapter)
+                    fsm._scrubbed = false
                     return
                 }
             }
-            Player.position = position
+            if (scrub) {
+                // live scrub: key frames keep up with the pointer
+                Player.scrubToPos(position)
+                fsm._scrubbed = true
+            } else {
+                Player.position = position
+                fsm._scrubbed = false
+            }
+        }
+
+        function _endScrub() {
+            if (fsm._scrubbed) {
+                fsm._scrubbed = false
+                Player.position = control.value
+            }
         }
 
         FSMState {
@@ -151,7 +196,7 @@ T.ProgressBar {
                 "pressControl": {
                     action: (position, forcePrecise) => {
                         control.forceActiveFocus()
-                        fsm._seekToPosition(position, VLCStyle.dp(4, VLCStyle.scale) / control.width, forcePrecise)
+                        fsm._seekToPosition(position, control._chapterSnapDistance / control.width, forcePrecise, false)
                     },
                     target: fsmHeld
                 }
@@ -164,10 +209,11 @@ T.ProgressBar {
             transitions: ({
                 "moveControl": {
                     action: (position, forcePrecise) => {
-                        fsm._seekToPosition(position, VLCStyle.dp(2, VLCStyle.scale) / control.width, forcePrecise)
+                        fsm._seekToPosition(position, VLCStyle.dp(2, VLCStyle.scale) / control.width, forcePrecise, true)
                     }
                 },
                 "releaseControl": {
+                    action: fsm._endScrub,
                     target: fsmReleased
                 },
                 "inputChanged": {
@@ -220,6 +266,132 @@ T.ProgressBar {
             } else {
                 if(Player.hasChapters)
                     seekpointTimer.restart()
+            }
+        }
+    }
+
+    SeekThumbnailer {
+        id: thumbnailer
+
+        mrl: control._thick ? Player.url : ""
+        length: Player.length
+        size: Qt.size(Math.round(thumbnailPopup.thumbnailWidth * Screen.devicePixelRatio),
+                      Math.round(thumbnailPopup.thumbnailHeight * Screen.devicePixelRatio))
+
+        // the media may become known while the pointer rests on the bar
+        onMrlChanged: control._requestThumbnail()
+        onLengthChanged: control._requestThumbnail()
+        onSizeChanged: control._requestThumbnail()
+    }
+
+    function _requestThumbnail() {
+        if (!control._showThumbnail)
+            thumbnailer.stop()
+        else
+            thumbnailer.request(control._pointerX / control.width)
+    }
+
+    on_PointerXChanged: _requestThumbnail()
+    on_ShowThumbnailChanged: _requestThumbnail()
+
+    T.Popup {
+        id: thumbnailPopup
+
+        // spec #30 / #10: 176x99 with its time (Figma 2151:9673)
+        readonly property real thumbnailWidth: VLCStyle.dp(176, VLCStyle.scale)
+        readonly property real thumbnailHeight: VLCStyle.dp(99, VLCStyle.scale)
+
+        readonly property real _position: Math.max(control._pointerX, 0) / control.width
+
+        // follows the pointer without any transition; the window edges clamp it
+        x: Math.max(control._pointerX, 0) - width / 2
+        y: -height - VLCStyle.margin_xsmall
+        margins: VLCStyle.margin_xsmall
+
+        implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
+                                implicitContentWidth + leftPadding + rightPadding)
+        implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
+                                 implicitContentHeight + topPadding + bottomPadding)
+
+        padding: VLCStyle.spacing_10
+
+        visible: control._showThumbnail
+        closePolicy: T.Popup.NoAutoClose
+        focus: false
+        modal: false
+        dim: false
+
+        enter: null
+        exit: null
+
+        readonly property ColorContext colorContext: ColorContext {
+            id: popupTheme
+            palette: theme.palette
+            colorSet: ColorContext.Window
+        }
+
+        readonly property ColorContext textColorContext: ColorContext {
+            id: popupTextTheme
+            palette: theme.palette
+            colorSet: ColorContext.ToolButton
+        }
+
+        background: Rectangle {
+            color: popupTheme.tint
+            radius: VLCStyle.radius_xlarge
+        }
+
+        contentItem: Column {
+            spacing: VLCStyle.spacing_10
+
+            Widgets.ImageExt {
+                width: thumbnailPopup.thumbnailWidth
+                height: thumbnailPopup.thumbnailHeight
+
+                radius: VLCStyle.radius_small
+                backgroundColor: "black"
+
+                // until the first picture is ready
+                Rectangle {
+                    anchors.fill: parent
+                    z: -1
+                    radius: parent.radius
+                    color: "black"
+                }
+
+                // served from the cache: it shows at once, the last picture
+                // stays until the next one is ready
+                source: thumbnailer.source
+                asynchronous: false
+                cache: false
+                fillMode: Image.PreserveAspectCrop
+
+                Accessible.ignored: true
+            }
+
+            T.Label {
+                width: thumbnailPopup.thumbnailWidth
+
+                text: {
+                    if (!thumbnailPopup.visible)
+                        return ""
+                    const length = Player.length
+                    let text = length.scale(thumbnailPopup._position)
+                                     .formatHMS(length.isSubSecond() ? VLCTick.SubSecondFormattedAsMS : 0)
+                    if (Player.hasChapters) {
+                        const chapter = Player.chapters.getNameAtPosition(thumbnailPopup._position).trim()
+                        if (chapter)
+                            text += " - " + chapter
+                    }
+                    return text
+                }
+
+                color: popupTextTheme.fg.primary
+                font.pixelSize: VLCStyle.fontSize_large
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+
+                Accessible.ignored: true
             }
         }
     }
@@ -331,6 +503,10 @@ T.ProgressBar {
             color: control.backgroundColor
             anchors.fill: parent
             radius: control._thick ? VLCStyle.radius_normal : implicitHeight
+
+            // the track is as dark as the scrim over the video: outline it
+            border.width: control._thick ? VLCStyle.dp(1, VLCStyle.scale) : 0
+            border.color: theme.border
 
             // keyboard focus ring
             Rectangle {
@@ -466,6 +642,32 @@ T.ProgressBar {
                 when: (progressRect.mutabilityGroup !== undefined)
                 value: (Player.playingState === Player.PLAYING_STATE_PLAYING) ? Item.DynamicMutabilityGroup
                                                                               : Item.StaticMutabilityGroup
+            }
+        }
+
+        // chapter ticks of the thick bar; a press near one selects the chapter
+        Repeater {
+            id: chapterTicks
+
+            model: control._thick ? Player.chapters : null
+
+            Rectangle {
+                required property var model
+
+                readonly property real _position: model.startPosition ?? 0.0
+                readonly property real _x: control._inset + _position * (control.availableWidth - control._inset * 2)
+                readonly property bool _hovered: hoverHandler.hovered && !dragHandler.active
+                                                 && Math.abs(control._pointerX - _x) < control._chapterSnapDistance
+
+                // the first chapter starts with the bar
+                visible: _position > 0
+
+                x: Math.round(_x - width / 2)
+                y: control._inset
+                width: VLCStyle.dp(2, VLCStyle.scale)
+                height: control.barHeight - control._inset * 2
+
+                color: _hovered ? theme.fg.primary : theme.bg.secondary
             }
         }
 

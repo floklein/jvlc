@@ -266,6 +266,7 @@ libqt_plugin_la_SOURCES = \
 	player/input_models.cpp player/input_models.hpp \
 	player/delay_estimator.cpp \
 	player/delay_estimator.hpp \
+	player/seek_thumbnailer.cpp player/seek_thumbnailer.hpp \
 	player/player_controller.cpp player/player_controller.hpp player/player_controller_p.hpp \
 	player/player_controlbar_model.cpp player/player_controlbar_model.hpp \
 	player/control_list_model.cpp player/control_list_model.hpp \
@@ -460,6 +461,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	style/vlcicons.moc.cpp \
 	player/delay_estimator.moc.cpp \
 	player/input_models.moc.cpp \
+	player/seek_thumbnailer.moc.cpp \
 	player/player_controller.moc.cpp \
 	player/player_controlbar_model.moc.cpp \
 	player/control_list_model.moc.cpp \
@@ -1931,6 +1933,27 @@ test_player_bars_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_player_bars_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_player_bars
 TESTS += test_player_bars
+
+# test_seek_thumbnailer
+
+test_seek_thumbnailer_SOURCES = \
+	tests/test_seek_thumbnailer.cpp \
+	player/seek_thumbnailer.cpp player/seek_thumbnailer.hpp \
+	util/vlctick.cpp util/vlctick.hpp
+
+nodist_test_seek_thumbnailer_SOURCES = \
+	tests/test_seek_thumbnailer.moc \
+	player/seek_thumbnailer.moc.cpp \
+	util/vlctick.moc.cpp
+
+BUILT_SOURCES += tests/test_seek_thumbnailer.moc
+CLEANFILES += tests/test_seek_thumbnailer.moc
+test_seek_thumbnailer_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_seek_thumbnailer_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_seek_thumbnailer_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_seek_thumbnailer_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_seek_thumbnailer
+TESTS += test_seek_thumbnailer
 
 # test_vlc_dialog_model
 

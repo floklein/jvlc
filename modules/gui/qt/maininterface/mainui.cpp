@@ -31,6 +31,7 @@
 #include "player/control_list_model.hpp"
 #include "player/control_list_filter.hpp"
 #include "player/delay_estimator.hpp"
+#include "player/seek_thumbnailer.hpp"
 
 #include "dialogs/toolbar/controlbar_profile_model.hpp"
 #include "dialogs/toolbar/controlbar_profile.hpp"
@@ -173,6 +174,9 @@ bool MainUI::setup(QQmlEngine* engine)
         new EffectsImageProvider(engine);
     engine->addImageProvider(QStringLiteral("svgcolor"), new SVGColorImageImageProvider());
     engine->addImageProvider(QStringLiteral("vlcaccess"), new VLCAccessImageProvider());
+    engine->addImageProvider(QLatin1String(SeekThumbnailProvider::providerId),
+                             new SeekThumbnailProvider(std::make_shared<SeekThumbnailCache>(),
+                                                       std::make_shared<PreparserSeekThumbnailSource>(VLC_OBJECT(m_intf))));
 
     m_component  = new QQmlComponent(engine, QStringLiteral("qrc:/qt/qml/VLC/MainInterface/MainInterface.qml"), QQmlComponent::PreferSynchronous, engine);
     if (m_component->isLoading())
@@ -340,6 +344,7 @@ void MainUI::registerQMLTypes()
         qmlRegisterSingletonInstance<PlayerController>(uri, versionMajor, versionMinor, "Player", m_intf->p_mainPlayerController);
         qmlRegisterTypesAndRevisions<TimedText>(uri, versionMajor);
         qmlRegisterType<PlayerHighResolutionTimeUpdater>(uri, versionMajor, versionMinor, "HighResolutionTimeUpdater");
+        qmlRegisterType<SeekThumbnailer>(uri, versionMajor, versionMinor, "SeekThumbnailer");
         qmlRegisterUncreatableMetaObject(VLCTickForeign::staticMetaObject, uri, versionMajor, versionMinor, "VLCTick", "Not Instantiable" );
         qmlRegisterTypesAndRevisions<VLCDuration>(uri, versionMajor);
         qmlRegisterTypesAndRevisions<VLCTime>(uri, versionMajor);

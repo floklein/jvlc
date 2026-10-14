@@ -109,6 +109,7 @@ moc_headers = files(
     'style/colorcontext.hpp',
     'player/input_models.hpp',
     'player/delay_estimator.hpp',
+    'player/seek_thumbnailer.hpp',
     'player/player_controller.hpp',
     'player/player_controlbar_model.hpp',
     'player/control_list_model.hpp',
@@ -384,6 +385,8 @@ qt_plugin_sources = files(
     'style/defaultthemeproviders.hpp',
     'player/input_models.cpp',
     'player/delay_estimator.cpp',
+    'player/seek_thumbnailer.cpp',
+    'player/seek_thumbnailer.hpp',
     'player/input_models.hpp',
     'player/player_controller.cpp',
     'player/player_controller.hpp',
@@ -1528,6 +1531,29 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_seek_thumbnailer',
+            'sources': files(
+                'tests/test_seek_thumbnailer.cpp',
+                'player/seek_thumbnailer.cpp',
+                'player/seek_thumbnailer.hpp',
+                'util/vlctick.cpp',
+                'util/vlctick.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_seek_thumbnailer.cpp'
+            ),
+            'moc_headers': files(
+                'player/seek_thumbnailer.hpp',
+                'util/vlctick.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qtest_qt6_dep]
         }
