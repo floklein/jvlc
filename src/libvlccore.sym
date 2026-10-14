@@ -296,6 +296,7 @@ vlc_memstream_printf
 vlc_ntp_time
 vlc_Log
 vlc_LogSet
+vlc_LogSetListener
 vlc_vaLog
 vlc_tracer_Create
 vlc_tracer_Destroy

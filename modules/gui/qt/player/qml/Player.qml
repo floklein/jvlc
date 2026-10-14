@@ -1279,6 +1279,16 @@ FocusScope {
     }
 
     Connections {
+        target: DialogsProvider
+
+        // Jump to Time opens over the seek bar, which must be shown first
+        function onShowJumpToTime() {
+            playerToolbarVisibilityFSM.askShow()
+            Qt.callLater(controlBar.openJumpToTime)
+        }
+    }
+
+    Connections {
         target: rootPlayer
         function onWidthChanged() {
             if (navBox.x > navBox.dragXMax)

@@ -655,27 +655,16 @@ modules/gui/minimal_macosx/intf.h
 modules/gui/minimal_macosx/intf.m
 modules/gui/minimal_macosx/macosx.c
 modules/gui/ncurses.c
-modules/gui/qt/dialogs/bookmarks/bookmarks.cpp
-modules/gui/qt/dialogs/bookmarks/bookmarks.hpp
+modules/gui/qt/dialogs/dialogs/qml/AboutWindow.qml
 modules/gui/qt/dialogs/dialogs/qml/CustomDialog.qml
 modules/gui/qt/dialogs/dialogs/qml/Dialogs.qml
+modules/gui/qt/dialogs/dialogs/qml/ErrorNotice.qml
+modules/gui/qt/dialogs/dialogs/qml/MessagesWindow.qml
+modules/gui/qt/dialogs/dialogs/qml/ProgramGuideWindow.qml
 modules/gui/qt/dialogs/dialogs/qml/WindowDialog.qml
 modules/gui/qt/dialogs/dialogs_provider.cpp
 modules/gui/qt/dialogs/dialogs_provider.hpp
-modules/gui/qt/dialogs/epg/EPGChannels.cpp
-modules/gui/qt/dialogs/epg/EPGChannels.hpp
-modules/gui/qt/dialogs/epg/EPGItem.cpp
-modules/gui/qt/dialogs/epg/EPGItem.hpp
-modules/gui/qt/dialogs/epg/EPGProgram.cpp
-modules/gui/qt/dialogs/epg/EPGProgram.hpp
-modules/gui/qt/dialogs/epg/EPGRuler.cpp
-modules/gui/qt/dialogs/epg/EPGRuler.hpp
-modules/gui/qt/dialogs/epg/EPGView.cpp
-modules/gui/qt/dialogs/epg/EPGView.hpp
-modules/gui/qt/dialogs/epg/EPGWidget.cpp
-modules/gui/qt/dialogs/epg/EPGWidget.hpp
-modules/gui/qt/dialogs/epg/epg.cpp
-modules/gui/qt/dialogs/epg/epg.hpp
+modules/gui/qt/dialogs/epg/programguidemodel.cpp
 modules/gui/qt/dialogs/extended/extended.cpp
 modules/gui/qt/dialogs/extended/extended.hpp
 modules/gui/qt/dialogs/extended/extended_panels.cpp
@@ -688,15 +677,10 @@ modules/gui/qt/dialogs/fingerprint/chromaprint.cpp
 modules/gui/qt/dialogs/fingerprint/chromaprint.hpp
 modules/gui/qt/dialogs/firstrun/firstrunwizard.cpp
 modules/gui/qt/dialogs/firstrun/firstrunwizard.hpp
-modules/gui/qt/dialogs/gototime/gototime.cpp
-modules/gui/qt/dialogs/gototime/gototime.hpp
-modules/gui/qt/dialogs/help/help.cpp
-modules/gui/qt/dialogs/help/help.hpp
 modules/gui/qt/dialogs/mediainfo/media_properties_model.cpp
 modules/gui/qt/dialogs/mediainfo/media_properties_model.hpp
 modules/gui/qt/dialogs/mediainfo/qml/MediaPropertiesDialog.qml
-modules/gui/qt/dialogs/messages/messages.cpp
-modules/gui/qt/dialogs/messages/messages.hpp
+modules/gui/qt/dialogs/messages/messagesmodel.cpp
 modules/gui/qt/dialogs/open/open.cpp
 modules/gui/qt/dialogs/open/open.hpp
 modules/gui/qt/dialogs/open/open_panels.cpp
@@ -707,8 +691,6 @@ modules/gui/qt/dialogs/playlists/playlists.cpp
 modules/gui/qt/dialogs/playlists/playlists.hpp
 modules/gui/qt/dialogs/plugins/plugins.cpp
 modules/gui/qt/dialogs/plugins/plugins.hpp
-modules/gui/qt/dialogs/podcast/podcast_configuration.cpp
-modules/gui/qt/dialogs/podcast/podcast_configuration.hpp
 modules/gui/qt/dialogs/preferences/complete_preferences.cpp
 modules/gui/qt/dialogs/preferences/complete_preferences.hpp
 modules/gui/qt/dialogs/preferences/expert_model.cpp
@@ -734,8 +716,6 @@ modules/gui/qt/dialogs/toolbar/controlbar_profile_model.cpp
 modules/gui/qt/dialogs/toolbar/controlbar_profile_model.hpp
 modules/gui/qt/dialogs/toolbar/qml/ToolbarEditor.qml
 modules/gui/qt/dialogs/toolbar/qml/ToolbarEditorDialog.qml
-modules/gui/qt/dialogs/vlm/vlm.cpp
-modules/gui/qt/dialogs/vlm/vlm.hpp
 modules/gui/qt/maininterface/mainctx.cpp
 modules/gui/qt/maininterface/mainctx.hpp
 modules/gui/qt/maininterface/mainctx_win32.cpp
@@ -745,7 +725,6 @@ modules/gui/qt/maininterface/qml/LocalTopbar.qml
 modules/gui/qt/maininterface/qml/MainDisplay.qml
 modules/gui/qt/maininterface/qml/MainInterface.qml
 modules/gui/qt/maininterface/qml/NoMedialibHome.qml
-modules/gui/qt/maininterface/qml/UpdatePane.qml
 modules/gui/qt/maininterface/qml/SideNavigationPane.qml
 modules/gui/qt/widgets/qml/EmptyLabelButton.qml
 modules/gui/qt/widgets/qml/EmptyLabel.qml
@@ -828,6 +807,7 @@ modules/gui/qt/player/player_controlbar_model.cpp
 modules/gui/qt/player/player_controlbar_model.hpp
 modules/gui/qt/player/qml/PlayerControlbarControls.qml
 modules/gui/qt/player/qml/NavigationBox.qml
+modules/gui/qt/player/qml/JumpToTimePopup.qml
 modules/gui/qt/player/qml/PlaybackSpeed.qml
 modules/gui/qt/player/qml/Player.qml
 modules/gui/qt/player/qml/ResumeDialog.qml
@@ -1393,15 +1373,12 @@ share/org.videolan.vlc.appdata.xml.in.in
 # qt .ui files
 # uncomment (and prepend $builddir} if you want to generate a proper vlc.pot
 
-#modules/gui/qt/dialogs/help/ui_about.h
 #modules/gui/qt/dialogs/extended/ui_equalizer.h
-#modules/gui/qt/dialogs/messages/ui_messages_panel.h
 #modules/gui/qt/dialogs/open/ui_open.h
 #modules/gui/qt/dialogs/open/ui_open_capture.h
 #modules/gui/qt/dialogs/open/ui_open_disk.h
 #modules/gui/qt/dialogs/open/ui_open_file.h
 #modules/gui/qt/dialogs/open/ui_open_net.h
-#modules/gui/qt/dialogs/podcast/ui_podcast_configuration.h
 #modules/gui/qt/dialogs/sout/ui_profiles.h
 #modules/gui/qt/dialogs/sout/ui_sout.h
 #modules/gui/qt/dialogs/preferences/ui_sprefs_audio.h
@@ -1409,6 +1386,4 @@ share/org.videolan.vlc.appdata.xml.in.in
 #modules/gui/qt/dialogs/preferences/ui_sprefs_interface.h
 #modules/gui/qt/dialogs/preferences/ui_sprefs_subtitles.h
 #modules/gui/qt/dialogs/preferences/ui_sprefs_video.h
-#modules/gui/qt/dialogs/help/ui_update.h
 #modules/gui/qt/dialogs/extended/ui_video_effects.h
-#modules/gui/qt/dialogs/vlm/ui_vlm.h

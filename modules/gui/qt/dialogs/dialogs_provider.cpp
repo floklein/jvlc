@@ -41,19 +41,14 @@
 #include "medialibrary/medialib.hpp"
 
 /* The dialogs */
-#include "dialogs/bookmarks/bookmarks.hpp"
 #include "dialogs/preferences/preferences.hpp"
-#include "dialogs/messages/messages.hpp"
+#include "dialogs/messages/messagesmodel.hpp"
+#include "dialogs/dialogs/dialogmodel.hpp"
 #include "dialogs/extended/extended.hpp"
-#include "dialogs/vlm/vlm.hpp"
 #include "dialogs/sout/sout.hpp"
 #include "dialogs/open/open.hpp"
 #include "dialogs/open/openurl.hpp"
-#include "dialogs/help/help.hpp"
-#include "dialogs/gototime/gototime.hpp"
-#include "dialogs/podcast/podcast_configuration.hpp"
 #include "dialogs/plugins/plugins.hpp"
-#include "dialogs/epg/epg.hpp"
 #include "dialogs/playlists/playlists.hpp"
 #include "dialogs/firstrun/firstrunwizard.hpp"
 
@@ -72,29 +67,12 @@
 #define I_OP_DIR_WINTITLE I_DIR_OR_FOLDER( N_("Open Directory"), \
                                            N_("Open Folder") )
 
-#define BASE_DIALOG(X) \
+#define ALL_DIALOG(X) \
     X(prefsDialog) \
     X(openDialog) \
     X(firstRunDialog) \
     X(extendedDialog) \
-    X(messagesDialog) \
-    X(gotoTimeDialog) \
-    X(vlmDialog) \
-    X(helpDialog) \
-    X(aboutDialog) \
-    X(bookmarkDialog) \
-    X(podcastDialog) \
-    X(pluginDialog)\
-    X(egpDialog)
-
-
-#ifdef UPDATE_CHECK
-#define ALL_DIALOG(X) \
-    BASE_DIALOG(X) \
-    X(updateDialog)
-#else
-#define ALL_DIALOG(X) BASE_DIALOG(X)
-#endif
+    X(pluginDialog)
 
 DialogsProvider::DialogsProvider( qt_intf_t *_p_intf )
     : QObject( NULL ), p_intf( _p_intf ), m_parser( nullptr, &input_item_parser_id_Release )
@@ -193,15 +171,15 @@ void DialogsProvider::customEvent( QEvent *event )
         case INTF_DIALOG_PREFS:
            prefsDialog(); break;
         case INTF_DIALOG_BOOKMARKS:
-           bookmarksDialog(); break;
+           /* The Bookmarks dialog is gone: bookmarks are in the player */
+           break;
         case INTF_DIALOG_EXTENDED:
            extendedDialog(); break;
         case INTF_DIALOG_SENDKEY:
            sendKey( de->i_arg ); break;
-#ifdef ENABLE_VLM
         case INTF_DIALOG_VLM:
-           vlmDialog(); break;
-#endif
+           /* The VLM dialog is gone: VLM stays available from the command line */
+           break;
         case INTF_DIALOG_POPUPMENU:
         {
            popupMenu.reset();
@@ -242,10 +220,9 @@ void DialogsProvider::customEvent( QEvent *event )
         case INTF_DIALOG_WIZARD:
         case INTF_DIALOG_STREAMWIZARD:
             openAndStreamingDialogs(); break;
-#ifdef UPDATE_CHECK
         case INTF_DIALOG_UPDATEVLC:
-            updateDialog(); break;
-#endif
+            /* There is no update check anymore */
+            break;
         case INTF_DIALOG_EXIT:
             quit(); break;
         default:
@@ -330,54 +307,41 @@ void DialogsProvider::synchroDialog()
 
 void DialogsProvider::messagesDialog(int page)
 {
-    ensureDialog(m_messagesDialog);
-    if(!m_messagesDialog->isVisible() || page)
-        m_messagesDialog->showTab(page);
-    else
-        m_messagesDialog->toggleVisible();
+    /* page 1 was the errors tab of the old dialog */
+    if (page == 1)
+    {
+        if (MessagesModel *messages = MessagesModel::getInstance<false>())
+            messages->setVerbosity(MessagesModel::Errors);
+    }
+    emit showMessages();
+}
+
+void DialogsProvider::saveMessages()
+{
+    MessagesModel *messages = MessagesModel::getInstance<false>();
+    if (!messages)
+        return;
+
+    const QString path = getSaveFileName( nullptr, qtr( "Save Messages" ),
+                                          QUrl::fromLocalFile( QVLCUserDir( VLC_DOCUMENTS_DIR ) + "/vlc.log" ),
+                                          qtr( "Logs (*.log *.txt);;All (*)" ) );
+    if (path.isEmpty())
+        return;
+
+    if (!messages->save(path))
+        DialogErrorModel::getInstance<false>()->pushError(
+            qtr( "Messages could not be saved" ),
+            qtr( "Cannot write to %1." ).arg( toNativeSeparators( path ) ) );
 }
 
 void DialogsProvider::gotoTimeDialog()
 {
-    toggleDialogVisible(m_gotoTimeDialog);
+    emit showJumpToTime();
 }
-
-#ifdef ENABLE_VLM
-void DialogsProvider::vlmDialog()
-{
-    toggleDialogVisible(m_vlmDialog);
-}
-#endif
-
-void DialogsProvider::helpDialog()
-{
-    toggleDialogVisible(m_helpDialog);
-}
-
-#ifdef UPDATE_CHECK
-void DialogsProvider::updateDialog(Mode mode)
-{
-    ensureDialog(m_updateDialog);
-    assert(m_updateDialog);
-
-    switch (mode)
-    {
-    case Mode::Show:
-        m_updateDialog->show();
-        break;
-    case Mode::Hide:
-        m_updateDialog->hide();
-        break;
-    case Mode::Toggle:
-    default:
-        toggleDialogVisible(m_updateDialog);
-    };
-}
-#endif
 
 void DialogsProvider::aboutDialog()
 {
-    toggleDialogVisible(m_aboutDialog);
+    emit showAbout();
 }
 
 void DialogsProvider::playerMediaProperties( MediaPropertiesModel::Tab tab )
@@ -561,16 +525,6 @@ void DialogsProvider::playlistsDialog( const QVariantList & medias, MLPlaylistLi
     dialog->show(); // "Modeless dialogs are displayed using show()"
 }
 
-void DialogsProvider::bookmarksDialog()
-{
-    toggleDialogVisible(m_bookmarkDialog);
-}
-
-void DialogsProvider::podcastConfigureDialog()
-{
-    toggleDialogVisible(m_podcastDialog);
-}
-
 void DialogsProvider::pluginDialog()
 {
     toggleDialogVisible(m_pluginDialog);
@@ -578,7 +532,7 @@ void DialogsProvider::pluginDialog()
 
 void DialogsProvider::epgDialog()
 {
-    toggleDialogVisible(m_egpDialog);
+    emit showProgramGuide();
 }
 
 void DialogsProvider::setPopupMenu()

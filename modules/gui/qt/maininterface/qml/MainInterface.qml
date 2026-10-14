@@ -409,6 +409,11 @@ Item {
         }
 
         Loader {
+            // About, Messages and Program Guide windows
+            source: "qrc:///qt/qml/VLC/Dialogs/DialogWindows.qml"
+        }
+
+        Loader {
             active: {
                 const windowVisibility = MainCtx.intfMainWindow.visibility
                 return MainCtx.clientSideDecoration && !MainCtx.platformHandlesResizeWithCSD()

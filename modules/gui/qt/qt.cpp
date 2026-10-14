@@ -99,7 +99,7 @@ extern "C" char **environ;
 #endif
 #include "style/defaultthemeproviders.hpp"
 #include "dialogs/extensions/extensions_manager.hpp" /* Extensions manager */
-#include "dialogs/help/help.hpp"     /* Launch Update */
+#include "dialogs/messages/messagesmodel.hpp"
 #include "util/dismiss_popup_event_filter.hpp"
 #include "maininterface/compositor.hpp"
 #include "util/vlctick.hpp"
@@ -189,15 +189,8 @@ static void ShowDialog   ( intf_thread_t *, int, int, intf_dialog_args_t * );
 
 #define ERROR_TEXT N_( "Show unimportant error and warnings dialogs" )
 
-#define UPDATER_TEXT N_( "Activate the updates availability notification" )
-#define UPDATER_LONGTEXT N_( "Activate the automatic notification of new " \
-                            "versions of the software. It runs once every " \
-                            "two weeks." )
-
 #define QT_QML_DEBUG_TEXT N_( "set the options for qml debugger" )
 #define QT_QML_DEBUG_LONGTEXT N_( "set the options for qml debugger (see http://doc.qt.io/qt-5/qtquick-debugging.html#starting-applications)" )
-
-#define UPDATER_DAYS_TEXT N_("Number of days between two update checks")
 
 #define PRIVACY_TEXT N_( "Ask for network policy at start" )
 
@@ -405,12 +398,9 @@ vlc_module_begin ()
     add_obsolete_string( "qt-recentplay-filter" )
     add_obsolete_integer( "qt-continue" )
 
-#ifdef UPDATE_CHECK
-    add_bool( "qt-updates-notif", true, UPDATER_TEXT,
-              UPDATER_LONGTEXT )
-    add_integer_with_range( "qt-updates-days", 3, 0, 180,
-              UPDATER_DAYS_TEXT, nullptr )
-#endif
+    /* The update check is gone */
+    add_obsolete_bool( "qt-updates-notif" )
+    add_obsolete_integer( "qt-updates-days" )
 
 #ifdef QT_QML_DEBUG
     add_string( "qt-qmljsdebugger", NULL,
@@ -1318,6 +1308,7 @@ static void *Thread( void *obj )
 
     app.setDesktopFileName( PACKAGE );
 
+    MessagesModel::getInstance( p_intf );
     DialogErrorModel::getInstance( p_intf );
     VLCDialogModel::getInstance( p_intf );
 
@@ -1572,6 +1563,7 @@ static void *ThreadCleanup( qt_intf_t *p_intf, CleanupReason cleanupReason )
     DialogsProvider::killInstance();
     VLCDialogModel::killInstance();
     DialogErrorModel::killInstance();
+    MessagesModel::killInstance();
     MediaSourceCache::killInstance();
 
     //destroy MainCtx, Compositor shouldn't not use MainCtx after `unloadGUI`

@@ -871,17 +871,9 @@ SPrefsPanel::SPrefsPanel( qt_intf_t *_p_intf, QWidget *_parent,
 
             configBool( "qt-titlebar", ui.titleBarCheckBox );
 
-            /* UPDATE options */
-#ifdef UPDATE_CHECK
-            configBool( "qt-updates-notif", ui.updatesBox );
-            configGeneric<IntegerConfigControl>( "qt-updates-days", nullptr, ui.updatesDays );
-            ui.updatesDays->setEnabled( ui.updatesBox->isChecked() );
-            connect( ui.updatesBox, &QCheckBox::toggled,
-                     ui.updatesDays, &QSpinBox::setEnabled );
-#else
+            /* There is no update check anymore */
             ui.updatesBox->hide();
             ui.updatesDays->hide();
-#endif
             /* ONE INSTANCE options */
 #if !defined( _WIN32 ) && !defined(__APPLE__) && !defined(__OS2__)
             if( !module_exists( "dbus" ) )

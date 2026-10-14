@@ -1409,6 +1409,13 @@ void PlayerController::jumpBwd()
     vlc_player_JumpTime( d->m_player, vlc_tick_from_sec( -i_interval ) );
 }
 
+void PlayerController::jumpToTime(int seconds)
+{
+    if (seconds < 0)
+        return;
+    setTime(VLCTime(vlc_tick_from_sec(seconds)));
+}
+
 void PlayerController::jumpTime(VLCTime i_time)
 {
     Q_D(PlayerController);

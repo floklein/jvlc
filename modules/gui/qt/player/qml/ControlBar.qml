@@ -109,6 +109,33 @@ T.Pane {
             menu.close()
     }
 
+    // Jump to Time, over the seek bar
+    function openJumpToTime() {
+        if (!Player.seekable || !contentItem.trackPositionSlider.enabled)
+            return
+        jumpToTimePopup.open()
+    }
+
+    onForceUnlock: jumpToTimePopup.close()
+
+    JumpToTimePopup {
+        id: jumpToTimePopup
+
+        parent: root.contentItem.trackPositionSlider
+        colorContext.palette: theme.palette
+
+        onOpened: {
+            root.applyMenu(jumpToTimePopup)
+            root.requestLockUnlockAutoHide(true)
+        }
+
+        onClosed: {
+            root.requestLockUnlockAutoHide(false)
+            if (root.menu === jumpToTimePopup)
+                root.menu = undefined
+        }
+    }
+
     readonly property ColorContext colorContext: ColorContext {
         id: theme
         colorSet: ColorContext.Window

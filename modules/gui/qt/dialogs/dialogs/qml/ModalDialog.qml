@@ -37,7 +37,9 @@ Dialog {
     anchors.centerIn: T.Overlay.overlay
 
     padding: VLCStyle.margin_normal
+    topPadding: (header && header.visible) ? VLCStyle.margin_small : VLCStyle.margin_normal
     margins: VLCStyle.margin_large
+    spacing: VLCStyle.margin_xsmall
 
     implicitWidth: contentWidth > 0 ? contentWidth + leftPadding + rightPadding : 0
     implicitHeight: (header && header.visible ? header.implicitHeight + spacing : 0)
@@ -85,33 +87,33 @@ Dialog {
 
     background: Rectangle {
         color: theme.bg.primary
+        radius: VLCStyle.radius_large
+        border.color: theme.border
 
         Widgets.RoundedRectangleShadow {
-            yOffset: VLCStyle.dp(4, VLCStyle.scale)
-            blurRadius: VLCStyle.dp(3, VLCStyle.scale)
+            yOffset: VLCStyle.dp(6, VLCStyle.scale)
+            blurRadius: VLCStyle.dp(12, VLCStyle.scale)
 
             visible: (parent.color.a > 0.0)
 
-            opacity: 0.2
+            opacity: 0.25
 
             color: theme.shadow.alpha(1.0)
         }
     }
 
-    //FIXME use the right xxxLabel class
     header: T.Label {
         text: control.title
         visible: control.title
         elide: Label.ElideRight
-        font.bold: true
+        font.pixelSize: VLCStyle.fontSize_large
+        font.weight: Font.DemiBold
         color: theme.fg.primary
-        padding: 6
-        background: Rectangle {
-            x: 1; y: 1
-            width: parent.width - 2
-            height: parent.height - 1
-            color: theme.bg.primary
-        }
+        topPadding: VLCStyle.margin_normal
+        leftPadding: VLCStyle.margin_normal
+        rightPadding: VLCStyle.margin_normal
+
+        Accessible.role: Accessible.Heading
     }
 
     exit: Transition {

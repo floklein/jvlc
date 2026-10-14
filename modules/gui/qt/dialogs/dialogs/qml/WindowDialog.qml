@@ -20,6 +20,7 @@ import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Window
 import QtQuick.Layouts
+import QtQuick.Controls.Basic
 
 import VLC.MainInterface
 import VLC.Widgets as Widgets
@@ -38,7 +39,7 @@ Window {
     width: VLCStyle.appWidth * 0.75
     height: VLCStyle.appHeight * 0.85
 
-    color: theme.bg.primary
+    color: layout.colorContext.bg.primary
 
     property alias contentComponent: loader.sourceComponent
     property alias standardButtons: buttonBox.standardButtons

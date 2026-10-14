@@ -44,10 +44,11 @@ Item {
     // Events
     //---------------------------------------------------------------------------------------------
 
-    Component.onCompleted: if (DialogErrorModel.repeatedMessageCount){
-                               hideErrorPopupTimer.restart()
-                               errorPopup.state = "visible"
-                           }
+    Component.onCompleted: {
+        // an error happened while the other view was shown
+        if (DialogErrorModel.repeatedMessageCount && DialogErrorModel.noticesEnabled())
+            errorNotice.show()
+    }
 
     Component.onDestruction: {
         if (questionDialog.dialogId !== null) {
@@ -88,7 +89,9 @@ Item {
         onLogin: (dialogId, title, text, defaultUsername, askStore) => {
             loginDialog.dialogId = dialogId
             loginDialog.title = title
+            loginDialog.text = text
             loginDialog.defaultUsername = defaultUsername
+            loginDialog.askStore = askStore
             loginDialog.open()
         }
 
@@ -145,8 +148,8 @@ Item {
         target: DialogErrorModel
 
         function onCountChanged() {
-            hideErrorPopupTimer.restart()
-            errorPopup.state = "visible"
+            if (DialogErrorModel.noticesEnabled())
+                errorNotice.show()
         }
     }
 
@@ -154,126 +157,20 @@ Item {
     // Childs
     //---------------------------------------------------------------------------------------------
 
-    Widgets.DrawerExt {
-        id: errorPopup
-
-        property string messageText
-        property int repeatedMessageCount: 0
+    ErrorNotice {
+        id: errorNotice
 
         anchors {
+            right: parent.right
             bottom: parent.bottom
-            horizontalCenter: parent.horizontalCenter
-            bottomMargin: VLCStyle.margin_small
+            margins: VLCStyle.margin_normal
         }
 
-        edge: Widgets.DrawerExt.Edges.Bottom
-        width: contentItem?.layoutWidth ?? 0
-        height: contentItem?.height ?? 0
+        width: Math.min(implicitWidth, root.width - VLCStyle.margin_normal * 2)
         z: 10
-
-        ColorContext {
-            id: errorMsgTheme
-            palette: VLCStyle.palette
-            colorSet: ColorContext.Window
-        }
-
-        component: Rectangle {
-            color: errorMsgTheme.bg.negative
-
-            height: messageText.implicitHeight + VLCStyle.margin_normal
-            radius: VLCStyle.fontHeight_normal / 2
-
-            property real layoutWidth: layout.width
-
-            Accessible.role: Accessible.AlertMessage
-            Accessible.name: qsTr("error popup")
-
-            RowLayout {
-                id: layout
-
-                spacing: VLCStyle.margin_xsmall
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-
-                Widgets.IconLabel {
-                    text: VLCIcons.info
-                    color: errorMsgTheme.fg.primary
-                    Layout.leftMargin: VLCStyle.margin_xxsmall
-                }
-
-                T.Label {
-                    id: messageText
-
-                    Layout.maximumWidth: root.width * 0.5
-                    Layout.leftMargin: VLCStyle.margin_xxsmall
-                    Layout.rightMargin: VLCStyle.margin_xxsmall
-
-                    text: (DialogErrorModel.repeatedMessageCount > 1 ? '[' + DialogErrorModel.repeatedMessageCount + '] ' : '')
-                          + DialogErrorModel.notificationText
-
-                    wrapMode: Text.WrapAnywhere
-                    font.pixelSize: VLCStyle.fontSize_normal
-                    font.bold: true
-                    color: errorMsgTheme.fg.primary
-                }
-
-                Widgets.TextToolButton {
-                    id: detailsBtn
-
-                    text: qsTr("Show Details")
-
-                    colorContext.colorSet: ColorContext.ButtonAccent
-
-                    onClicked: {
-                        hideErrorPopupTimer.stop()
-                        errorPopup.state = "hidden"
-                        DialogErrorModel.resetRepeatedMessageCount()
-                        DialogsProvider.messagesDialog(1)
-                    }
-                }
-
-                Widgets.IconToolButton {
-                    id: closeBtn
-                    font.pixelSize: VLCStyle.icon_normal
-                    text: VLCIcons.clear
-                    description: qsTr("Dismiss")
-                    Layout.rightMargin: VLCStyle.margin_xxsmall
-
-                    color: closeBtn.colorContext.fg.primary
-                    backgroundColor: closeBtn.colorContext.bg.negative
-
-                    onClicked: {
-                        hideErrorPopupTimer.stop()
-                        errorPopup.state = "hidden"
-                        DialogErrorModel.resetRepeatedMessageCount()
-                    }
-                }
-            }
-
-            Widgets.RoundedRectangleShadow {
-                yOffset: VLCStyle.dp(4, VLCStyle.scale)
-                blurRadius: VLCStyle.dp(3, VLCStyle.scale)
-
-                opacity: 0.2
-
-                visible: (color.a > 0.0)
-
-                color: errorMsgTheme.shadow
-            }
-        }
-
-        state: "hidden"
-
-        Timer {
-            id: hideErrorPopupTimer
-            interval: 5000
-            repeat: false
-            onTriggered: {
-                errorPopup.state = "hidden"
-                DialogErrorModel.resetRepeatedMessageCount()
-            }
-        }
     }
+
+    // VLC's own prompts stay modal
 
     ModalDialog {
         id: loginDialog
@@ -281,12 +178,16 @@ Item {
         //use var here as DialogId is a QGadget and passed by value
         property var dialogId: null
         property string defaultUsername: ""
+        property string text: ""
+        property bool askStore: false
 
         onAboutToHide: restoreFocus()
         rootWindow: root.bgContent
 
         contentItem: GridLayout {
             columns: 2
+            columnSpacing: VLCStyle.margin_small
+            rowSpacing: VLCStyle.margin_small
 
             readonly property ColorContext colorContext: ColorContext {
                 id: loginContentTheme
@@ -294,7 +195,19 @@ Item {
                 colorSet: ColorContext.Window
             }
 
-            Text {
+            T.Label {
+                Layout.columnSpan: 2
+                Layout.fillWidth: true
+                Layout.maximumWidth: VLCStyle.dp(400, VLCStyle.scale)
+
+                visible: text.length > 0
+                text: loginDialog.text
+                color: loginContentTheme.fg.secondary
+                font.pixelSize: VLCStyle.fontSize_normal
+                wrapMode: Text.WordWrap
+            }
+
+            T.Label {
                 text: qsTr("User")
                 color: loginContentTheme.fg.primary
                 font.pixelSize: VLCStyle.fontSize_normal
@@ -306,14 +219,15 @@ Item {
                 focus: true
                 text: loginDialog.defaultUsername
 
-                Layout.fillWidth:true
+                Layout.fillWidth: true
+                Layout.minimumWidth: VLCStyle.dp(240, VLCStyle.scale)
 
                 Navigation.downItem: password
                 Keys.priority: Keys.AfterItem
                 Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
             }
 
-            Text {
+            T.Label {
                 text: qsTr("Password")
                 color: loginContentTheme.fg.primary
                 font.pixelSize: VLCStyle.fontSize_normal
@@ -323,80 +237,74 @@ Item {
                 id: password
 
                 echoMode: TextInput.Password
-                font.pixelSize: VLCStyle.fontSize_normal
-                Layout.fillWidth:true
+                Layout.fillWidth: true
 
                 Navigation.upItem: username
-                Navigation.downItem: savePassword
+                Navigation.downItem: savePassword.visible ? savePassword : loginOk
                 Keys.priority: Keys.AfterItem
                 Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
+
+                Keys.onReturnPressed: loginOk.clicked()
+                Keys.onEnterPressed: loginOk.clicked()
             }
 
-            Text {
-                text: qsTr("Save password")
-                color: loginContentTheme.fg.primary
-                font.pixelSize: VLCStyle.fontSize_normal
+            Item {
+                visible: savePassword.visible
+                implicitWidth: 1
             }
+
             Widgets.CheckBoxExt {
                 id: savePassword
 
+                visible: loginDialog.askStore
+                text: qsTr("Save password")
+
                 Navigation.upItem: password
-                Navigation.downItem: loginButtons
+                Navigation.downItem: loginOk
                 Keys.priority: Keys.AfterItem
                 Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
             }
         }
 
         footer: FocusScope {
-            id: loginButtons
-            implicitHeight: VLCStyle.icon_normal
+            implicitHeight: loginButtons.implicitHeight + VLCStyle.margin_normal
 
-            readonly property ColorContext colorContext: ColorContext {
-                id: loginFooterTheme
-                palette: VLCStyle.palette
-                colorSet: ColorContext.Window
-            }
+            RowLayout {
+                id: loginButtons
 
-            Rectangle {
-                color: loginFooterTheme.bg.primary
-                anchors.fill: parent
+                anchors.right: parent.right
+                anchors.rightMargin: VLCStyle.margin_normal
+                anchors.top: parent.top
 
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: VLCStyle.margin_xxsmall
-                    anchors.rightMargin: VLCStyle.margin_xxsmall
+                spacing: VLCStyle.margin_xsmall
 
-                    Widgets.TextToolButton {
-                        id: loginCancel
-                        Layout.fillWidth: true
-                        text: qsTr("cancel")
+                Widgets.ButtonExt {
+                    id: loginCancel
+                    text: qsTr("Cancel")
 
-                        Navigation.upItem: savePassword
-                        Navigation.rightItem: loginOk
-                        Keys.priority: Keys.AfterItem
-                        Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
+                    Navigation.upItem: savePassword.visible ? savePassword : password
+                    Navigation.rightItem: loginOk
+                    Keys.priority: Keys.AfterItem
+                    Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
 
-                        onClicked: {
-                            loginDialog.reject()
-                            loginDialog.close()
-                        }
+                    onClicked: {
+                        loginDialog.reject()
+                        loginDialog.close()
                     }
+                }
 
-                    Widgets.TextToolButton {
-                        id: loginOk
-                        Layout.fillWidth: true
-                        text: qsTr("Ok")
-                        focus: true
+                Widgets.ActionButtonPrimary {
+                    id: loginOk
+                    text: qsTr("Log In")
 
-                        Navigation.upItem: savePassword
-                        Navigation.leftItem: loginCancel
-                        Keys.priority: Keys.AfterItem
-                        Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
+                    Navigation.upItem: savePassword.visible ? savePassword : password
+                    Navigation.leftItem: loginCancel
+                    Keys.priority: Keys.AfterItem
+                    Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
 
-                        onClicked: {
-                            loginDialog.accept()
-                            loginDialog.close()
-                        }
+                    onClicked: {
+                        loginDialog.accept()
+                        loginDialog.close()
                     }
                 }
             }
@@ -407,12 +315,14 @@ Item {
                 vlcDialog.post_login(loginDialog.dialogId, username.text, password.text, savePassword.checked)
                 loginDialog.dialogId = null
             }
+            password.text = ""
         }
         onRejected: {
             if (loginDialog.dialogId !== null) {
                 vlcDialog.dismiss(loginDialog.dialogId)
                 loginDialog.dialogId = null
             }
+            password.text = ""
         }
     }
 
@@ -429,7 +339,8 @@ Item {
         onAboutToHide: restoreFocus()
         rootWindow: root.bgContent
 
-        contentItem:  ColumnLayout {
+        contentItem: ColumnLayout {
+            spacing: VLCStyle.margin_small
 
             readonly property ColorContext colorContext: ColorContext {
                 id: progressContentTheme
@@ -437,7 +348,10 @@ Item {
                 colorSet: ColorContext.Window
             }
 
-            Text {
+            T.Label {
+                Layout.fillWidth: true
+                Layout.maximumWidth: VLCStyle.dp(400, VLCStyle.scale)
+
                 focus: false
                 font.pixelSize: VLCStyle.fontSize_normal
                 color: progressContentTheme.fg.primary
@@ -447,6 +361,7 @@ Item {
 
             Widgets.ProgressBarExt {
                 Layout.fillWidth:true
+                Layout.minimumWidth: VLCStyle.dp(280, VLCStyle.scale)
 
                 from: 0.0
                 to: 1.0
@@ -456,33 +371,25 @@ Item {
             }
         }
 
-
         footer: FocusScope {
             focus: true
-            implicitHeight: VLCStyle.icon_normal
+            visible: progressDialog.cancelTxt !== ""
+            implicitHeight: progressCancel.implicitHeight + VLCStyle.margin_normal
 
-            readonly property ColorContext colorContext: ColorContext {
-                palette: VLCStyle.palette
-                colorSet: ColorContext.Window
-            }
+            Widgets.ButtonExt {
+                id: progressCancel
 
-            Rectangle {
-                color: questionDialog.colorContext.bg.primary
-                anchors.fill: parent
-                anchors.leftMargin: VLCStyle.margin_xxsmall
-                anchors.rightMargin: VLCStyle.margin_xxsmall
+                anchors.right: parent.right
+                anchors.rightMargin: VLCStyle.margin_normal
+                anchors.top: parent.top
 
-                Widgets.TextToolButton {
-                    anchors.right: parent.right
-                    focus: true
-                    visible: text !== ""
-                    text: progressDialog.cancelTxt
+                focus: true
+                text: progressDialog.cancelTxt
 
-                    onClicked: {
-                        vlcDialog.dismiss(progressDialog.dialogId)
-                        progressDialog.dialogId = null
-                        progressDialog.close()
-                    }
+                onClicked: {
+                    vlcDialog.dismiss(progressDialog.dialogId)
+                    progressDialog.dialogId = null
+                    progressDialog.close()
                 }
             }
         }
@@ -502,7 +409,7 @@ Item {
 
         onAboutToHide: restoreFocus()
 
-        contentItem: Text {
+        contentItem: T.Label {
             id: content
             focus: false
             font.pixelSize: VLCStyle.fontSize_normal
@@ -512,76 +419,64 @@ Item {
 
         footer: FocusScope {
             focus: true
-            id: questionButtons
-            implicitHeight: VLCStyle.icon_normal
+            implicitHeight: questionButtons.implicitHeight + VLCStyle.margin_normal
 
-            readonly property ColorContext colorContext: ColorContext {
-                palette: VLCStyle.palette
-                colorSet: ColorContext.Window
-            }
+            RowLayout {
+                id: questionButtons
 
-            Rectangle {
-                color: questionDialog.colorContext.bg.primary
-                anchors.fill: parent
-                anchors.leftMargin: VLCStyle.margin_xxsmall
-                anchors.rightMargin: VLCStyle.margin_xxsmall
+                anchors.right: parent.right
+                anchors.rightMargin: VLCStyle.margin_normal
+                anchors.top: parent.top
 
-                RowLayout {
-                    anchors.fill: parent
+                spacing: VLCStyle.margin_xsmall
 
-                    Widgets.TextToolButton {
-                        id: cancel
+                Widgets.ButtonExt {
+                    id: cancel
 
-                        focus: true
-                        visible: cancel.text !== ""
+                    focus: true
+                    visible: cancel.text !== ""
 
-                        Layout.fillWidth: true
+                    Navigation.rightItem: action2.visible ? action2 : action1
+                    Keys.priority: Keys.AfterItem
+                    Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
 
-                        Navigation.rightItem: action1
-                        Keys.priority: Keys.AfterItem
-                        Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
-
-                        onClicked: {
-                            vlcDialog.dismiss(questionDialog.dialogId)
-                            questionDialog.dialogId = null
-                            questionDialog.close()
-                        }
+                    onClicked: {
+                        vlcDialog.dismiss(questionDialog.dialogId)
+                        questionDialog.dialogId = null
+                        questionDialog.close()
                     }
+                }
 
-                    Widgets.TextToolButton {
-                        id: action1
+                Widgets.ButtonExt {
+                    id: action2
+                    visible: action2.text !== ""
 
-                        visible: action1.text !== ""
+                    Navigation.leftItem: cancel
+                    Navigation.rightItem: action1
+                    Keys.priority: Keys.AfterItem
+                    Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
 
-                        Layout.fillWidth: true
-
-                        Navigation.leftItem: cancel
-                        Navigation.rightItem: action2
-                        Keys.priority: Keys.AfterItem
-                        Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
-
-                        onClicked: {
-                            vlcDialog.post_action1(questionDialog.dialogId)
-                            questionDialog.dialogId = null
-                            questionDialog.close()
-                        }
+                    onClicked: {
+                        vlcDialog.post_action2(questionDialog.dialogId)
+                        questionDialog.dialogId = null
+                        questionDialog.close()
                     }
+                }
 
-                    Widgets.TextToolButton {
-                        id: action2
-                        visible: action2.text !== ""
+                // the first action is the main one
+                Widgets.ActionButtonPrimary {
+                    id: action1
 
-                        Layout.fillWidth: true
+                    visible: action1.text !== ""
 
-                        Navigation.leftItem: action1
-                        Keys.priority: Keys.AfterItem
-                        Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
+                    Navigation.leftItem: action2.visible ? action2 : cancel
+                    Keys.priority: Keys.AfterItem
+                    Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
 
-                        onClicked: {
-                            vlcDialog.post_action2(questionDialog.dialogId)
-                            questionDialog.dialogId = null
-                            questionDialog.close()
-                        }
+                    onClicked: {
+                        vlcDialog.post_action1(questionDialog.dialogId)
+                        questionDialog.dialogId = null
+                        questionDialog.close()
                     }
                 }
             }

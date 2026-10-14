@@ -289,6 +289,7 @@ static struct vlc_logger discard_log = { &discard_ops };
  */
 struct vlc_logger_switch {
     struct vlc_logger *_Atomic backend;
+    struct vlc_logger *_Atomic listener;
     struct vlc_logger frontend;
 };
 
@@ -298,15 +299,26 @@ static void vlc_vaLogSwitch(void *d, int type, const vlc_log_t *item,
     struct vlc_logger *logger = d;
     struct vlc_logger_switch *logswitch =
         container_of(logger, struct vlc_logger_switch, frontend);
-    struct vlc_logger *backend;
+    struct vlc_logger *backend, *listener;
 
     vlc_rcu_read_lock();
+    listener = atomic_load_explicit(&logswitch->listener, memory_order_acquire);
+    if (listener != NULL)
+    {
+        va_list aq;
+
+        va_copy(aq, ap);
+        listener->ops->log(listener, type, item, format, aq);
+        va_end(aq);
+    }
     backend = atomic_load_explicit(&logswitch->backend, memory_order_acquire);
     backend->ops->log(backend, type, item, format, ap);
     vlc_rcu_read_unlock();
 }
 
 static void vlc_LogSwitch(vlc_logger_t *logger, vlc_logger_t *new_logger);
+static void vlc_LogSwitchListener(vlc_logger_t *logger,
+                                  vlc_logger_t *new_listener);
 
 static void vlc_LogSwitchClose(void *d)
 {
@@ -315,6 +327,7 @@ static void vlc_LogSwitchClose(void *d)
         container_of(logger, struct vlc_logger_switch, frontend);
 
     /* Discard any further messages. */
+    vlc_LogSwitchListener(logger, NULL);
     vlc_LogSwitch(logger, &discard_log);
     free(logswitch);
 }
@@ -341,6 +354,22 @@ static void vlc_LogSwitch(vlc_logger_t *logger, vlc_logger_t *new_logger)
     old_logger->ops->destroy(old_logger);
 }
 
+static void vlc_LogSwitchListener(vlc_logger_t *logger,
+                                  vlc_logger_t *new_listener)
+{
+    struct vlc_logger_switch *logswitch =
+        container_of(logger, struct vlc_logger_switch, frontend);
+    struct vlc_logger *old_listener;
+
+    assert(logger->ops == &switch_ops);
+
+    old_listener = atomic_exchange_explicit(&logswitch->listener, new_listener,
+                                            memory_order_acq_rel);
+    vlc_rcu_synchronize();
+    if (old_listener != NULL)
+        old_listener->ops->destroy(old_listener);
+}
+
 static struct vlc_logger *vlc_LogSwitchCreate(void)
 {
     struct vlc_logger_switch *logswitch = malloc(sizeof (*logswitch));
@@ -349,6 +378,7 @@ static struct vlc_logger *vlc_LogSwitchCreate(void)
 
     logswitch->frontend.ops = &switch_ops;
     atomic_init(&logswitch->backend, &discard_log);
+    atomic_init(&logswitch->listener, NULL);
     return &logswitch->frontend;
 }
 
@@ -566,6 +596,27 @@ void vlc_LogSet(libvlc_int_t *vlc, const struct vlc_logger_operations *ops,
 
     vlc_LogSwitch(vlc->obj.logger, logger);
     vlc_LogSpam(VLC_OBJECT(vlc));
+}
+
+/**
+ * Sets the message listener.
+ *
+ * Unlike vlc_LogSet(), this does not replace the configured log: the
+ * listener receives every message in addition to it, at every level.
+ *
+ * \param vlc the libvlc private instance to listen to
+ * \param ops message callback, or NULL to remove the listener
+ * \param opaque data pointer for the message callback
+ */
+void vlc_LogSetListener(libvlc_int_t *vlc,
+                        const struct vlc_logger_operations *ops, void *opaque)
+{
+    struct vlc_logger *listener = NULL;
+
+    if (ops != NULL)
+        listener = vlc_LogExternalCreate(ops, opaque);
+
+    vlc_LogSwitchListener(vlc->obj.logger, listener);
 }
 
 void vlc_LogDestroy(vlc_logger_t *logger)

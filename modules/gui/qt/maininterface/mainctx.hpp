@@ -40,10 +40,6 @@ Q_MOC_INCLUDE( "maininterface/videoblur.hpp" )
 Q_MOC_INCLUDE( "medialibrary/medialib.hpp" )
 Q_MOC_INCLUDE( "player/player_controller.hpp" )
 Q_MOC_INCLUDE( "util/color_scheme_model.hpp" )
-#ifdef UPDATE_CHECK
-Q_MOC_INCLUDE( "dialogs/help/help.hpp" )
-#endif
-
 class CSDButtonModel;
 class QSettings;
 class QCloseEvent;
@@ -70,9 +66,6 @@ class MediaLib;
 class ColorSchemeModel;
 class VLCVarChoiceModel;
 class SidePanelCtx;
-#ifdef UPDATE_CHECK
-class UpdateModel;
-#endif
 struct vlc_preparser_t;
 class ThreadRunner;
 
@@ -162,9 +155,6 @@ class MainCtx : public QObject
     Q_PROPERTY(SearchCtx* search MEMBER m_search CONSTANT FINAL)
     Q_PROPERTY(SortCtx* sort MEMBER m_sort CONSTANT FINAL)
 
-#ifdef UPDATE_CHECK
-    Q_PROPERTY(UpdateModel* updateModel READ getUpdateModel CONSTANT FINAL)
-#endif
 
 public:
     /* tors */
@@ -426,9 +416,6 @@ public:
     double artistAlbumsWidth() const;
     void setArtistAlbumsWidth(double newArtistAlbumsWidth);
 
-#ifdef UPDATE_CHECK
-    UpdateModel* getUpdateModel() const;
-#endif
 
 protected:
     /* Systray */
@@ -517,10 +504,6 @@ protected:
     SearchCtx* m_search = nullptr;
     SortCtx* m_sort = nullptr;
 
-#ifdef UPDATE_CHECK
-    //m_updateModel is created on first access
-    mutable std::unique_ptr<UpdateModel> m_updateModel;
-#endif
 
     ThreadRunner* m_threadRunner = nullptr;
 

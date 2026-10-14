@@ -27,6 +27,18 @@
 
 #include "maininterface/mainctx.hpp"
 
+#include <QGuiApplication>
+
+namespace {
+
+// The application badge needs a GUI application: tests run without one
+QGuiApplication *guiApp()
+{
+    return qobject_cast<QGuiApplication *>(QCoreApplication::instance());
+}
+
+}
+
 //=================================================================================================
 // DialogErrorModel
 //=================================================================================================
@@ -43,8 +55,8 @@ DialogErrorModel::~DialogErrorModel()
     vlc_dialog_provider_set_error_callback(m_intf, nullptr, nullptr);
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-    assert(qGuiApp);
-    qGuiApp->setBadgeNumber(0);
+    if (guiApp())
+        guiApp()->setBadgeNumber(0);
 #endif
 }
 
@@ -123,24 +135,29 @@ void DialogErrorModel::pushError(const DialogError & error)
 
     endInsertRows();
 
+    /* The errors shown to the user are also in the Messages log */
+    msg_Err(m_intf, "%s: %s", qtu(error.title), qtu(error.text));
+
     if (lastNotificationText == error.title)
         repeatedNotificationCount += 1;
     else{
         lastNotificationText = error.title;
         repeatedNotificationCount = 1;
     }
+    lastNotificationDescription = error.text;
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-    assert(qGuiApp);
-
+    if (guiApp())
+    {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 13, 0)
-    const qint64 badgeNumber = qGuiApp->badgeNumber() + 1;
+        const qint64 badgeNumber = guiApp()->badgeNumber() + 1;
 #else
-    const int badgeNumber = qGuiApp->property("badgeNumber").toInt() + 1;
-    qGuiApp->setProperty("badgeNumber", badgeNumber);
+        const int badgeNumber = guiApp()->property("badgeNumber").toInt() + 1;
+        guiApp()->setProperty("badgeNumber", badgeNumber);
 #endif
 
-    qGuiApp->setBadgeNumber(badgeNumber);
+        guiApp()->setBadgeNumber(badgeNumber);
+    }
 #endif
 
     emit countChanged();
@@ -160,6 +177,16 @@ QString DialogErrorModel::notificationText() const
     return lastNotificationText;
 }
 
+QString DialogErrorModel::notificationDescription() const
+{
+    return lastNotificationDescription;
+}
+
+bool DialogErrorModel::noticesEnabled() const
+{
+    return var_InheritBool(m_intf, "qt-error-dialogs");
+}
+
 int DialogErrorModel::repeatedMessageCount() const
 {
     return repeatedNotificationCount;
@@ -170,10 +197,11 @@ void DialogErrorModel::resetRepeatedMessageCount()
    repeatedNotificationCount = 0;
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     // Errors are dismissed, or error dialog is opened.
-    assert(qGuiApp);
-    qGuiApp->setBadgeNumber(0);
+    if (!guiApp())
+        return;
+    guiApp()->setBadgeNumber(0);
 #if QT_VERSION < QT_VERSION_CHECK(6, 13, 0)
-    qGuiApp->setProperty("badgeNumber", 0);
+    guiApp()->setProperty("badgeNumber", 0);
 #endif
 #endif
 }

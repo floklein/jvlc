@@ -65,11 +65,11 @@
 #include "dialogs/dialogs/dialogmodel.hpp"
 #include "dialogs/convert/conversion_manager.hpp"
 #include "dialogs/convert/conversion_profile_model.hpp"
+#include "dialogs/messages/messagesmodel.hpp"
+#include "dialogs/epg/programguidemodel.hpp"
+#include <QTimer>
 #include "dialogs/mediainfo/media_properties_model.hpp"
 #include "dialogs/open/disc_model.hpp"
-#ifdef UPDATE_CHECK
-#include "dialogs/help/help.hpp" // UpdateModel
-#endif
 #include "util/vlchotkeyconverter.hpp"
 
 #include "network/networkmediamodel.hpp"
@@ -253,9 +253,6 @@ void MainUI::registerQMLTypes()
         qmlRegisterTypesAndRevisions<CSDMenu>( uri, versionMajor);
         qmlRegisterUncreatableType<NavigationAttached>( uri, versionMajor, versionMinor, "Navigation", "Navigation is only available via attached properties");
         qmlRegisterTypesAndRevisions<AboutModel>( uri, versionMajor );
-#ifdef UPDATE_CHECK
-        qmlRegisterSingletonInstance<UpdateModel>( uri, versionMajor, versionMinor, "UpdateModel", m_mainCtx->getUpdateModel() );
-#endif
 
         qmlRegisterTypesAndRevisions<NavigationModel>( uri, versionMajor);
         qmlRegisterTypesAndRevisions<NavigationBarContextMenu>( uri, versionMajor );
@@ -290,6 +287,9 @@ void MainUI::registerQMLTypes()
         qmlRegisterSingletonInstance<DialogErrorModel>(uri, versionMajor, versionMinor, "DialogErrorModel", DialogErrorModel::getInstance<false>());
         qmlRegisterType<ConversionProfileModel>( uri, versionMajor, versionMinor, "ConversionProfileModel" );
         qmlRegisterSingletonInstance<ConversionManager>(uri, versionMajor, versionMinor, "Conversions", new ConversionManager(VLC_OBJECT(m_intf), this));
+        assert(MessagesModel::getInstance<false>());
+        qmlRegisterSingletonInstance<MessagesModel>(uri, versionMajor, versionMinor, "MessagesModel", MessagesModel::getInstance<false>());
+        qmlRegisterSingletonInstance<ProgramGuideModel>(uri, versionMajor, versionMinor, "ProgramGuideModel", createProgramGuideModel());
         qmlRegisterUncreatableType<MediaPropertiesModel>( uri, versionMajor, versionMinor, "MediaPropertiesModel", "");
         qmlRegisterType<DiscModel>( uri, versionMajor, versionMinor, "DiscModel" );
 
@@ -516,4 +516,37 @@ void MainUI::clearQMLTypes()
 {
     qmlClearTypeRegistrations();
     g_qmlTypesAreRegistered = false;
+}
+
+ProgramGuideModel* MainUI::createProgramGuideModel()
+{
+    const auto model = new ProgramGuideModel(this);
+    qt_intf_t* const intf = m_intf;
+
+    const auto reload = [model, intf]() {
+        input_item_t* media;
+        {
+            vlc_player_locker lock{ intf->p_player };
+            media = vlc_player_HoldCurrentMedia( intf->p_player );
+        }
+        model->update( media );
+        if ( media )
+            input_item_Release( media );
+    };
+
+    /* A TV stream updates its guide often: read it at most once a second */
+    const auto throttle = new QTimer(model);
+    throttle->setSingleShot(true);
+    throttle->setInterval(1000);
+    connect(throttle, &QTimer::timeout, model, reload);
+
+    PlayerController* const player = intf->p_mainPlayerController;
+    connect(player, &PlayerController::epgChanged, throttle, [throttle]() {
+        if (!throttle->isActive())
+            throttle->start();
+    });
+    connect(player, &PlayerController::inputChanged, model, reload);
+    reload();
+
+    return model;
 }

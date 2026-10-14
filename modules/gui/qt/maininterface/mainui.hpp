@@ -21,6 +21,7 @@
 #include <QMessageBox>
 
 class VLCVarChoiceModel;
+class ProgramGuideModel;
 
 class MainUI : public QObject
 {
@@ -39,6 +40,7 @@ public:
 private:
     void registerQMLTypes();
     static void clearQMLTypes();
+    ProgramGuideModel* createProgramGuideModel();
     static QObject* getMainCtxInstance(QQmlEngine *, QJSEngine *);
 
     qt_intf_t* m_intf = nullptr;

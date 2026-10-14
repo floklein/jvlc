@@ -40,7 +40,6 @@
 #include "maininterface/mainctx.hpp"                     /* View modifications */
 #include "maininterface/mainctx_submodels.hpp"
 #include "dialogs/dialogs_provider.hpp"                   /* Dialogs display */
-#include "dialogs/help/help.hpp"
 #include "player/player_controller.hpp"                      /* Input Management */
 #include "playlist/playlist_controller.hpp"
 #include "dialogs/extensions/extensions_manager.hpp"                 /* Extensions menu */
@@ -54,6 +53,7 @@
 #include "medialibrary/mlbookmarkmodel.hpp"
 
 
+#include <QDesktopServices>
 #include <QMenu>
 #include <QMenuBar>
 #include <QAction>
@@ -251,11 +251,6 @@ void VLCMenuBar::ToolsMenu( qt_intf_t *p_intf, QMenu *menu )
 
     addDPStaticEntry( menu, qfut( I_MENU_CODECINFO ) ,
         ":/menu/info.svg", &DialogsProvider::mediaCodecDialog, "Ctrl+J" );
-
-#ifdef ENABLE_VLM
-    addDPStaticEntry( menu, qfut( I_MENU_VLM ), "", &DialogsProvider::vlmDialog,
-        "Ctrl+Shift+W" );
-#endif
 
     addDPStaticEntry( menu, qtr( "Program Guide" ), "", &DialogsProvider::epgDialog,
         "" );
@@ -552,19 +547,9 @@ void VLCMenuBar::RebuildNavigMenu( qt_intf_t *p_intf, QMenu *menu )
 **/
 void VLCMenuBar::HelpMenu(qt_intf_t *p_intf, QMenu *menu )
 {
-    addDPStaticEntry( menu, qtr( "&Help" ) ,
-        ":/menu/help.svg", &DialogsProvider::helpDialog, "F1" );
-#ifdef UPDATE_CHECK
-    addDPStaticEntry( menu, qtr( "Check for &Updates..." ) , "",
-                     [ctx = QPointer(p_intf->p_mi)]() {
-        if (Q_LIKELY(ctx))
-        {
-            const auto updateModel = ctx->getUpdateModel();
-            assert(updateModel);
-            updateModel->checkUpdate(true);
-        }
-    });
-#endif
+    addDPStaticEntry( menu, qtr( "Online &Help" ) , ":/menu/help.svg",
+        []() { QDesktopServices::openUrl( QUrl( QStringLiteral( "https://docs.videolan.me/vlc-user/" ) ) ); },
+        "F1" );
     menu->addSeparator();
     addDPStaticEntry( menu, qfut( I_MENU_ABOUT ), ":/menu/info.svg",
             &DialogsProvider::aboutDialog, "Shift+F1", QAction::AboutRole );

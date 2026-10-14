@@ -250,4 +250,23 @@ QtObject {
     }
 
     /// </flickable-extents>
+
+    // Reads a time typed as "s", "m:ss" or "h:mm:ss". The first field may
+    // exceed 59 ("90:00"). Returns the time in seconds, or -1 if invalid.
+    function parseTime(text: string) : int {
+        const fields = text.trim().split(":")
+        if (fields.length > 3)
+            return -1
+
+        let seconds = 0
+        for (let i = 0; i < fields.length; ++i) {
+            if (!/^[0-9]+$/.test(fields[i]))
+                return -1
+            const value = parseInt(fields[i], 10)
+            if (i > 0 && value > 59)
+                return -1
+            seconds = seconds * 60 + value
+        }
+        return seconds
+    }
 }

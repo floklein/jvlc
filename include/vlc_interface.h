@@ -109,6 +109,18 @@ vlc_intf_GetMainPlaylist(intf_thread_t *intf);
 VLC_API void vlc_LogSet(libvlc_int_t *, const struct vlc_logger_operations *,
                         void *data);
 
+/**
+ * Sets a message listener, which receives every message, at every level,
+ * in addition to the configured log, without replacing it.
+ *
+ * There is one listener per instance: setting one replaces the previous one.
+ * Pass NULL to remove it. Once this returns, the previous listener is no
+ * longer called.
+ */
+VLC_API void vlc_LogSetListener(libvlc_int_t *,
+                                const struct vlc_logger_operations *,
+                                void *data);
+
 /** @} */
 
 /* Interface dialog ids for dialog providers */

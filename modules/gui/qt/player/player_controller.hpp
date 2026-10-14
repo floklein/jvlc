@@ -241,6 +241,8 @@ public slots:
     void jumpFwd();
     void jumpBwd();
     void jumpTime( VLCTime i_time );
+    /// Jump to Time: seeks to a time from the start, in seconds
+    void jumpToTime( int seconds );
     void jumpToPos( double );
     void frameNext();
     void framePrev();

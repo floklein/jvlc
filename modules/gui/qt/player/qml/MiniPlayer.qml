@@ -19,6 +19,7 @@ import QtQuick
 
 
 import VLC.MainInterface
+import VLC.Dialogs
 import VLC.Player
 import VLC.PlayerControls
 import VLC.Style
@@ -61,6 +62,13 @@ ControlBar {
                                                 : VLCStyle.icon_xsmall * 0.7
 
     identifier: PlayerControlbarModel.Miniplayer
+
+    Connections {
+        target: DialogsProvider
+        enabled: root.visible
+
+        function onShowJumpToTime() { root.openJumpToTime() }
+    }
 
     property real _delayedImplicitHeight
 

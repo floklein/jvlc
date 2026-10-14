@@ -57,13 +57,9 @@ libqt_plugin_la_CPPFLAGS = $(AM_CPPFLAGS) $(CPPFLAGS_qt) \
 	-I$(srcdir) -I$(builddir) \
 	-I$(builddir)/dialogs/extended \
 	-I$(builddir)/dialogs/firstrun \
-	-I$(builddir)/dialogs/help \
-	-I$(builddir)/dialogs/messages \
 	-I$(builddir)/dialogs/open \
-	-I$(builddir)/dialogs/podcast \
 	-I$(builddir)/dialogs/preferences \
-	-I$(builddir)/dialogs/sout \
-	-I$(builddir)/dialogs/vlm
+	-I$(builddir)/dialogs/sout
 
 libqt_plugin_la_CXXFLAGS = $(AM_CXXFLAGS) $(QT_CFLAGS) $(CXXFLAGS_qt) -fPIC
 libqt_plugin_la_LIBADD = $(vlc_qt_libs)
@@ -97,21 +93,9 @@ endif
 
 libqt_plugin_la_SOURCES = \
 	qt.cpp qt.hpp plugins.hpp \
-	dialogs/bookmarks/bookmarks.cpp dialogs/bookmarks/bookmarks.hpp \
 	dialogs/dialogs/dialogmodel.cpp \
 	dialogs/dialogs/dialogmodel.hpp \
 	dialogs/dialogs_provider.cpp dialogs/dialogs_provider.hpp \
-	dialogs/epg/EPGChannels.cpp \
-	dialogs/epg/EPGChannels.hpp \
-	dialogs/epg/EPGItem.cpp \
-	dialogs/epg/EPGItem.hpp \
-	dialogs/epg/EPGProgram.cpp \
-	dialogs/epg/EPGProgram.hpp \
-	dialogs/epg/EPGRuler.cpp dialogs/epg/EPGRuler.hpp \
-	dialogs/epg/EPGView.cpp dialogs/epg/EPGView.hpp \
-	dialogs/epg/EPGWidget.cpp \
-	dialogs/epg/EPGWidget.hpp \
-	dialogs/epg/epg.cpp dialogs/epg/epg.hpp \
 	dialogs/extended/extended.cpp dialogs/extended/extended.hpp \
 	dialogs/extended/extended_panels.cpp \
 	dialogs/extended/extended_panels.hpp \
@@ -120,18 +104,15 @@ libqt_plugin_la_SOURCES = \
 	dialogs/fingerprint/chromaprint.cpp \
 	dialogs/fingerprint/chromaprint.hpp \
 	dialogs/firstrun/firstrunwizard.cpp dialogs/firstrun/firstrunwizard.hpp \
-	dialogs/gototime/gototime.cpp dialogs/gototime/gototime.hpp \
 	dialogs/help/aboutmodel.hpp \
-	dialogs/help/help.cpp dialogs/help/help.hpp \
+	dialogs/epg/programguidemodel.cpp dialogs/epg/programguidemodel.hpp \
+	dialogs/messages/messagesmodel.cpp dialogs/messages/messagesmodel.hpp \
 	dialogs/mediainfo/media_properties_model.cpp dialogs/mediainfo/media_properties_model.hpp \
-	dialogs/messages/messages.cpp dialogs/messages/messages.hpp \
 	dialogs/open/disc_model.cpp dialogs/open/disc_model.hpp \
 	dialogs/open/open.cpp dialogs/open/open.hpp \
 	dialogs/open/open_panels.cpp dialogs/open/open_panels.hpp \
 	dialogs/open/openurl.cpp dialogs/open/openurl.hpp \
 	dialogs/plugins/plugins.cpp dialogs/plugins/plugins.hpp \
-	dialogs/podcast/podcast_configuration.cpp \
-	dialogs/podcast/podcast_configuration.hpp \
 	dialogs/preferences/complete_preferences.cpp \
 	dialogs/preferences/complete_preferences.hpp \
 	dialogs/preferences/expert_model.cpp \
@@ -160,7 +141,6 @@ libqt_plugin_la_SOURCES = \
 	dialogs/toolbar/controlbar_profile.cpp \
 	dialogs/toolbar/controlbar_profile_model.cpp \
 	dialogs/toolbar/controlbar_profile_model.hpp \
-	dialogs/vlm/vlm.cpp dialogs/vlm/vlm.hpp \
 	dialogs/playlists/playlists.cpp dialogs/playlists/playlists.hpp \
 	maininterface/compositor.hpp \
 	maininterface/compositor.cpp \
@@ -400,35 +380,26 @@ moc_verbose__0 = $(moc_verbose_0)
 	$(moc_verbose)$(MOC) $(MOC_CPPFLAGS) -o $@ $<
 
 # These MOC files depend on the configure settings:
-dialogs/dialogs_provider.moc.cpp dialogs/vlm/vlm.moc.cpp: $(top_builddir)/config.h
+dialogs/dialogs_provider.moc.cpp: $(top_builddir)/config.h
 
 nodist_libqt_plugin_la_SOURCES = \
-	dialogs/bookmarks/bookmarks.moc.cpp \
 	dialogs/dialogs/dialogmodel.moc.cpp \
 	dialogs/dialogs_provider.moc.cpp \
-	dialogs/epg/EPGChannels.moc.cpp \
-	dialogs/epg/EPGProgram.moc.cpp \
-	dialogs/epg/EPGRuler.moc.cpp \
-	dialogs/epg/EPGView.moc.cpp \
-	dialogs/epg/EPGWidget.moc.cpp \
-	dialogs/epg/epg.moc.cpp \
 	dialogs/extended/extended.moc.cpp \
 	dialogs/extended/extended_panels.moc.cpp \
 	dialogs/extensions/extensions.moc.cpp \
 	dialogs/extensions/extensions_manager.moc.cpp \
 	dialogs/fingerprint/chromaprint.moc.cpp \
 	dialogs/firstrun/firstrunwizard.moc.cpp \
-	dialogs/gototime/gototime.moc.cpp \
 	dialogs/help/aboutmodel.moc.cpp \
-	dialogs/help/help.moc.cpp \
+	dialogs/epg/programguidemodel.moc.cpp \
+	dialogs/messages/messagesmodel.moc.cpp \
 	dialogs/mediainfo/media_properties_model.moc.cpp \
-	dialogs/messages/messages.moc.cpp \
 	dialogs/open/disc_model.moc.cpp \
 	dialogs/open/open.moc.cpp \
 	dialogs/open/open_panels.moc.cpp \
 	dialogs/open/openurl.moc.cpp \
 	dialogs/plugins/plugins.moc.cpp \
-	dialogs/podcast/podcast_configuration.moc.cpp \
 	dialogs/preferences/complete_preferences.moc.cpp \
 	dialogs/preferences/expert_model.moc.cpp \
 	dialogs/preferences/expert_view.moc.cpp \
@@ -547,15 +518,11 @@ nodist_libqt_plugin_la_SOURCES += \
 	dialogs/extended/ui_equalizer.h \
 	dialogs/extended/ui_video_effects.h \
 	dialogs/firstrun/ui_firstrunwizard.h \
-	dialogs/help/ui_about.h \
-	dialogs/help/ui_update.h \
-	dialogs/messages/ui_messages_panel.h \
 	dialogs/open/ui_open.h \
 	dialogs/open/ui_open_capture.h \
 	dialogs/open/ui_open_disk.h \
 	dialogs/open/ui_open_file.h \
 	dialogs/open/ui_open_net.h \
-	dialogs/podcast/ui_podcast_configuration.h \
 	dialogs/preferences/ui_sprefs_audio.h \
 	dialogs/preferences/ui_sprefs_input.h \
 	dialogs/preferences/ui_sprefs_interface.h \
@@ -563,8 +530,7 @@ nodist_libqt_plugin_la_SOURCES += \
 	dialogs/preferences/ui_sprefs_subtitles.h \
 	dialogs/preferences/ui_sprefs_video.h \
 	dialogs/sout/ui_profiles.h \
-	dialogs/sout/ui_sout.h \
-	dialogs/vlm/ui_vlm.h
+	dialogs/sout/ui_sout.h
 
 
 # windows compositor
@@ -763,15 +729,11 @@ libqt_plugin_la_UI = \
 	dialogs/extended/equalizer.ui \
 	dialogs/extended/video_effects.ui \
 	dialogs/firstrun/firstrunwizard.ui \
-	dialogs/help/about.ui \
-	dialogs/help/update.ui \
-	dialogs/messages/messages_panel.ui \
 	dialogs/open/open.ui \
 	dialogs/open/open_capture.ui \
 	dialogs/open/open_disk.ui \
 	dialogs/open/open_file.ui \
 	dialogs/open/open_net.ui \
-	dialogs/podcast/podcast_configuration.ui \
 	dialogs/preferences/sprefs_audio.ui \
 	dialogs/preferences/sprefs_input.ui \
 	dialogs/preferences/sprefs_interface.ui \
@@ -779,8 +741,7 @@ libqt_plugin_la_UI = \
 	dialogs/preferences/sprefs_subtitles.ui \
 	dialogs/preferences/sprefs_video.ui \
 	dialogs/sout/profiles.ui \
-	dialogs/sout/sout.ui \
-	dialogs/vlm/vlm.ui
+	dialogs/sout/sout.ui
 EXTRA_DIST += $(libqt_plugin_la_UI)
 
 ui_%.h: %.ui
@@ -1049,9 +1010,14 @@ libqml_module_dialogs_a_QML = \
 	dialogs/convert/qml/ConversionProfileEditor.qml \
 	dialogs/convert/qml/ConversionsIndicator.qml \
 	dialogs/convert/qml/ConvertDialog.qml \
+	dialogs/dialogs/qml/AboutWindow.qml \
 	dialogs/dialogs/qml/CustomDialog.qml \
+	dialogs/dialogs/qml/DialogWindows.qml \
 	dialogs/dialogs/qml/Dialogs.qml \
+	dialogs/dialogs/qml/ErrorNotice.qml \
+	dialogs/dialogs/qml/MessagesWindow.qml \
 	dialogs/dialogs/qml/ModalDialog.qml \
+	dialogs/dialogs/qml/ProgramGuideWindow.qml \
 	dialogs/dialogs/qml/WindowDialog.qml \
 	dialogs/mediainfo/qml/MediaPropertiesDialog.qml \
 	dialogs/open/qml/OpenDiscDialog.qml \
@@ -1081,9 +1047,6 @@ libqml_module_maininterface_a_QML = \
 	maininterface/qml/SideNavigationDelegate.qml \
 	maininterface/qml/NoMedialibHome.qml
 
-if UPDATE_CHECK
-libqml_module_maininterface_a_QML += maininterface/qml/UpdatePane.qml
-endif
 
 libqml_module_maininterface_a_Singleton_QML =
 libqml_module_maininterface_a_SOURCES = $(QML_MODULE_maininterface_SRC)
@@ -1184,6 +1147,7 @@ libqml_module_player_a_CXXFLAGS = $(libqt_plugin_la_CXXFLAGS)
 libqml_module_player_a_CPPFLAGS = $(libqt_plugin_la_CPPFLAGS)
 libqml_module_player_a_QML = \
 	player/qml/ControlBar.qml \
+	player/qml/JumpToTimePopup.qml \
 	player/qml/PlaybackSpeed.qml \
 	player/qml/LyricsFlickable.qml \
 	player/qml/MiniPlayer.qml \
@@ -1582,9 +1546,6 @@ CLEANFILES    += shaders/shaders.deps
 
 -include shaders/shaders.deps
 
-if ENABLE_VLM
-nodist_libqt_plugin_la_SOURCES += dialogs/vlm/vlm.moc.cpp
-endif
 
 # Dynamically generate the rules dependencies so that rebuilds are working
 # properly. Since this is not GNU Make, we cannot generate the rules using
@@ -1983,6 +1944,48 @@ test_vlc_dialog_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_vlc_dialog_model
 TESTS += test_vlc_dialog_model
 
+# test_messages_model
+
+test_messages_model_SOURCES = \
+	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
+	tests/test_messages_model.cpp \
+	dialogs/messages/messagesmodel.cpp \
+	dialogs/dialogs/dialogmodel.cpp
+
+nodist_test_messages_model_SOURCES = \
+	tests/test_messages_model.moc \
+	dialogs/messages/messagesmodel.moc.cpp \
+	dialogs/dialogs/dialogmodel.moc.cpp
+
+BUILT_SOURCES += tests/test_messages_model.moc
+CLEANFILES += tests/test_messages_model.moc
+test_messages_model_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_messages_model_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_messages_model_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_messages_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_messages_model
+TESTS += test_messages_model
+
+# test_program_guide_model
+
+test_program_guide_model_SOURCES = \
+	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
+	tests/test_program_guide_model.cpp \
+	dialogs/epg/programguidemodel.cpp
+
+nodist_test_program_guide_model_SOURCES = \
+	tests/test_program_guide_model.moc \
+	dialogs/epg/programguidemodel.moc.cpp
+
+BUILT_SOURCES += tests/test_program_guide_model.moc
+CLEANFILES += tests/test_program_guide_model.moc
+test_program_guide_model_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_program_guide_model_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_program_guide_model_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_program_guide_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_program_guide_model
+TESTS += test_program_guide_model
+
 # test_media_properties_model
 
 test_media_properties_model_SOURCES = \
@@ -2088,8 +2091,8 @@ qml_test_CXXFLAGS = $(AM_CXXFLAGS) $(QT_CFLAGS) -fPIC $(CXXFLAGS_qt) ${QT_QUICK_
 qml_test_LDADD = $(QT_INDIRECT_LIBS) ${QT_QUICK_TEST_LIBS} $(QT_LIBS) $(LIBS_qt) libqml_module_util.a
 qml_test_LDFLAGS = $(AM_LDFLAGS) $(QT_QUICK_TEST_LDFLAGS)
 check_PROGRAMS += qml_test
-EXTRA_DIST += tests/tst_FSM.qml
-TESTS += tests/tst_FSM.qml
+EXTRA_DIST += tests/tst_FSM.qml tests/tst_JumpToTime.qml
+TESTS += tests/tst_FSM.qml tests/tst_JumpToTime.qml
 EXTRA_DIST += tests/tst_Helpers.qml
 TESTS += tests/tst_Helpers.qml
 endif

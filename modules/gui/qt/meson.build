@@ -29,32 +29,23 @@ if host_machine.system() == 'darwin' and qt6_dep.found()
 endif
 
 moc_headers = files(
-    'dialogs/bookmarks/bookmarks.hpp',
     'dialogs/dialogs/dialogmodel.hpp',
     'dialogs/dialogs_provider.hpp',
-    'dialogs/epg/EPGChannels.hpp',
-    'dialogs/epg/EPGProgram.hpp',
-    'dialogs/epg/EPGRuler.hpp',
-    'dialogs/epg/EPGView.hpp',
-    'dialogs/epg/EPGWidget.hpp',
-    'dialogs/epg/epg.hpp',
     'dialogs/extended/extended.hpp',
     'dialogs/extended/extended_panels.hpp',
     'dialogs/extensions/extensions.hpp',
     'dialogs/extensions/extensions_manager.hpp',
     'dialogs/fingerprint/chromaprint.hpp',
     'dialogs/firstrun/firstrunwizard.hpp',
-    'dialogs/gototime/gototime.hpp',
     'dialogs/help/aboutmodel.hpp',
-    'dialogs/help/help.hpp',
+    'dialogs/epg/programguidemodel.hpp',
+    'dialogs/messages/messagesmodel.hpp',
     'dialogs/mediainfo/media_properties_model.hpp',
-    'dialogs/messages/messages.hpp',
     'dialogs/open/disc_model.hpp',
     'dialogs/open/open.hpp',
     'dialogs/open/open_panels.hpp',
     'dialogs/open/openurl.hpp',
     'dialogs/plugins/plugins.hpp',
-    'dialogs/podcast/podcast_configuration.hpp',
     'dialogs/preferences/complete_preferences.hpp',
     'dialogs/preferences/expert_model.hpp',
     'dialogs/preferences/expert_view.hpp',
@@ -70,7 +61,6 @@ moc_headers = files(
     'dialogs/toolbar/controlbar_profile.hpp',
     'dialogs/toolbar/controlbar_profile_model.hpp',
     'dialogs/playlists/playlists.hpp',
-    'dialogs/vlm/vlm.hpp',
     'maininterface/compositor.hpp',
     'maininterface/compositor_common.hpp',
     'maininterface/compositor_dummy.hpp',
@@ -202,26 +192,10 @@ qt_plugin_sources = files(
     'qt.cpp',
     'qt.hpp',
     'plugins.hpp',
-    'dialogs/bookmarks/bookmarks.cpp',
-    'dialogs/bookmarks/bookmarks.hpp',
     'dialogs/dialogs/dialogmodel.cpp',
     'dialogs/dialogs/dialogmodel.hpp',
     'dialogs/dialogs_provider.cpp',
     'dialogs/dialogs_provider.hpp',
-    'dialogs/epg/EPGChannels.cpp',
-    'dialogs/epg/EPGChannels.hpp',
-    'dialogs/epg/EPGItem.cpp',
-    'dialogs/epg/EPGItem.hpp',
-    'dialogs/epg/EPGProgram.cpp',
-    'dialogs/epg/EPGProgram.hpp',
-    'dialogs/epg/EPGRuler.cpp',
-    'dialogs/epg/EPGRuler.hpp',
-    'dialogs/epg/EPGView.cpp',
-    'dialogs/epg/EPGView.hpp',
-    'dialogs/epg/EPGWidget.cpp',
-    'dialogs/epg/EPGWidget.hpp',
-    'dialogs/epg/epg.cpp',
-    'dialogs/epg/epg.hpp',
     'dialogs/extended/extended.cpp',
     'dialogs/extended/extended.hpp',
     'dialogs/extended/extended_panels.cpp',
@@ -234,15 +208,13 @@ qt_plugin_sources = files(
     'dialogs/fingerprint/chromaprint.hpp',
     'dialogs/firstrun/firstrunwizard.cpp',
     'dialogs/firstrun/firstrunwizard.hpp',
-    'dialogs/gototime/gototime.cpp',
-    'dialogs/gototime/gototime.hpp',
     'dialogs/help/aboutmodel.hpp',
-    'dialogs/help/help.cpp',
-    'dialogs/help/help.hpp',
+    'dialogs/epg/programguidemodel.cpp',
+    'dialogs/epg/programguidemodel.hpp',
+    'dialogs/messages/messagesmodel.cpp',
+    'dialogs/messages/messagesmodel.hpp',
     'dialogs/mediainfo/media_properties_model.cpp',
     'dialogs/mediainfo/media_properties_model.hpp',
-    'dialogs/messages/messages.cpp',
-    'dialogs/messages/messages.hpp',
     'dialogs/open/disc_model.cpp',
     'dialogs/open/disc_model.hpp',
     'dialogs/open/open.cpp',
@@ -253,8 +225,6 @@ qt_plugin_sources = files(
     'dialogs/open/openurl.hpp',
     'dialogs/plugins/plugins.cpp',
     'dialogs/plugins/plugins.hpp',
-    'dialogs/podcast/podcast_configuration.cpp',
-    'dialogs/podcast/podcast_configuration.hpp',
     'dialogs/preferences/complete_preferences.cpp',
     'dialogs/preferences/complete_preferences.hpp',
     'dialogs/preferences/expert_model.cpp',
@@ -284,7 +254,6 @@ qt_plugin_sources = files(
     'dialogs/toolbar/controlbar_profile.cpp',
     'dialogs/toolbar/controlbar_profile_model.cpp',
     'dialogs/toolbar/controlbar_profile_model.hpp',
-    'dialogs/vlm/vlm.cpp',
     'dialogs/playlists/playlists.cpp',
     'dialogs/playlists/playlists.hpp',
     'maininterface/compositor.hpp',
@@ -588,15 +557,11 @@ ui_sources = files(
     'dialogs/extended/equalizer.ui',
     'dialogs/extended/video_effects.ui',
     'dialogs/firstrun/firstrunwizard.ui',
-    'dialogs/help/about.ui',
-    'dialogs/help/update.ui',
-    'dialogs/messages/messages_panel.ui',
     'dialogs/open/open.ui',
     'dialogs/open/open_capture.ui',
     'dialogs/open/open_disk.ui',
     'dialogs/open/open_file.ui',
     'dialogs/open/open_net.ui',
-    'dialogs/podcast/podcast_configuration.ui',
     'dialogs/preferences/sprefs_audio.ui',
     'dialogs/preferences/sprefs_input.ui',
     'dialogs/preferences/sprefs_interface.ui',
@@ -605,7 +570,6 @@ ui_sources = files(
     'dialogs/preferences/sprefs_video.ui',
     'dialogs/sout/profiles.ui',
     'dialogs/sout/sout.ui',
-    'dialogs/vlm/vlm.ui',
 )
 
 qml_modules = []
@@ -618,9 +582,14 @@ qml_modules += {
         'dialogs/convert/qml/ConversionProfileEditor.qml',
         'dialogs/convert/qml/ConversionsIndicator.qml',
         'dialogs/convert/qml/ConvertDialog.qml',
+        'dialogs/dialogs/qml/AboutWindow.qml',
         'dialogs/dialogs/qml/CustomDialog.qml',
+        'dialogs/dialogs/qml/DialogWindows.qml',
         'dialogs/dialogs/qml/Dialogs.qml',
+        'dialogs/dialogs/qml/ErrorNotice.qml',
+        'dialogs/dialogs/qml/MessagesWindow.qml',
         'dialogs/dialogs/qml/ModalDialog.qml',
+        'dialogs/dialogs/qml/ProgramGuideWindow.qml',
         'dialogs/dialogs/qml/WindowDialog.qml',
         'dialogs/mediainfo/qml/MediaPropertiesDialog.qml',
         'dialogs/open/qml/OpenDiscDialog.qml',
@@ -638,7 +607,6 @@ qml_maininterface_extra_files = []
 
 if get_option('update-check').allowed() and gcrypt_dep.found()
     qt_extra_flags += '-DUPDATE_CHECK'
-    qml_maininterface_extra_files += 'maininterface/qml/UpdatePane.qml'
 endif
 
 qml_modules += {
@@ -745,6 +713,7 @@ qml_modules += {
    'outdir' : 'VLC/Player',
    'sources': files(
        'player/qml/ControlBar.qml',
+       'player/qml/JumpToTimePopup.qml',
        'player/qml/PlaybackSpeed.qml',
        'player/qml/LyricsFlickable.qml',
        'player/qml/MiniPlayer.qml',
@@ -971,6 +940,7 @@ qml_modules += {
 qml_tests = {
     'tst_FSM': files('tests/tst_FSM.qml'),
     'tst_Helpers': files('tests/tst_Helpers.qml'),
+    'tst_JumpToTime': files('tests/tst_JumpToTime.qml'),
 }
 
 qmllibs = []
@@ -1644,6 +1614,51 @@ if qt6_dep.found()
             'include_directories' : qt_include_dir,
             'link_args': test_vlcicons_link_args,
             'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_messages_model',
+            'sources': files(
+                'tests/vlc_stub_modules.cpp',
+                'tests/test_messages_model.cpp',
+                'dialogs/messages/messagesmodel.hpp',
+                'dialogs/messages/messagesmodel.cpp',
+                'dialogs/dialogs/dialogmodel.hpp',
+                'dialogs/dialogs/dialogmodel.cpp'
+            ),
+            'moc_sources': files(
+                'tests/test_messages_model.cpp'
+            ),
+            'moc_headers': files(
+                'dialogs/messages/messagesmodel.hpp',
+                'dialogs/dialogs/dialogmodel.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_program_guide_model',
+            'sources': files(
+                'tests/vlc_stub_modules.cpp',
+                'tests/test_program_guide_model.cpp',
+                'dialogs/epg/programguidemodel.hpp',
+                'dialogs/epg/programguidemodel.cpp'
+            ),
+            'moc_sources': files(
+                'tests/test_program_guide_model.cpp'
+            ),
+            'moc_headers': files(
+                'dialogs/epg/programguidemodel.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
         }
     endif
 

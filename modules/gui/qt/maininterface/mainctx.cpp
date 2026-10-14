@@ -55,7 +55,6 @@
 #include "menus/menus.hpp"                            // Menu creation
 
 #include "dialogs/toolbar/controlbar_profile_model.hpp"
-#include "dialogs/help/help.hpp"
 
 #include <QKeyEvent>
 
@@ -283,22 +282,6 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
         return cfg;
     }();
     m_network_preparser = vlc_preparser_New(VLC_OBJECT(libvlc), &cfg);
-
-#ifdef UPDATE_CHECK
-    /* Checking for VLC updates */
-    if( var_InheritBool( p_intf, "qt-updates-notif" ) &&
-        !var_InheritBool( p_intf, "qt-privacy-ask" ) )
-    {
-        int interval = var_InheritInteger( p_intf, "qt-updates-days" );
-        if( QDate::currentDate() >
-            getSettings()->value( "updatedate" ).toDate().addDays( interval ) )
-        {
-            /* check for update at startup */
-            getUpdateModel()->checkUpdate();
-            getSettings()->setValue( "updatedate", QDate::currentDate() );
-        }
-    }
-#endif
 
     m_threadRunner = new ThreadRunner();
 
@@ -1240,67 +1223,3 @@ void MainCtx::setArtistAlbumsWidth(double newArtistAlbumsWidth)
     m_artistAlbumsWidth = unscaledValue;
     emit artistAlbumsWidthChanged( dp(m_artistAlbumsWidth) );
 }
-
-#ifdef UPDATE_CHECK
-UpdateModel* MainCtx::getUpdateModel() const
-{
-    if (!m_updateModel)
-    {
-        m_updateModel = std::make_unique<UpdateModel>(p_intf);
-
-        connect(m_updateModel.get(), &UpdateModel::updateStatusChanged, this, [this](){
-            // No-op, modern update pane opens itself automatically when status changes.
-            // However, the old update dialog is used as fallback in case for any reason
-            // the modern pane is not available.
-
-            const auto openLegacyDialogIfNecessary = [&]() {
-                // Fallback:
-
-                if (Q_LIKELY(p_intf &&
-                             p_intf->p_compositor &&
-                             p_intf->p_compositor->quickWindow() &&
-                             p_intf->p_compositor->quickWindow()->contentItem()))
-                {
-                    const auto target = p_intf->p_compositor->quickWindow()->contentItem();
-                    QMetaObject::invokeMethod(target, [target]() {
-                        const auto updatePaneLoader = target->findChild<QQuickItem*>(QStringLiteral("updatePaneLoader"));
-                        if (!updatePaneLoader || (updatePaneLoader->property("status").toInt() != 1 /* Loader.Ready */))
-                        {
-                            qDebug("No acknowledgement from the modern update loader, falling back to the old update dialog.");
-                            THEDP->updateDialog(DialogsProvider::Show);
-                        }
-                    }, Qt::QueuedConnection);
-                }
-                else
-                {
-                    qDebug("Compositor is not available, falling back to the old update dialog.");
-                    THEDP->updateDialog();
-                }
-            };
-
-            if (m_updateModel->explicitCheck())
-            {
-                if (m_updateModel->updateStatus() != UpdateModel::Unchecked)
-                    openLegacyDialogIfNecessary();
-            }
-            else
-            {
-                switch (m_updateModel->updateStatus())
-                {
-                case UpdateModel::UpToDate:
-                case UpdateModel::Unchecked:
-                case UpdateModel::Checking:
-                    break;
-                case UpdateModel::NeedUpdate:
-                    qWarning() << "Need update";
-                    [[fallthrough]];
-                default:
-                    openLegacyDialogIfNecessary();
-                }
-            }
-        });
-    }
-
-    return m_updateModel.get();
-}
-#endif

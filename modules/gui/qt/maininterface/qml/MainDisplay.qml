@@ -39,8 +39,7 @@ FocusScope {
     property bool hasMiniPlayer: miniPlayer.visible
 
     // NOTE: The main view must be above the indexing bar and the mini player.
-    property real displayMargin: (height - miniPlayer.y) +
-                                 (loaderUpdatePane.active ? loaderUpdatePane.height : 0)
+    property real displayMargin: (height - miniPlayer.y)
 
     //MainDisplay behave as a PageLoader
     property alias pagePrefix: stackView.pagePrefix
@@ -341,7 +340,7 @@ FocusScope {
 
             layer.enabled: MainCtx.backdropBlurRequested() &&
                            (GraphicsInfo.shaderType === GraphicsInfo.RhiShader) &&
-                           (miniPlayer.visible || !!loaderUpdatePane.item?.visible)
+                           miniPlayer.visible
 
             // Blurring requires to access neighbour pixels, thus the source texture should be bigger than
             // the effect so that the effect have access to the neighbor pixels for the pixels near the
@@ -418,7 +417,7 @@ FocusScope {
                 effectRect: Qt.rect(-stackView.x,
                                     stackView.height - stackViewParent.edgeExtension,
                                     stackViewParent.width + 2 * stackViewParent.edgeExtension,
-                                    loaderUpdatePane.height + miniPlayer.height + 2 * stackViewParent.edgeExtension)
+                                    miniPlayer.height + 2 * stackViewParent.edgeExtension)
 
                 // WARNING: We are not using `sourceVisualRect` because it is not trivial to guarantee that
                 //          the visual (`ShaderEffect`) scene graph sizing and sub-texturing are synchronized.
@@ -540,7 +539,7 @@ FocusScope {
                 Navigation.upItem: localTopbar
                 Navigation.rightItem: playlistLoader
                 Navigation.leftItem: sidebar
-                Navigation.downItem: loaderUpdatePane
+                Navigation.downItem: miniPlayer
             }
         }
 
@@ -647,7 +646,7 @@ FocusScope {
 
             Navigation.parentItem: g_mainDisplay
             Navigation.upItem: localTopbar
-            Navigation.downItem: loaderUpdatePane
+            Navigation.downItem: miniPlayer
             Navigation.rightItem: stackView.currentItem
 
             state: pannelVisiblity.showNavigation ? "expanded" : ""
@@ -786,7 +785,7 @@ FocusScope {
 
                 Navigation.parentItem: g_mainDisplay
                 Navigation.upItem: localTopbar
-                Navigation.downItem: loaderUpdatePane
+                Navigation.downItem: miniPlayer
                 Navigation.leftItem: stackView.currentItem
 
                 Navigation.cancelAction: function() {
@@ -813,108 +812,6 @@ FocusScope {
                     }
                 }
             }
-        }
-    }
-
-    Loader {
-        id: loaderUpdatePane
-
-        z: 2
-
-        // WARNING: Object name is used from C++ side to acknowledge the modern update pane is loaded,
-        //          if C++ side does not get this acknowledgement, the old update dialog is shown as
-        //          fallback.
-        objectName: "updatePaneLoader"
-
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: miniPlayer.top
-
-        readonly property bool updateModelIsAvailable: (typeof UpdateModel !== 'undefined')
-
-        active: updateModelIsAvailable && (shouldShow || height > 0.0)
-
-        focus: !!item
-
-        property int _updateStatusOnDismissal: -1
-
-        readonly property bool shouldShow: {
-            if (!updateModelIsAvailable)
-                return false
-
-            if (UpdateModel.explicitCheck) {
-                return (UpdateModel.updateStatus !== UpdateModel.Unchecked)
-            } else {
-                if (UpdateModel.updateStatus === _updateStatusOnDismissal)
-                    return false // already dismissed with the same status
-
-                switch (UpdateModel.updateStatus) {
-                    case UpdateModel.Unchecked:
-                    case UpdateModel.Checking:
-                    case UpdateModel.UpToDate:
-                        return false
-                    default:
-                        return true
-                }
-            }
-        }
-
-        // This property can be used to enable/disable the animation:
-        property alias toggleAnimation: heightBehavior.enabled
-
-        function dismiss() {
-            // This could be also be an assertion:
-            if (updateModelIsAvailable)
-                _updateStatusOnDismissal = UpdateModel.updateStatus
-
-            height = 0.0
-        }
-
-        onShouldShowChanged: {
-            if (shouldShow)
-                height = Qt.binding(() => { return implicitHeight })
-        }
-
-        onActiveChanged: {
-            if (updateModelIsAvailable && !active) {
-                UpdateModel.explicitCheck = undefined // Resets the property
-            }
-        }
-
-        clip: (height < implicitHeight)
-
-        Behavior on height {
-            id: heightBehavior
-
-            NumberAnimation {
-                easing.type: Easing.InOutSine
-                duration: VLCStyle.duration_long
-            }
-        }
-
-        source: "qrc:///qt/qml/VLC/MainInterface/UpdatePane.qml"
-
-        Navigation.parentItem: g_mainDisplay
-        Navigation.upItem: mainRow
-        Navigation.downItem: miniPlayer
-        Navigation.navigable: (active && height > 0.0)
-
-        onLoaded: {
-            item.background.visible = Qt.binding(function() { return !stackViewParent.layer.enabled })
-
-            item.leftPadding = Qt.binding(function() { return VLCStyle.margin_large + VLCStyle.applicationHorizontalMargin })
-            item.rightPadding = Qt.binding(function() { return VLCStyle.margin_large + VLCStyle.applicationHorizontalMargin })
-            item.bottomPadding = Qt.binding(function() { return VLCStyle.margin_small + (miniPlayer.visible ? 0
-                                                                                                            : VLCStyle.applicationVerticalMargin) })
-
-            item.dismissRequested.connect(loaderUpdatePane, loaderUpdatePane.dismiss)
-
-            // We have height animation here, we don't want animation inside the item in addition to that:
-            item.animations = Qt.binding(function() { return !loaderUpdatePane.toggleAnimation })
-
-            item.Navigation.parentItem = loaderUpdatePane
-
-            item.focus = true // Loader itself is a focus scope, so we need this
         }
     }
 
@@ -1003,7 +900,7 @@ FocusScope {
         PIPPlayer {
             id: playerPip
             anchors {
-                bottom: loaderUpdatePane.top
+                bottom: miniPlayer.top
                 left: parent.left
                 bottomMargin: VLCStyle.margin_normal
                 leftMargin: VLCStyle.margin_normal + VLCStyle.applicationHorizontalMargin
@@ -1029,7 +926,7 @@ FocusScope {
             dragXMin: VLCStyle.applicationHorizontalMargin
             dragXMax: g_mainDisplay.width - playerPip.width - VLCStyle.applicationHorizontalMargin
             dragYMin: localTopbar.y + localTopbar.height
-            dragYMax: loaderUpdatePane.y - playerPip.height
+            dragYMax: miniPlayer.y - playerPip.height
 
             //keep the player visible on resize
             Connections {
@@ -1084,7 +981,7 @@ FocusScope {
         background.visible: !stackViewParent.layer.enabled
 
         Navigation.parentItem: g_mainDisplay
-        Navigation.upItem: loaderUpdatePane
+        Navigation.upItem: mainRow
 
         onVisibleChanged: {
             if (!visible && miniPlayer.activeFocus)
