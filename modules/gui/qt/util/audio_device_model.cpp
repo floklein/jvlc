@@ -50,19 +50,18 @@ AudioDeviceModel::AudioDeviceModel(vlc_player_t *player, QObject *parent)
 
     m_aout = vlc_player_aout_Hold(m_player);
     if (m_aout)
+    {
         m_inputs = aout_DevicesList(m_aout, &m_ids, &m_names);
+
+        char *current = aout_DeviceGet(m_aout);
+        m_current = qfu(current);
+        free(current);
+    }
 }
 
 AudioDeviceModel::~AudioDeviceModel()
 {
-    for (int i=0; i<m_inputs; i++)
-    {
-        free(m_ids[i]);
-        free(m_names[i]);
-    }
-
-    free(m_ids);
-    free(m_names);
+    freeDevices();
 
     vlc_player_locker locker{m_player};
     vlc_player_aout_RemoveListener(m_player, m_player_aout_listener);
@@ -144,6 +143,33 @@ void AudioDeviceModel::updateCurrent(QString current)
         emit dataChanged(index(oldIndex), index(oldIndex), { Qt::DisplayRole, Qt::CheckStateRole });
     if(currentIndex >= 0)
         emit dataChanged(index(currentIndex), index(currentIndex), { Qt::DisplayRole, Qt::CheckStateRole });
+}
+
+void AudioDeviceModel::refresh()
+{
+    if (!m_aout)
+        return;
+
+    beginResetModel();
+    freeDevices();
+    m_inputs = aout_DevicesList(m_aout, &m_ids, &m_names);
+    endResetModel();
+}
+
+void AudioDeviceModel::freeDevices()
+{
+    for (int i=0; i<m_inputs; i++)
+    {
+        free(m_ids[i]);
+        free(m_names[i]);
+    }
+
+    free(m_ids);
+    free(m_names);
+
+    m_ids = nullptr;
+    m_names = nullptr;
+    m_inputs = 0;
 }
 
 QHash<int, QByteArray> AudioDeviceModel::roleNames() const

@@ -1150,6 +1150,7 @@ libqml_module_player_a_QML = \
 	player/qml/ResumeDialog.qml \
 	player/qml/SliderBar.qml \
 	player/qml/TopBar.qml \
+	player/qml/TrackMenu.qml \
 	player/qml/TracksMenu.qml \
 	player/qml/TracksPage.qml \
 	player/qml/TracksPageAudio.qml \
@@ -1178,6 +1179,7 @@ libqml_module_playercontrols_a_QML = \
 	player/qml/controlbarcontrols/AudioButton.qml \
 	player/qml/controlbarcontrols/SeekBarWidget.qml \
 	player/qml/controlbarcontrols/SubtitlesButton.qml \
+	player/qml/controlbarcontrols/TrackMenuButton.qml \
 	player/qml/controlbarcontrols/BackButton.qml \
 	player/qml/controlbarcontrols/BookmarkButton.qml \
 	player/qml/controlbarcontrols/ChapterNextButton.qml \
@@ -1260,6 +1262,7 @@ libqml_module_util_a_QML = \
 	util/qml/ViewDragAutoScrollHandler.qml \
 	util/qml/FSM.qml \
 	util/qml/FSMState.qml \
+	util/qml/TrackMenuFSM.qml \
 	util/qml/NativeMenu.qml \
 	util/qml/FadeControllerStateGroup.qml \
 	util/qml/GridSizeHelper.qml \
@@ -1759,6 +1762,30 @@ test_pasted_media_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_pasted_media_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_pasted_media
 TESTS += test_pasted_media
+
+# test_track_models
+
+test_track_models_SOURCES = \
+	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
+	tests/test_track_models.cpp \
+	player/input_models.hpp player/input_models.cpp \
+	util/audio_device_model.hpp util/audio_device_model.cpp \
+	util/vlctick.hpp util/vlctick.cpp
+
+nodist_test_track_models_SOURCES = \
+	tests/test_track_models.moc \
+	player/input_models.moc.cpp \
+	util/audio_device_model.moc.cpp \
+	util/vlctick.moc.cpp
+
+BUILT_SOURCES += tests/test_track_models.moc
+CLEANFILES += tests/test_track_models.moc
+test_track_models_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_track_models_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_track_models_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_track_models_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_track_models
+TESTS += test_track_models
 
 # test_ml_model
 
@@ -2271,5 +2298,7 @@ EXTRA_DIST += tests/tst_FSM.qml tests/tst_JumpToTime.qml
 TESTS += tests/tst_FSM.qml tests/tst_JumpToTime.qml
 EXTRA_DIST += tests/tst_Helpers.qml
 TESTS += tests/tst_Helpers.qml
+EXTRA_DIST += tests/tst_TrackMenuFSM.qml
+TESTS += tests/tst_TrackMenuFSM.qml
 endif
 endif

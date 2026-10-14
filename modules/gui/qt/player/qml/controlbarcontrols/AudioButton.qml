@@ -21,19 +21,15 @@ import VLC.MainInterface
 import VLC.Style
 import VLC.Util
 
-// The audio button of the Control bar
-// TODO: open the audio page of the Track menu (#49)
-LangButton {
-    text: VLCIcons.audio
+// The audio button of the Control bar: opens the Track menu on its Audio tab
+TrackMenuButton {
+    tab: TrackMenuFSM.Audio
+
+    glyph: VLCIcons.audio
+    activeGlyph: VLCIcons.audio_active
 
     description: qsTr("Audio")
     shortcut: MainCtx.actionShortcut("audio-track")
-
-    // Figma "Icon Wrapper": 24 px icon, 4 px padding, 30 px wide
-    leftPadding: VLCStyle.dp(3, VLCStyle.scale)
-    rightPadding: VLCStyle.dp(3, VLCStyle.scale)
-    topPadding: VLCStyle.dp(4, VLCStyle.scale)
-    bottomPadding: VLCStyle.dp(4, VLCStyle.scale)
 
     AccessibleCompat.id: "audioButton"
 }

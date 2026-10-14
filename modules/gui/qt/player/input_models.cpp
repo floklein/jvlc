@@ -19,9 +19,30 @@
 
 #include "player/player_controller.hpp"
 
+#include <algorithm>
+#include <cstring>
+
 //***************************
 //  track list model
 //***************************
+
+/* The tracks of an associated media (an input slave, e.g. a subtitle file)
+ * have string ids starting with the hash of their source, while those of the
+ * media itself start with their category (see EsOutCreateStrId) */
+static bool isExternalTrack(vlc_es_id_t *es_id)
+{
+    const char *str_id = vlc_es_id_GetStrId(es_id);
+    if (str_id == nullptr)
+        return false;
+    const char *end = strchr(str_id, '/');
+    if (end == nullptr)
+        return false;
+    const QLatin1StringView first(str_id, end - str_id);
+    for (const char *cat : { "video", "audio", "spu", "data", "unknown" })
+        if (first == QLatin1StringView(cat))
+            return false;
+    return true;
+}
 
 TrackListModel::TrackListModel(vlc_player_t *player, QObject *parent)
     : QAbstractListModel(parent)
@@ -48,6 +69,11 @@ QVariant TrackListModel::data(const QModelIndex &index, int role) const
         return m_data[row].m_title;
     else if (role == Qt::CheckStateRole)
         return QVariant::fromValue<bool>(m_data[row].m_selected);
+    else if (role == ExternalRole)
+        return QVariant::fromValue<bool>(m_data[row].m_external);
+    else if (role == SecondaryRole)
+        return QVariant::fromValue<bool>(m_secondary != nullptr
+                                         && m_data[row].m_id.get() == m_secondary);
     return QVariant{};
 }
 
@@ -77,15 +103,168 @@ bool TrackListModel::setData(const QModelIndex &index, const QVariant &value, in
     return true;
 }
 
+void TrackListModel::select(int row)
+{
+    if (row < 0 || row >= m_data.size())
+        return;
+    vlc_es_id_t *es_id = m_data[row].m_id.get();
+
+    const int secondaryRow = rowOf(m_secondary);
+    if (secondaryRow == row)
+    {
+        /* the second subtitle becomes the only one: restart it as the
+         * first one */
+        setSecondary(nullptr);
+        vlc_player_locker lock{ m_player };
+        vlc_player_UnselectTrackCategory(m_player, vlc_es_id_GetCat(es_id));
+        vlc_player_SelectEsId(m_player, es_id, VLC_PLAYER_SELECT_EXCLUSIVE);
+        return;
+    }
+
+    vlc_player_locker lock{ m_player };
+    if (secondaryRow < 0)
+        vlc_player_SelectEsId(m_player, es_id, VLC_PLAYER_SELECT_EXCLUSIVE);
+    else
+        selectPair(es_id, m_data[secondaryRow].m_id.get());
+}
+
+void TrackListModel::selectSecondary(int row)
+{
+    if (row < 0 || row >= m_data.size())
+        return;
+    vlc_es_id_t *es_id = m_data[row].m_id.get();
+    if (vlc_es_id_GetCat(es_id) != SPU_ES || es_id == m_secondary)
+        return;
+
+    int primaryRow = -1;
+    for (int i = 0; i < m_data.size(); ++i)
+    {
+        if (m_data[i].m_selected && m_data[i].m_id.get() != m_secondary)
+        {
+            primaryRow = i;
+            break;
+        }
+    }
+
+    if (primaryRow == row)
+        return;
+
+    if (primaryRow < 0)
+    {
+        /* nothing shown: this becomes the subtitle */
+        select(row);
+        return;
+    }
+
+    {
+        vlc_player_locker lock{ m_player };
+        selectPair(m_data[primaryRow].m_id.get(), es_id);
+    }
+    setSecondary(es_id);
+}
+
+void TrackListModel::unselectSecondary()
+{
+    const int row = rowOf(m_secondary);
+    if (row < 0)
+        return;
+    setSecondary(nullptr);
+    vlc_player_locker lock{ m_player };
+    vlc_player_UnselectEsId(m_player, m_data[row].m_id.get());
+}
+
+void TrackListModel::unselectAll()
+{
+    if (m_data.isEmpty())
+        return;
+    setSecondary(nullptr);
+    vlc_player_locker lock{ m_player };
+    vlc_player_UnselectTrackCategory(m_player,
+                                     vlc_es_id_GetCat(m_data.first().m_id.get()));
+}
+
+bool TrackListModel::remove(int row)
+{
+    if (row < 0 || row >= m_data.size() || !m_data[row].m_external)
+        return false;
+
+    vlc_es_id_t *es_id = m_data[row].m_id.get();
+    const QString strId = qfu(vlc_es_id_GetStrId(es_id));
+
+    if (es_id == m_secondary)
+        setSecondary(nullptr);
+
+    if (m_data[row].m_selected)
+    {
+        vlc_player_locker lock{ m_player };
+        vlc_player_UnselectEsId(m_player, es_id);
+    }
+
+    m_removed.append(strId);
+
+    beginRemoveRows({}, row, row);
+    m_data.removeAt(row);
+    endRemoveRows();
+    emit countChanged();
+    updateHasSelection();
+
+    emit externalTrackRemoved(strId);
+    return true;
+}
+
+int TrackListModel::rowOf(const vlc_es_id_t *trackid) const
+{
+    if (trackid == nullptr)
+        return -1;
+    for (int i = 0; i < m_data.size(); ++i)
+        if (m_data[i].m_id.get() == trackid)
+            return i;
+    return -1;
+}
+
+/* show both tracks, the first one as the main track; the other tracks of the
+ * category are unselected and the selected ones keep their place */
+void TrackListModel::selectPair(vlc_es_id_t *first, vlc_es_id_t *second)
+{
+    vlc_es_id_t *list[] = { first, second, nullptr };
+    vlc_player_SelectEsIdList(m_player, vlc_es_id_GetCat(first), list);
+}
+
+void TrackListModel::setSecondary(vlc_es_id_t *trackid)
+{
+    if (trackid == m_secondary)
+        return;
+    const int oldRow = rowOf(m_secondary);
+    m_secondary = trackid;
+    const int newRow = rowOf(m_secondary);
+    if (oldRow >= 0)
+        emit dataChanged(index(oldRow), index(oldRow), { SecondaryRole });
+    if (newRow >= 0)
+        emit dataChanged(index(newRow), index(newRow), { SecondaryRole });
+}
+
+void TrackListModel::updateHasSelection()
+{
+    const bool hasSelection = std::any_of(m_data.cbegin(), m_data.cend(),
+                                          [](const Data& t) { return t.m_selected; });
+    if (hasSelection == m_hasSelection)
+        return;
+    m_hasSelection = hasSelection;
+    emit hasSelectionChanged();
+}
+
 void TrackListModel::updateTracks(vlc_player_list_action action, const vlc_player_track *track_info)
 {
     switch (action) {
     case VLC_PLAYER_LIST_ADDED:
     {
+        if (m_removed.contains(qfu(vlc_es_id_GetStrId(track_info->es_id))))
+            return;
         beginInsertRows({}, m_data.size(), m_data.size());
         m_data.append(Data{ track_info });
         endInsertRows();
         emit countChanged();
+        updateHasSelection();
         break;
     }
     case VLC_PLAYER_LIST_REMOVED:
@@ -94,13 +273,21 @@ void TrackListModel::updateTracks(vlc_player_list_action action, const vlc_playe
             return t.m_id.get() == track_info->es_id;
         });
         if (it == m_data.end())
+        {
+            /* a removed external track is gone for good */
+            m_removed.removeAll(qfu(vlc_es_id_GetStrId(track_info->es_id)));
             return;
+        }
+
+        if (it->m_id.get() == m_secondary)
+            m_secondary = nullptr;
 
         int pos = std::distance(m_data.begin(), it);
         beginRemoveRows({}, pos, pos);
         m_data.erase(it);
         endRemoveRows();
         emit countChanged();
+        updateHasSelection();
         break;
     }
     case VLC_PLAYER_LIST_UPDATED:
@@ -121,6 +308,7 @@ void TrackListModel::updateTracks(vlc_player_list_action action, const vlc_playe
             return;
         QModelIndex dataIndex = index(pos);
         emit dataChanged(dataIndex, dataIndex, { Qt::DisplayRole, Qt::CheckStateRole });
+        updateHasSelection();
         break;
     }
     }
@@ -139,6 +327,10 @@ void TrackListModel::updateTrackSelection(vlc_es_id_t *trackid, bool selected)
     it->m_selected = selected;
     QModelIndex dataIndex = index(pos);
     emit dataChanged(dataIndex, dataIndex, {  Qt::CheckStateRole });
+
+    if (!selected && trackid == m_secondary)
+        setSecondary(nullptr);
+    updateHasSelection();
 }
 
 void TrackListModel::clear()
@@ -146,13 +338,18 @@ void TrackListModel::clear()
     beginRemoveRows({}, 0, m_data.size() - 1);
     m_data.clear();
     endRemoveRows();
+    m_secondary = nullptr;
+    m_removed.clear();
     emit countChanged();
+    updateHasSelection();
 }
 
 QHash<int, QByteArray> TrackListModel::roleNames() const
 {
     QHash<int, QByteArray> roleNames = this->QAbstractListModel::roleNames();
     roleNames[Qt::CheckStateRole] = QByteArrayLiteral("checked");
+    roleNames[ExternalRole] = QByteArrayLiteral("external");
+    roleNames[SecondaryRole] = QByteArrayLiteral("secondary");
     return roleNames;
 }
 
@@ -186,6 +383,7 @@ TrackListModel::Data::Data(const vlc_player_track *track_info)
     : m_title( qfu(track_info->name) )
     , m_id( track_info->es_id, true )
     , m_selected( track_info->selected )
+    , m_external( isExternalTrack(track_info->es_id) )
 {
 }
 
@@ -194,6 +392,7 @@ void TrackListModel::Data::update(const vlc_player_track *track_info)
     m_id.reset(track_info->es_id, true);
     m_title = qfu(track_info->name);
     m_selected = track_info->selected;
+    m_external = isExternalTrack(track_info->es_id);
 }
 
 

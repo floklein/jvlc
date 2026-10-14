@@ -30,6 +30,7 @@
 #include <vlc_cxx_helpers.hpp>
 #include <QAbstractListModel>
 #include <QList>
+#include <QStringList>
 
 /**
  * @brief The TrackListModel class represent the
@@ -39,6 +40,10 @@
  * and the current track using Qt::CheckStateRole
  * we can select a track by setting the Qt::CheckStateRole to true
  *
+ * ExternalRole tells the tracks of an external file (an associated media,
+ * e.g. a subtitle file) from the tracks embedded in the media, and
+ * SecondaryRole marks the second subtitle.
+ *
  * this class expects to be updated by the input manager
  */
 class TrackListModel : public QAbstractListModel
@@ -46,8 +51,15 @@ class TrackListModel : public QAbstractListModel
     Q_OBJECT
     Q_PROPERTY(int count READ getCount NOTIFY countChanged FINAL)
     Q_PROPERTY(bool multiSelect READ getMultiSelect WRITE setMultiSelect NOTIFY multiSelectChanged FINAL)
+    Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY hasSelectionChanged FINAL)
 
 public:
+    enum Roles {
+        ExternalRole = Qt::UserRole,
+        SecondaryRole,
+    };
+    Q_ENUM(Roles)
+
     TrackListModel(vlc_player_t* player, QObject* parent = nullptr);
 
     Qt::ItemFlags flags(const QModelIndex &) const  override;
@@ -70,14 +82,35 @@ public:
 
     inline bool getMultiSelect() const { return m_multiSelect; }
 
+    inline bool hasSelection() const { return m_hasSelection; }
+
+    // Track menu actions
+
+    // pick the track; the second subtitle stays
+    Q_INVOKABLE void select(int row);
+    // show the subtitle track as the second subtitle
+    Q_INVOKABLE void selectSecondary(int row);
+    Q_INVOKABLE void unselectSecondary();
+    // "None": unselect every track of the category
+    Q_INVOKABLE void unselectAll();
+    // remove an external track from the list, the file is kept
+    Q_INVOKABLE bool remove(int row);
+
 public slots:
     void setMultiSelect(bool multiSelect);
 
 signals:
     void countChanged();
     void multiSelectChanged(bool multiSelect);
+    void hasSelectionChanged();
+    void externalTrackRemoved(const QString& trackId);
 
 private:
+    int rowOf(const vlc_es_id_t *trackid) const;
+    void selectPair(vlc_es_id_t *first, vlc_es_id_t *second);
+    void setSecondary(vlc_es_id_t *trackid);
+    void updateHasSelection();
+
     vlc_player_t* m_player;
     class Data {
     public:
@@ -92,9 +125,15 @@ private:
         //vlc_es_id_t *m_id = NULL;
         ::vlc::vlc_shared_data_ptr<vlc_es_id_t, &vlc_es_id_Hold, &vlc_es_id_Release> m_id;
         bool m_selected = false;
+        bool m_external = false;
     };
     QList<Data> m_data;
     bool m_multiSelect = false; // this only work for subtitles
+    bool m_hasSelection = false;
+    // the second subtitle, set by selectSecondary()
+    const vlc_es_id_t *m_secondary = nullptr;
+    // string ids of the external tracks removed from the list
+    QStringList m_removed;
 };
 
 /**

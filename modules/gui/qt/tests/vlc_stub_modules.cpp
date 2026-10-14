@@ -36,6 +36,9 @@
 #include <vlc_media_library.h>
 #include <vlc_meta.h>
 #include <vlc_fingerprinter.h>
+#include <vlc_aout.h>
+#include <vlc_demux.h>
+#include <vlc_es_out.h>
 
 #include "../../../../lib/libvlc_internal.h"
 
@@ -525,6 +528,116 @@ static int OpenChromaprint( vlc_object_t* )
     return VLC_EGENERIC;
 }
 
+//Audio output: plays nothing, has devices
+
+static int AoutStart( audio_output_t*, audio_sample_format_t* fmt )
+{
+    fmt->i_format = VLC_CODEC_FL32;
+    fmt->channel_type = AUDIO_CHANNEL_TYPE_BITMAP;
+    return VLC_SUCCESS;
+}
+
+static void AoutPlay( audio_output_t*, block_t* block, vlc_tick_t )
+{
+    block_Release( block );
+}
+
+static void AoutFlush( audio_output_t* )
+{
+}
+
+static int AoutDeviceSelect( audio_output_t* aout, const char* id )
+{
+    testenv->aoutDevice = qfu( id );
+    aout_DeviceReport( aout, id );
+    return VLC_SUCCESS;
+}
+
+static int OpenAout( vlc_object_t* obj )
+{
+    auto aout = reinterpret_cast<audio_output_t*>( obj );
+    aout->start = AoutStart;
+    aout->play = AoutPlay;
+    aout->flush = AoutFlush;
+    aout->stop = AoutFlush;
+    aout->pause = nullptr;
+    aout->volume_set = nullptr;
+    aout->mute_set = nullptr;
+    aout->device_select = AoutDeviceSelect;
+    aout_HotplugReport( aout, "stub-speakers", "Speakers" );
+    aout_HotplugReport( aout, "stub-headphones", "Headphones" );
+    testenv->aout = aout;
+    return VLC_SUCCESS;
+}
+
+static void CloseAout( vlc_object_t* )
+{
+    testenv->aout = nullptr;
+}
+
+//Access demux "stubtracks://N": N embedded subtitle tracks, never ends
+
+static int StubTracksDemux( demux_t* )
+{
+    vlc_tick_sleep( VLC_TICK_FROM_MS( 10 ) );
+    return VLC_DEMUXER_SUCCESS;
+}
+
+static int StubTracksControl( demux_t*, int query, va_list args )
+{
+    switch ( query )
+    {
+    case DEMUX_CAN_SEEK:
+    case DEMUX_CAN_CONTROL_PACE:
+        *va_arg( args, bool* ) = false;
+        return VLC_SUCCESS;
+    case DEMUX_CAN_PAUSE:
+        *va_arg( args, bool* ) = true;
+        return VLC_SUCCESS;
+    case DEMUX_SET_PAUSE_STATE:
+        return VLC_SUCCESS;
+    case DEMUX_GET_PTS_DELAY:
+    case DEMUX_GET_TIME:
+        *va_arg( args, vlc_tick_t* ) = 0;
+        return VLC_SUCCESS;
+    case DEMUX_GET_POSITION:
+        *va_arg( args, double* ) = 0.;
+        return VLC_SUCCESS;
+    case DEMUX_TEST_AND_CLEAR_FLAGS:
+        *va_arg( args, unsigned* ) = 0;
+        return VLC_SUCCESS;
+    default:
+        return VLC_EGENERIC;
+    }
+}
+
+static int OpenStubTracks( vlc_object_t* obj )
+{
+    auto demux = reinterpret_cast<demux_t*>( obj );
+    if ( demux->out == nullptr )
+        return VLC_EGENERIC;
+
+    const int count = atoi( demux->psz_location );
+    for ( int i = 0; i < count; ++i )
+    {
+        es_format_t fmt;
+        es_format_Init( &fmt, SPU_ES, VLC_CODEC_SUBT );
+        fmt.i_id = i;
+        char description[32];
+        snprintf( description, sizeof(description), "Embedded %d", i + 1 );
+        fmt.psz_description = description;
+        es_out_id_t* es = es_out_Add( demux->out, &fmt );
+        fmt.psz_description = nullptr;
+        es_format_Clean( &fmt );
+        if ( es == nullptr )
+            return VLC_EGENERIC;
+    }
+
+    demux->pf_demux = StubTracksDemux;
+    demux->pf_control = StubTracksControl;
+    return VLC_SUCCESS;
+}
+
 //module declaration
 
 vlc_module_begin()
@@ -550,6 +663,14 @@ add_submodule()
     set_capability("sout output", 0)
     add_shortcut("chromaprint")
     set_callback(OpenChromaprint)
+add_submodule()
+    set_capability("audio output", 0)
+    add_shortcut("aout_stub")
+    set_callbacks(OpenAout, CloseAout)
+add_submodule()
+    set_capability("access", 0)
+    add_shortcut("stubtracks")
+    set_callback(OpenStubTracks)
 vlc_module_end()
 
 extern "C" {
@@ -602,7 +723,7 @@ int64_t VLCTestingEnv::addPlaylist(const std::string& name, const std::vector<in
 }
 
 static const char * test_defaults_args[] = {
-    "-v", "--ignore-config", "--vout=vdummy", "--aout=adummy", "--text-renderer=tdummy", "--media-library"
+    "-v", "--ignore-config", "--vout=vdummy", "--aout=aout_stub", "--text-renderer=tdummy", "--media-library"
 };
 
 static const int test_defaults_nargs = ARRAY_SIZE(test_defaults_args);

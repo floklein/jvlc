@@ -102,6 +102,13 @@ struct VLCTestingEnv
     //fill its results then trigger "results-available" on the fingerprinter
     vlc_object_t* fingerprinter = nullptr;
     struct fingerprint_request_t* fingerprintRequest = nullptr;
+
+    //audio output (valid once created); it starts with the devices
+    //"stub-speakers" (Speakers) and "stub-headphones" (Headphones),
+    //aoutDevice is the last device selected
+    //(the "stubtracks://N" access demux plays N embedded subtitle tracks)
+    audio_output_t* aout = nullptr;
+    QString aoutDevice;
 };
 
 #endif /* QT_VLC_STUB_MODULES */

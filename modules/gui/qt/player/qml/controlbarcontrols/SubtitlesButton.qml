@@ -21,19 +21,16 @@ import VLC.MainInterface
 import VLC.Style
 import VLC.Util
 
-// The subtitles button of the Control bar
-// TODO: open the subtitles page of the Track menu (#49)
-LangButton {
-    text: VLCIcons.subtitles
+// The subtitles button of the Control bar: opens the Track menu on its
+// Subtitles tab
+TrackMenuButton {
+    tab: TrackMenuFSM.Subtitles
+
+    glyph: VLCIcons.subtitles
+    activeGlyph: VLCIcons.subtitles_active
 
     description: qsTr("Subtitles")
     shortcut: MainCtx.actionShortcut("subtitle-track")
-
-    // Figma "Icon Wrapper": 24 px icon, 4 px padding, 30 px wide
-    leftPadding: VLCStyle.dp(3, VLCStyle.scale)
-    rightPadding: VLCStyle.dp(3, VLCStyle.scale)
-    topPadding: VLCStyle.dp(4, VLCStyle.scale)
-    bottomPadding: VLCStyle.dp(4, VLCStyle.scale)
 
     AccessibleCompat.id: "subtitlesButton"
 }

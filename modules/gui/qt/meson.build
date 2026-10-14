@@ -728,6 +728,7 @@ qml_modules += {
        'player/qml/ResumeDialog.qml',
        'player/qml/SliderBar.qml',
        'player/qml/TopBar.qml',
+       'player/qml/TrackMenu.qml',
        'player/qml/TracksMenu.qml',
        'player/qml/TracksPage.qml',
        'player/qml/TracksPageAudio.qml',
@@ -752,6 +753,7 @@ qml_modules += {
        'player/qml/controlbarcontrols/ArtworkInfoWidget.qml',
        'player/qml/controlbarcontrols/SeekBarWidget.qml',
        'player/qml/controlbarcontrols/SubtitlesButton.qml',
+       'player/qml/controlbarcontrols/TrackMenuButton.qml',
        'player/qml/controlbarcontrols/AspectRatioWidget.qml',
        'player/qml/controlbarcontrols/AtoBButton.qml',
        'player/qml/controlbarcontrols/AudioButton.qml',
@@ -831,6 +833,7 @@ qml_modules += {
         'util/qml/ViewDragAutoScrollHandler.qml',
         'util/qml/FSM.qml',
         'util/qml/FSMState.qml',
+        'util/qml/TrackMenuFSM.qml',
         'util/qml/GridSizeHelper.qml',
         'util/qml/NativeMenu.qml',
         'util/qml/FadeControllerStateGroup.qml',
@@ -943,6 +946,7 @@ qml_tests = {
     'tst_FSM': files('tests/tst_FSM.qml'),
     'tst_Helpers': files('tests/tst_Helpers.qml'),
     'tst_JumpToTime': files('tests/tst_JumpToTime.qml'),
+    'tst_TrackMenuFSM': files('tests/tst_TrackMenuFSM.qml'),
 }
 
 qmllibs = []
@@ -1747,6 +1751,33 @@ if qt6_dep.found()
             'moc_headers': files(
                 'dialogs/mediainfo/media_properties_model.hpp',
                 'dialogs/fingerprint/chromaprint.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_track_models',
+            'sources': files(
+                'tests/vlc_stub_modules.cpp',
+                'tests/test_track_models.cpp',
+                'player/input_models.hpp',
+                'player/input_models.cpp',
+                'util/audio_device_model.hpp',
+                'util/audio_device_model.cpp',
+                'util/vlctick.hpp',
+                'util/vlctick.cpp'
+            ),
+            'moc_sources': files(
+                'tests/test_track_models.cpp'
+            ),
+            'moc_headers': files(
+                'player/input_models.hpp',
+                'util/audio_device_model.hpp',
+                'util/vlctick.hpp'
             ),
             'suite': ['qt'],
             'include_directories' : qt_include_dir,

@@ -50,7 +50,12 @@ public:
 
     QHash<int, QByteArray> roleNames() const override;
 
+    // list the output devices again, e.g. after a device was plugged in
+    Q_INVOKABLE void refresh();
+
 private:
+    void freeDevices();
+
     int m_inputs = 0;
     char **m_names = nullptr;
     char **m_ids = nullptr;

@@ -40,6 +40,9 @@ FocusScope {
 
     readonly property int positionSliderY: controlBar.y + controlBar.sliderY
 
+    // the Track menu, opened by the buttons of the Control bar
+    readonly property alias trackMenu: trackMenu
+
     readonly property string coverSource: {
         if (Player.artwork &&
             Player.artwork.toString())
@@ -153,6 +156,8 @@ FocusScope {
             controlBar.forceUnlock()
 
             topBar.forceUnlock()
+
+            trackMenu.close()
         }
     }
 
@@ -1433,6 +1438,28 @@ FocusScope {
         id: audioContextMenu
 
         ctx: MainCtx
+    }
+
+    // opened by the audio and subtitles buttons of the Control bar
+    TrackMenu {
+        id: trackMenu
+
+        readonly property real _margin: VLCStyle.dp(20, VLCStyle.scale)
+
+        x: rootPlayer.width - width - _margin - VLCStyle.applicationHorizontalMargin
+        y: rootPlayer.positionSliderY - height - _margin
+
+        maximumWidth: rootPlayer.width - 2 * _margin - 2 * VLCStyle.applicationHorizontalMargin
+        maximumHeight: rootPlayer.positionSliderY - (topBar.visible ? topBar.y + topBar.height : 0)
+                       - 2 * _margin
+
+        colorContext.palette: windowTheme.palette
+
+        onOpened: rootPlayer.lockUnlockAutoHide(true)
+        onClosed: rootPlayer.lockUnlockAutoHide(false)
+
+        // TODO: open the Adjustments sidebar on this tab (#50)
+        onRequestAdjustments: (tab) => DialogsProvider.extendedDialog()
     }
 
     TapHandler {
