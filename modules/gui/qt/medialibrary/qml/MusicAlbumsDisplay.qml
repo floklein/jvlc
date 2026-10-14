@@ -29,7 +29,11 @@ Widgets.PageExt {
 
     title: qsTr("Albums")
 
+    itemCount: albumsView.model.count
+
     MusicAlbums {
+        id: albumsView
+
         anchors.fill: parent
 
         focus: true

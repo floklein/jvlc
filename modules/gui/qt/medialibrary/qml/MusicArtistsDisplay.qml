@@ -53,6 +53,8 @@ Widgets.PageLoader {
 
             title: qsTr("Artists")
 
+            itemCount: artistsView.model.count
+
             MusicAllArtists {
                 id: artistsView
 

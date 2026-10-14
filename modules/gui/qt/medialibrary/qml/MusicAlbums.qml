@@ -53,10 +53,12 @@ MainViewLoader {
     model: albumModelId
 
     sortModel: [
-        { text: qsTr("Alphabetic"),  criteria: "title"},
-        { text: qsTr("Duration"),    criteria: "duration" },
-        { text: qsTr("Date"),        criteria: "release_year" },
-        { text: qsTr("Artist"),      criteria: "main_artist" },
+        { text: qsTr("Title A-Z"), criteria: "title", order: Qt.AscendingOrder },
+        { text: qsTr("Title Z-A"), criteria: "title", order: Qt.DescendingOrder },
+        { text: qsTr("Artist"), criteria: "main_artist", order: Qt.AscendingOrder },
+        { text: qsTr("Newest First"), criteria: "release_year", order: Qt.DescendingOrder },
+        { text: qsTr("Oldest First"), criteria: "release_year", order: Qt.AscendingOrder },
+        { text: qsTr("Duration"), criteria: "duration", order: Qt.AscendingOrder }
     ]
 
     grid: gridComponent

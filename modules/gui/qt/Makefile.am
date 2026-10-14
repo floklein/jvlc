@@ -212,6 +212,8 @@ libqt_plugin_la_SOURCES = \
 	medialibrary/mlvideofoldersmodel.hpp \
 	medialibrary/mlfoldertreemodel.cpp \
 	medialibrary/mlfoldertreemodel.hpp \
+	medialibrary/mlmusicfoldertreemodel.cpp \
+	medialibrary/mlmusicfoldertreemodel.hpp \
 	medialibrary/mlmediamodel.cpp \
 	medialibrary/mlmediamodel.hpp \
 	medialibrary/mlvideomodel.cpp \
@@ -454,6 +456,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	medialibrary/mlplaylistmodel.moc.cpp \
 	medialibrary/mlvideofoldersmodel.moc.cpp \
 	medialibrary/mlfoldertreemodel.moc.cpp \
+	medialibrary/mlmusicfoldertreemodel.moc.cpp \
 	medialibrary/thumbnailcollector.moc.cpp \
 	menus/custom_menus.moc.cpp \
 	menus/qml_menu_wrapper.moc.cpp \
@@ -1072,8 +1075,8 @@ libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/MusicDisplay.qml \
 	medialibrary/qml/MusicGenres.qml \
 	medialibrary/qml/MusicGenresDisplay.qml \
+	medialibrary/qml/MusicSongsDisplay.qml \
 	medialibrary/qml/MusicTrackListDisplay.qml \
-	medialibrary/qml/MusicTracksDisplay.qml \
 	medialibrary/qml/VideoDisplay.qml \
 	medialibrary/qml/VideoFoldersDisplay.qml \
 	medialibrary/qml/VideoAll.qml \
@@ -1843,6 +1846,8 @@ test_ml_model_SOURCES = \
 	medialibrary/mlrecenthidelist.hpp medialibrary/mlrecenthidelist.cpp \
 	medialibrary/mlthreadpool.hpp medialibrary/mlthreadpool.cpp \
 	medialibrary/mlfoldertreemodel.hpp medialibrary/mlfoldertreemodel.cpp \
+	medialibrary/mlmusicfoldertreemodel.hpp medialibrary/mlmusicfoldertreemodel.cpp \
+	medialibrary/mlaudiomodel.hpp medialibrary/mlaudiomodel.cpp \
 	medialibrary/mlvideomodel.hpp medialibrary/mlvideomodel.cpp \
 	medialibrary/mlmediamodel.hpp medialibrary/mlmediamodel.cpp \
 	medialibrary/mlvideo.hpp medialibrary/mlvideo.cpp \
@@ -1866,6 +1871,8 @@ nodist_test_ml_model_SOURCES = \
 	medialibrary/mlqmltypes.moc.cpp \
 	medialibrary/mlbasemodel.moc.cpp \
 	medialibrary/mlfoldertreemodel.moc.cpp \
+	medialibrary/mlmusicfoldertreemodel.moc.cpp \
+	medialibrary/mlaudiomodel.moc.cpp \
 	medialibrary/mlvideomodel.moc.cpp \
 	medialibrary/mlmediamodel.moc.cpp \
 	medialibrary/mlvideo.moc.cpp \

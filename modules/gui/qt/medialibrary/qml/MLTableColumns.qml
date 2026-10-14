@@ -22,9 +22,15 @@ import VLC.MediaLibrary
 import VLC.Widgets as Widgets
 
 Widgets.TableColumns {
+    // the model of the view (MLBaseModel), when set the play button follows
+    // the Play rule: a media plays with the media after it in the view
+    property var viewModel: null
 
     onPlayClicked: function (model) {
-        MediaLib.addAndPlay(model.id)
+        if (viewModel && model.index !== undefined)
+            viewModel.addAndPlay([viewModel.index(model.index, 0)])
+        else
+            MediaLib.addAndPlay(model.id)
         MainCtx.playerView = true
     }
 }

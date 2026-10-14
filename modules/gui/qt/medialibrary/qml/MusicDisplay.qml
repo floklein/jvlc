@@ -37,7 +37,7 @@ Widgets.PageLoader {
             displayText: qsTr("Songs"),
             name: "tracks" ,
             default: true,
-            url: "qrc:///qt/qml/VLC/MediaLibrary/MusicTracksDisplay.qml"
+            url: "qrc:///qt/qml/VLC/MediaLibrary/MusicSongsDisplay.qml"
         }, {
             displayText: qsTr("Albums"),
             name: "albums",

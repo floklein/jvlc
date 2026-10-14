@@ -101,6 +101,14 @@ FocusScope {
     required property SearchCtx search
     required property SortCtx sort
 
+    // the sort menu for the page header, with the album sections toggle
+    readonly property alias sortMenu: sortMenuAlbums
+
+    readonly property string artistName: _artist.name ?? ""
+
+    // the number of rows of the current view, albums or tracks
+    readonly property int itemCount: _effectiveModel.count
+
     SortMenuAlbums {
         id: sortMenuAlbums
 
@@ -228,7 +236,12 @@ FocusScope {
                     }
 
                     Navigation.parentItem: root
-                    Navigation.downItem: pinnedMusicAlbumSectionLoader
+                    Navigation.downAction: function() {
+                        if (pinnedMusicAlbumSectionLoader.active)
+                            pinnedMusicAlbumSectionLoader.forceActiveFocus(Qt.TabFocusReason)
+                        else
+                            root.setCurrentItemFocus(Qt.TabFocusReason)
+                    }
                 }
 
                 Loader {
@@ -386,11 +399,14 @@ FocusScope {
 
                         Navigation.parentItem: root
                         Navigation.upItem: artistBanner
-                        Navigation.downItem: viewHeader
+                        Navigation.downAction: function() {
+                            root.setCurrentItemFocus(Qt.TabFocusReason)
+                        }
                     }
                 }
 
-                Widgets.PageExt.DefaultPageHeader {
+                // the sort and search controls are in the page header
+                Widgets.SubtitleLabel {
                     id: viewHeader
 
                     anchors {
@@ -398,21 +414,17 @@ FocusScope {
                         right: parent.right
                     }
 
-                    text: qsTr("Albums")
-
-                    sortMenu: sortMenuAlbums
-
-                    search: root.search
-                    sort: root.sort
-
                     leftPadding: root._contentLeftMargin
                     rightPadding: root._contentRightMargin
                     topPadding: VLCStyle.layoutTitle_top_padding
+                    bottomPadding: VLCStyle.layoutTitle_bottom_padding
 
-                    Navigation.parentItem: root
-                    Navigation.upItem: artistBanner
-                    Navigation.downAction: function() {
-                        root.setCurrentItemFocus(Qt.TabFocusReason)
+                    text: qsTr("Albums")
+                    color: theme.fg.primary
+
+                    // hides the view scrolling under it
+                    background: Rectangle {
+                        color: theme.bg.primary
                     }
                 }
             }
@@ -654,7 +666,7 @@ FocusScope {
 
             Navigation.parentItem: root
 
-            Navigation.upItem: viewHeader
+            Navigation.upItem: artistBanner
 
             Navigation.cancelAction: root._onNavigationCancel
 
@@ -1008,11 +1020,12 @@ FocusScope {
 
             Navigation.parentItem: root
 
-            Navigation.upItem: viewHeader
+            Navigation.upItem: pinnedMusicAlbumSectionLoader.active ? pinnedMusicAlbumSectionLoader : artistBanner
 
             Navigation.cancelAction: root._onNavigationCancel
 
-            onItemDoubleClicked: MediaLib.addAndPlay(model.id)
+            // the Play rule: the track and the tracks after it in the view
+            onItemDoubleClicked: (index, _) => trackModel.addAndPlay([trackModel.index(index, 0)])
             onRightClick: trackContextMenu.popup(tableView_id.selectionModel.selectedIndexes, globalMousePos)
 
             onDragItemChanged: console.assert(tableView_id.dragItem === tableDragItem)
@@ -1045,6 +1058,8 @@ FocusScope {
                 id: tableColumns
 
                 showCriterias: (tableView_id.sortModel === tableView_id._modelSmall)
+
+                viewModel: trackModel
             }
         }
     }

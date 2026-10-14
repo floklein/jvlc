@@ -748,8 +748,8 @@ modules/gui/qt/medialibrary/qml/MusicDisplay.qml
 modules/gui/qt/medialibrary/qml/MusicGenres.qml
 modules/gui/qt/medialibrary/qml/MusicGenresDisplay.qml
 modules/gui/qt/medialibrary/qml/MusicPlaylistsDisplay.qml
+modules/gui/qt/medialibrary/qml/MusicSongsDisplay.qml
 modules/gui/qt/medialibrary/qml/MusicTrackListDisplay.qml
-modules/gui/qt/medialibrary/qml/MusicTracksDisplay.qml
 modules/gui/qt/medialibrary/qml/PlaylistMedia.qml
 modules/gui/qt/medialibrary/qml/PlaylistMediaDisplay.qml
 modules/gui/qt/medialibrary/qml/PlaylistMediaList.qml

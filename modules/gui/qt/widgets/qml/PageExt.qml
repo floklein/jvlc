@@ -302,7 +302,13 @@ T.Page {
                 }
 
                 Row {
+                    id: crumbRow
+
                     anchors.verticalCenter: parent.verticalCenter
+
+                    // a trail too long for the header loses its first
+                    // crumbs, the current folder stays visible
+                    x: Math.min(0, crumbs.width - crumbRow.width)
 
                     spacing: VLCStyle.margin_xxxsmall
 

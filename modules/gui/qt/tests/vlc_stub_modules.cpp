@@ -53,6 +53,8 @@
 #include <map>
 #include <mutex>
 
+#include <QStringList>
+
 static VLCTestingEnv* testenv = nullptr;
 
 ///RenderDiscovery module
@@ -280,10 +282,47 @@ static void fillFolder(vlc_ml_folder_t* out, const FakeFolder& folder)
     out->b_present = true;
 }
 
+// the names of the artists (or albums) of the media, in order of appearance:
+// the id of a name is its position + 1
+static QStringList fakeNames(QString FakeMedia::*field)
+{
+    QStringList names;
+    for (const FakeMedia& media : testenv->mlMedia)
+    {
+        const QString& name = media.*field;
+        if (!name.isEmpty() && !names.contains(name))
+            names.push_back(name);
+    }
+    return names;
+}
+
+static int64_t fakeNameId(QString FakeMedia::*field, const QString& name)
+{
+    if (name.isEmpty())
+        return 0;
+    return fakeNames(field).indexOf(name) + 1;
+}
+
+static QString fakeName(QString FakeMedia::*field, int64_t id)
+{
+    const QStringList names = fakeNames(field);
+    if (id <= 0 || id > names.size())
+        return {};
+    return names.at(id - 1);
+}
+
 static void fillFakeMedia(vlc_ml_media_t* out, const FakeMedia& media)
 {
     out->i_id = media.id;
     out->i_type = media.type;
+    if (media.type == VLC_ML_MEDIA_TYPE_AUDIO)
+    {
+        out->i_subtype = VLC_ML_MEDIA_SUBTYPE_ALBUMTRACK;
+        out->album_track.i_artist_id = fakeNameId(&FakeMedia::artist, media.artist);
+        out->album_track.i_album_id = fakeNameId(&FakeMedia::album, media.album);
+        out->album_track.i_track_nb = media.trackNumber;
+        out->album_track.i_disc_nb = media.discNumber;
+    }
     out->i_duration = 60000;
     out->i_playcount = media.playCount;
     out->f_progress = media.progress;
@@ -405,6 +444,28 @@ static void* MLGet( vlc_medialibrary_module_t*, int query, va_list args )
         fillFolder(res, *folder);
         return res;
     }
+    case VLC_ML_GET_ARTIST:
+    {
+        const int64_t id = va_arg(args, int64_t);
+        const QString name = fakeName(&FakeMedia::artist, id);
+        if (name.isEmpty())
+            return nullptr;
+        auto res = static_cast<vlc_ml_artist_t*>(calloc(1, sizeof(vlc_ml_artist_t)));
+        res->i_id = id;
+        res->psz_name = strdup(qtu(name));
+        return res;
+    }
+    case VLC_ML_GET_ALBUM:
+    {
+        const int64_t id = va_arg(args, int64_t);
+        const QString title = fakeName(&FakeMedia::album, id);
+        if (title.isEmpty())
+            return nullptr;
+        auto res = static_cast<vlc_ml_album_t*>(calloc(1, sizeof(vlc_ml_album_t)));
+        res->i_id = id;
+        res->psz_title = strdup(qtu(title));
+        return res;
+    }
     default:
         return nullptr;
     }
@@ -514,13 +575,17 @@ static int MLList( vlc_medialibrary_module_t*, int query,
     }
     case VLC_ML_LIST_VIDEO_OF:
     case VLC_ML_COUNT_VIDEO_OF:
+    case VLC_ML_LIST_AUDIO_OF:
+    case VLC_ML_COUNT_AUDIO_OF:
     {
         const int parentType = va_arg(args, int);
         const int64_t parentId = va_arg(args, int64_t);
         if (parentType != VLC_ML_PARENT_FOLDER)
             return VLC_EGENERIC;
+        const bool video = (query == VLC_ML_LIST_VIDEO_OF || query == VLC_ML_COUNT_VIDEO_OF);
+        const vlc_ml_media_type_t type = video ? VLC_ML_MEDIA_TYPE_VIDEO : VLC_ML_MEDIA_TYPE_AUDIO;
         for (const FakeMedia& item : testenv->mlMedia)
-            if (item.folderId == parentId && item.type == VLC_ML_MEDIA_TYPE_VIDEO)
+            if (item.folderId == parentId && item.type == type)
                 media.push_back(&item);
         // the insertion order is the order of the ids
         if (params && params->i_sort == VLC_ML_SORTING_INSERTIONDATE)
@@ -529,7 +594,7 @@ static int MLList( vlc_medialibrary_module_t*, int query,
                 return params->b_desc ? a->id > b->id : a->id < b->id;
             });
         }
-        return outputMedia(query == VLC_ML_LIST_VIDEO_OF, media, args);
+        return outputMedia(query == VLC_ML_LIST_VIDEO_OF || query == VLC_ML_LIST_AUDIO_OF, media, args);
     }
     default:
         return VLC_EGENERIC;

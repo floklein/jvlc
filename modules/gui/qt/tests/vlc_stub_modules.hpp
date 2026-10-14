@@ -143,6 +143,12 @@ struct VLCTestingEnv
         double progress = -1.;
         uint32_t playCount = 0;
         vlc_ml_media_type_t type = VLC_ML_MEDIA_TYPE_VIDEO;
+        //album track of an audio media; artists and albums get their ids
+        //from the order in which their names first appear in mlMedia
+        QString artist = {};
+        QString album = {};
+        int trackNumber = 0;
+        int discNumber = 0;
     };
     std::vector<FakeFolder> mlFolders;
     std::vector<FakeMedia> mlMedia;

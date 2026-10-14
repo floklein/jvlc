@@ -23,6 +23,39 @@
 
 #include <QVariantList>
 
+class QCollator;
+class MLFolder;
+
+// The library folder tree, shared by Videos (MLFolderTreeModel) and Songs
+// (MLMusicFolderTreeModel). Run on the ML thread.
+namespace mlfoldertree
+{
+    bool isFolder(const MLItem *item);
+
+    // whether the event changes the folders of the tree
+    bool changesFolders(int eventType);
+
+    // The folders of one level of the tree that hold media of the type at any
+    // depth: the folders the user added when parent is unset (with those that
+    // hold no media yet, being scanned or empty), the subfolders of parent
+    // otherwise. Only the folders whose title contains pattern are kept.
+    // They come by title, in natural order, reversed when titleDesc.
+    std::vector<std::unique_ptr<MLFolder>> folders(vlc_medialibrary_t *ml, MLItemId parent,
+                                                   vlc_ml_media_type_t type,
+                                                   const QString &pattern, bool titleDesc);
+
+    // the folders from the top of the tree to parent, as a list of
+    // { id: MLItemId, title: string }
+    QVariantList path(vlc_medialibrary_t *ml, MLItemId parent);
+
+    // Compares titles with their numbers in natural order (S2 before S10)
+    int naturalCompare(const QCollator &collator, const QString &a, const QString &b);
+
+    // the requested page of the rows of a level
+    std::vector<std::unique_ptr<MLItem>> page(std::vector<std::unique_ptr<MLItem>> rows,
+                                              const vlc_ml_query_params_t *queryParams);
+}
+
 // One level of the Videos folder tree.
 //
 // Without a parentId, it lists the folders the user added to the library.

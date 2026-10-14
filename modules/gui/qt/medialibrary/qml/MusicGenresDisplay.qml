@@ -50,6 +50,8 @@ Widgets.PageLoader {
 
             title: qsTr("Genres")
 
+            itemCount: genresView.model.count
+
             /* List View */
             MusicGenres {
                 id: genresView
@@ -84,6 +86,15 @@ Widgets.PageLoader {
             property alias parentId: albumsView.parentId
 
             title: qsTr("Genres - %1").arg(genreName)
+
+            breadcrumb: [qsTr("Genres"), genreName]
+
+            itemCount: albumsView.model.count
+
+            // the crumb "Genres" goes back to every genre
+            onBreadcrumbClicked: (index, reason) => {
+                History.push([...root.pagePrefix, "all"], {}, reason)
+            }
 
             /* List View */
             MusicAlbums {

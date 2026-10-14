@@ -22,6 +22,7 @@
 
 #include "../medialibrary/mlbasemodel.hpp"
 #include "../medialibrary/mlfoldertreemodel.hpp"
+#include "../medialibrary/mlmusicfoldertreemodel.hpp"
 #include "../medialibrary/mlplaycountrank.hpp"
 #include "../medialibrary/medialib.hpp"
 #include "../playlist/playlist_controller.hpp"
@@ -574,7 +575,176 @@ private slots:
         QCOMPARE(model->getMaximumCount(), 7u);
     }
 
+    // Songs: the music folder tree
+
+    void testSongsTopListsAddedFoldersWithMusic()
+    {
+        m_env->mlFolders = {
+            {1, 0, "Shows"}, {2, 1, "The Wand"},
+            {3, 0, "Music"}, {4, 3, "Juxtopposed"},
+            {5, 0, "Downloads"}, // added, not scanned yet
+        };
+        m_env->mlMedia = {
+            {10, 2, "The Wand S01E01"},
+            {11, 4, "untangle", -1., 0, VLC_ML_MEDIA_TYPE_AUDIO},
+        };
+
+        auto model = makeSongsModel(std::nullopt);
+
+        QCOMPARE(titles(*model), QStringList({"Downloads", "Music"}));
+        QCOMPARE(roleValues(*model, "isFolder"), QVariantList({true, true}));
+    }
+
+    void testSongsFolderListsSubfoldersThenTracks()
+    {
+        m_env->mlFolders = {
+            {1, 0, "Music"}, {2, 1, "Disc 10"}, {3, 1, "Disc 2"},
+            {4, 1, "Clips"}, // videos only
+        };
+        m_env->mlMedia = {
+            {10, 2, "Ten", -1., 0, VLC_ML_MEDIA_TYPE_AUDIO},
+            {11, 3, "Two", -1., 0, VLC_ML_MEDIA_TYPE_AUDIO},
+            {12, 4, "Clip"},
+            {13, 1, "moonlight", -1., 0, VLC_ML_MEDIA_TYPE_AUDIO, "juxtopposed", "Moons", 2, 1},
+            {14, 1, "A video"},
+        };
+
+        auto model = makeSongsModel(1);
+
+        QCOMPARE(titles(*model), QStringList({"Disc 2", "Disc 10", "moonlight"}));
+        QCOMPARE(roleValues(*model, "isFolder"), QVariantList({true, true, false}));
+        QCOMPARE(roleValues(*model, "main_artist").at(2).toString(), QStringLiteral("juxtopposed"));
+        QCOMPARE(roleValues(*model, "album_title").at(2).toString(), QStringLiteral("Moons"));
+        QCOMPARE(roleValues(*model, "track_number").at(2).toUInt(), 2u);
+    }
+
+    void testSongsPathFromTheTop()
+    {
+        m_env->mlFolders = { {1, 0, "Music"}, {2, 1, "My Songs"} };
+        m_env->mlMedia = { {10, 2, "untangle", -1., 0, VLC_ML_MEDIA_TYPE_AUDIO} };
+
+        auto model = makeSongsModel(2);
+
+        QTRY_COMPARE(model->path().size(), 2);
+        QCOMPARE(model->path().at(1).toMap().value("title").toString(), QStringLiteral("My Songs"));
+    }
+
+    void testSongsSortByArtist()
+    {
+        setUpSongs();
+
+        auto model = makeSongsModel(1, "main_artist", Qt::AscendingOrder);
+
+        // folders first; then by artist, album, disc and track; no artist last
+        QCOMPARE(titles(*model), QStringList({"Live", "Alpha", "Bravo", "Delta", "Charlie", "Echo"}));
+    }
+
+    void testSongsSortByArtistDescending()
+    {
+        setUpSongs();
+
+        auto model = makeSongsModel(1, "main_artist", Qt::DescendingOrder);
+
+        QCOMPARE(titles(*model), QStringList({"Live", "Echo", "Charlie", "Delta", "Bravo", "Alpha"}));
+    }
+
+    void testSongsSortByAlbum()
+    {
+        setUpSongs();
+
+        auto model = makeSongsModel(1, "album_title", Qt::AscendingOrder);
+
+        QCOMPARE(titles(*model), QStringList({"Live", "Delta", "Alpha", "Bravo", "Charlie", "Echo"}));
+    }
+
+    void testSongsSortByTrack()
+    {
+        setUpSongs();
+
+        auto model = makeSongsModel(1, "track_number", Qt::AscendingOrder);
+
+        QCOMPARE(titles(*model), QStringList({"Live", "Bravo", "Alpha", "Delta", "Echo", "Charlie"}));
+    }
+
+    void testSongsSortByDisc()
+    {
+        setUpSongs();
+
+        auto model = makeSongsModel(1, "disc_number", Qt::AscendingOrder);
+
+        QCOMPARE(titles(*model), QStringList({"Live", "Alpha", "Delta", "Echo", "Bravo", "Charlie"}));
+    }
+
+    void testSongsSortByTitleZToA()
+    {
+        setUpSongs();
+
+        auto model = makeSongsModel(1, "title", Qt::DescendingOrder);
+
+        QCOMPARE(titles(*model), QStringList({"Live", "Echo", "Delta", "Charlie", "Bravo", "Alpha"}));
+    }
+
+    void testSongsNewestFirst()
+    {
+        setUpSongs();
+
+        auto model = makeSongsModel(1, "insertion", Qt::DescendingOrder);
+
+        QCOMPARE(titles(*model), QStringList({"Live", "Echo", "Delta", "Charlie", "Bravo", "Alpha"}));
+    }
+
+    void testSongsSearchMatchesArtistAndAlbum()
+    {
+        setUpSongs();
+
+        auto model = makeSongsModel(1, "title", Qt::AscendingOrder, "dawn");
+
+        // "Dawn" is Delta's album; the folder doesn't match
+        QCOMPARE(titles(*model), QStringList({"Delta"}));
+    }
+
+    void testSongsPlayTakesTheRestOfTheView()
+    {
+        setUpSongs();
+        PlaylistController controller(m_env->intf->p_playlist);
+        m_queueMedialib = std::make_unique<MediaLib>(m_env->intf, &controller);
+        auto model = makeTreeModel<MLMusicFolderTreeModel>(m_queueMedialib.get(), 1,
+                                                           "main_artist", Qt::AscendingOrder);
+        QCOMPARE(titles(*model), QStringList({"Live", "Alpha", "Bravo", "Delta", "Charlie", "Echo"}));
+
+        // the tracks after Bravo play in the order of the view
+        model->addAndPlay({model->index(2)});
+
+        QTRY_COMPARE(queueNames(), QStringList({"ml:21", "ml:23", "ml:22", "ml:24"}));
+        QCOMPARE(currentIndex(), 0);
+    }
+
 private:
+    // an album folder, with a subfolder and tracks added in the order of
+    // their ids
+    void setUpSongs()
+    {
+        const auto audio = VLC_ML_MEDIA_TYPE_AUDIO;
+        m_env->mlFolders = { {1, 0, "Juxtopposed"}, {2, 1, "Live"} };
+        m_env->mlMedia = {
+            //id, folder, title, progress, plays, type, artist, album, track, disc
+            {20, 1, "Alpha", -1., 0, audio, "Ana", "Day", 2, 1},
+            {21, 1, "Bravo", -1., 0, audio, "Ana", "Day", 1, 2},
+            {22, 1, "Charlie", -1., 0, audio, "Bob", "Day", 4, 2},
+            {23, 1, "Delta", -1., 0, audio, "Bob", "Dawn", 3, 1},
+            {24, 1, "Echo", -1., 0, audio, "", "", 3, 1},
+            {30, 2, "Encore", -1., 0, audio, "Ana", "Live", 1, 1},
+        };
+    }
+
+    std::unique_ptr<MLMusicFolderTreeModel> makeSongsModel(std::optional<int64_t> parent,
+                                                           const QString &criteria = {},
+                                                           Qt::SortOrder order = Qt::AscendingOrder,
+                                                           const QString &pattern = {})
+    {
+        return makeTreeModel<MLMusicFolderTreeModel>(m_medialib.get(), parent, criteria, order, pattern);
+    }
+
     // a show with a subfolder and episodes added in the order of their ids
     void setUpEpisodes()
     {
@@ -595,14 +765,24 @@ private:
                                                      Qt::SortOrder order = Qt::AscendingOrder,
                                                      const QString &pattern = {})
     {
-        auto model = std::make_unique<MLFolderTreeModel>();
+        return makeTreeModel<MLFolderTreeModel>(m_medialib.get(), parent, criteria, order, pattern);
+    }
+
+    template<typename Model>
+    std::unique_ptr<Model> makeTreeModel(MediaLib *medialib,
+                                         std::optional<int64_t> parent,
+                                         const QString &criteria = {},
+                                         Qt::SortOrder order = Qt::AscendingOrder,
+                                         const QString &pattern = {})
+    {
+        auto model = std::make_unique<Model>();
         model->classBegin();
         if (parent)
             model->setParentId(MLItemId(*parent, VLC_ML_PARENT_FOLDER));
         model->setSortCriteria(criteria);
         model->setSortOrder(order);
         model->setSearchPattern(pattern);
-        model->setMl(m_medialib.get());
+        model->setMl(medialib);
         model->componentComplete();
         [&] { QVERIFY(QTest::qWaitFor([&]() { return !model->loading(); })); }();
         return model;

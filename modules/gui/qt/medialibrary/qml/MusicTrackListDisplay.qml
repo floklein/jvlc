@@ -202,6 +202,8 @@ Widgets.TableViewExt {
         id: tableColumns
 
         showCriterias: (root.sortModel === root._modelSmall)
+
+        viewModel: rootmodel
     }
 
     MLAudioModel {

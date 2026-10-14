@@ -43,11 +43,6 @@ const int FOLDER_COVER_HEIGHT = 162 * 3;
 // guards the walk up the tree against a corrupted library
 const int MAX_FOLDER_DEPTH = 64;
 
-bool isFolder(const MLItem *item)
-{
-    return item->getId().type == VLC_ML_PARENT_FOLDER;
-}
-
 QString folderMrl(QString mrl)
 {
     if (!mrl.isEmpty() && !mrl.endsWith(QLatin1Char('/')))
@@ -104,10 +99,106 @@ int watchedFirstRank(const MLVideo &video)
     return 2;
 }
 
-// Compares titles with their numbers in natural order (S2 before S10), the
-// rest with the collator. QCollator's numeric mode can't be relied on: it is
-// ignored for the C locale and by some backends.
-int naturalCompare(const QCollator &collator, const QString &a, const QString &b)
+} // namespace
+
+// Folder tree
+
+bool mlfoldertree::isFolder(const MLItem *item)
+{
+    return item->getId().type == VLC_ML_PARENT_FOLDER;
+}
+
+bool mlfoldertree::changesFolders(int eventType)
+{
+    switch (eventType)
+    {
+    case VLC_ML_EVENT_FOLDER_ADDED:
+    case VLC_ML_EVENT_FOLDER_UPDATED:
+    case VLC_ML_EVENT_FOLDER_DELETED:
+    case VLC_ML_EVENT_ENTRY_POINT_ADDED:
+    case VLC_ML_EVENT_ENTRY_POINT_REMOVED:
+    case VLC_ML_EVENT_ENTRY_POINT_BANNED:
+    case VLC_ML_EVENT_ENTRY_POINT_UNBANNED:
+        return true;
+    default:
+        return false;
+    }
+}
+
+std::vector<std::unique_ptr<MLFolder>>
+mlfoldertree::folders(vlc_medialibrary_t *ml, MLItemId parent, vlc_ml_media_type_t type,
+                      const QString &pattern, bool titleDesc)
+{
+    const bool atTop = (parent.id <= 0);
+
+    const QStringList typeMrls = mediaFolderMrls(ml, type);
+    QStringList anyMediaMrls;
+
+    ml_unique_ptr<vlc_ml_folder_list_t> folderList;
+    if (atTop)
+    {
+        folderList.reset(vlc_ml_list_entry_points(ml, nullptr));
+        anyMediaMrls = mediaFolderMrls(ml, VLC_ML_MEDIA_TYPE_UNKNOWN);
+    }
+    else
+    {
+        vlc_ml_query_params_t params = vlc_ml_query_params_create();
+        params.i_sort = VLC_ML_SORTING_ALPHA;
+        folderList.reset(vlc_ml_list_subfolders(ml, &params, parent.id));
+    }
+
+    std::vector<std::unique_ptr<MLFolder>> result;
+    if (!folderList)
+        return result;
+
+    for (const vlc_ml_folder_t &data : ml_range_iterate<vlc_ml_folder_t>(folderList))
+    {
+        if (data.b_banned)
+            continue;
+
+        auto folder = std::make_unique<MLFolder>(&data);
+        const QString mrl = folderMrl(folder->getMRL());
+
+        // an added folder without media is shown, it may be scanned yet
+        const bool shown = holdsAny(typeMrls, mrl)
+                           || (atTop && !holdsAny(anyMediaMrls, mrl));
+
+        if (shown && (pattern.isEmpty() || folder->getTitle().contains(pattern, Qt::CaseInsensitive)))
+            result.push_back(std::move(folder));
+    }
+
+    QCollator collator;
+    collator.setCaseSensitivity(Qt::CaseInsensitive);
+    std::stable_sort(result.begin(), result.end(),
+                     [&collator, titleDesc](const std::unique_ptr<MLFolder> &a, const std::unique_ptr<MLFolder> &b) {
+        return titleDesc ? naturalCompare(collator, b->getTitle(), a->getTitle()) < 0
+                         : naturalCompare(collator, a->getTitle(), b->getTitle()) < 0;
+    });
+
+    return result;
+}
+
+QVariantList mlfoldertree::path(vlc_medialibrary_t *ml, MLItemId parent)
+{
+    QVariantList result;
+    if (parent.id <= 0 || parent.type != VLC_ML_PARENT_FOLDER)
+        return result;
+
+    ml_unique_ptr<vlc_ml_folder_t> folder(vlc_ml_get_folder(ml, parent.id));
+    for (int depth = 0; folder != nullptr && depth < MAX_FOLDER_DEPTH; ++depth)
+    {
+        result.prepend(QVariantMap {
+            {QStringLiteral("id"), QVariant::fromValue(MLItemId(folder->i_id, VLC_ML_PARENT_FOLDER))},
+            {QStringLiteral("title"), qfu(folder->psz_name)},
+        });
+        folder.reset(vlc_ml_get_folder_parent(ml, folder->i_id));
+    }
+    return result;
+}
+
+// QCollator's numeric mode can't be relied on: it is ignored for the C locale
+// and by some backends.
+int mlfoldertree::naturalCompare(const QCollator &collator, const QString &a, const QString &b)
 {
     const auto isDigit = [](QChar c) { return c >= QLatin1Char('0') && c <= QLatin1Char('9'); };
 
@@ -160,7 +251,19 @@ int naturalCompare(const QCollator &collator, const QString &a, const QString &b
     return 0;
 }
 
-} // namespace
+std::vector<std::unique_ptr<MLItem>>
+mlfoldertree::page(std::vector<std::unique_ptr<MLItem>> rows, const vlc_ml_query_params_t *queryParams)
+{
+    const size_t first = std::min<size_t>(queryParams->i_offset, rows.size());
+    const size_t last = (queryParams->i_nbResults == 0)
+                        ? rows.size()
+                        : std::min<size_t>(first + queryParams->i_nbResults, rows.size());
+
+    return { std::make_move_iterator(rows.begin() + first),
+             std::make_move_iterator(rows.begin() + last) };
+}
+
+// MLFolderTreeModel
 
 MLFolderTreeModel::MLFolderTreeModel(QObject *parent)
     : MLVideoModel(parent)
@@ -186,7 +289,7 @@ QVariant MLFolderTreeModel::itemRoleData(const MLItem *item, int role) const
     if (item == nullptr)
         return {};
 
-    if (!isFolder(item))
+    if (!mlfoldertree::isFolder(item))
     {
         switch (role)
         {
@@ -250,19 +353,10 @@ std::unique_ptr<MLListCacheLoader> MLFolderTreeModel::createMLLoader() const
 
 void MLFolderTreeModel::onVlcMlEvent(const MLEvent &event)
 {
-    switch (event.i_type)
+    if (mlfoldertree::changesFolders(event.i_type))
     {
-    case VLC_ML_EVENT_FOLDER_ADDED:
-    case VLC_ML_EVENT_FOLDER_UPDATED:
-    case VLC_ML_EVENT_FOLDER_DELETED:
-    case VLC_ML_EVENT_ENTRY_POINT_ADDED:
-    case VLC_ML_EVENT_ENTRY_POINT_REMOVED:
-    case VLC_ML_EVENT_ENTRY_POINT_BANNED:
-    case VLC_ML_EVENT_ENTRY_POINT_UNBANNED:
         emit resetRequested();
         return;
-    default:
-        break;
     }
 
     MLVideoModel::onVlcMlEvent(event);
@@ -292,15 +386,7 @@ void MLFolderTreeModel::updatePath()
     // ML thread
     [parent = m_parent](vlc_medialibrary_t *ml, Ctx &ctx)
     {
-        ml_unique_ptr<vlc_ml_folder_t> folder(vlc_ml_get_folder(ml, parent.id));
-        for (int depth = 0; folder != nullptr && depth < MAX_FOLDER_DEPTH; ++depth)
-        {
-            ctx.path.prepend(QVariantMap {
-                {QStringLiteral("id"), QVariant::fromValue(MLItemId(folder->i_id, VLC_ML_PARENT_FOLDER))},
-                {QStringLiteral("title"), qfu(folder->psz_name)},
-            });
-            folder.reset(vlc_ml_get_folder_parent(ml, folder->i_id));
-        }
+        ctx.path = mlfoldertree::path(ml, parent);
     },
     // UI thread
     [this](quint64, Ctx &ctx)
@@ -329,15 +415,7 @@ MLFolderTreeModel::Loader::load(vlc_medialibrary_t *ml, const vlc_ml_query_param
 {
     // the levels of a folder tree are small, so each load lists the whole
     // level and returns the requested page of it
-    std::vector<std::unique_ptr<MLItem>> all = rows(ml);
-
-    const size_t first = std::min<size_t>(queryParams->i_offset, all.size());
-    const size_t last = (queryParams->i_nbResults == 0)
-                        ? all.size()
-                        : std::min<size_t>(first + queryParams->i_nbResults, all.size());
-
-    return { std::make_move_iterator(all.begin() + first),
-             std::make_move_iterator(all.begin() + last) };
+    return mlfoldertree::page(rows(ml), queryParams);
 }
 
 std::unique_ptr<MLItem>
@@ -360,55 +438,24 @@ MLFolderTreeModel::Loader::loadItemById(vlc_medialibrary_t *ml, MLItemId itemId)
 std::vector<std::unique_ptr<MLItem>>
 MLFolderTreeModel::Loader::rows(vlc_medialibrary_t *ml) const
 {
-    const bool atTop = (m_parent.id <= 0);
-
     const QString pattern = QString::fromUtf8(m_searchPattern);
     const auto matches = [&pattern](const QString &title) {
         return pattern.isEmpty() || title.contains(pattern, Qt::CaseInsensitive);
     };
 
-    // folders
+    const bool byTitle = (m_criteria != QLatin1String("insertion")
+                          && m_criteria != QLatin1String("unwatched"));
+    const bool titleDesc = byTitle && m_sortDesc && !m_criteria.isEmpty();
 
-    const QStringList videoMrls = mediaFolderMrls(ml, VLC_ML_MEDIA_TYPE_VIDEO);
-    QStringList anyMediaMrls;
+    // folders, by title
 
-    ml_unique_ptr<vlc_ml_folder_list_t> folderList;
-    if (atTop)
-    {
-        folderList.reset(vlc_ml_list_entry_points(ml, nullptr));
-        anyMediaMrls = mediaFolderMrls(ml, VLC_ML_MEDIA_TYPE_UNKNOWN);
-    }
-    else
-    {
-        vlc_ml_query_params_t params = vlc_ml_query_params_create();
-        params.i_sort = VLC_ML_SORTING_ALPHA;
-        folderList.reset(vlc_ml_list_subfolders(ml, &params, m_parent.id));
-    }
-
-    std::vector<std::unique_ptr<MLFolder>> folders;
-    if (folderList)
-    {
-        for (const vlc_ml_folder_t &data : ml_range_iterate<vlc_ml_folder_t>(folderList))
-        {
-            if (data.b_banned)
-                continue;
-
-            auto folder = std::make_unique<MLFolder>(&data);
-            const QString mrl = folderMrl(folder->getMRL());
-
-            // an added folder without media is shown, it may be scanned yet
-            const bool shown = holdsAny(videoMrls, mrl)
-                               || (atTop && !holdsAny(anyMediaMrls, mrl));
-
-            if (shown && matches(folder->getTitle()))
-                folders.push_back(std::move(folder));
-        }
-    }
+    std::vector<std::unique_ptr<MLFolder>> folders =
+        mlfoldertree::folders(ml, m_parent, VLC_ML_MEDIA_TYPE_VIDEO, pattern, titleDesc);
 
     // videos
 
     std::vector<std::unique_ptr<MLVideo>> videos;
-    if (!atTop)
+    if (m_parent.id > 0)
     {
         vlc_ml_query_params_t params = vlc_ml_query_params_create();
         if (m_criteria == QLatin1String("insertion"))
@@ -433,22 +480,10 @@ MLFolderTreeModel::Loader::rows(vlc_medialibrary_t *ml) const
         }
     }
 
-    // sort, titles in natural order
+    // sort the videos, titles in natural order
 
     QCollator collator;
     collator.setCaseSensitivity(Qt::CaseInsensitive);
-
-    const bool byTitle = (m_criteria != QLatin1String("insertion")
-                          && m_criteria != QLatin1String("unwatched"));
-    const bool titleDesc = byTitle && m_sortDesc && !m_criteria.isEmpty();
-    const auto titleLess = [&collator, titleDesc](const QString &a, const QString &b) {
-        return titleDesc ? naturalCompare(collator, b, a) < 0 : naturalCompare(collator, a, b) < 0;
-    };
-
-    std::stable_sort(folders.begin(), folders.end(),
-                     [&titleLess](const std::unique_ptr<MLFolder> &a, const std::unique_ptr<MLFolder> &b) {
-        return titleLess(a->getTitle(), b->getTitle());
-    });
 
     if (m_criteria == QLatin1String("unwatched"))
     {
@@ -459,14 +494,15 @@ MLFolderTreeModel::Loader::rows(vlc_medialibrary_t *ml) const
             const int rankB = rank(*b);
             if (rankA != rankB)
                 return rankA < rankB;
-            return naturalCompare(collator, a->title(), b->title()) < 0;
+            return mlfoldertree::naturalCompare(collator, a->title(), b->title()) < 0;
         });
     }
     else if (byTitle)
     {
         std::stable_sort(videos.begin(), videos.end(),
-                         [&titleLess](const std::unique_ptr<MLVideo> &a, const std::unique_ptr<MLVideo> &b) {
-            return titleLess(a->title(), b->title());
+                         [&collator, titleDesc](const std::unique_ptr<MLVideo> &a, const std::unique_ptr<MLVideo> &b) {
+            return titleDesc ? mlfoldertree::naturalCompare(collator, b->title(), a->title()) < 0
+                             : mlfoldertree::naturalCompare(collator, a->title(), b->title()) < 0;
         });
     }
 

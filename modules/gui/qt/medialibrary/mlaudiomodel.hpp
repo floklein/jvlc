@@ -41,6 +41,8 @@ public:
         AUDIO_ALBUM_FIRST_SYMBOL,
         AUDIO_ALBUM_ID,
         AUDIO_ALBUM_ID_SERIALIZED,
+
+        AUDIO_ROLES_COUNT,
     }
     ;
 
@@ -56,9 +58,10 @@ protected:
 
     std::unique_ptr<MLListCacheLoader> createMLLoader() const override;
 
+    void onVlcMlEvent( const MLEvent &event ) override;
+
 private:
     vlc_ml_sorting_criteria_t nameToCriteria(QByteArray name) const override;
-    void onVlcMlEvent( const MLEvent &event ) override;
 
     struct Loader : public MLListCacheLoader::MLOp
     {

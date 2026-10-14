@@ -52,18 +52,34 @@ Widgets.PageExt {
     hasGridListMode: true
     isSearchable: true
 
-    //we provide our own header
-    header: null
+    title: qsTr("Artists")
 
+    breadcrumb: albumSubView.artistName !== "" ? [qsTr("Artists"), albumSubView.artistName] : []
+
+    itemCount: albumSubView.itemCount
+
+    sortMenu: albumSubView.sortMenu
+
+    // the grid lists the albums of the artist, the list its tracks
     sortModel: MainCtx.gridView ? [
-        { text: qsTr("Title"), criteria: "title" },
-        { text: qsTr("Release Year"), criteria: "release_year" },
+        { text: qsTr("Title A-Z"), criteria: "title", order: Qt.AscendingOrder },
+        { text: qsTr("Title Z-A"), criteria: "title", order: Qt.DescendingOrder },
+        { text: qsTr("Newest First"), criteria: "release_year", order: Qt.DescendingOrder },
+        { text: qsTr("Oldest First"), criteria: "release_year", order: Qt.AscendingOrder }
     ] : [
-        { text: qsTr("Title"), criteria: "title" },
-        { text: qsTr("Release Year"), criteria: "release_year" },
-        { text: qsTr("Album Title"), criteria: "album_title" },
-        { text: qsTr("Duration"), criteria: "duration" }
+        { text: qsTr("Title A-Z"), criteria: "title", order: Qt.AscendingOrder },
+        { text: qsTr("Title Z-A"), criteria: "title", order: Qt.DescendingOrder },
+        { text: qsTr("Album"), criteria: "album_title", order: Qt.AscendingOrder },
+        { text: qsTr("Track"), criteria: "track_number", order: Qt.AscendingOrder },
+        { text: qsTr("Newest First"), criteria: "release_year", order: Qt.DescendingOrder },
+        { text: qsTr("Oldest First"), criteria: "release_year", order: Qt.AscendingOrder },
+        { text: qsTr("Duration"), criteria: "duration", order: Qt.AscendingOrder }
     ]
+
+    // the crumb "Artists" goes back to every artist
+    onBreadcrumbClicked: (index, reason) => {
+        History.push([...root.pagePrefix.slice(0, -1), "all"], {}, reason)
+    }
 
     onInitialAlbumIndexChanged: resetFocus()
     onInitialIndexChanged: resetFocus()
@@ -194,6 +210,7 @@ Widgets.PageExt {
             }
 
             Navigation.parentItem: root
+            Navigation.upItem: root.header
 
             Navigation.rightAction: function() {
                 albumSubView.setCurrentItemFocus(Qt.TabFocusReason);
@@ -317,6 +334,7 @@ Widgets.PageExt {
             focus: true
             initialIndex: root.initialAlbumIndex
             Navigation.parentItem: root
+            Navigation.upItem: root.header
             Navigation.leftItem: VLCStyle.isScreenSmall ? null : artistList
         }
     }
@@ -328,5 +346,6 @@ Widgets.PageExt {
         focus: visible
         text: qsTr("No artists found\nPlease try adding sources")
         Navigation.parentItem: root
+        Navigation.upItem: root.header
     }
 }

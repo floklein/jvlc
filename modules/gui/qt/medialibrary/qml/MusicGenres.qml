@@ -57,7 +57,8 @@ MainViewLoader {
     model: genreModel
 
     sortModel: [
-        { text: qsTr("Alphabetic"), criteria: "name" }
+        { text: qsTr("Name A-Z"), criteria: "name", order: Qt.AscendingOrder },
+        { text: qsTr("Name Z-A"), criteria: "name", order: Qt.DescendingOrder }
     ]
 
     list: tableComponent
