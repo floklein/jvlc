@@ -236,6 +236,8 @@ qt_plugin_sources = files(
     'dialogs/settings/settings_model.hpp',
     'dialogs/settings/settings_pages.cpp',
     'dialogs/settings/settings_pages.hpp',
+    'dialogs/settings/settings_registry.cpp',
+    'dialogs/settings/settings_registry.hpp',
     'dialogs/sout/profiles.hpp',
     'dialogs/sout/stream_output.cpp',
     'dialogs/sout/stream_output.hpp',
@@ -1813,7 +1815,9 @@ if qt6_dep.found()
                 'tests/vlc_stub_modules.cpp',
                 'tests/test_settings_model.cpp',
                 'dialogs/settings/settings_model.hpp',
-                'dialogs/settings/settings_model.cpp'
+                'dialogs/settings/settings_model.cpp',
+                'dialogs/settings/settings_registry.hpp',
+                'dialogs/settings/settings_registry.cpp'
             ),
             'moc_sources': files(
                 'tests/test_settings_model.cpp'

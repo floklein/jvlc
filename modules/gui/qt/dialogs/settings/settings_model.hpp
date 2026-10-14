@@ -20,6 +20,7 @@
 #define VLC_QT_SETTINGS_MODEL_HPP
 
 #include <QAbstractListModel>
+#include <QSet>
 #include <QSortFilterProxyModel>
 #include <QStringList>
 #include <QTimer>
@@ -29,6 +30,7 @@
 #include <functional>
 
 #include "qt.hpp"
+#include "settings_registry.hpp"
 
 class QSettings;
 
@@ -73,8 +75,25 @@ public:
         DeveloperRole,
         AvailableRole,
         PendingRestartRole,
+        KindRole,
+        AdvancedRole,
+        GroupRole,
+        GroupLabelRole,
+        SearchOnlyRole,
+        OptionsRole,
+        ExpandedRole,
     };
     Q_ENUM(Roles)
+
+    enum Kind
+    {
+        Setting,
+        // the Advanced Options section of a page
+        AdvancedHeader,
+        // the group of a plugin, inside Advanced Options
+        GroupHeader,
+    };
+    Q_ENUM(Kind)
 
     enum Control
     {
@@ -85,6 +104,13 @@ public:
         Slider,
         Text,
         SaveFile,   // text field plus Browse
+        Number,     // a number typed in
+        Password,
+        OpenFile,   // text field plus Browse, for an existing file
+        Directory,  // text field plus Browse, for a folder
+        Color,      // #rrggbb
+        Shortcut,   // the keys of a shortcut action
+        Action,     // a button
     };
     Q_ENUM(Control)
 
@@ -104,6 +130,14 @@ public:
         QString section;
         QString label;
         QString help;
+
+        Kind kind = Setting;
+        // under Advanced Options, in the group of a plugin or not
+        bool advanced = false;
+        QString group;
+        QString groupLabel;
+        // only shown in search results
+        bool searchOnly = false;
 
         Control control = Toggle;
         Effect effect = Immediate;
@@ -130,6 +164,11 @@ public:
         std::function<QVariant()> readDefault;
         std::function<bool(const QVariant&)> write;
         bool savesConfig = false;
+        // the VLC options the row writes
+        QStringList options;
+
+        // Action rows
+        std::function<void()> action;
     };
 
     explicit SettingsModel(qt_intf_t* intf = nullptr, QObject* parent = nullptr);
@@ -140,10 +179,25 @@ public:
     // store the row in VLC options; the first existing option gives the
     // value, writes go to every existing option
     void bindConfig(Row& row, const QStringList& options);
+    // a toggle adding a filter to, or removing it from, a filter chain
+    // option such as "video-filter"; the other filters are kept
+    void bindFilter(Row& row, const QString& chainOption, const QString& filter);
     // store the row in a QSettings key
     static void bindSettings(Row& row, QSettings* settings, const QString& key, const QVariant& defaultValue);
 
     void addRow(Row row);
+
+    /* Advanced Options: every option not already in a row, placed by
+     * SettingsRegistry. An option declared by several plugins, or known
+     * under several names, gets one row. */
+    void addAdvancedRows(const QVector<SettingsOption>& options);
+
+    // where the open state of the Advanced Options sections is kept
+    void setStateSettings(QSettings* settings);
+    Q_INVOKABLE bool isAdvancedExpanded(const QString& page) const;
+    Q_INVOKABLE void setAdvancedExpanded(const QString& page, bool expanded);
+    Q_INVOKABLE bool isGroupExpanded(const QString& page, const QString& group) const;
+    Q_INVOKABLE void setGroupExpanded(const QString& page, const QString& group, bool expanded);
 
     int rowCount(const QModelIndex& parent = {}) const override;
     QVariant data(const QModelIndex& index, int role) const override;
@@ -154,6 +208,11 @@ public:
     Q_INVOKABLE QVariant value(const QString& id) const;
     Q_INVOKABLE bool setValue(const QString& id, const QVariant& value);
     Q_INVOKABLE void reset(const QString& id);
+    // run the action of an Action row
+    Q_INVOKABLE void trigger(const QString& id);
+    /* Reset all settings in this Profile: every VLC option and every row,
+     * except the settings shared by all Profiles */
+    Q_INVOKABLE void resetAll();
 
     bool restartRequired() const;
     QString profileName() const;
@@ -166,6 +225,10 @@ signals:
     void settingChanged(const QString& id, const QVariant& value);
     void restartRequiredChanged();
     void profileNameChanged();
+    // an Advanced Options section or a plugin group opened or closed
+    void expansionChanged();
+    // after resetAll()
+    void allReset();
 
 protected:
     void setIntf(qt_intf_t* intf);
@@ -176,8 +239,14 @@ private:
     {
         Row row;
         QVariant startValue;
+        // the choices of a choicesProvider, read once
+        mutable bool choicesRead = false;
+        mutable QVariantList choices;
     };
 
+    void appendRows(QVector<Row>& rows);
+    QVariantList choicesOf(const Entry& entry) const;
+    void headerChanged(Kind kind, const QString& page, const QString& group);
     int rowOf(const QString& id) const;
     bool isAvailable(const Entry& entry) const;
     QVariant readValue(const Entry& entry) const;
@@ -193,6 +262,11 @@ private:
     QString m_profileName;
     QTimer m_saveTimer;
     std::function<void()> m_save;
+
+    QSettings* m_stateSettings = nullptr;
+    QSet<QString> m_expandedPages;
+    // "page/group"
+    QSet<QString> m_expandedGroups;
 };
 
 /**
@@ -221,6 +295,11 @@ public:
 
     int count() const;
 
+    // the row of a setting, -1 if it is not shown
+    Q_INVOKABLE int indexOf(const QString& id) const;
+
+    void setSourceModel(QAbstractItemModel* model) override;
+
 signals:
     void pageChanged();
     void searchPatternChanged();
@@ -229,9 +308,14 @@ signals:
 
 protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const override;
+    // the basic rows, then Advanced Options: core rows, then plugin groups
+    bool lessThan(const QModelIndex& left, const QModelIndex& right) const override;
 
 private:
     bool matchesSearch(const QModelIndex& index) const;
+    void refilter();
+
+    QMetaObject::Connection m_expansionConnection;
 
     QString m_page;
     QString m_searchPattern;

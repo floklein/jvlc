@@ -16,6 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 import QtQuick
+import QtQuick.Templates as T
 import QtQuick.Layouts
 
 import VLC.MainInterface
@@ -33,10 +34,17 @@ FocusScope {
     // shown above the label in search results
     property string path
 
-    readonly property bool changed: !model.isDefault
+    readonly property bool isSetting: model.kind === SettingsModel.Setting
+    readonly property bool changed: isSetting && !model.isDefault
     property bool helpShown: false
 
-    implicitHeight: content.implicitHeight + 2 * VLCStyle.spacing_5
+    implicitHeight: {
+        switch (model.kind) {
+        case SettingsModel.AdvancedHeader: return advancedHeader.implicitHeight + VLCStyle.spacing_20
+        case SettingsModel.GroupHeader: return groupHeader.implicitHeight + VLCStyle.spacing_4
+        }
+        return content.implicitHeight + 2 * VLCStyle.spacing_5
+    }
 
     function write(value) {
         model.value = value
@@ -47,8 +55,97 @@ FocusScope {
         colorSet: ColorContext.View
     }
 
+    // the Advanced Options section of the page, below its basic rows
+    Widgets.ButtonExt {
+        id: advancedHeader
+
+        visible: model.kind === SettingsModel.AdvancedHeader
+        focus: visible
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        implicitHeight: VLCStyle.dp(36, VLCStyle.scale)
+
+        text: model.label
+        iconTxt: model.expanded ? VLCIcons.chevron_up : VLCIcons.chevron_down
+        iconSize: VLCStyle.icon_small
+        font.pixelSize: VLCStyle.fontSize_normal
+        font.weight: Font.Normal
+
+        Accessible.role: Accessible.Button
+        Accessible.name: model.label
+        Accessible.checkable: true
+        Accessible.checked: model.expanded
+
+        background: Rectangle {
+            radius: VLCStyle.radius_normal
+            color: advancedHeader.hovered || advancedHeader.visualFocus ? theme.bg.highlight : theme.bg.secondary
+            border.width: advancedHeader.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : 0
+            border.color: theme.accent
+        }
+
+        onClicked: root.settingsModel.setAdvancedExpanded(model.page, !model.expanded)
+    }
+
+    // the group of one plugin, collapsed until opened
+    T.AbstractButton {
+        id: groupHeader
+
+        visible: model.kind === SettingsModel.GroupHeader
+        focus: visible
+        focusPolicy: Qt.StrongFocus
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        implicitHeight: VLCStyle.dp(36, VLCStyle.scale)
+
+        Accessible.role: Accessible.Button
+        Accessible.name: model.groupLabel
+        Accessible.checkable: true
+        Accessible.checked: model.expanded
+        Accessible.onPressAction: groupHeader.clicked()
+
+        background: Rectangle {
+            radius: VLCStyle.radius_normal
+            color: groupHeader.hovered ? theme.bg.highlight : "transparent"
+            border.width: groupHeader.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : 0
+            border.color: theme.accent
+        }
+
+        contentItem: RowLayout {
+            spacing: VLCStyle.spacing_8
+
+            Widgets.IconLabel {
+                Layout.leftMargin: VLCStyle.spacing_4
+                text: VLCIcons.chevron_down
+                rotation: model.expanded ? 0 : -90
+                color: theme.fg.secondary
+                font.pixelSize: VLCStyle.icon_small
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: model.groupLabel
+                elide: Text.ElideRight
+                color: theme.fg.primary
+                font.pixelSize: VLCStyle.fontSize_normal
+                font.weight: Font.Medium
+                font.family: VLCStyle.fontFamily
+            }
+        }
+
+        onClicked: root.settingsModel.setGroupExpanded(model.page, model.group, !model.expanded)
+    }
+
     RowLayout {
         id: content
+
+        visible: root.isSetting
+        // the rows of a plugin group are indented under its title, but not
+        // in search results
+        anchors.leftMargin: model.group !== "" && root.path === "" ? VLCStyle.margin_large : 0
 
         anchors.left: parent.left
         anchors.right: parent.right
@@ -181,11 +278,12 @@ FocusScope {
             id: controlLoader
 
             Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-            Layout.preferredWidth: model.control === SettingsModel.Toggle
+            Layout.preferredWidth: model.control === SettingsModel.Toggle || model.control === SettingsModel.Action
                                    ? implicitWidth : VLCStyle.dp(320, VLCStyle.scale)
             Layout.preferredHeight: implicitHeight
 
-            focus: true
+            active: root.isSetting
+            focus: root.isSetting
 
             sourceComponent: {
                 switch (model.control) {
@@ -195,6 +293,13 @@ FocusScope {
                 case SettingsModel.Swatches: return segmentedComponent
                 case SettingsModel.Slider: return sliderComponent
                 case SettingsModel.Text: return textComponent
+                case SettingsModel.Password: return passwordComponent
+                case SettingsModel.Number: return numberComponent
+                case SettingsModel.Color: return colorComponent
+                case SettingsModel.Shortcut: return shortcutComponent
+                case SettingsModel.Action: return actionComponent
+                case SettingsModel.OpenFile:
+                case SettingsModel.Directory:
                 case SettingsModel.SaveFile: return fileComponent
                 }
                 return null
@@ -349,9 +454,165 @@ FocusScope {
                 }
 
                 onClicked: {
-                    const path = root.settingsModel.browseSaveFile(root.row.label, pathField.text)
+                    let path
+                    if (root.row.control === SettingsModel.OpenFile)
+                        path = root.settingsModel.browseOpenFile(root.row.label, pathField.text)
+                    else if (root.row.control === SettingsModel.Directory)
+                        path = root.settingsModel.browseDirectory(root.row.label, pathField.text)
+                    else
+                        path = root.settingsModel.browseSaveFile(root.row.label, pathField.text)
                     if (path !== "")
                         root.write(path)
+                }
+            }
+        }
+    }
+
+    Component {
+        id: passwordComponent
+
+        Widgets.TextFieldExt {
+            text: root.row.value
+            echoMode: TextInput.Password
+            Accessible.name: root.row.label
+            implicitHeight: VLCStyle.dp(36, VLCStyle.scale)
+            radius: VLCStyle.radius_normal
+            onEditingFinished: root.write(text)
+        }
+    }
+
+    // a number typed in; a step of 0 accepts decimals
+    Component {
+        id: numberComponent
+
+        Widgets.TextFieldExt {
+            readonly property bool decimals: root.row.step === 0
+
+            // options store floats: hide the digits a float can't hold
+            text: root.row.value === undefined ? ""
+                  : decimals ? String(parseFloat(Number(root.row.value).toPrecision(7)))
+                             : String(root.row.value)
+            inputMethodHints: Qt.ImhFormattedNumbersOnly
+            validator: decimals ? doubleValidator : intValidator
+            Accessible.name: root.row.label
+            implicitHeight: VLCStyle.dp(36, VLCStyle.scale)
+            radius: VLCStyle.radius_normal
+
+            IntValidator {
+                id: intValidator
+                bottom: Math.max(root.row.minimum, -2147483647)
+                top: Math.min(root.row.maximum, 2147483647)
+            }
+
+            DoubleValidator {
+                id: doubleValidator
+                // options without a range have min and max at 0
+                bottom: root.row.minimum < root.row.maximum ? root.row.minimum : -Infinity
+                top: root.row.minimum < root.row.maximum ? root.row.maximum : Infinity
+                locale: "C"
+                notation: DoubleValidator.StandardNotation
+            }
+
+            onEditingFinished: {
+                const value = decimals ? parseFloat(text) : parseInt(text, 10)
+                if (!isNaN(value))
+                    root.write(value)
+            }
+        }
+    }
+
+    // an RGB color written #rrggbb
+    Component {
+        id: colorComponent
+
+        RowLayout {
+            spacing: VLCStyle.spacing_10
+
+            function hex(value) {
+                return "#" + ((value >>> 0) & 0xffffff).toString(16).padStart(6, "0")
+            }
+
+            Rectangle {
+                Layout.preferredWidth: VLCStyle.dp(24, VLCStyle.scale)
+                Layout.preferredHeight: VLCStyle.dp(24, VLCStyle.scale)
+                radius: VLCStyle.radius_small
+                color: parent.hex(root.row.value)
+                border.width: VLCStyle.dp(1, VLCStyle.scale)
+                border.color: theme.border
+            }
+
+            Widgets.TextFieldExt {
+                Layout.fillWidth: true
+                text: parent.hex(root.row.value)
+                validator: RegularExpressionValidator { regularExpression: /#?[0-9a-fA-F]{6}/ }
+                Accessible.name: root.row.label
+                implicitHeight: VLCStyle.dp(36, VLCStyle.scale)
+                radius: VLCStyle.radius_normal
+                onEditingFinished: root.write(parseInt(text.replace("#", ""), 16))
+            }
+        }
+    }
+
+    // the keys of a shortcut action, changed in Keyboard Shortcuts
+    Component {
+        id: shortcutComponent
+
+        Text {
+            text: {
+                const keys = (root.row.value || "").split("\t").filter((key) => key !== "")
+                return keys.length > 0 ? keys.join(", ") : qsTr("None")
+            }
+            horizontalAlignment: Text.AlignRight
+            elide: Text.ElideLeft
+            color: theme.fg.primary
+            font.pixelSize: VLCStyle.fontSize_normal
+            font.family: VLCStyle.fontFamily
+            Accessible.role: Accessible.StaticText
+            Accessible.name: root.row.label + ": " + text
+        }
+    }
+
+    // a button asking for confirmation first
+    Component {
+        id: actionComponent
+
+        RowLayout {
+            id: action
+
+            property bool confirming: false
+
+            spacing: VLCStyle.spacing_10
+
+            Widgets.TextToolButton {
+                visible: action.confirming
+                text: qsTr("Cancel")
+                onClicked: action.confirming = false
+            }
+
+            Widgets.ButtonExt {
+                id: actionButton
+
+                Layout.preferredHeight: VLCStyle.dp(32, VLCStyle.scale)
+                text: action.confirming ? qsTr("Reset all") : qsTr("Reset…")
+                font.weight: Font.DemiBold
+                Accessible.name: action.confirming ? qsTr("Confirm “%1”").arg(root.row.label) : root.row.label
+
+                background: Rectangle {
+                    radius: VLCStyle.radius_normal
+                    color: action.confirming ? theme.accent
+                                             : (actionButton.hovered || actionButton.visualFocus ? theme.bg.highlight
+                                                                                                 : theme.bg.secondary)
+                    border.width: actionButton.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : 0
+                    border.color: theme.accent
+                }
+
+                onClicked: {
+                    if (!action.confirming) {
+                        action.confirming = true
+                        return
+                    }
+                    action.confirming = false
+                    root.settingsModel.trigger(root.row.settingId)
                 }
             }
         }

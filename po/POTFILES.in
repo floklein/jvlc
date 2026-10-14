@@ -689,6 +689,7 @@ modules/gui/qt/dialogs/preferences/preferences_widgets.cpp
 modules/gui/qt/dialogs/preferences/preferences_widgets.hpp
 modules/gui/qt/dialogs/settings/settings_model.cpp
 modules/gui/qt/dialogs/settings/settings_pages.cpp
+modules/gui/qt/dialogs/settings/settings_registry.cpp
 modules/gui/qt/dialogs/settings/qml/SettingsDialog.qml
 modules/gui/qt/dialogs/settings/qml/SettingsRow.qml
 modules/gui/qt/dialogs/sout/profiles.hpp

@@ -197,6 +197,10 @@ AppSettingsModel::AppSettingsModel(QObject* parent)
     : SettingsModel(nullptr, parent)
 {
     connect(this, &SettingsModel::settingChanged, this, &AppSettingsModel::onSettingChanged);
+    connect(this, &SettingsModel::allReset, this, [this]() {
+        if (m_ctx)
+            m_ctx->reloadPrefs();
+    });
 }
 
 void AppSettingsModel::setCtx(MainCtx* ctx)
@@ -209,7 +213,23 @@ void AppSettingsModel::setCtx(MainCtx* ctx)
     addGeneralRows();
     addInterfaceRows();
 
+    /* Advanced Options: every other option, then General's reset */
+    qt_intf_t* p_intf = intf();
+    setStateSettings(getSettings());
+    addAdvancedRows(SettingsRegistry::options());
+    addResetRow();
+
     emit ctxChanged();
+}
+
+void AppSettingsModel::addResetRow()
+{
+    Row row = makeRow("reset-all", "general", qtr("Reset"), qtr("Reset all settings in this Profile"), Action);
+    row.help = qtr("Puts back every setting of this Profile, keyboard shortcuts included, "
+                   "as VLC first had them. The settings shared by all profiles are kept.");
+    row.advanced = true;
+    row.action = [this]() { resetAll(); };
+    addRow(std::move(row));
 }
 
 void AppSettingsModel::addGeneralRows()
@@ -540,6 +560,16 @@ void AppSettingsModel::onSettingChanged(const QString& id)
 QString AppSettingsModel::browseSaveFile(const QString& title, const QString& current) const
 {
     return QDir::toNativeSeparators(QFileDialog::getSaveFileName(nullptr, title, current));
+}
+
+QString AppSettingsModel::browseOpenFile(const QString& title, const QString& current) const
+{
+    return QDir::toNativeSeparators(QFileDialog::getOpenFileName(nullptr, title, current));
+}
+
+QString AppSettingsModel::browseDirectory(const QString& title, const QString& current) const
+{
+    return QDir::toNativeSeparators(QFileDialog::getExistingDirectory(nullptr, title, current));
 }
 
 void AppSettingsModel::restartVLC()

@@ -43,6 +43,8 @@ public:
 
     // system "save as" dialog, returns the chosen path or an empty string
     Q_INVOKABLE QString browseSaveFile(const QString& title, const QString& current) const;
+    Q_INVOKABLE QString browseOpenFile(const QString& title, const QString& current) const;
+    Q_INVOKABLE QString browseDirectory(const QString& title, const QString& current) const;
 
 signals:
     void ctxChanged();
@@ -50,6 +52,7 @@ signals:
 private:
     void addGeneralRows();
     void addInterfaceRows();
+    void addResetRow();
     void onSettingChanged(const QString& id);
 
     MainCtx* m_ctx = nullptr;

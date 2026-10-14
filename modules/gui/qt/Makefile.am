@@ -121,6 +121,8 @@ libqt_plugin_la_SOURCES = \
 	dialogs/settings/settings_model.hpp \
 	dialogs/settings/settings_pages.cpp \
 	dialogs/settings/settings_pages.hpp \
+	dialogs/settings/settings_registry.cpp \
+	dialogs/settings/settings_registry.hpp \
 	dialogs/sout/profiles.hpp \
 	dialogs/sout/stream_output.cpp \
 	dialogs/sout/stream_output.hpp \
@@ -2239,7 +2241,8 @@ TESTS += test_program_guide_model
 test_settings_model_SOURCES = \
 	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
 	tests/test_settings_model.cpp \
-	dialogs/settings/settings_model.cpp dialogs/settings/settings_model.hpp
+	dialogs/settings/settings_model.cpp dialogs/settings/settings_model.hpp \
+	dialogs/settings/settings_registry.cpp dialogs/settings/settings_registry.hpp
 
 nodist_test_settings_model_SOURCES = \
 	tests/test_settings_model.moc \

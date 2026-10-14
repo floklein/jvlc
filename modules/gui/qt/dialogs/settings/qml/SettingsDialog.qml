@@ -85,9 +85,28 @@ Window {
             root.currentPage = page
         root.advancedRequested = advanced
         searchField.text = ""
+        if (advanced) {
+            appSettings.setAdvancedExpanded(root.currentPage, true)
+            Qt.callLater(() => {
+                const index = rowsModel.indexOf("advanced:" + root.currentPage)
+                if (index >= 0)
+                    rowsView.positionViewAtIndex(index, ListView.Beginning)
+            })
+        }
         root.show()
         root.raise()
         root.requestActivate()
+    }
+
+    // where a row of the search results comes from
+    function rowPath(row) : string {
+        const parts = [root.pageTitle(row.page)]
+        if (row.advanced && !row.searchOnly)
+            parts.push(qsTr("Advanced Options"))
+        const place = row.groupLabel !== "" ? row.groupLabel : row.section
+        if (place !== "")
+            parts.push(place)
+        return parts.join(" › ")
     }
 
     onVisibleChanged: DialogsProvider.setSettingsDialogVisible(visible)
@@ -304,8 +323,11 @@ Window {
                     required property string section
 
                     width: rowsView.width - rowsView.leftMargin - rowsView.rightMargin
-                    // 20 between sections (and above the first one), 10 around the title
-                    height: VLCStyle.spacing_20 + 2 * VLCStyle.spacing_10 + sectionLabel.implicitHeight
+                    // 20 between sections (and above the first one), 10 around the title;
+                    // the Advanced Options and plugin group titles are rows
+                    height: section === "" ? 0
+                                           : VLCStyle.spacing_20 + 2 * VLCStyle.spacing_10 + sectionLabel.implicitHeight
+                    visible: section !== ""
 
                     Text {
                         id: sectionLabel
@@ -323,7 +345,7 @@ Window {
                 delegate: SettingsRow {
                     width: rowsView.width - rowsView.leftMargin - rowsView.rightMargin
                     settingsModel: appSettings
-                    path: root.searching ? root.pageTitle(model.page) + " › " + model.section : ""
+                    path: root.searching ? root.rowPath(model) : ""
                 }
 
                 T.ScrollBar.vertical: Widgets.ScrollBarExt { }
