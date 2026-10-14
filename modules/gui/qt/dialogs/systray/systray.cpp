@@ -193,7 +193,7 @@ void VLCSystray::update()
     VLCMenuBar::VolumeEntries( m_intf, m_menu.get() );
     m_menu->addSeparator();
     m_menu->addAction(
-        QIcon(":/menu/file.svg"), qtr( "&Open Media" ),
+        QIcon(":/menu/file.svg"), qtr( "&Open File(s)..." ),
         THEDP, &DialogsProvider::openFileDialog);
 
     m_menu->addAction(

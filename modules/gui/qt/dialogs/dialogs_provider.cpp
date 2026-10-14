@@ -47,7 +47,6 @@
 #include "dialogs/extended/extended.hpp"
 #include "dialogs/sout/sout.hpp"
 #include "dialogs/open/open.hpp"
-#include "dialogs/open/openurl.hpp"
 #include "dialogs/plugins/plugins.hpp"
 #include "dialogs/playlists/playlists.hpp"
 #include "dialogs/firstrun/firstrunwizard.hpp"
@@ -622,11 +621,11 @@ void DialogsProvider::openDialog( OpenDialog::OpenTab i_tab )
 }
 void DialogsProvider::openDialog()
 {
-    openDialog( OpenDialog::OPEN_FILE_TAB );
+    simpleOpenDialog();
 }
 void DialogsProvider::openFileDialog()
 {
-    openDialog( OpenDialog::OPEN_FILE_TAB );
+    simpleOpenDialog();
 }
 void DialogsProvider::openDiscDialog()
 {
@@ -640,13 +639,6 @@ void DialogsProvider::openNetDialog()
 void DialogsProvider::openCaptureDialog()
 {
     openDialog( OpenDialog::OPEN_CAPTURE_TAB );
-}
-
-/* Same as the open one, but force the enqueue */
-void DialogsProvider::PLAppendDialog( OpenDialog::OpenTab tab )
-{
-    ensureDialog(m_openDialog);
-    m_openDialog->showTab( tab, OpenDialog::OPEN_AND_ENQUEUE );
 }
 
 /**
@@ -699,47 +691,18 @@ void DialogsProvider::simpleOpenDialog(bool start)
     QVector<vlc::playlist::Media> medias;
     for( const QString& mrl : urls)
         medias.push_back( vlc::playlist::Media{mrl, QString {}} );
-    if (!medias.empty())
-        THEMPL->append(medias, start);
-}
-
-/* Url & Clipboard */
-/**
- * Open a MRL.
- * If the clipboard contains URLs, the first is automatically 'preselected'.
- **/
-void DialogsProvider::openUrlDialog()
-{
-    OpenUrlDialog oud( p_intf );
-    if( oud.exec() != QDialog::Accepted )
+    if (medias.empty())
         return;
-
-    QString url = oud.url();
-    if( url.isEmpty() )
-        return;
-
-    char *uri;
-    if( !url.contains( qfu( "://" ) ) )
-    {
-        uri = vlc_path2uri( qtu( url ), NULL );
-    } else {
-        uri = vlc_uri_fixup( qtu( url ) );
-    }
-
-    if( uri == NULL )
-        return;
-    url = qfu(uri);
-    free( uri );
-
-    QVector<vlc::playlist::Media> medias = { {url, QString {}} };
-    THEMPL->append(medias, !oud.shouldEnqueue());
+    if (start)
+        THEMPL->playMedia(medias);
+    else
+        THEMPL->append(medias, false);
 }
 
 /* Directory */
 /**
  * Open a directory,
- * pl helps you to choose from playlist or media library,
- * go to start or enqueue
+ * play it by the Play rule or enqueue it
  **/
 static void openDirectory( qt_intf_t *p_intf, bool go )
 {
@@ -747,7 +710,10 @@ static void openDirectory( qt_intf_t *p_intf, bool go )
     if( !uri.isEmpty() )
     {
         QVector<vlc::playlist::Media> medias = { {uri, QString {}} };
-        THEMPL->append(medias, go);
+        if( go )
+            THEMPL->playMedia(medias);
+        else
+            THEMPL->append(medias, false);
     }
 }
 

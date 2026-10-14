@@ -45,7 +45,9 @@
 #include "util/color_scheme_model.hpp"
 
 #include "playlist/playlist_controller.hpp"
+#include "playlist/pasted_media.hpp"
 #include "player/player_controller.hpp"
+#include "medialibrary/medialib.hpp"
 
 #include "dialogs/dialogs_provider.hpp"
 #include "dialogs/systray/systray.hpp"
@@ -62,7 +64,6 @@
 #include <QDate>
 #include <QMimeData>
 #include <QClipboard>
-#include <QInputDialog>
 
 #include <QQmlProperty>
 
@@ -899,60 +900,39 @@ bool MainCtx::pasteFromClipboard()
 {
     assert(qApp);
     const QClipboard *const clipboard = qApp->clipboard();
-    if (Q_UNLIKELY(!clipboard))
-        return false;
-    const QMimeData *mimeData = clipboard->mimeData(QClipboard::Selection);
-    if (!mimeData || !mimeData->hasUrls())
-        mimeData = clipboard->mimeData(QClipboard::Clipboard);
-
-    if (Q_UNLIKELY(!mimeData))
-        return false;
-
-    QList<QUrl> urlList = mimeData->urls();
-    QString text = mimeData->text();
-
-    if (urlList.count() > 1 || text.contains('\n'))
+    const QMimeData *const mimeData = clipboard ? clipboard->mimeData(QClipboard::Clipboard)
+                                                : nullptr;
+    const QStringList mrls = mimeData ? vlc::playlist::mrlsFromMimeData(*mimeData)
+                                      : QStringList {};
+    if (mrls.isEmpty())
     {
-        // NOTE: The reason that mime data for `text/uri-list` is not used
-        //       directly as the placeholder of the input dialog instead of
-        //       re-constructing is to decode the urls in the list.
-        QString placeholder;
-
-        if (urlList.isEmpty())
-        {
-            placeholder = std::move(text);
-        }
-        else
-        {
-            for (const auto& i : urlList)
-                placeholder += i.toString(QUrl::PrettyDecoded) + '\n';
-            placeholder.chop(1);
-        }
-
-        bool ok = false;
-        const QString ret = QInputDialog::getMultiLineText(nullptr,
-                                                           qtr("Paste from clipboard"),
-                                                           qtr("Do you want to enqueue the following URLs into the play queue?"),
-                                                           placeholder,
-                                                           &ok);
-        if (!ok)
-            return false;
-
-        for (const auto& i : QStringView(ret).split('\n'))
-        {
-            if (i.length() > 0)
-                THEMPL->append(i.trimmed().toString(), false);
-        }
-
-        return true;
-    }
-    else if ((urlList.count() == 1) || mimeData->hasText())
-    {
-        THEDP->openUrlDialog();
-        return true;
+        emit clipboardHasNothingToOpen();
+        return false;
     }
 
-    return false;
+    QVector<vlc::playlist::Media> medias;
+    QStringList streams;
+    for (const QString &mrl : mrls)
+    {
+        medias.push_back(vlc::playlist::Media {mrl, QString {}});
+        if (vlc::playlist::isNetworkMrl(mrl))
+            streams.push_back(mrl);
+    }
+    THEMPL->playMedia(medias);
+
+    /* Network links become Saved streams, as with Open Network Stream */
+    if (m_medialib && !streams.isEmpty())
+    {
+        m_medialib->runOnMLThread(this, [streams](vlc_medialibrary_t *ml) {
+            for (const QString &mrl : streams)
+            {
+                ml_unique_ptr<vlc_ml_media_t> media {vlc_ml_get_media_by_mrl(ml, qtu(mrl))};
+                if (!media)
+                    media.reset(vlc_ml_new_stream(ml, qtu(mrl)));
+            }
+        });
+    }
+    return true;
 }
 
 /*****************************************************************************

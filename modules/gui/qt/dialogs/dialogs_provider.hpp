@@ -206,18 +206,20 @@ public slots:
 
     void openFileGenericDialog( intf_dialog_args_t * );
 
+    /* System file picker: play the files by the Play rule, or enqueue them.
+     * openDialog() and openFileDialog() do the same. */
     void simpleOpenDialog( bool start = true );
 
     void openDialog();
     void openDiscDialog();
     void openFileDialog();
-    void openUrlDialog();
     void openNetDialog();
     void openCaptureDialog();
 
     // Picks a folder and adds it to the media library
     void addLibraryFolderDialog();
 
+    /* System folder picker: play the folder by the Play rule, or enqueue it */
     void PLOpenDir();
     void PLAppendDir();
 
@@ -236,8 +238,6 @@ public slots:
     void quit();
 
 public:
-    void PLAppendDialog( OpenDialog::OpenTab tab = OpenDialog::OPEN_FILE_TAB );
-
     bool openDialogVisible() const;
     bool firstRunDialogVisible() const;
     bool extendedDialogVisible() const;

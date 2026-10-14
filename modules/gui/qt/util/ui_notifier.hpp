@@ -32,7 +32,8 @@ public:
     enum ID
     {
         Scale,
-        MinimalView
+        MinimalView,
+        NothingToOpen
     };
 
     Q_ENUM(ID)

@@ -145,12 +145,6 @@ FocusScope {
                 Navigation.parentItem: coneNButtons
                 Navigation.rightItem: discButton
 
-                // TODO: The full-fledged open dialog is advertised as "Open Multiple Files" in the menu.
-                //       In the future, we can have the "Open File" button as a combo box button that has these options,
-                //       with the default being a simple open dialog:
-                //       - Default: simple open dialog.
-                //       - Combo box option 1 (user clicks the down button, and the combo box reveals all buttons): open multiple files (Ctrl+Shift+O).
-                //       - Combo box option 2: open location from clipboard (Ctrl+V) / simple text edit dialog.
                 onClicked: DialogsProvider.simpleOpenDialog()
             }
 

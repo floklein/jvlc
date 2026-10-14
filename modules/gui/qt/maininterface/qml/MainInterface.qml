@@ -361,7 +361,7 @@ Item {
                         }
                     }
 
-                    MainPlaylistController.append(urls, true)
+                    MainPlaylistController.playMedia(urls)
                     drop.accept()
                 }
             }

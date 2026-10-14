@@ -111,7 +111,6 @@ libqt_plugin_la_SOURCES = \
 	dialogs/open/disc_model.cpp dialogs/open/disc_model.hpp \
 	dialogs/open/open.cpp dialogs/open/open.hpp \
 	dialogs/open/open_panels.cpp dialogs/open/open_panels.hpp \
-	dialogs/open/openurl.cpp dialogs/open/openurl.hpp \
 	dialogs/plugins/plugins.cpp dialogs/plugins/plugins.hpp \
 	dialogs/preferences/complete_preferences.cpp \
 	dialogs/preferences/complete_preferences.hpp \
@@ -287,6 +286,8 @@ libqt_plugin_la_SOURCES = \
 	playlist/playlist_model.cpp \
 	playlist/playlist_model.hpp \
 	playlist/playlist_model_p.hpp \
+	playlist/pasted_media.cpp \
+	playlist/pasted_media.hpp \
 	playlist/queue_store.cpp \
 	playlist/queue_store.hpp \
 	util/asynctask.hpp \
@@ -398,7 +399,6 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/open/disc_model.moc.cpp \
 	dialogs/open/open.moc.cpp \
 	dialogs/open/open_panels.moc.cpp \
-	dialogs/open/openurl.moc.cpp \
 	dialogs/plugins/plugins.moc.cpp \
 	dialogs/preferences/complete_preferences.moc.cpp \
 	dialogs/preferences/expert_model.moc.cpp \
@@ -1752,6 +1752,23 @@ test_queue_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_queue_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_queue
 TESTS += test_queue
+
+# test_pasted_media
+
+test_pasted_media_SOURCES = \
+	tests/test_pasted_media.cpp \
+	playlist/pasted_media.hpp playlist/pasted_media.cpp
+
+nodist_test_pasted_media_SOURCES = tests/test_pasted_media.moc
+
+BUILT_SOURCES += tests/test_pasted_media.moc
+CLEANFILES += tests/test_pasted_media.moc
+test_pasted_media_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_pasted_media_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_pasted_media_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_pasted_media_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_pasted_media
+TESTS += test_pasted_media
 
 # test_ml_model
 

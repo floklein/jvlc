@@ -42,4 +42,10 @@ void UINotifier::setupNotifications()
             emit showNotification(MinimalView
                                   , qtr("Minimal View"));
     });
+
+    connect(m_ctx, &MainCtx::clipboardHasNothingToOpen, this, [this]()
+    {
+        emit showNotification(NothingToOpen
+                              , qtr("The clipboard has no link or file"));
+    });
 }

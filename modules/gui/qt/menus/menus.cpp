@@ -177,12 +177,10 @@ void VLCMenuBar::FileMenu(qt_intf_t *p_intf, QMenu *menu)
     QAction *action;
 
     //use a lambda here as the Triggrered signal is emiting and it will pass false (checked) as a first argument
-    addDPStaticEntry( menu, qtr( "Open &File..." ),
+    addDPStaticEntry( menu, qtr( "Open &File(s)..." ),
         ":/menu/file.svg", []() { THEDP->simpleOpenDialog(); } , "Ctrl+O" );
-    addDPStaticEntry( menu, qtr( "&Open Multiple Files..." ),
-        ":/menu/file.svg", &DialogsProvider::openFileDialog, "Ctrl+Shift+O" );
     addDPStaticEntry( menu, qfut( I_OP_OPDIR ),
-        ":/menu/folder.svg", &DialogsProvider::PLOpenDir, "Ctrl+F" );
+        ":/menu/folder.svg", &DialogsProvider::PLOpenDir, "Ctrl+Shift+O" );
     addDPStaticEntry( menu, qtr( "Open &Disc..." ),
         ":/menu/disc.svg", &DialogsProvider::openDiscDialog, "Ctrl+D" );
     addDPStaticEntry( menu, qtr( "Open &Network Stream..." ),
@@ -190,8 +188,11 @@ void VLCMenuBar::FileMenu(qt_intf_t *p_intf, QMenu *menu)
     addDPStaticEntry( menu, qtr( "Open &Capture Device..." ),
         ":/menu/capture-card.svg", &DialogsProvider::openCaptureDialog, "Ctrl+C" );
 
-    addDPStaticEntry( menu, qtr( "Open &Location from clipboard" ),
-                      NULL, &DialogsProvider::openUrlDialog, "Ctrl+V" );
+    if( mi )
+    {
+        action = menu->addAction( qtr( "Open from Clip&board" ), mi, &MainCtx::pasteFromClipboard );
+        action->setShortcut( QKeySequence( "Ctrl+V" ) );
+    }
 
     if( mi && var_InheritBool( p_intf, "save-recentplay" ) && mi->hasMediaLibrary() )
     {
@@ -569,7 +570,7 @@ void VLCMenuBar::PopupMenuPlaylistEntries( QMenu *menu, qt_intf_t *p_intf )
     {
         action = menu->addAction( qtr( "&Play" ), [p_intf]() {
             if ( THEMPL->isEmpty() )
-                THEDP->openFileDialog();
+                THEDP->simpleOpenDialog();
             else
                 THEMPL->togglePlayPause();
         });
@@ -670,7 +671,7 @@ void VLCMenuBar::PopupMenuControlEntries( QMenu *menu, qt_intf_t *p_intf,
 void VLCMenuBar::PopupMenuStaticEntries( QMenu *menu )
 {
     QMenu *openmenu = new QMenu( qtr( "Open Media" ), menu );
-    addDPStaticEntry( openmenu, qfut( I_OP_OPF ),
+    addDPStaticEntry( openmenu, qtr( "Open &File(s)..." ),
         ":/menu/file.svg", &DialogsProvider::openFileDialog);
     addDPStaticEntry( openmenu, qfut( I_OP_OPDIR ),
         ":/menu/folder.svg", &DialogsProvider::PLOpenDir);

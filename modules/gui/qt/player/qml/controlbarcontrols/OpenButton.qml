@@ -27,7 +27,7 @@ Widgets.IconToolButton {
     id: openMediaBtn
 
     text: VLCIcons.eject
-    onClicked: DialogsProvider.openDialog()
+    onClicked: DialogsProvider.simpleOpenDialog()
     description: qsTr("Open media")
 
     AccessibleCompat.id: "openMediaButton"

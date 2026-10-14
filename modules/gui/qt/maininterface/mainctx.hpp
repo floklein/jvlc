@@ -542,6 +542,7 @@ public slots:
     virtual void reloadPrefs();
     VLCVarChoiceModel* getExtraInterfaces();
 
+    /* Open from Clipboard: play its links and file paths by the Play rule */
     bool pasteFromClipboard();
 
 protected slots:
@@ -558,6 +559,7 @@ signals:
     void askBoss();
     void askRaise();
     void kc_pressed(); /* easter eggs */
+    void clipboardHasNothingToOpen();
 
     void playerPlaylistWidthChanged(double);
     void interfaceAlwaysOnTopChanged(bool);

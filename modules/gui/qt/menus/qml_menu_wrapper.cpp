@@ -1128,12 +1128,6 @@ void PlaylistContextMenu::popup(int selectedIndex, QPoint pos )
         DialogsProvider::getInstance()->PLAppendDir();
     });
 
-    action = m_menu->addAction( qtr("Advanced Open...") );
-    action->setIcon(ColorizedSvgIcon::colorizedIconForWidget(":/menu/add.svg", m_menu.get()));
-    connect(action, &QAction::triggered, []( ) {
-        DialogsProvider::getInstance()->PLAppendDialog();
-    });
-
     m_menu->addSeparator();
 
     if (m_selectionModel->hasSelection())

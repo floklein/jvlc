@@ -44,7 +44,6 @@ moc_headers = files(
     'dialogs/open/disc_model.hpp',
     'dialogs/open/open.hpp',
     'dialogs/open/open_panels.hpp',
-    'dialogs/open/openurl.hpp',
     'dialogs/plugins/plugins.hpp',
     'dialogs/preferences/complete_preferences.hpp',
     'dialogs/preferences/expert_model.hpp',
@@ -221,8 +220,6 @@ qt_plugin_sources = files(
     'dialogs/open/open.hpp',
     'dialogs/open/open_panels.cpp',
     'dialogs/open/open_panels.hpp',
-    'dialogs/open/openurl.cpp',
-    'dialogs/open/openurl.hpp',
     'dialogs/plugins/plugins.cpp',
     'dialogs/plugins/plugins.hpp',
     'dialogs/preferences/complete_preferences.cpp',
@@ -409,6 +406,8 @@ qt_plugin_sources = files(
     'playlist/playlist_model.cpp',
     'playlist/playlist_model.hpp',
     'playlist/playlist_model_p.hpp',
+    'playlist/pasted_media.cpp',
+    'playlist/pasted_media.hpp',
     'playlist/queue_store.cpp',
     'playlist/queue_store.hpp',
     'util/asynctask.hpp',
@@ -1324,6 +1323,22 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_pasted_media',
+            'sources': files(
+                'tests/test_pasted_media.cpp',
+                'playlist/pasted_media.cpp',
+            ),
+            'moc_sources': files(
+                'tests/test_pasted_media.cpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
         }
