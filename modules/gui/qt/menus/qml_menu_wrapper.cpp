@@ -19,6 +19,7 @@
 #include "menus.hpp"
 #include "medialibrary/medialib.hpp"
 #include "medialibrary/mlplaylistlistmodel.hpp"
+#include "medialibrary/mlplaylistmanager.hpp"
 #include "medialibrary/mlplaylistmodel.hpp"
 #include "medialibrary/mlbookmarkmodel.hpp"
 #include "network/networkdevicemodel.hpp"
@@ -77,6 +78,30 @@ void StringListMenu::popup(const QPoint &point, const QVariantList &stringList)
 
     for (int i = 0; i != stringList.size(); ++i)
     {
+        // NOTE: An entry {text, children} is a submenu, an empty child a separator.
+        if (stringList[i].typeId() == QMetaType::QVariantMap)
+        {
+            const QVariantMap entry = stringList[i].toMap();
+            QMenu *submenu = m->addMenu(entry.value("text").toString());
+            const QVariantList children = entry.value("children").toList();
+            for (int j = 0; j != children.size(); ++j)
+            {
+                QString child = children[j].toString();
+                if (child.isEmpty())
+                {
+                    submenu->addSeparator();
+                    continue;
+                }
+                // children may be user text (Playlist names): no mnemonic
+                child.replace('&', QLatin1String("&&"));
+                submenu->addAction(child, this, [this, i, j]()
+                {
+                    emit childSelected(i, j);
+                });
+            }
+            continue;
+        }
+
         const auto str = stringList[i].toString();
         m->addAction(str, this, [this, i, str]()
         {
@@ -834,13 +859,32 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
 
     MediaLib * ml = m_model->ml();
 
-    QAction * action = menu->addAction(qtr("Add and play"));
+    // NOTE: The Queue gets a copy of the Playlist, Play and Shuffle replace it (with Undo).
+    QAction * action = menu->addAction(qtr("Play"));
 
     connect(action, &QAction::triggered, [ml, ids]() {
         ml->addAndPlay(ids);
     });
 
-    action = menu->addAction(qtr("Enqueue"));
+    action = menu->addAction(qtr("Shuffle"));
+
+    connect(action, &QAction::triggered, [ml, ids]() {
+        ml->shuffleAndPlay(ids);
+    });
+
+    if (ids.count() == 1)
+    {
+        const MLItemId id = ids.first().value<MLItemId>();
+        const QString name = m_model->data(selected.first(), MLPlaylistListModel::PLAYLIST_NAME).toString();
+
+        action = menu->addAction(qtr("Export Playlist…"));
+
+        connect(action, &QAction::triggered, [ml, id, name]() {
+            ml->playlistManager()->exportPlaylistAs(id, name);
+        });
+    }
+
+    action = menu->addAction(qtr("Add to Queue"));
 
     connect(action, &QAction::triggered, [ml, ids]() {
         ml->addToPlaylist(ids);
@@ -848,6 +892,8 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
 
     if (ids.count() == 1)
     {
+        menu->addSeparator();
+
         action = menu->addAction(qtr("Rename"));
 
         QModelIndex index = selected.first();
@@ -886,23 +932,25 @@ void PlaylistMediaContextMenu::popup(const QModelIndexList & selected, QPoint po
 
     MediaLib * ml = m_model->ml();
 
-    QAction * action = menu->addAction(qtr("Add and play"));
+    QAction * action = menu->addAction(qtr("Play"));
 
     connect(action, &QAction::triggered, [ml, ids]() {
         ml->addAndPlay(ids);
     });
 
-    action = menu->addAction(qtr("Enqueue"));
+    action = menu->addAction(qtr("Play next"));
+
+    connect(action, &QAction::triggered, [ml, ids]() {
+        ml->playNext(ids);
+    });
+
+    action = menu->addAction(qtr("Add to Queue"));
 
     connect(action, &QAction::triggered, [ml, ids]() {
         ml->addToPlaylist(ids);
     });
 
-    action = menu->addAction(qtr("Add to playlist"));
-
-    connect(action, &QAction::triggered, [ids]() {
-        DialogsProvider::getInstance()->playlistsDialog(ids);
-    });
+    ml->playlistManager()->addToPlaylistMenu(menu, ids);
 
     action = menu->addAction(qtr("Play as audio"));
 
@@ -924,7 +972,7 @@ void PlaylistMediaContextMenu::popup(const QModelIndexList & selected, QPoint po
 
     menu->addSeparator();
 
-    action = menu->addAction(qtr("Remove Selected"));
+    action = menu->addAction(qtr("Remove from Playlist"));
 
     action->setIcon(QIcon(":/menu/remove.svg"));
 
@@ -1129,6 +1177,24 @@ void PlaylistContextMenu::popup(int selectedIndex, QPoint pos )
     });
 
     m_menu->addSeparator();
+
+    MediaLib * ml = m_ctx->getMediaLibrary();
+
+    if (ml && m_selectionModel->hasSelection())
+    {
+        QVariantList selectedItems;
+        for (const QUrl & url : selectedUrlList)
+            selectedItems.push_back(url);
+        ml->playlistManager()->addToPlaylistMenu(m_menu.get(), selectedItems);
+    }
+
+    if (ml && m_model->rowCount() > 0)
+    {
+        action = m_menu->addAction( qtr("Save Queue as Playlist...") );
+        connect(action, &QAction::triggered, [ml]( ) {
+            ml->playlistManager()->saveQueueAsPlaylist();
+        });
+    }
 
     if (m_selectionModel->hasSelection())
     {

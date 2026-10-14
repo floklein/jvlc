@@ -96,6 +96,8 @@ public:
 
 signals:
     void selected(int index, const QString &str);
+    // an item of the submenu of entry index
+    void childSelected(int index, int childIndex);
 };
 
 class SortMenu : public QObject

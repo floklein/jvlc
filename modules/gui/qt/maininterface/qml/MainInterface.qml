@@ -403,6 +403,16 @@ Item {
             z: 10
         }
 
+        // New Playlist and the Add to Playlist picker, from the library or the player
+        Loader {
+            anchors.fill: parent
+
+            active: MainCtx.mediaLibraryAvailable
+            source: "qrc:///qt/qml/VLC/MediaLibrary/PlaylistDialogs.qml"
+
+            onLoaded: item.rootWindow = viewLoader
+        }
+
         Loader {
             asynchronous: true
             source: "qrc:///qt/qml/VLC/Menus/GlobalShortcuts.qml"

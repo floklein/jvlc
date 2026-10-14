@@ -19,6 +19,10 @@
 #include "ui_notifier.hpp"
 
 #include "maininterface/mainctx.hpp"
+#include "medialibrary/medialib.hpp"
+#include "medialibrary/mlplaylistmanager.hpp"
+
+#include <QFileInfo>
 
 UINotifier::UINotifier(MainCtx *ctx, QObject *parent)
     : QObject {parent}
@@ -48,4 +52,21 @@ void UINotifier::setupNotifications()
         emit showNotification(NothingToOpen
                               , qtr("The clipboard has no link or file"));
     });
+
+    if (MediaLib *ml = m_ctx->getMediaLibrary())
+    {
+        MLPlaylistManager *playlists = ml->playlistManager();
+
+        connect(playlists, &MLPlaylistManager::appended, this, [this](const MLItemId &, const QString &name)
+        {
+            emit showNotification(PlaylistAppended, qtr("Added to %1").arg(name));
+        });
+
+        connect(playlists, &MLPlaylistManager::exported, this, [this](bool success, const QString &path)
+        {
+            const QString file = QFileInfo(path).fileName();
+            emit showNotification(PlaylistExported, success ? qtr("Exported to %1").arg(file)
+                                                            : qtr("Could not export to %1").arg(file));
+        });
+    }
 }

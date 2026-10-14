@@ -45,7 +45,10 @@ MainViewLoader {
 
     readonly property int currentIndex: currentItem?.currentIndex ?? -1
 
-    property Component header: null
+    // The Playlists section: the list starts with "Create playlist", as does the empty state
+    property bool showCreatePlaylist: false
+
+    property Component header: showCreatePlaylist ? createPlaylistHeader : null
 
     readonly property int contentLeftMargin: currentItem?.contentLeftMargin ?? 0
     readonly property int contentRightMargin: currentItem?.contentRightMargin ?? 0
@@ -169,15 +172,16 @@ MainViewLoader {
         }
     }
 
+    // NOTE: Dropping on a Playlist appends to it, dropping elsewhere opens New Playlist.
     function _dropAction(drop, index) {
         const item = drop.source
         if (Helpers.isValidInstanceOf(item, Widgets.DragItem)) {
             drop.accepted = true
             return item.getSelectedInputItem().then(inputItems => {
                 if (index === undefined)
-                    DialogsProvider.playlistsDialog(inputItems, (root.model as MLPlaylistListModel).playlistType)
+                    PlaylistManager.requestNewPlaylist(inputItems)
                 else
-                    root.model.append(root.model.getItemId(index), inputItems)
+                    PlaylistManager.append(root.model.getItemId(index), inputItems)
             })
         } else if (drop.hasUrls) {
             drop.accepted = true
@@ -185,9 +189,9 @@ MainViewLoader {
             for (let url in drop.urls)
                 urlList.push(drop.urls[url])
             if (index === undefined)
-                DialogsProvider.playlistsDialog(inputItems, (root.model as MLPlaylistListModel).playlistType)
+                PlaylistManager.requestNewPlaylist(urlList)
             else
-                root.model.append(root.model.getItemId(index), urlList)
+                PlaylistManager.append(root.model.getItemId(index), urlList)
         } else {
             drop.accepted = false
         }
@@ -540,17 +544,53 @@ MainViewLoader {
     }
 
     Component {
+        id: createPlaylistHeader
+
+        Item {
+            // NOTE: The empty state has its own button.
+            visible: root.model.count > 0
+
+            implicitWidth: createButton.implicitWidth + root.contentLeftMargin
+            implicitHeight: visible ? createButton.implicitHeight + VLCStyle.margin_xsmall * 2 : 0
+
+            Widgets.ButtonExt {
+                id: createButton
+
+                x: root.contentLeftMargin
+                anchors.verticalCenter: parent.verticalCenter
+
+                iconTxt: VLCIcons.add
+                text: qsTr("Create playlist")
+
+                colorContext.colorSet: ColorContext.ToolButton
+
+                Navigation.parentItem: root
+
+                onClicked: PlaylistManager.requestNewPlaylist([])
+            }
+        }
+    }
+
+    Component {
         id: emptyLabel
 
-        Widgets.EmptyLabelHint {
+        Widgets.EmptyLabelButton {
             visible: (model.count === 0)
 
             focus: true
 
-            text: qsTr("No playlists found")
-            hint: qsTr("Right click on a media\nto add it to a playlist")
+            text: root.showCreatePlaylist ? qsTr("No playlists yet") : qsTr("No playlists found")
+
+            button.visible: root.showCreatePlaylist
+            button.text: qsTr("Create playlist")
+            button.iconTxt: VLCIcons.add
 
             cover: VLCStyle.noArtAlbumCover
+
+            function onNavigate(reason) {
+                if (root.showCreatePlaylist)
+                    PlaylistManager.requestNewPlaylist([])
+            }
         }
     }
 }

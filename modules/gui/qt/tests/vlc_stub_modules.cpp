@@ -44,6 +44,11 @@
 
 #include "vlc_stub_modules.hpp"
 
+#include <algorithm>
+#include <cstring>
+#include <map>
+#include <mutex>
+
 static VLCTestingEnv* testenv = nullptr;
 
 ///RenderDiscovery module
@@ -116,28 +121,326 @@ static void CloseIntf( vlc_object_t *p_this )
 
 //Medialib module
 
+namespace {
+
+struct StubMediaLibrary
+{
+    mutable std::mutex lock;
+    vlc_medialibrary_module_t* module = nullptr;
+    std::vector<VLCTestingEnv::Playlist> playlists;
+    int64_t nextPlaylistId = 1;
+    // external media: id -> mrl
+    std::map<int64_t, std::string> external;
+    int64_t nextExternalId = 1000;
+};
+
+StubMediaLibrary stubML;
+
+VLCTestingEnv::Playlist* findPlaylist(int64_t id)
+{
+    for (auto& playlist : stubML.playlists)
+        if (playlist.id == id)
+            return &playlist;
+    return nullptr;
+}
+
+void fillPlaylist(vlc_ml_playlist_t* out, const VLCTestingEnv::Playlist& playlist)
+{
+    memset(out, 0, sizeof(*out));
+    out->i_id = playlist.id;
+    out->psz_name = strdup(playlist.name.c_str());
+    out->i_nb_media = playlist.media.size();
+    out->i_nb_unknown = playlist.media.size();
+    /* creation order */
+    out->i_creation_date = playlist.id;
+}
+
+void fillMedia(vlc_ml_media_t* out, int64_t id)
+{
+    memset(out, 0, sizeof(*out));
+    out->i_id = id;
+    out->i_type = VLC_ML_MEDIA_TYPE_UNKNOWN;
+    char name[32];
+    snprintf(name, sizeof(name), "ml:%" PRId64, id);
+    out->psz_title = strdup(name);
+    /* the medialibrary always gives the lists, even empty */
+    out->p_files = static_cast<vlc_ml_file_list_t*>(calloc(1, sizeof(vlc_ml_file_list_t)));
+    out->p_tracks = static_cast<vlc_ml_media_track_list_t*>(calloc(1, sizeof(vlc_ml_media_track_list_t)));
+}
+
+void sendEvent(int type, int64_t id, const VLCTestingEnv::Playlist* created = nullptr)
+{
+    vlc_medialibrary_module_t* module = stubML.module;
+    if (!module || !module->cbs)
+        return;
+
+    vlc_ml_event_t ev;
+    memset(&ev, 0, sizeof(ev));
+    ev.i_type = type;
+    vlc_ml_playlist_t playlist;
+    if (type == VLC_ML_EVENT_PLAYLIST_ADDED)
+    {
+        fillPlaylist(&playlist, *created);
+        ev.creation.p_playlist = &playlist;
+    }
+    else if (type == VLC_ML_EVENT_PLAYLIST_DELETED)
+        ev.deletion.i_entity_id = id;
+    else
+        ev.modification.i_entity_id = id;
+
+    module->cbs->pf_send_event(module, &ev);
+
+    if (type == VLC_ML_EVENT_PLAYLIST_ADDED)
+        free(playlist.psz_name);
+}
+
+vlc_ml_media_list_t* newMediaList(const std::vector<int64_t>& ids, const vlc_ml_query_params_t* params)
+{
+    size_t offset = params ? params->i_offset : 0;
+    size_t count = (params && params->i_nbResults) ? params->i_nbResults : ids.size();
+    if (offset > ids.size())
+        offset = ids.size();
+    count = std::min(count, ids.size() - offset);
+
+    auto list = static_cast<vlc_ml_media_list_t*>(
+        calloc(1, sizeof(vlc_ml_media_list_t) + count * sizeof(vlc_ml_media_t)));
+    list->i_nb_items = count;
+    for (size_t i = 0; i < count; ++i)
+        fillMedia(&list->p_items[i], ids[offset + i]);
+    return list;
+}
+
+std::vector<VLCTestingEnv::Playlist> sortedPlaylists(const vlc_ml_query_params_t* params)
+{
+    std::vector<VLCTestingEnv::Playlist> result = stubML.playlists;
+    const int sort = params ? params->i_sort : VLC_ML_SORTING_DEFAULT;
+    const bool desc = params && params->b_desc;
+    std::stable_sort(result.begin(), result.end(),
+                     [sort](const VLCTestingEnv::Playlist& a, const VLCTestingEnv::Playlist& b) {
+        if (sort == VLC_ML_SORTING_INSERTIONDATE)
+            return a.id < b.id;
+        return a.name < b.name;
+    });
+    if (desc)
+        std::reverse(result.begin(), result.end());
+    return result;
+}
+
+} // anonymous namespace
+
 static void* MLGet( vlc_medialibrary_module_t*, int query, va_list args )
 {
-    if (query == VLC_ML_GET_INPUT_ITEM)
+    switch (query)
+    {
+    case VLC_ML_GET_INPUT_ITEM:
     {
         // a media that plays long enough for tests, named after its id
         int64_t id = va_arg(args, int64_t);
         char name[32];
         snprintf(name, sizeof(name), "ml:%" PRId64, id);
-        return input_item_New("vlc://pause:600", name);
+        std::string mrl = "vlc://pause:600";
+        {
+            std::lock_guard<std::mutex> guard(stubML.lock);
+            auto it = stubML.external.find(id);
+            if (it != stubML.external.end())
+                mrl = it->second;
+        }
+        return input_item_New(mrl.c_str(), name);
     }
-    return nullptr;
+    case VLC_ML_GET_PLAYLIST:
+    {
+        int64_t id = va_arg(args, int64_t);
+        std::lock_guard<std::mutex> guard(stubML.lock);
+        const VLCTestingEnv::Playlist* playlist = findPlaylist(id);
+        if (!playlist)
+            return nullptr;
+        auto out = static_cast<vlc_ml_playlist_t*>(malloc(sizeof(vlc_ml_playlist_t)));
+        fillPlaylist(out, *playlist);
+        return out;
+    }
+    case VLC_ML_GET_MEDIA_BY_MRL:
+    {
+        const char* mrl = va_arg(args, const char*);
+        std::lock_guard<std::mutex> guard(stubML.lock);
+        for (const auto& it : stubML.external)
+        {
+            if (it.second == mrl)
+            {
+                auto out = static_cast<vlc_ml_media_t*>(malloc(sizeof(vlc_ml_media_t)));
+                fillMedia(out, it.first);
+                return out;
+            }
+        }
+        return nullptr;
+    }
+    default:
+        return nullptr;
+    }
 }
 
-static int MLList( vlc_medialibrary_module_t*, int,
-                const vlc_ml_query_params_t*, va_list )
+static int MLList( vlc_medialibrary_module_t*, int query,
+                const vlc_ml_query_params_t* params, va_list args )
 {
-    return VLC_EGENERIC;
+    std::lock_guard<std::mutex> guard(stubML.lock);
+    switch (query)
+    {
+    case VLC_ML_LIST_PLAYLISTS:
+    case VLC_ML_COUNT_PLAYLISTS:
+    {
+        (void) va_arg(args, int); /* playlist type: the stub has no media types */
+        std::vector<VLCTestingEnv::Playlist> playlists = sortedPlaylists(params);
+        if (query == VLC_ML_COUNT_PLAYLISTS)
+        {
+            *va_arg(args, size_t*) = playlists.size();
+            return VLC_SUCCESS;
+        }
+        size_t offset = params ? params->i_offset : 0;
+        size_t count = (params && params->i_nbResults) ? params->i_nbResults : playlists.size();
+        offset = std::min(offset, playlists.size());
+        count = std::min(count, playlists.size() - offset);
+        auto list = static_cast<vlc_ml_playlist_list_t*>(
+            calloc(1, sizeof(vlc_ml_playlist_list_t) + count * sizeof(vlc_ml_playlist_t)));
+        list->i_nb_items = count;
+        for (size_t i = 0; i < count; ++i)
+            fillPlaylist(&list->p_items[i], playlists[offset + i]);
+        *va_arg(args, vlc_ml_playlist_list_t**) = list;
+        return VLC_SUCCESS;
+    }
+    case VLC_ML_LIST_MEDIA_OF:
+    case VLC_ML_COUNT_MEDIA_OF:
+    case VLC_ML_LIST_PLAYLIST_MEDIA:
+    case VLC_ML_COUNT_PLAYLIST_MEDIA:
+    {
+        if (query == VLC_ML_LIST_MEDIA_OF || query == VLC_ML_COUNT_MEDIA_OF)
+        {
+            if (va_arg(args, int) != VLC_ML_PARENT_PLAYLIST)
+                return VLC_EGENERIC;
+        }
+        const VLCTestingEnv::Playlist* playlist = findPlaylist(va_arg(args, int64_t));
+        if (!playlist)
+            return VLC_EGENERIC;
+        if (query == VLC_ML_COUNT_MEDIA_OF || query == VLC_ML_COUNT_PLAYLIST_MEDIA)
+            *va_arg(args, size_t*) = playlist->media.size();
+        else
+            *va_arg(args, vlc_ml_media_list_t**) = newMediaList(playlist->media, params);
+        return VLC_SUCCESS;
+    }
+    default:
+        return VLC_EGENERIC;
+    }
 }
 
-static int MLControl( vlc_medialibrary_module_t*, int, va_list )
+static int MLControl( vlc_medialibrary_module_t*, int query, va_list args )
 {
-    return VLC_EGENERIC;
+    std::unique_lock<std::mutex> guard(stubML.lock);
+    switch (query)
+    {
+    case VLC_ML_PLAYLIST_CREATE:
+    {
+        const char* name = va_arg(args, const char*);
+        auto out = va_arg(args, vlc_ml_playlist_t**);
+        stubML.playlists.push_back({stubML.nextPlaylistId++, name, {}});
+        const VLCTestingEnv::Playlist created = stubML.playlists.back();
+        if (out)
+        {
+            *out = static_cast<vlc_ml_playlist_t*>(malloc(sizeof(vlc_ml_playlist_t)));
+            fillPlaylist(*out, created);
+        }
+        guard.unlock();
+        sendEvent(VLC_ML_EVENT_PLAYLIST_ADDED, created.id, &created);
+        return VLC_SUCCESS;
+    }
+    case VLC_ML_PLAYLIST_DELETE:
+    {
+        int64_t id = va_arg(args, int64_t);
+        auto it = std::find_if(stubML.playlists.begin(), stubML.playlists.end(),
+                               [id](const VLCTestingEnv::Playlist& p) { return p.id == id; });
+        if (it == stubML.playlists.end())
+            return VLC_EGENERIC;
+        stubML.playlists.erase(it);
+        guard.unlock();
+        sendEvent(VLC_ML_EVENT_PLAYLIST_DELETED, id);
+        return VLC_SUCCESS;
+    }
+    case VLC_ML_PLAYLIST_APPEND:
+    case VLC_ML_PLAYLIST_INSERT:
+    {
+        int64_t id = va_arg(args, int64_t);
+        const int64_t* ids = va_arg(args, const int64_t*);
+        size_t count = va_arg(args, size_t);
+        VLCTestingEnv::Playlist* playlist = findPlaylist(id);
+        if (!playlist)
+            return VLC_EGENERIC;
+        size_t position = playlist->media.size();
+        if (query == VLC_ML_PLAYLIST_INSERT)
+            position = std::min<size_t>(va_arg(args, uint32_t), position);
+        playlist->media.insert(playlist->media.begin() + position, ids, ids + count);
+        guard.unlock();
+        sendEvent(VLC_ML_EVENT_PLAYLIST_UPDATED, id);
+        return VLC_SUCCESS;
+    }
+    case VLC_ML_PLAYLIST_REMOVE:
+    {
+        int64_t id = va_arg(args, int64_t);
+        uint32_t position = va_arg(args, uint32_t);
+        uint32_t count = va_arg(args, uint32_t);
+        VLCTestingEnv::Playlist* playlist = findPlaylist(id);
+        if (!playlist || position + count > playlist->media.size())
+            return VLC_EGENERIC;
+        playlist->media.erase(playlist->media.begin() + position,
+                              playlist->media.begin() + position + count);
+        guard.unlock();
+        sendEvent(VLC_ML_EVENT_PLAYLIST_UPDATED, id);
+        return VLC_SUCCESS;
+    }
+    case VLC_ML_PLAYLIST_MOVE:
+    {
+        /* the semantics of medialibrary's IPlaylist::move() */
+        int64_t id = va_arg(args, int64_t);
+        uint32_t from = va_arg(args, uint32_t);
+        uint32_t to = va_arg(args, uint32_t);
+        uint32_t count = va_arg(args, uint32_t);
+        VLCTestingEnv::Playlist* playlist = findPlaylist(id);
+        if (!playlist || from + count > playlist->media.size())
+            return VLC_EGENERIC;
+        if (to >= from && to < from + count)
+            return VLC_SUCCESS;
+        std::vector<int64_t> block(playlist->media.begin() + from,
+                                   playlist->media.begin() + from + count);
+        playlist->media.erase(playlist->media.begin() + from,
+                              playlist->media.begin() + from + count);
+        size_t position = to > from ? to - count + 1 : to;
+        position = std::min(position, playlist->media.size());
+        playlist->media.insert(playlist->media.begin() + position, block.begin(), block.end());
+        guard.unlock();
+        sendEvent(VLC_ML_EVENT_PLAYLIST_UPDATED, id);
+        return VLC_SUCCESS;
+    }
+    case VLC_ML_PLAYLIST_RENAME:
+    {
+        int64_t id = va_arg(args, int64_t);
+        const char* name = va_arg(args, const char*);
+        VLCTestingEnv::Playlist* playlist = findPlaylist(id);
+        if (!playlist)
+            return VLC_EGENERIC;
+        playlist->name = name;
+        guard.unlock();
+        sendEvent(VLC_ML_EVENT_PLAYLIST_UPDATED, id);
+        return VLC_SUCCESS;
+    }
+    case VLC_ML_NEW_EXTERNAL_MEDIA:
+    {
+        const char* mrl = va_arg(args, const char*);
+        auto out = va_arg(args, vlc_ml_media_t**);
+        const int64_t id = stubML.nextExternalId++;
+        stubML.external[id] = mrl;
+        *out = static_cast<vlc_ml_media_t*>(malloc(sizeof(vlc_ml_media_t)));
+        fillMedia(*out, id);
+        return VLC_SUCCESS;
+    }
+    default:
+        return VLC_EGENERIC;
+    }
 }
 
 static int MLOpen( vlc_object_t* obj )
@@ -146,12 +449,14 @@ static int MLOpen( vlc_object_t* obj )
     p_ml->pf_control = MLControl;
     p_ml->pf_get = MLGet;
     p_ml->pf_list = MLList;
+    stubML.module = p_ml;
     return VLC_SUCCESS;
 }
 
 static void MLClose( vlc_object_t* obj )
 {
     VLC_UNUSED(obj);
+    stubML.module = nullptr;
 }
 
 //Meta writer module
@@ -267,6 +572,33 @@ VLCTestingEnv::~VLCTestingEnv()
 {
     libvlc_release(libvlc);
     testenv = nullptr;
+    clearMediaLibrary();
+}
+
+void VLCTestingEnv::clearMediaLibrary()
+{
+    std::lock_guard<std::mutex> guard(stubML.lock);
+    stubML.playlists.clear();
+    stubML.external.clear();
+    stubML.nextExternalId = 1000;
+}
+
+std::vector<VLCTestingEnv::Playlist> VLCTestingEnv::playlists() const
+{
+    std::lock_guard<std::mutex> guard(stubML.lock);
+    return stubML.playlists;
+}
+
+int64_t VLCTestingEnv::addPlaylist(const std::string& name, const std::vector<int64_t>& media)
+{
+    Playlist created;
+    {
+        std::lock_guard<std::mutex> guard(stubML.lock);
+        stubML.playlists.push_back({stubML.nextPlaylistId++, name, media});
+        created = stubML.playlists.back();
+    }
+    sendEvent(VLC_ML_EVENT_PLAYLIST_ADDED, created.id, &created);
+    return created.id;
 }
 
 static const char * test_defaults_args[] = {

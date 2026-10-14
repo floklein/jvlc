@@ -31,6 +31,7 @@ class Media;
 }
 
 struct vlc_medialibrary_t;
+class MLPlaylistManager;
 
 class MediaLib : public QObject
 {
@@ -58,6 +59,8 @@ public:
     Q_INVOKABLE void addAndPlay(const QString& mrl, const QStringList &options = {});
     Q_INVOKABLE void addAndPlay(const QUrl& mrl, const QStringList &options = {});
     Q_INVOKABLE void addAndPlay(const QVariantList&itemIdList, const QStringList &options = {});
+    // Play the items in a random order, following the Play rule
+    Q_INVOKABLE void shuffleAndPlay(const QVariantList &itemIdList, const QStringList &options = {});
     // Insert after the current item of the Queue
     Q_INVOKABLE void playNext(const QVariantList &itemIdList, const QStringList &options = {});
     Q_INVOKABLE void insertIntoPlaylist(size_t index, const QVariantList &itemIds /*QList<MLParentId>*/, const QStringList &options = {});
@@ -65,6 +68,9 @@ public:
     Q_INVOKABLE void reload();
 
     Q_INVOKABLE void mlInputItem(const QVector<MLItemId>& itemIdVector, QJSValue callback);
+
+    // New Playlist, Add to Playlist and Export
+    MLPlaylistManager* playlistManager() const { return m_playlistManager; }
 
     inline bool idle() const { return m_idle; }
     inline int discoveryPending() const { return m_discoveryPending; }
@@ -192,6 +198,7 @@ private:
     vlc_medialibrary_t* m_ml;
     std::unique_ptr<vlc_ml_event_callback_t, std::function<void(vlc_ml_event_callback_t*)>> m_event_cb;
     ThreadRunner* m_runner = nullptr;
+    MLPlaylistManager* m_playlistManager = nullptr;
 
     QMap<QVector<MLItemId>, QVector<QJSValue>> m_inputItemQuery;
 };

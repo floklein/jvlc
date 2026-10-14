@@ -33,7 +33,9 @@ public:
     {
         Scale,
         MinimalView,
-        NothingToOpen
+        NothingToOpen,
+        PlaylistAppended,
+        PlaylistExported
     };
 
     Q_ENUM(ID)

@@ -68,6 +68,8 @@ Widgets.PageLoader {
 
                 playlistType: MLPlaylistListModel.PLAYLIST_TYPE_ALL
 
+                showCreatePlaylist: true
+
                 searchPattern: playlistPage.search.pattern
                 sortOrder: playlistPage.sort.order
                 sortCriteria: playlistPage.sort.criteria

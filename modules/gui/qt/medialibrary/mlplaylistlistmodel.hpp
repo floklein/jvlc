@@ -138,7 +138,8 @@ private: // Variables
 private:
     struct Loader : public MLListCacheLoader::MLOp
     {
-        Loader(const MLPlaylistListModel & model, PlaylistType playlistType);
+        Loader(const MLPlaylistListModel & model, PlaylistType playlistType,
+               const QString & thumbnailDir);
 
         size_t count(vlc_medialibrary_t* ml, const vlc_ml_query_params_t* queryParams) const override;
 
@@ -147,6 +148,7 @@ private:
         std::unique_ptr<MLItem> loadItemById(vlc_medialibrary_t* ml, MLItemId itemId) const override;
 
         PlaylistType m_playlistType;
+        QString m_thumbnailDir;
     };
 };
 

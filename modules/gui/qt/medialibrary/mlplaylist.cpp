@@ -78,3 +78,15 @@ unsigned int MLPlaylist::getNbUnknown() const
 {
     return m_nbUnknown;
 }
+
+//-------------------------------------------------------------------------------------------------
+
+QString MLPlaylist::getThumbnail() const
+{
+    return m_thumbnail;
+}
+
+void MLPlaylist::setThumbnail(const QString & thumbnail)
+{
+    m_thumbnail = thumbnail;
+}

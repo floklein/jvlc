@@ -18,9 +18,12 @@
 
 #include "medialib.hpp"
 #include "mlhelper.hpp"
+#include "mlplaylistmanager.hpp"
 #include "playlist/playlist_controller.hpp"
 #include "util/shared_input_item.hpp"
 
+#include <algorithm>
+#include <random>
 #include <utility>
 
 #include <QQmlEngine>
@@ -37,10 +40,12 @@ MediaLib::MediaLib(qt_intf_t *_intf, vlc::playlist::PlaylistController* playlist
     m_event_cb.reset( vlc_ml_event_register_callback( m_ml, MediaLib::onMediaLibraryEvent,
                                                       this ) );
     m_runner = new ThreadRunner();
+    m_playlistManager = new MLPlaylistManager(this, playlistController, _intf->mainSettings);
 }
 
 MediaLib::~MediaLib()
 {
+    delete m_playlistManager;
     m_runner->destroy();
 }
 
@@ -210,6 +215,26 @@ void MediaLib::addAndPlay(const QVariantList& itemIdList, const QStringList &opt
     (vlc_medialibrary_t* ml, Context& ctx)
     {
         convertQVariantListToPlaylistMedias(ml, itemIdList, options, ctx.medias);
+    },
+    //UI thread
+    [this](quint64, Context& ctx){
+        if (!ctx.medias.empty())
+            m_playlistController->playMedia(ctx.medias);
+    });
+}
+
+void MediaLib::shuffleAndPlay(const QVariantList& itemIdList, const QStringList &options)
+{
+    struct Context {
+        QVector<vlc::playlist::Media> medias;
+    };
+    runOnMLThread<Context>(this,
+    //ML thread
+    [itemIdList, options]
+    (vlc_medialibrary_t* ml, Context& ctx)
+    {
+        convertQVariantListToPlaylistMedias(ml, itemIdList, options, ctx.medias);
+        std::shuffle(ctx.medias.begin(), ctx.medias.end(), std::mt19937(std::random_device{}()));
     },
     //UI thread
     [this](quint64, Context& ctx){

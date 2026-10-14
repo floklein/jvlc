@@ -85,11 +85,8 @@ NativeMenu {
             "action": removeFavorite,
             "visible": _showRemoveFavorite
         }, {
-            "text": (root.showPlayAsAudioAction ? qsTr("Add to a video-only playlist") : qsTr("Add to an audio-only playlist")),
-            "action": (root.showPlayAsAudioAction ? root.addToVideoOnlyPlaylist : root.addToAudioOnlyPlaylist)
-        }, {
-            "text": qsTr("Add to a playlist"),
-            "action": addToAPlaylist
+            "text": qsTr("Add to Playlist"),
+            "children": addToPlaylistItems
         }, {
             "text": qsTr("Mark as seen"),
             "action": markSeen,
@@ -161,19 +158,26 @@ NativeMenu {
         model.ml.addToPlaylist(_mlIDList(dataList, root.albumIdDataRole), _playerOptions(options))
     }
 
-    function addToAudioOnlyPlaylist(dataList, options, indexes) {
-        addToAPlaylist(dataList, options, indexes, MLPlaylistListModel.PLAYLIST_TYPE_AUDIO_ONLY)
-    }
+    // The "Add to Playlist" submenu: the most recently changed Playlists,
+    // "More…" (the picker) and "+ New Playlist…"
+    function addToPlaylistItems(dataList, options, indexes) {
+        const ids = _mlIDList(dataList)
+        const items = PlaylistManager.recentPlaylists.map((playlist) => ({
+            "text": playlist.name,
+            "action": () => PlaylistManager.append(playlist.id, ids)
+        }))
 
-    function addToVideoOnlyPlaylist(dataList, options, indexes) {
-        addToAPlaylist(dataList, options, indexes, MLPlaylistListModel.PLAYLIST_TYPE_VIDEO_ONLY)
-    }
+        if (items.length > 0)
+            items.push({ "separator": true })
 
-    function addToAPlaylist(dataList, options, indexes, type) {
-        if (type === undefined)
-            type = MLPlaylistListModel.PLAYLIST_TYPE_ALL
-
-        DialogsProvider.playlistsDialog(_mlIDList(dataList), type)
+        items.push({
+            "text": qsTr("More…"),
+            "action": () => PlaylistManager.requestPicker(ids)
+        }, {
+            "text": qsTr("+ New Playlist…"),
+            "action": () => PlaylistManager.requestNewPlaylist(ids)
+        })
+        return items
     }
 
     function addFavorite(dataList, options, indexes) {

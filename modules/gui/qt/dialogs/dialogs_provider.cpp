@@ -47,7 +47,6 @@
 #include "dialogs/sout/sout.hpp"
 #include "dialogs/open/open.hpp"
 #include "dialogs/plugins/plugins.hpp"
-#include "dialogs/playlists/playlists.hpp"
 #include "dialogs/firstrun/firstrunwizard.hpp"
 
 #include <vlc_url.h>
@@ -160,7 +159,7 @@ void DialogsProvider::customEvent( QEvent *event )
             //playlistDialog(); break;
             break;
         // case INTF_DIALOG_PLAYLISTS:
-        // FIXME: `intf_dialog_args_t` is not supported by `PlaylistsDialog`.
+        // NOTE: Add to Playlist is a submenu, there is no Playlists dialog.
         case INTF_DIALOG_MESSAGES:
             messagesDialog(); break;
         case INTF_DIALOG_FILEINFO:
@@ -524,13 +523,6 @@ QMessageBox::StandardButton DialogsProvider::messageDialog(const QString &text,
     QVLCDialog::setWindowTransientParent(&messageBox, nullptr, p_intf);
 
     return static_cast<QMessageBox::StandardButton>(messageBox.exec());
-}
-
-void DialogsProvider::playlistsDialog( const QVariantList & medias, MLPlaylistListModel::PlaylistType type )
-{
-    const auto dialog = new PlaylistsDialog(p_intf, medias, type);
-    dialog->setAttribute(Qt::WA_DeleteOnClose);
-    dialog->show(); // "Modeless dialogs are displayed using show()"
 }
 
 void DialogsProvider::pluginDialog()

@@ -36,6 +36,8 @@
 
 #include "qt.hpp"
 
+#include <string>
+#include <vector>
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 4, 0)
 #define QCOMPARE_LT(a, b) QVERIFY((a) < (b))
@@ -70,6 +72,25 @@ struct VLCTestingEnv
 
     //if set to false no render discovery will be found
     bool renderDiscoveryProbeEnabled = true;
+
+    /*
+     * The stub media library keeps Playlists in memory. Media ids are free
+     * numbers: an item named "ml:<id>" stands for media <id>. External media
+     * (created from an MRL) get ids from 1000.
+     */
+    struct Playlist
+    {
+        int64_t id;
+        std::string name;
+        std::vector<int64_t> media;
+    };
+
+    // forget every Playlist and external media
+    void clearMediaLibrary();
+    // the Playlists, in creation order
+    std::vector<Playlist> playlists() const;
+    // create a Playlist directly in the store (sends the ADDED event)
+    int64_t addPlaylist(const std::string& name, const std::vector<int64_t>& media);
 
     //meta writer: what the last input_item_WriteMeta() received
     int metaWriterCalls = 0;

@@ -26,14 +26,18 @@
 #include <vlc_media_library.h>
 #include "qt.hpp"
 #include "util/vlctick.hpp"
-#include "dialogs/dialogs_provider.hpp"
 #include "playlist/playlist_controller.hpp"
 
 // MediaLibrary includes
 #include "mlhelper.hpp"
 #include "mlcustomcover.hpp"
 #include "mlplaylist.hpp"
+#include "mlplaylistmanager.hpp"
 #include "mlplaycountrank.hpp"
+
+#include <QFileInfo>
+#include <QInputDialog>
+#include <QUrl>
 
 //-------------------------------------------------------------------------------------------------
 // Static variables
@@ -48,29 +52,17 @@ const int MLPLAYLISTMODEL_COVER_HEIGHT = 162 * 3;
 const int PLAYLIST_COVERX = 2;
 const int PLAYLIST_COVERY = 2;
 
-void appendMediaIntoPlaylist(vlc_medialibrary_t* ml, int64_t playlistId, const std::vector<MLItemId>& itemList)
+std::unique_ptr<MLPlaylist> newPlaylistItem(const vlc_ml_playlist_t & data, const QString & thumbnailDir)
 {
-    vlc_ml_query_params_t query = vlc_ml_query_params_create();
+    auto playlist = std::make_unique<MLPlaylist>(&data);
 
-    for (auto itemId : itemList)
+    if (!thumbnailDir.isEmpty())
     {
-        // NOTE: When we have a parent it's a collection of media(s).
-        if (itemId.type != VLC_ML_PARENT_UNKNOWN)
-        {
-            ml_unique_ptr<vlc_ml_media_list_t> list;
-
-            list.reset(vlc_ml_list_media_of(ml, &query, itemId.type, itemId.id));
-
-            if (!list)
-                continue;
-
-            for (const vlc_ml_media_t & media : ml_range_iterate<vlc_ml_media_t>(list))
-                vlc_ml_playlist_append(ml, playlistId, &media.i_id, 1);
-        }
-        // NOTE: Otherwise we add the media directly.
-        else
-            vlc_ml_playlist_append(ml, playlistId, &itemId.id, 1);
+        const QString thumbnail = MLPlaylistManager::thumbnailPath(thumbnailDir, data.i_id);
+        if (QFileInfo::exists(thumbnail))
+            playlist->setThumbnail(QUrl::fromLocalFile(thumbnail).toString());
     }
+    return playlist;
 }
 
 } //anonymous namespace
@@ -81,7 +73,15 @@ void appendMediaIntoPlaylist(vlc_medialibrary_t* ml, int64_t playlistId, const s
 
 /* explicit */ MLPlaylistListModel::MLPlaylistListModel(QObject * parent)
     : MLBaseModel(parent)
-    , m_coverSize(MLPLAYLISTMODEL_COVER_WIDTH, MLPLAYLISTMODEL_COVER_HEIGHT) {}
+    , m_coverSize(MLPLAYLISTMODEL_COVER_WIDTH, MLPLAYLISTMODEL_COVER_HEIGHT)
+{
+    // NOTE: A thumbnail is chosen once the Playlist exists.
+    connect(this, &MLBaseModel::mlChanged, this, [this]() {
+        if (m_mediaLib && m_mediaLib->playlistManager())
+            connect(m_mediaLib->playlistManager(), &MLPlaylistManager::thumbnailsChanged,
+                    this, &MLBaseModel::resetRequested, Qt::UniqueConnection);
+    });
+}
 
 //-------------------------------------------------------------------------------------------------
 
@@ -109,7 +109,8 @@ void appendMediaIntoPlaylist(vlc_medialibrary_t* ml, int64_t playlistId, const s
     [this, initialItems](quint64, const Ctx& ctx) {
         endTransaction(); // this is intentionally called here and not after `append()`
 
-        if (ctx.createdPlaylistId.id)
+        // NOTE: A Playlist may be created empty.
+        if (ctx.createdPlaylistId.id && !initialItems.isEmpty())
         {
             append(ctx.createdPlaylistId, initialItems);
         }
@@ -120,7 +121,9 @@ void appendMediaIntoPlaylist(vlc_medialibrary_t* ml, int64_t playlistId, const s
                                                    const QVariantList & ids)
 {
     assert(m_mediaLib);
-    assert(ids.size() > 0);
+
+    if (ids.isEmpty())
+        return;
 
     if (unlikely(!setTransactionPending(true)))
         return;
@@ -128,45 +131,7 @@ void appendMediaIntoPlaylist(vlc_medialibrary_t* ml, int64_t playlistId, const s
     m_mediaLib->runOnMLThread(this,
     //ML thread
     [playlistId, ids](vlc_medialibrary_t* ml) {
-        std::vector<MLItemId> mlItemIdVector;
-        mlItemIdVector.reserve(ids.size());
-
-        if (ids.at(0).canConvert<MLItemId>())
-        {
-            for (const QVariant& id : ids)
-            {
-                // Do not mix types. This is currently not possible
-                // in the application anyway.
-                assert(id.canConvert<MLItemId>());
-
-                mlItemIdVector.push_back(id.value<MLItemId>());
-            }
-
-            appendMediaIntoPlaylist(ml, playlistId.id, mlItemIdVector);
-        }
-        else
-        {
-            QVector<vlc::playlist::Media> medias = vlc::playlist::toMediaList(ids);
-
-            for (const auto& media : medias)
-            {
-                assert(media.raw());
-
-                const char * const uri = media.raw()->psz_uri;
-
-                vlc_ml_media_t * ml_media = vlc_ml_get_media_by_mrl(ml, uri);
-
-                if (ml_media == nullptr)
-                {
-                    ml_media = vlc_ml_new_external_media(ml, uri);
-                    if (ml_media == nullptr)
-                        continue;
-                }
-
-                vlc_ml_playlist_append(ml, playlistId.id, &ml_media->i_id, 1);
-                vlc_ml_media_release(ml_media);
-            }
-        }
+        appendItemsToMLPlaylist(ml, playlistId.id, ids);
     },
     //UI thread
     [this]() {
@@ -223,13 +188,11 @@ void appendMediaIntoPlaylist(vlc_medialibrary_t* ml, int64_t playlistId, const s
 
     QString name = playlist->getName();
 
-    static DialogsProvider * provider = DialogsProvider::getInstance();
-
     bool ok = false;
 
-    QString result = provider->getTextDialog(NULL, qtr("Rename playlist"),
-                                             qtr("Please enter the new playlist name:"),
-                                             name, &ok).toString();
+    QString result = QInputDialog::getText(nullptr, qtr("Rename playlist"),
+                                           qtr("Please enter the new playlist name:"),
+                                           QLineEdit::Normal, name, &ok).trimmed();
 
     if (ok == false || result.isEmpty() || result == name)
         return false;
@@ -335,8 +298,11 @@ QVariant MLPlaylistListModel::headerData(int section, Qt::Orientation orientatio
 
 std::unique_ptr<MLListCacheLoader> MLPlaylistListModel::createMLLoader() const /* override */
 {
+    const MLPlaylistManager * manager = m_mediaLib->playlistManager();
+    const QString thumbnailDir = manager ? manager->thumbnailDir() : QString();
+
     return std::make_unique<MLListCacheLoader>(m_mediaLib,
-        MLPlayCountRank::rankIfSortedByPlayCount(*this, std::make_shared<MLPlaylistListModel::Loader>(*this, m_playlistType)));
+        MLPlayCountRank::rankIfSortedByPlayCount(*this, std::make_shared<MLPlaylistListModel::Loader>(*this, m_playlistType, thumbnailDir)));
 }
 
 vlc_ml_sorting_criteria_t MLPlaylistListModel::nameToCriteria(QByteArray name) const /* override */
@@ -377,6 +343,9 @@ bool MLPlaylistListModel::setTransactionPending(const bool value)
 
 QString MLPlaylistListModel::getCover(const MLPlaylist * playlist) const
 {
+    if (!playlist->getThumbnail().isEmpty())
+        return playlist->getThumbnail();
+
     return MLCustomCover::url(playlist->getId()
                             , m_coverSize
                             , m_coverDefault
@@ -517,9 +486,11 @@ static inline vlc_ml_playlist_type_t qmlToMLPlaylistType(MLPlaylistListModel::Pl
     }
 }
 
-MLPlaylistListModel::Loader::Loader(const MLPlaylistListModel & model, PlaylistType playlistType)
+MLPlaylistListModel::Loader::Loader(const MLPlaylistListModel & model, PlaylistType playlistType,
+                                    const QString & thumbnailDir)
     : MLListCacheLoader::MLOp(model)
     , m_playlistType(playlistType)
+    , m_thumbnailDir(thumbnailDir)
 {}
 
 size_t MLPlaylistListModel::Loader::count(vlc_medialibrary_t* ml, const vlc_ml_query_params_t* queryParams) const /* override */
@@ -543,7 +514,7 @@ MLPlaylistListModel::Loader::load(vlc_medialibrary_t* ml, const vlc_ml_query_par
 
     for (const vlc_ml_playlist_t & playlist : ml_range_iterate<vlc_ml_playlist_t>(list))
     {
-        result.emplace_back(std::make_unique<MLPlaylist>(&playlist));
+        result.emplace_back(newPlaylistItem(playlist, m_thumbnailDir));
     }
 
     return result;
@@ -556,5 +527,5 @@ MLPlaylistListModel::Loader::loadItemById(vlc_medialibrary_t* ml, MLItemId itemI
     ml_unique_ptr<vlc_ml_playlist_t> playlist(vlc_ml_get_playlist(ml, itemId.id));
     if (!playlist)
         return nullptr;
-    return std::make_unique<MLPlaylist>(playlist.get());
+    return newPlaylistItem(*playlist, m_thumbnailDir);
 }

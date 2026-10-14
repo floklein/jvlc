@@ -22,6 +22,7 @@
 #include "medialibrary/mlvideogroupsmodel.hpp"
 #include "medialibrary/mlvideofoldersmodel.hpp"
 #include "medialibrary/mlplaylistlistmodel.hpp"
+#include "medialibrary/mlplaylistmanager.hpp"
 #include "medialibrary/mlplaylistmodel.hpp"
 #include "medialibrary/mlplaylist.hpp"
 #include "medialibrary/mlbookmarkmodel.hpp"
@@ -494,6 +495,7 @@ void MainUI::registerQMLTypes()
         // @uri VLC.MediaLibrary
         assert(m_mainCtx->getMediaLibrary());
         qmlRegisterSingletonInstance<MediaLib>(uri, versionMajor, versionMinor, "MediaLib", m_mainCtx->getMediaLibrary());
+        qmlRegisterSingletonInstance<MLPlaylistManager>(uri, versionMajor, versionMinor, "PlaylistManager", m_mainCtx->getMediaLibrary()->playlistManager());
 
         qmlRegisterUncreatableType<MLItemId>( uri, versionMajor, versionMinor, "mediaId", "");
         qmlRegisterUncreatableType<MLBaseModel>( uri, versionMajor, versionMinor, "MLBaseModel", "ML Base Model is uncreatable." );

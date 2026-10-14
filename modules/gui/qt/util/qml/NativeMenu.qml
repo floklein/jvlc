@@ -38,6 +38,9 @@ QtObject {
         "visible" - (Boolean or function(dataList,options, indexes) -> Boolean) (optional) a boolean value or function which
                     controls whether the action is shown in the menu following 'popup' call
 
+        "children" - (function(dataList, options, indexes) -> [{text, action} or {separator: true}]) (optional)
+                     makes the action a submenu of these items, in place of "action"
+
        e.g see MLContextMenu.qml
     **/
 
@@ -90,6 +93,17 @@ QtObject {
             if (!action.hasOwnProperty("visible")
                     || (typeof action.visible === "boolean" && action.visible)
                     || (typeof action.visible === "function" && action.visible(_dataList, _options, _indexes))) {
+                if (typeof action.children === "function") {
+                    // a submenu: [{text, action} or {separator: true}]
+                    const children = action.children(_dataList, _options, _indexes)
+                    _effectiveActions.push({ "text": action.text, "children": children })
+                    textStrings.push({
+                        "text": action.text,
+                        "children": children.map((child) => child.separator ? "" : child.text)
+                    })
+                    continue
+                }
+
                 _effectiveActions.push(action)
                 textStrings.push(action.text)
             }
@@ -103,6 +117,11 @@ QtObject {
         action.action(_dataList, _options, _indexes)
     }
 
+    function _executeChildAction(index, childIndex) {
+        const child = root._effectiveActions[index].children[childIndex]
+        child.action(_dataList, _options, _indexes)
+    }
+
 
     readonly property StringListMenu _menu: StringListMenu {
         id: menu
@@ -111,6 +130,10 @@ QtObject {
 
         onSelected: (index, _) => {
             root._executeAction(index)
+        }
+
+        onChildSelected: (index, childIndex) => {
+            root._executeChildAction(index, childIndex)
         }
     }
 }

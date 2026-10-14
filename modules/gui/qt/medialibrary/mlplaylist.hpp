@@ -44,6 +44,10 @@ public: // Interface
     unsigned int getNbVideo() const;
     unsigned int getNbUnknown() const;
 
+    // the thumbnail chosen by the user, if any
+    QString getThumbnail() const;
+    void setThumbnail(const QString & thumbnail);
+
 private:
     QString m_name;
 
@@ -53,6 +57,8 @@ private:
     unsigned int m_nbAudio;
     unsigned int m_nbVideo;
     unsigned int m_nbUnknown;
+
+    QString m_thumbnail;
 };
 
 #endif
