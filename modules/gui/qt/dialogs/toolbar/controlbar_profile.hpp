@@ -23,9 +23,7 @@
 #include <QVector>
 #include <array>
 
-Q_MOC_INCLUDE( "player/player_controlbar_model.hpp" )
-
-class PlayerControlbarModel;
+#include "player/player_controlbar_model.hpp"
 
 class ControlbarProfile : public QObject
 {
@@ -42,8 +40,12 @@ public:
     PlayerControlbarModel* newModel(int identifier);
     Q_INVOKABLE PlayerControlbarModel* getModel(int identifier) const;
 
-    void setModelData(int identifier, const std::array<QVector<int>, 3>& data);
-    std::array<QVector<int>, 3> getModelData(int identifier) const;
+    void setModelData(int identifier, const PlayerControlbarModel::Zones& data);
+    PlayerControlbarModel::Zones getModelData(int identifier) const;
+
+    // the built-in Layout it comes from, a ControlbarProfileModel::Style
+    int style() const { return m_style; }
+    void setStyle(int style) { m_style = style; }
 
     void deleteModel(int identifier);
 
@@ -67,6 +69,7 @@ private:
 
     QString m_name = QStringLiteral("N/A");
     bool m_pauseControlListGeneration = false;
+    int m_style = -1;
 
     // According to benchmarks, QMap performs better than
     // QHash when item count is less than 32.
@@ -76,7 +79,7 @@ private:
 
     struct Configuration {
         int identifier;
-        std::array<QVector<int>, 3> data;
+        PlayerControlbarModel::Zones data;
     };
 
 private:

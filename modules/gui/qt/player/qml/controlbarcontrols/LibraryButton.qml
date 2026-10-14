@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Copyright (C) 2019 VLC authors and VideoLAN
+ * Copyright (C) 2026 VLC authors and VideoLAN
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,22 +17,33 @@
  *****************************************************************************/
 import QtQuick
 
-
-import VLC.Style
+import VLC.MainInterface
 import VLC.Widgets as Widgets
+import VLC.Style
+import VLC.Playlist
+import VLC.Util
 
-Widgets.BannerTabButton {
+// The library toggle
+Widgets.IconToolButton {
     id: root
 
-    implicitWidth: VLCStyle.button_width_large
+    signal requestLockUnlockAutoHide(bool lock)
 
-    signal dropEnterred()
+    // Figma: 28 px square
+    implicitWidth: VLCStyle.dp(28, VLCStyle.scale)
+    implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
 
-    DropArea {
-        anchors.fill: parent
+    text: VLCIcons.sidebar_left
+    description: qsTr("Library")
 
-        onEntered: (drag) => {
-            root.dropEnterred()
-        }
+    AccessibleCompat.id: "topBarLibraryButton"
+
+    onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
+
+    // TODO: open the Library pane (#65)
+    onClicked: {
+        if (MainCtx.hasEmbededVideo && !MainCtx.canShowVideoPIP)
+            MainPlaylistController.stop()
+        MainCtx.playerView = false
     }
 }

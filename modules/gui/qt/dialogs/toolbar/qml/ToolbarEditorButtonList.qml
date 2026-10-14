@@ -22,23 +22,43 @@ import QtQuick.Layouts
 
 
 import VLC.Player
+import VLC.PlayerControls
 import VLC.Style
 import VLC.Widgets as Widgets
 import VLC.Util
 
+// The palette of Customize Player (Figma 2107:5604): the items that are not
+// on the bars yet. Spacer and Divider always stay. Dropping a bar item here
+// removes it from the player.
 GridView {
     id: root
 
     clip: true
 
     T.ScrollBar.vertical: Widgets.ScrollBarExt { }
-    model: PlayerControlbarControls.controlList.length
+
+    // the Layout of the edited player
+    property PlayerControlbarModel bars: null
+
+    // bumped when the bars change, to filter the palette again
+    property int _revision: 0
+
+    model: {
+        void _revision
+        const list = PlayerControlbarControls.controlList
+        if (!bars)
+            return list
+        return list.filter((entry) => bars.canAdd(entry.id))
+    }
 
     currentIndex: -1
     highlightFollowsCurrentItem: false
 
-    cellWidth: VLCStyle.cover_small
-    cellHeight: cellWidth
+    activeFocusOnTab: true
+    keyNavigationEnabled: true
+
+    cellWidth: VLCStyle.dp(108, VLCStyle.scale)
+    cellHeight: VLCStyle.dp(84, VLCStyle.scale)
 
     boundsBehavior: Flickable.StopAtBounds
 
@@ -47,10 +67,41 @@ GridView {
     signal controlDragStarted(int id)
     signal controlDragStopped(int id)
 
+    // Enter on an item: add it to the bars
+    signal addRequested(int id)
+
+    Accessible.role: Accessible.List
+    Accessible.name: qsTr("Items")
 
     readonly property ColorContext colorContext: ColorContext {
         id: theme
         colorSet: ColorContext.View
+    }
+
+    Connections {
+        target: root.bars
+
+        function onControlListChanged() {
+            root._revision++
+        }
+    }
+
+    onActiveFocusChanged: {
+        if (activeFocus && currentIndex < 0 && count > 0)
+            currentIndex = 0
+    }
+
+    onCountChanged: {
+        if (currentIndex >= count)
+            currentIndex = count - 1
+    }
+
+    Keys.onPressed: (event) => {
+        if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+                && currentIndex >= 0 && currentIndex < count) {
+            root.addRequested(model[currentIndex].id)
+            event.accepted = true
+        }
     }
 
     MouseArea {
@@ -85,12 +136,18 @@ GridView {
                 return false
         }
 
+        onEntered: (drag) => {
+            // the VLC menu can't be removed
+            if (!isFromList() && root.bars && !root.bars.isRemovable(drag.source.controlId))
+                drag.accepted = false
+        }
+
         onDropped: (drop) => {
             if (isFromList())
                 return
 
-            drop.source.dndView.model.remove(drop.source.DelegateModel.itemsIndex)
-            drop.accept(Qt.MoveAction)
+            if (root.bars.removeControl(drop.source.dndView.model, drop.source.DelegateModel.itemsIndex))
+                drop.accept(Qt.MoveAction)
         }
     }
 
@@ -138,6 +195,11 @@ GridView {
     }
 
     delegate: MouseArea {
+        id: cell
+
+        required property var modelData
+        required property int index
+
         width: cellWidth
         height: cellHeight
 
@@ -150,17 +212,26 @@ GridView {
 
         drag.smoothed: false
 
-        readonly property int mIndex: PlayerControlbarControls.controlList[model.index].id
+        readonly property int mIndex: modelData.id
+
+        readonly property bool selected: GridView.isCurrentItem && root.activeFocus
+
+        Accessible.role: Accessible.ListItem
+        Accessible.name: modelData.text
+        Accessible.selected: selected
 
         readonly property ColorContext colorContext: ColorContext {
             colorSet: ColorContext.Item
+
+            focused: cell.selected
+            hovered: cell.containsMouse
         }
 
         drag.onActiveChanged: {
             if (drag.active) {
                 root.controlDragStarted(mIndex)
 
-                buttonDragItem.text = PlayerControlbarControls.controlList[model.index].label
+                buttonDragItem.text = modelData.label
                 buttonDragItem.Drag.source = this
                 buttonDragItem.Drag.start()
 
@@ -175,6 +246,7 @@ GridView {
         }
 
         onPressed: (mouse) => {
+            root.currentIndex = index
             const pos = mapToItem(buttonDragItem.parent, mouseX, mouseY)
             buttonDragItem.y = pos.y + VLCStyle.dragDelta
             buttonDragItem.x = pos.x + VLCStyle.dragDelta
@@ -182,40 +254,65 @@ GridView {
 
         Rectangle {
             anchors.fill: parent
+            anchors.margins: VLCStyle.margin_xxxsmall
 
-            implicitWidth: childrenRect.width
-            implicitHeight: childrenRect.height
+            color: cell.containsMouse && !buttonDragItem.Drag.active ? colorContext.bg.highlight
+                                                                     : "transparent"
+            radius: VLCStyle.radius_normal
 
-            color: "transparent"
-
-            border.width: VLCStyle.dp(1, VLCStyle.scale)
-            border.color: containsMouse && !buttonDragItem.Drag.active ? colorContext.border
-                                                                       : "transparent"
-            border.pixelAligned: (radius < Number.EPSILON)
+            border.width: cell.selected ? VLCStyle.focus_border : 0
+            border.color: colorContext.visualFocus
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 10
+                anchors.margins: VLCStyle.margin_xsmall
 
-                EditorDummyButton {
-                    Layout.preferredWidth: VLCStyle.icon_medium
-                    Layout.preferredHeight: VLCStyle.icon_medium
+                spacing: VLCStyle.margin_xxsmall
+
+                // Figma: the icon in a dashed square
+                Item {
+                    Layout.preferredWidth: VLCStyle.dp(28, VLCStyle.scale)
+                    Layout.preferredHeight: VLCStyle.dp(28, VLCStyle.scale)
                     Layout.alignment: Qt.AlignHCenter
 
-                    color: colorContext.fg.primary
-                    text: PlayerControlbarControls.controlList[model.index].label
+                    EditorDashedBorder {
+                        anchors.fill: parent
+                        color: colorContext.border
+                    }
+
+                    EditorDummyButton {
+                        anchors.fill: parent
+
+                        visible: text !== ""
+                        font.pixelSize: VLCStyle.icon_normal
+                        color: colorContext.fg.primary
+                        text: modelData.label
+                    }
+
+                    // the Divider is a line
+                    Rectangle {
+                        anchors.centerIn: parent
+
+                        visible: modelData.id === ControlListModel.DIVIDER
+                        width: VLCStyle.border
+                        height: VLCStyle.dp(16, VLCStyle.scale)
+
+                        color: colorContext.fg.primary
+                    }
                 }
 
                 Widgets.ListSubtitleLabel {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
 
-                    color: colorContext.fg.secondary
+                    color: colorContext.fg.primary
                     elide: Text.ElideNone
-                    fontSizeMode: Text.Fit
-                    text: PlayerControlbarControls.controlList[model.index].text
+                    font.pixelSize: VLCStyle.fontSize_normal
+                    maximumLineCount: 2
+                    text: modelData.text
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignTop
                 }
             }
         }

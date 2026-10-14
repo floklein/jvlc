@@ -601,12 +601,12 @@ qml_modules += {
         'dialogs/settings/qml/SettingsToggle.qml',
         'dialogs/mediainfo/qml/MediaPropertiesDialog.qml',
         'dialogs/open/qml/OpenDiscDialog.qml',
+        'dialogs/toolbar/qml/EditorDashedBorder.qml',
         'dialogs/open/qml/OpenNetworkDialog.qml',
         'dialogs/sout/qml/StreamCastDialog.qml',
         'dialogs/toolbar/qml/EditorDNDDelegate.qml',
         'dialogs/toolbar/qml/EditorDNDView.qml',
         'dialogs/toolbar/qml/EditorDummyButton.qml',
-        'dialogs/toolbar/qml/EditorTabButton.qml',
         'dialogs/toolbar/qml/ToolbarEditor.qml',
         'dialogs/toolbar/qml/ToolbarEditorDialog.qml',
         'dialogs/toolbar/qml/ToolbarEditorButtonList.qml'
@@ -756,6 +756,11 @@ qml_modules += {
        'player/qml/controlbarcontrols/ArtworkInfoWidget.qml',
        'player/qml/controlbarcontrols/SeekBarWidget.qml',
        'player/qml/controlbarcontrols/SubtitlesButton.qml',
+       'player/qml/controlbarcontrols/VlcMenuButton.qml',
+       'player/qml/controlbarcontrols/LibraryButton.qml',
+       'player/qml/controlbarcontrols/FolderButton.qml',
+       'player/qml/controlbarcontrols/TitleWidget.qml',
+       'player/qml/controlbarcontrols/DividerWidget.qml',
        'player/qml/controlbarcontrols/TrackMenuButton.qml',
        'player/qml/controlbarcontrols/AspectRatioWidget.qml',
        'player/qml/controlbarcontrols/AtoBButton.qml',
@@ -1689,6 +1694,35 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_layouts',
+            'sources': files(
+                'tests/test_layouts.cpp',
+                'dialogs/toolbar/controlbar_profile.cpp',
+                'dialogs/toolbar/controlbar_profile.hpp',
+                'dialogs/toolbar/controlbar_profile_model.cpp',
+                'dialogs/toolbar/controlbar_profile_model.hpp',
+                'player/player_controlbar_model.cpp',
+                'player/player_controlbar_model.hpp',
+                'player/control_list_model.cpp',
+                'player/control_list_model.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_layouts.cpp'
+            ),
+            'moc_headers': files(
+                'dialogs/toolbar/controlbar_profile.hpp',
+                'dialogs/toolbar/controlbar_profile_model.hpp',
+                'player/player_controlbar_model.hpp',
+                'player/control_list_model.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qtest_qt6_dep]
         }

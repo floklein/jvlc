@@ -1013,8 +1013,9 @@ FocusScope {
         sideMargin: VLCStyle.applicationHorizontalMargin
 
         focus: true
-        // the metadata title, else the file name
-        title: Player.title || Player.name
+
+        // the Layout of the player shown, like the Control bar
+        identifier: controlBar.identifier
 
         pinControls: rootPlayer._controlsUnderVideo
 
@@ -1042,13 +1043,6 @@ FocusScope {
 
         onRequestLockUnlockAutoHide: (lock) => {
             rootPlayer.lockUnlockAutoHide(lock)
-        }
-
-        onBackRequested: {
-            if (MainCtx.hasEmbededVideo && !MainCtx.canShowVideoPIP) {
-               MainPlaylistController.stop()
-            }
-            MainCtx.playerView = false
         }
 
         BarRevealStateGroup {
@@ -1350,12 +1344,14 @@ FocusScope {
 
         focus: true
 
-        // Figma 491:1779: 20 px on the sides, 11 px above and below the inline row
-        rightPadding: VLCStyle.applicationHorizontalMargin + (seekBarInline ? VLCStyle.spacing_20 : 0)
-        leftPadding: VLCStyle.applicationHorizontalMargin + (seekBarInline ? VLCStyle.spacing_20 : 0)
-        topPadding: seekBarInline ? VLCStyle.dp(11, VLCStyle.scale) : 0
-        bottomPadding: VLCStyle.applicationVerticalMargin
-                       + (seekBarInline ? VLCStyle.dp(11, VLCStyle.scale) : VLCStyle.margin_xsmall)
+        // the Two-row Layout puts the seek bar on its own row
+        seekBarOwnRow: true
+
+        // Figma 491:1779: 20 px on the sides, 11 px above and below the rows
+        rightPadding: VLCStyle.applicationHorizontalMargin + VLCStyle.spacing_20
+        leftPadding: VLCStyle.applicationHorizontalMargin + VLCStyle.spacing_20
+        topPadding: VLCStyle.dp(11, VLCStyle.scale)
+        bottomPadding: VLCStyle.applicationVerticalMargin + VLCStyle.dp(11, VLCStyle.scale)
 
         textPosition: (rootPlayer._controlsUnderVideo)
                       ? ControlBar.TimeTextPosition.LeftRightSlider
@@ -1417,8 +1413,6 @@ FocusScope {
                 height: VLCStyle.border
 
                 color: windowTheme.separator
-
-                visible: controlBar.seekBarInline
             }
         }
 

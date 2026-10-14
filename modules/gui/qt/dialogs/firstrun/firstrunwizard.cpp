@@ -152,7 +152,7 @@ void FirstRunWizard::finish()
 
         ControlbarProfileModel::Style style;
         if( ui.layoutGroup->checkedId() )
-            style = ControlbarProfileModel::Style::CLASSIC_STYLE;
+            style = ControlbarProfileModel::Style::TWO_ROW_STYLE;
         else
             style = ControlbarProfileModel::Style::DEFAULT_STYLE;
 

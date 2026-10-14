@@ -85,11 +85,11 @@ public:
         SEEK_BAR, // current time, seek bar and duration, inline in the Control bar
         AUDIO_BUTTON,
         SUBTITLES_BUTTON,
-        RESERVED_0X2E,
-        RESERVED_0X2F,
-        RESERVED_0X30,
-        RESERVED_0X31,
-        RESERVED_0X32,
+        VLC_MENU_BUTTON, // the "…" VLC menu, which every Layout keeps
+        LIBRARY_BUTTON, // the library toggle
+        FOLDER_BUTTON, // the folder of the playing media (its Show)
+        TITLE_WIDGET, // the media title
+        DIVIDER, // a thin vertical line, which can repeat
         RESERVED_0X33,
         RESERVED_0X34,
         RESERVED_0X35,
@@ -112,7 +112,8 @@ public:
 
     static_assert(RESERVED_0X1F == 0x1F, "missaligned");
     static_assert(SEEK_BAR == 0x2B, "missaligned");
-    static_assert(RESERVED_0X2E == 0x2E, "missaligned");
+    static_assert(VLC_MENU_BUTTON == 0x2E, "missaligned");
+    static_assert(RESERVED_0X33 == 0x33, "missaligned");
     static_assert(RESERVED_0X3F == 0x3F, "missaligned");
 
     // Basic functionality:

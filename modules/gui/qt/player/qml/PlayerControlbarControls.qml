@@ -29,7 +29,14 @@ import VLC.Style
 QtObject {
     readonly property string controlPath : "qrc:///qt/qml/VLC/PlayerControls/"
 
+    // the items of Customize Player's palette, in its order
     readonly property var controlList: [
+        { id: ControlListModel.WIDGET_SPACER, file: "SpacerWidget.qml", label: VLCIcons.space, text: qsTr("Spacer") },
+        { id: ControlListModel.DIVIDER, file: "DividerWidget.qml", label: "", text: qsTr("Divider") },
+        { id: ControlListModel.VLC_MENU_BUTTON, file: "VlcMenuButton.qml", label: VLCIcons.more, text: qsTr("VLC menu") },
+        { id: ControlListModel.LIBRARY_BUTTON, file: "LibraryButton.qml", label: VLCIcons.sidebar_left, text: qsTr("Library") },
+        { id: ControlListModel.FOLDER_BUTTON, file: "FolderButton.qml", label: VLCIcons.folder, text: qsTr("Folder name") },
+        { id: ControlListModel.TITLE_WIDGET, file: "TitleWidget.qml", label: VLCIcons.info, text: qsTr("Title") },
         { id: ControlListModel.PLAY_BUTTON, file: "PlayButton.qml", label: VLCIcons.play_filled, text: qsTr("Play") },
         { id: ControlListModel.STOP_BUTTON, file: "StopButton.qml", label: VLCIcons.stop, text: qsTr("Stop") },
         { id: ControlListModel.OPEN_BUTTON, file: "OpenButton.qml", label: VLCIcons.eject, text: qsTr("Open") },
@@ -67,7 +74,6 @@ QtObject {
         { id: ControlListModel.TELETEXT_BUTTONS, file: "TeletextButton.qml", label: VLCIcons.tvtelx, text: qsTr("Teletext") },
         { id: ControlListModel.RENDERER_BUTTON, file: "CastButton.qml", label: VLCIcons.renderer, text: qsTr("Cast") },
         { id: ControlListModel.ASPECT_RATIO_COMBOBOX, file: "AspectRatioWidget.qml", label: VLCIcons.aspect_ratio, text: qsTr("Aspect Ratio") },
-        { id: ControlListModel.WIDGET_SPACER, file: "SpacerWidget.qml", label: VLCIcons.space, text: qsTr("Spacer") },
         { id: ControlListModel.WIDGET_SPACER_EXTEND, file: "ExpandingSpacerWidget.qml", label: VLCIcons.space, text: qsTr("Expanding Spacer") },
         { id: ControlListModel.PLAYER_SWITCH_BUTTON, file: "PlayerSwitchButton.qml", label: VLCIcons.fullscreen, text: qsTr("Switch Player") },
         { id: ControlListModel.ARTWORK_INFO, file: "ArtworkInfoWidget.qml", label: VLCIcons.info, text: qsTr("Artwork Info") },

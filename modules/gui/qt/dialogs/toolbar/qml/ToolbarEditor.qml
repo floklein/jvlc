@@ -18,6 +18,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQml.Models
+import QtQuick.Templates as T
 
 
 import VLC.MainInterface
@@ -26,14 +27,25 @@ import VLC.Widgets as Widgets
 import VLC.Util
 import VLC.PlayerControls
 
+// The editing area of Customize Player: the zones of the Top bar and of the
+// Control bar, with the seek bar on its own row between them when the Layout
+// does not place it inline, and the palette of the items not placed yet.
 Item {
     id: root
+
+    // the edited player (video or music)
+    property int identifier: PlayerControlbarModel.Videoplayer
+
+    readonly property PlayerControlbarModel bars: MainCtx.controlbarProfileModel.currentModel?.getModel(identifier) ?? null
 
     property bool dragActive: !!_viewThatContainsDrag || buttonDragItem.Drag.active
 
     property alias removeInfoRectVisible: buttonList.removeInfoRectVisible
 
     property EditorDNDView _viewThatContainsDrag: null
+
+    // the zone Enter adds palette items to: the last zone selected
+    property var _targetZone: null
 
     signal dragStarted(int controlId)
     signal dragStopped(int controlId)
@@ -43,249 +55,242 @@ Item {
         colorSet: ColorContext.View
     }
 
-    ColumnLayout{
-        anchors.fill: parent
-        spacing: 0
+    onBarsChanged: _targetZone = null
 
-        TabBar {
-            id: bar
-            z: 1
-
-            background: Rectangle {
-                color: theme.bg.primary
-            }
-
-            readonly property int currentIdentifier: currentItem.identifier
-
-            Repeater {
-                model: PlayerListModel.model
-
-                delegate: EditorTabButton {
-                    readonly property int identifier: modelData.identifier
-
-                    selected: index === bar.currentIndex
-
-                    implicitWidth: VLCStyle.button_width_large
-
-                    text: {
-                        const text = modelData.name
-
-                        if (MainCtx.controlbarProfileModel.currentModel?.getModel(identifier).dirty)
-                            return _markDirty(text)
-                        else
-                            return text
-                    }
-
-                    onDropEnterred: {
-                        bar.currentIndex = index
-                    }
-                }
+    function _views() {
+        const views = []
+        for (const repeater of [topZones, controlZones]) {
+            for (let i = 0; i < repeater.count; ++i) {
+                const item = repeater.itemAt(i)
+                if (item)
+                    views.push(item.view)
             }
         }
+        return views
+    }
 
-        Item {
-            Layout.preferredHeight: VLCStyle.controlLayoutHeight * 1.5
-            Layout.fillWidth: true
-
-            TextMetrics {
-                id: leftMetric
-                text: qsTr("L   E   F   T")
-                font.pixelSize: VLCStyle.fontSize_xxlarge
-            }
-
-            TextMetrics {
-                id: centerMetric
-                text: qsTr("C   E   N   T   E   R")
-                font.pixelSize: VLCStyle.fontSize_xxlarge
-            }
-
-            TextMetrics {
-                id: rightMetric
-                text: qsTr("R   I   G   H   T")
-                font.pixelSize: VLCStyle.fontSize_xxlarge
-            }
-
-            Repeater {
-                model: PlayerListModel.model
-
-                delegate: RowLayout {
-                    id: layout
-
-                    // can't use StackLayout or change visibility
-                    // because there is a bug with the dragging
-                    // that it doesn't work when the visibility
-                    // is set to false, so instead use stacking
-                    // and width/height to show the current view
-                    clip: true
-                    z: bar.currentIdentifier === identifier ? 0 : -1
-                    width: bar.currentIdentifier === identifier ? parent.width : 0
-                    height: bar.currentIdentifier === identifier ? parent.height : 0
-                    visible: root.dragActive || (bar.currentIdentifier === identifier)
-
-                    readonly property int identifier: modelData.identifier
-                    readonly property PlayerControlbarModel model: {
-                        if (!!MainCtx.controlbarProfileModel.currentModel)
-                            return MainCtx.controlbarProfileModel.currentModel.getModel(identifier)
-                        else
-                            return null
-                    }
-
-                    spacing: VLCStyle.margin_small
-
-                    Repeater {
-                        id: repeater
-
-                        model: 3 // left, center, and right
-
-                        function getModel(index) {
-                            if (!!layout.model) {
-                                switch (index) {
-                                case 0:
-                                    return layout.model.left
-                                case 1:
-                                    return layout.model.center
-                                case 2:
-                                    return layout.model.right
-                                default:
-                                    return undefined
-                                }
-                            } else {
-                                return undefined
-                            }
-                        }
-
-                        function getMetric(index) {
-                            switch (index) {
-                            case 0:
-                                return leftMetric
-                            case 1:
-                                return centerMetric
-                            case 2:
-                                return rightMetric
-                            }
-                        }
-
-                        Loader {
-                            id : playerBtnDND
-                            active: !!repeater.getModel(index)
-
-                            Layout.fillHeight: true
-                            Layout.fillWidth: {
-                                if (count === 0) {
-                                    for (let i = 0; i < repeater.count; ++i) {
-                                        const item = repeater.itemAt(i)
-                                        if (!!item && item.count > 0)
-                                            return false
-                                    }
-                                }
-
-                                return true
-                            }
-
-                            Layout.minimumWidth: (!!item && item.visible && item.count <= 0) ? Math.max(leftMetric.width,
-                                                                                                      centerMetric.width,
-                                                                                                      rightMetric.width) * 1.25
-                                                                                             : 0
-
-                            readonly property int count: item?.count ?? 0
-
-                            sourceComponent: Rectangle {
-                                color: theme.bg.primary
-
-                                border.color: theme.border
-                                border.width: VLCStyle.border
-                                border.pixelAligned: (radius < Number.EPSILON)
-
-                                property alias count: dndView.count
-
-                                Connections {
-                                    target: root
-                                    enabled: dndView.model === layout.model.center
-
-                                    function onDragStarted(controlId) {
-                                        // extending spacer widget should not be placed in the
-                                        // central alignment view
-                                        if (controlId === ControlListModel.WIDGET_SPACER_EXTEND)
-                                            visible = false
-                                    }
-
-                                    function onDragStopped(controlId) {
-                                        if (controlId === ControlListModel.WIDGET_SPACER_EXTEND)
-                                            visible = true
-                                    }
-                                }
-
-                                EditorDNDView {
-                                    id: dndView
-                                    anchors.fill: parent
-                                    anchors.leftMargin: spacing
-                                    anchors.rightMargin: spacing
-
-                                    model: repeater.getModel(index)
-
-                                    // controls in the center view can not have
-                                    // extra width
-                                    extraWidthAvailable: model !== layout.model.center
-
-                                    onContainsDragChanged: {
-                                        if (containsDrag)
-                                            _viewThatContainsDrag = this
-                                        else if (_viewThatContainsDrag === this)
-                                            _viewThatContainsDrag = null
-                                    }
-
-                                    Text {
-                                        anchors.fill: parent
-
-                                        text: repeater.getMetric(index).text
-                                        verticalAlignment: Text.AlignVCenter
-                                        font.pixelSize: VLCStyle.fontSize_xxlarge
-                                        color: theme.fg.secondary
-                                        horizontalAlignment: Text.AlignHCenter
-                                        visible: (count === 0)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+    // selects an item, with the keyboard focus
+    function select(zone, index) {
+        for (const view of _views()) {
+            if (view.model === zone) {
+                view.currentIndex = index
+                view.positionViewAtIndex(index, ListView.Contain)
+                view.forceActiveFocus(Qt.TabFocusReason)
+                return
             }
         }
+    }
 
-        Rectangle {
-            Layout.fillHeight: true
+    // adds a palette item to the bars and selects it
+    function add(control) {
+        if (!bars)
+            return
+
+        let zone = _targetZone
+        if (control === ControlListModel.SEEK_BAR)
+            zone = bars.center
+        else if (!zone || !bars.canPlace(control, zone))
+            zone = bars.right
+
+        if (bars.addControl(zone, zone.count, control))
+            select(zone, zone.count - 1)
+    }
+
+    // One zone: its items in a dashed box
+    component Zone: Item {
+        id: zone
+
+        property ControlListModel zoneModel: null
+        property string placeholder
+
+        readonly property alias view: dndView
+
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        Layout.preferredWidth: 1
+        Layout.preferredHeight: VLCStyle.dp(48, VLCStyle.scale)
+
+        EditorDashedBorder {
+            anchors.fill: parent
+
+            color: dndView.activeFocus ? theme.visualFocus : theme.border
+            lineWidth: dndView.activeFocus ? VLCStyle.focus_border : VLCStyle.border
+        }
+
+        Widgets.MenuCaption {
+            anchors.centerIn: parent
+
+            visible: dndView.count === 0
+            text: zone.placeholder
+            color: theme.fg.secondary
+        }
+
+        EditorDNDView {
+            id: dndView
+
+            anchors.fill: parent
+            anchors.margins: VLCStyle.margin_xxsmall
+
+            model: zone.zoneModel
+            bars: root.bars
+
+            // the center zones keep their natural width
+            extraWidthAvailable: zone.zoneModel !== root.bars?.center
+                                 && zone.zoneModel !== root.bars?.topCenter
+
+            Accessible.name: zone.placeholder
+
+            onActiveFocusChanged: {
+                if (activeFocus)
+                    root._targetZone = model
+            }
+
+            onSelectRequested: (zone, index) => root.select(zone, index)
+
+            onContainsDragChanged: {
+                if (containsDrag)
+                    root._viewThatContainsDrag = this
+                else if (root._viewThatContainsDrag === this)
+                    root._viewThatContainsDrag = null
+            }
+        }
+    }
+
+    // One bar: its name and its three zones
+    component Bar: ColumnLayout {
+        id: bar
+
+        property string title
+        property var zones: []
+        property alias repeater: zoneRepeater
+
+        spacing: VLCStyle.margin_xxsmall
+
+        Widgets.SubtitleLabel {
+            text: bar.title
+            color: theme.fg.primary
+            font.pixelSize: VLCStyle.fontSize_normal
+        }
+
+        RowLayout {
             Layout.fillWidth: true
-            Layout.topMargin: VLCStyle.margin_xxsmall
+            Layout.fillHeight: false
+            Layout.preferredHeight: VLCStyle.dp(48, VLCStyle.scale)
+            Layout.maximumHeight: VLCStyle.dp(48, VLCStyle.scale)
 
-            color: buttonList.colorContext.bg.primary
-            border.color: theme.border
-            border.width: VLCStyle.border
-            border.pixelAligned: (radius < Number.EPSILON)
+            spacing: VLCStyle.margin_xsmall
 
-            ColumnLayout {
-                anchors.fill: parent
+            Repeater {
+                id: zoneRepeater
 
-                Widgets.MenuCaption {
-                    Layout.margins: VLCStyle.margin_xxsmall
-                    text: qsTr("Drag items below to add them above: ")
-                    color: buttonList.colorContext.fg.primary
-                }
+                model: bar.zones.length
 
-                ToolbarEditorButtonList {
-                    id: buttonList
+                delegate: Zone {
+                    required property int index
 
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    Layout.margins: VLCStyle.margin_xxsmall
-
-                    Component.onCompleted: {
-                        controlDragStarted.connect(root.dragStarted)
-                        controlDragStopped.connect(root.dragStopped)
-                    }
+                    zoneModel: bar.zones[index] ?? null
+                    placeholder: [qsTr("Left"), qsTr("Center"), qsTr("Right")][index]
                 }
             }
         }
     }
+
+    ColumnLayout {
+        anchors.fill: parent
+
+        spacing: VLCStyle.margin_small
+
+        Bar {
+            id: topBar
+
+            Layout.fillWidth: true
+
+            Layout.fillHeight: false
+
+            title: qsTr("Top bar")
+            zones: root.bars ? [root.bars.topLeft, root.bars.topCenter, root.bars.topRight] : []
+        }
+
+        // the seek bar, on its own row above the Control bar
+        ColumnLayout {
+            Layout.fillWidth: true
+
+            visible: !!root.bars && !root.bars.seekBarInline
+
+            spacing: VLCStyle.margin_xxsmall
+
+            Widgets.SubtitleLabel {
+                text: qsTr("Seek bar row")
+                color: theme.fg.primary
+                font.pixelSize: VLCStyle.fontSize_normal
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: VLCStyle.dp(40, VLCStyle.scale)
+
+                EditorDashedBorder {
+                    anchors.fill: parent
+                    color: theme.border
+                }
+
+                SeekBarWidget {
+                    anchors.fill: parent
+                    anchors.margins: VLCStyle.margin_xxsmall
+
+                    paintOnly: true
+                    enabled: false
+                }
+            }
+        }
+
+        Bar {
+            id: controlBar
+
+            Layout.fillWidth: true
+
+            Layout.fillHeight: false
+
+            title: qsTr("Control bar")
+            zones: root.bars ? [root.bars.left, root.bars.center, root.bars.right] : []
+        }
+
+        Widgets.MenuCaption {
+            Layout.fillWidth: true
+            Layout.topMargin: VLCStyle.margin_xsmall
+
+            text: qsTr("Drag items around and out of the box below to re-order them. Drag items into the box to remove them from the player.")
+            wrapMode: Text.WordWrap
+            color: theme.fg.secondary
+        }
+
+        Widgets.MenuCaption {
+            Layout.fillWidth: true
+
+            text: qsTr("Keyboard: select an item and press Enter to add or remove it, Alt+Left or Alt+Right to move it.")
+            wrapMode: Text.WordWrap
+            color: theme.fg.secondary
+        }
+
+        ToolbarEditorButtonList {
+            id: buttonList
+
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
+            bars: root.bars
+
+            onAddRequested: (id) => root.add(id)
+
+            Component.onCompleted: {
+                controlDragStarted.connect(root.dragStarted)
+                controlDragStopped.connect(root.dragStopped)
+            }
+        }
+    }
+
+    readonly property Repeater topZones: topBar.repeater
+    readonly property Repeater controlZones: controlBar.repeater
 
     EditorDummyButton {
         id: buttonDragItem

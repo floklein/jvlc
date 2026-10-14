@@ -20,6 +20,8 @@
 
 #include "control_list_filter.hpp"
 
+#include <QUrl>
+
 // Player includes
 #include "player_controller.hpp"
 #include "control_list_model.hpp"
@@ -83,6 +85,19 @@ bool ControlListFilter::filterAcceptsRow(int source_row, const QModelIndex &) co
     {
         return m_player->isTeletextAvailable();
     }
+    else if (type == ControlListModel::FOLDER_BUTTON)
+    {
+        // a local file in a folder (not at a drive root): streams and discs
+        // have no Show
+        const QUrl url = m_player->getUrl();
+        if (!url.isLocalFile())
+            return false;
+        const QStringList segments = url.path().split('/', Qt::SkipEmptyParts);
+        if (segments.size() < 2)
+            return false;
+        const QString folder = segments.at(segments.size() - 2);
+        return !(folder.size() == 2 && folder.at(0).isLetter() && folder.at(1) == ':');
+    }
 
     return true;
 }
@@ -109,6 +124,7 @@ void ControlListFilter::setPlayer(PlayerController * player)
         connect(player, &PlayerController::hasMenuChanged,           this, &ControlListFilter::invalidateFilter);
         connect(player, &PlayerController::hasChaptersChanged,       this, &ControlListFilter::invalidateFilter);
         connect(player, &PlayerController::hasTitlesChanged,         this, &ControlListFilter::invalidateFilter);
+        connect(player, &PlayerController::inputChanged,             this, &ControlListFilter::invalidateFilter);
     }
 
     invalidate();

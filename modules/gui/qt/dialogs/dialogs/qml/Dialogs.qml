@@ -494,13 +494,23 @@ Item {
         active: false
         source: "qrc:///qt/qml/VLC/Dialogs/ToolbarEditorDialog.qml"
 
+        function open() {
+            toolbarEditorDialogLoader.active = true
+            toolbarEditorDialogLoader.item.open()
+        }
+
         Connections {
             target: DialogsProvider
 
             function onShowToolbarEditorDialog() {
-                toolbarEditorDialogLoader.active = true
-                toolbarEditorDialogLoader.item.open()
+                toolbarEditorDialogLoader.open()
             }
+        }
+
+        // test hook for screenshots (VLC_QT_TEST_CUSTOMIZE_PLAYER)
+        Component.onCompleted: {
+            if (MainCtx.controlbarProfileModel.testOpenEditor)
+                Qt.callLater(toolbarEditorDialogLoader.open)
         }
     }
 

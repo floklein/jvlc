@@ -49,16 +49,16 @@ T.Pane {
 
     // the Layout places the seek bar among the controls: the bar draws no
     // seek bar row of its own and its top is where the seek bar starts
-    readonly property bool seekBarInline: {
-        const model = contentItem.playerControlLayout.model
-        if (!model)
-            return false
-        // re-evaluate when the zones change
-        void (model.left.count + model.center.count + model.right.count)
-        return model.left.contains(ControlListModel.SEEK_BAR)
-               || model.center.contains(ControlListModel.SEEK_BAR)
-               || model.right.contains(ControlListModel.SEEK_BAR)
-    }
+    readonly property bool seekBarInline: contentItem.playerControlLayout.model?.seekBarInline ?? false
+
+    // when the Layout puts the seek bar on its own row, draw the redesign's
+    // seek bar (time, thick bar, duration) above the controls rather than the
+    // classic slider (Figma 2160:7437)
+    property bool seekBarOwnRow: false
+
+    readonly property bool _seekBarRow: seekBarOwnRow && !seekBarInline
+    // the rows of the redesign (Figma 491:1779 and 2160:7437)
+    readonly property bool _redesignRows: seekBarInline || seekBarOwnRow
 
     readonly property real sliderY: seekBarInline ? 0 : mapFromItem(contentItem, 0, contentItem.sliderY).y
     property int textPosition: ControlBar.TimeTextPosition.AboveSlider
@@ -85,7 +85,9 @@ T.Pane {
 
     function showChapterMarks() {
         // the inline seek bar flashes its marks by itself when shown
-        if (contentItem.trackPositionSlider && !seekBarInline)
+        if (_seekBarRow)
+            contentItem.seekBarRowWidget.showChapterMarks()
+        else if (contentItem.trackPositionSlider && !seekBarInline)
             contentItem.trackPositionSlider.showChapterMarks()
     }
 
@@ -184,6 +186,8 @@ T.Pane {
         readonly property real sliderY: row2.y
 
         property alias trackPositionSlider: trackPositionSlider
+
+        property alias seekBarRowWidget: seekBarRowWidget
 
         property alias mediaRemainingTime: mediaRemainingTime
 
@@ -297,12 +301,22 @@ T.Pane {
                     Navigation.defaultKeyAction(event)
                 }
             },
+            SeekBarWidget {
+                id: seekBarRowWidget
+
+                Layout.fillWidth: true
+
+                implicitWidth: VLCStyle.dp(240, VLCStyle.scale)
+
+                Navigation.parentItem: root
+                Navigation.downItem: playerControlLayout
+            },
             Loader {
                 id: bookmarksLoader
 
                 parent: root
-                // TODO: bookmarks on the inline seek bar
-                active: MainCtx.mediaLibraryAvailable && !root.seekBarInline
+                // TODO: bookmarks on the redesign's seek bar
+                active: MainCtx.mediaLibraryAvailable && !root.seekBarInline && !root._seekBarRow
                 source: "qrc:///qt/qml/VLC/MediaLibrary/Bookmarks.qml"
 
                 x: root.leftPadding + trackPositionSlider.x + row2.Layout.leftMargin
@@ -334,7 +348,7 @@ T.Pane {
             visible: children.length > 0
 
             children: {
-                if (root.seekBarInline)
+                if (root.seekBarInline || root._seekBarRow)
                     return []
 
                 switch (textPosition) {
@@ -354,6 +368,8 @@ T.Pane {
             children: {
                 if (root.seekBarInline)
                     return []
+                if (root._seekBarRow)
+                    return [seekBarRowWidget]
 
                 switch (textPosition) {
                 case ControlBar.TimeTextPosition.Hide:
@@ -372,7 +388,7 @@ T.Pane {
 
             Layout.fillWidth: true
             Layout.fillHeight: false
-            Layout.leftMargin: (textPosition === ControlBar.TimeTextPosition.LeftRightSlider) ? VLCStyle.margin_xsmall
+            Layout.leftMargin: (textPosition === ControlBar.TimeTextPosition.LeftRightSlider && !root._seekBarRow) ? VLCStyle.margin_xsmall
                                                                                               : 0
 
             Layout.rightMargin: Layout.leftMargin
@@ -381,8 +397,8 @@ T.Pane {
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.leftMargin: root.seekBarInline ? 0 : VLCStyle.margin_large
-            Layout.rightMargin: root.seekBarInline ? 0 : VLCStyle.margin_large
+            Layout.leftMargin: root._redesignRows ? 0 : VLCStyle.margin_large
+            Layout.rightMargin: root._redesignRows ? 0 : VLCStyle.margin_large
 
             spacing: playerControlLayout.spacing
 
@@ -397,11 +413,11 @@ T.Pane {
                 identifier: root.identifier
 
                 // Figma 491:1779: one 32 px row, 8 px between items, 20 px between zones
-                spacing: root.seekBarInline ? VLCStyle.spacing_8 : VLCStyle.margin_normal
-                layoutSpacing: root.seekBarInline ? VLCStyle.spacing_20 : VLCStyle.margin_xxlarge
+                spacing: root._redesignRows ? VLCStyle.spacing_8 : VLCStyle.margin_normal
+                layoutSpacing: root._redesignRows ? VLCStyle.spacing_20 : VLCStyle.margin_xxlarge
 
                 implicitHeight: {
-                    if (root.seekBarInline)
+                    if (root._redesignRows)
                         return VLCStyle.dp(32, VLCStyle.scale)
                     return MainCtx.pinVideoControls ? VLCStyle.controlLayoutHeightPinned
                                                     : VLCStyle.controlLayoutHeight
@@ -409,8 +425,13 @@ T.Pane {
 
                 visible: !model?.empty ?? false
 
-                Navigation.upItem: (trackPositionSlider.enabled && !root.seekBarInline) ? trackPositionSlider
-                                                                                      : root.Navigation.upItem
+                Navigation.upItem: {
+                    if (root._seekBarRow)
+                        return seekBarRowWidget
+                    if (trackPositionSlider.enabled && !root.seekBarInline)
+                        return trackPositionSlider
+                    return root.Navigation.upItem
+                }
 
                 onRequestLockUnlockAutoHide: (lock) => root.requestLockUnlockAutoHide(lock)
 
@@ -434,11 +455,10 @@ T.Pane {
                     const model = playerControlLayout.model
                     if (!model)
                         return true
-                    // re-evaluate when the zones change
-                    void (model.left.count + model.center.count + model.right.count)
-                    return !(model.left.contains(ControlListModel.RENDERER_BUTTON)
-                             || model.center.contains(ControlListModel.RENDERER_BUTTON)
-                             || model.right.contains(ControlListModel.RENDERER_BUTTON))
+                    // re-evaluate when the zones change, in both bars
+                    void (model.left.count + model.center.count + model.right.count
+                          + model.topLeft.count + model.topCenter.count + model.topRight.count)
+                    return !model.isPlaced(ControlListModel.RENDERER_BUTTON)
                 }
 
                 sourceComponent: CastButton {

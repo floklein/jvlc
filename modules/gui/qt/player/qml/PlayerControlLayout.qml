@@ -36,12 +36,23 @@ FocusScope {
 
     property int identifier: -1
 
+    // the zones of the Top bar instead of the Control bar
+    property bool topBar: false
+
+    // shifts the center zone, to center it on the window rather than on the
+    // room between the side zones
+    property real centerOffset: 0
+
     readonly property PlayerControlbarModel model: {
         if (!!MainCtx.controlbarProfileModel.currentModel)
             return MainCtx.controlbarProfileModel.currentModel.getModel(identifier)
         else
             return null
     }
+
+    readonly property ControlListModel _left: model ? (topBar ? model.topLeft : model.left) : null
+    readonly property ControlListModel _center: model ? (topBar ? model.topCenter : model.center) : null
+    readonly property ControlListModel _right: model ? (topBar ? model.topRight : model.right) : null
 
     readonly property ColorContext colorContext: ColorContext {
         id: theme
@@ -113,8 +124,8 @@ FocusScope {
 
         active: !loaderCenter.active &&
                 playerControlLayout.model &&
-                ((playerControlLayout.model.left && (playerControlLayout.model.left.count > 0)) ||
-                (playerControlLayout.model.right && (playerControlLayout.model.right.count > 0)))
+                ((playerControlLayout._left && (playerControlLayout._left.count > 0)) ||
+                (playerControlLayout._right && (playerControlLayout._right.count > 0)))
 
         focus: active
 
@@ -129,7 +140,7 @@ FocusScope {
             ControlRepeater {
                 id: leftRepeater
                 model: ControlListFilter {
-                    sourceModel: playerControlLayout.model.left
+                    sourceModel: playerControlLayout._left
 
                     player: Player
                     ctx: MainCtx
@@ -176,7 +187,7 @@ FocusScope {
             ControlRepeater {
                 id: rightRepeater
                 model: ControlListFilter {
-                    sourceModel: playerControlLayout.model.right
+                    sourceModel: playerControlLayout._right
 
                     player: Player
                     ctx: MainCtx
@@ -218,7 +229,7 @@ FocusScope {
             rightMargin: layoutSpacing - spacing
         }
 
-        active: !!playerControlLayout.model?.left && (playerControlLayout.model.left.count > 0) &&
+        active: !!playerControlLayout._left && (playerControlLayout._left.count > 0) &&
                 !loaderLeftRight.active
 
         focus: active
@@ -227,7 +238,7 @@ FocusScope {
             id: leftControlLayout
 
             model: ControlListFilter {
-                sourceModel: playerControlLayout.model.left
+                sourceModel: playerControlLayout._left
 
                 player: Player
                 ctx: MainCtx
@@ -257,12 +268,13 @@ FocusScope {
 
         anchors {
             horizontalCenter: parent.horizontalCenter
+            horizontalCenterOffset: playerControlLayout.centerOffset
             top: parent.top
             bottom: parent.bottom
         }
 
         // TODO: "ControlListFilter"'s count......
-        active: !!playerControlLayout.model && !!playerControlLayout.model.center && (playerControlLayout.model.center.count > 0)
+        active: !!playerControlLayout.model && !!playerControlLayout._center && (playerControlLayout._center.count > 0)
 
         Binding on width {
             delayed: true
@@ -291,7 +303,7 @@ FocusScope {
             id: centerControlLayout
 
             model: ControlListFilter {
-                sourceModel: playerControlLayout.model.center
+                sourceModel: playerControlLayout._center
 
                 player: Player
                 ctx: MainCtx
@@ -328,14 +340,14 @@ FocusScope {
             leftMargin: layoutSpacing - spacing
         }
 
-        active: !!playerControlLayout.model && !!playerControlLayout.model.right && (playerControlLayout.model.right.count > 0) &&
+        active: !!playerControlLayout.model && !!playerControlLayout._right && (playerControlLayout._right.count > 0) &&
                 !loaderLeftRight.active
 
         sourceComponent: ControlLayout {
             id: rightControlLayout
 
             model: ControlListFilter {
-                sourceModel: playerControlLayout.model.right
+                sourceModel: playerControlLayout._right
 
                 player: Player
                 ctx: MainCtx

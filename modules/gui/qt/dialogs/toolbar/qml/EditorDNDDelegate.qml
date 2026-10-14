@@ -29,7 +29,7 @@ import VLC.Style
 T.Control {
     id: control
 
-    padding: background.border.width
+    padding: VLCStyle.focus_border
 
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
                             implicitContentWidth + leftPadding + rightPadding)
@@ -50,6 +50,8 @@ T.Control {
     readonly property ColorContext colorContext: ColorContext {
         id: theme
         colorSet: ColorContext.Item
+
+        focused: control.selected
     }
 
     MouseArea {
@@ -85,6 +87,7 @@ T.Control {
         }
 
         onPressed: (mouse) => {
+            dndView.currentIndex = index
             const pos = mapToItem(control.contentItem.target.parent, mouseX, mouseY)
             control.contentItem.target.y = pos.y + VLCStyle.dragDelta
             control.contentItem.target.x = pos.x + VLCStyle.dragDelta
@@ -96,7 +99,7 @@ T.Control {
         anchors.fill: parent
 
         onEntered: (drag) => {
-            if ((drag.source === null ||
+            if (!dndView.acceptsDrag(drag) || (drag.source === null ||
                  (drag.source.dndView === dndView &&
                   (parent.DelegateModel.itemsIndex === drag.source.DelegateModel.itemsIndex + 1))) ||
                     pressed)
@@ -138,12 +141,32 @@ T.Control {
         color: theme.accent
     }
 
-    background: Rectangle {
-        color: "transparent"
+    // selected with the keyboard
+    readonly property bool selected: ListView.isCurrentItem && !!dndView && dndView.activeFocus
 
-        border.width: VLCStyle.dp(1, VLCStyle.scale)
-        border.color: theme.border
-        border.pixelAligned: (radius < Number.EPSILON)
+    Accessible.role: Accessible.ListItem
+    Accessible.name: PlayerControlbarControls.control(model.id).text ?? ""
+    Accessible.selected: selected
+
+    // Figma: a dashed outline around each item, the focus ring when selected
+    background: Item {
+        EditorDashedBorder {
+            anchors.fill: parent
+
+            visible: !control.selected
+            color: theme.border
+        }
+
+        Rectangle {
+            anchors.fill: parent
+
+            visible: control.selected
+            color: "transparent"
+            radius: VLCStyle.radius_normal
+
+            border.width: VLCStyle.focus_border
+            border.color: theme.visualFocus
+        }
     }
 
     contentItem: Item {

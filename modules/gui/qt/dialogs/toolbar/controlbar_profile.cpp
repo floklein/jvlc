@@ -63,28 +63,28 @@ PlayerControlbarModel *ControlbarProfile::getModel(int identifier) const
     }
 }
 
-void ControlbarProfile::setModelData(int identifier, const std::array<QVector<int>, 3> &data)
+void ControlbarProfile::setModelData(int identifier, const PlayerControlbarModel::Zones &data)
 {
     auto ptrModel = getModel(identifier);
 
-    if (ptrModel)
-    {
-        ptrModel->loadModels(data);
-    }
-    else
+    if (!ptrModel)
     {
         ptrModel = newModel(identifier);
 
         if (!ptrModel)
             return;
-
-        ptrModel->loadModels(data);
     }
+
+    // the Layouts the user customizes follow the rules of Customize Player
+    if (identifier == PlayerControlbarModel::Miniplayer)
+        ptrModel->loadModels(data);
+    else
+        ptrModel->loadModels(PlayerControlbarModel::sanitized(data));
 
     ptrModel->setDirty(true);
 }
 
-std::array<QVector<int>, 3> ControlbarProfile::getModelData(int identifier) const
+PlayerControlbarModel::Zones ControlbarProfile::getModelData(int identifier) const
 {
     const auto ptrModel = getModel(identifier);
 
@@ -177,7 +177,8 @@ void ControlbarProfile::generateLinearControlList()
 
     for (const auto& i : m_models)
     {
-        linearControls.append(i->serializeModels()[0] + i->serializeModels()[1] + i->serializeModels()[2]);
+        for (const auto& zone : i->serializeModels())
+            linearControls.append(zone);
     }
 
     emit controlListChanged(linearControls);

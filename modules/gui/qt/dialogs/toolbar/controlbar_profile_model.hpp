@@ -34,6 +34,14 @@ class ControlbarProfileModel : public QAbstractListModel
 
     Q_PROPERTY(int count READ rowCount NOTIFY countChanged FINAL)
 
+    // whether a Layout or the selection changed since the last save or reload
+    Q_PROPERTY(bool dirty READ dirty NOTIFY dirtyChanged FINAL)
+
+    // test hook: Customize Player opens at startup when the
+    // VLC_QT_TEST_CUSTOMIZE_PLAYER environment variable is set, so that
+    // screenshots can show it without any input
+    Q_PROPERTY(bool testOpenEditor READ testOpenEditor CONSTANT FINAL)
+
 public:
     explicit ControlbarProfileModel(QSettings* settings, QObject *parent = nullptr);
 
@@ -48,10 +56,7 @@ public:
     {
         EMPTY_STYLE,
         DEFAULT_STYLE,
-        MINIMALIST_STYLE,
-        ONE_LINER_STYLE,
-        SIMPLEST_STYLE,
-        CLASSIC_STYLE
+        TWO_ROW_STYLE
     };
 
     // Editable:
@@ -73,6 +78,15 @@ public:
 
     int selectedProfile() const;
     ControlbarProfile* currentModel() const;
+
+    bool dirty() const;
+
+    bool testOpenEditor() const;
+
+
+    // Puts back the arrangement of the built-in Layout the selected Layout
+    // comes from, for one player
+    Q_INVOKABLE void resetToDefault(int identifier);
 
     ControlbarProfile* cloneProfile(const ControlbarProfile* profile);
     Q_INVOKABLE void cloneSelectedProfile(const QString& newProfileName);
@@ -102,6 +116,7 @@ public slots:
 signals:
     void countChanged();
     void selectedProfileChanged();
+    void dirtyChanged();
 
     void selectedProfileControlListChanged(const QVector<int>& linearControlList);
 
@@ -109,6 +124,7 @@ private:
     QVector<ControlbarProfile *> m_profiles;
 
     int m_selectedProfile = -1;
+    mutable int m_savedSelectedProfile = -1;
 
     struct Profile {
         const Style id;
@@ -120,6 +136,7 @@ private:
 
 private:
     void insertDefaults();
+    void watchProfile(ControlbarProfile* profile);
 
     QString generateUniqueName(const QString& name);
 

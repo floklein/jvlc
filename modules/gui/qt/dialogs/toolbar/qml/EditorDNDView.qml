@@ -22,8 +22,11 @@ import QtQml.Models
 
 import VLC.Style
 import VLC.Util
+import VLC.PlayerControls
 import VLC.Widgets as Widgets
 
+// One zone of a bar in Customize Player: its items can be dragged, and
+// selected with the keyboard (Enter removes, Alt+Left/Right moves)
 ListView {
     id: playerBtnDND
 
@@ -35,14 +38,32 @@ ListView {
     highlightFollowsCurrentItem: false
     boundsBehavior: Flickable.StopAtBounds
 
+    activeFocusOnTab: true
+    keyNavigationEnabled: true
+
+    // the Layout of the edited player
+    property PlayerControlbarModel bars: null
+
     property bool containsDrag: footerItem.dropVisible
 
     property alias scrollBar: scrollBar
 
     property bool extraWidthAvailable: true
 
+    // asks the editor to select an item in another zone after a move
+    signal selectRequested(var zone, int index)
+
+    Accessible.role: Accessible.List
+
     T.ScrollBar.horizontal: Widgets.ScrollBarExt {
         id: scrollBar
+
+        visible: playerBtnDND.contentWidth > playerBtnDND.width
+    }
+
+    onActiveFocusChanged: {
+        if (activeFocus && currentIndex < 0 && count > 0)
+            currentIndex = 0
     }
 
     remove: Transition {
@@ -54,46 +75,52 @@ ListView {
         }
     }
 
-    // FIXME: Animations are disabled because they are incompatible
-    // with the delegate loader which sets extra width after the
-    // control gets loaded.
-    /*
-    add: Transition {
-        NumberAnimation {
-            property: "opacity"; from: 0; to: 1.0
+    Keys.onPressed: (event) => {
+        if (currentIndex < 0 || !bars)
+            return
 
-            duration: VLCStyle.duration_long
+        if ((event.modifiers & Qt.AltModifier)
+                && (event.key === Qt.Key_Left || event.key === Qt.Key_Right)) {
+            const at = bars.shiftControl(model, currentIndex, (event.key === Qt.Key_Left) ? -1 : 1)
+            if (at.zone)
+                playerBtnDND.selectRequested(at.zone, at.index)
+            event.accepted = true
+        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+                   || event.key === Qt.Key_Delete) {
+            const index = currentIndex
+            if (bars.removeControl(model, index))
+                currentIndex = Math.min(index, count - 1)
+            event.accepted = true
         }
     }
 
-    displaced: Transition {
-        NumberAnimation {
-            properties: "x"
-
-            duration: VLCStyle.duration_long
-            easing.type: Easing.OutSine
-        }
-
-        NumberAnimation { property: "opacity"; to: 1.0 }
+    // whether the dragged item may drop here
+    function acceptsDrag(drag) {
+        if (!bars || !drag.source)
+            return false
+        const id = (drag.source.objectName === "buttonsList") ? drag.source.mIndex
+                                                               : drag.source.controlId
+        return bars.canPlace(id, model)
     }
-    */
 
     function dropEvent(drag, destIndex) {
         if (drag.source.dndView === playerBtnDND) {
             // moving from same section
-            playerBtnDND.model.move(drag.source.DelegateModel.itemsIndex,
-                                    destIndex)
+            bars.moveControl(model, drag.source.DelegateModel.itemsIndex,
+                             model, destIndex)
             drag.source.visible = true
             drag.accept(Qt.MoveAction)
         } else if (drag.source.objectName === "buttonsList") {
-            // moving from buttonsList
-            playerBtnDND.model.insert(destIndex, {"id" : drag.source.mIndex})
+            // adding from the palette
+            bars.addControl(model, destIndex, drag.source.mIndex)
             drag.accept(Qt.CopyAction)
         } else {
             // moving between sections or views
-            playerBtnDND.model.insert(destIndex, {"id" : drag.source.controlId})
-            drag.source.dndView.model.remove(drag.source.DelegateModel.itemsIndex)
-            drag.accept(Qt.MoveAction)
+            if (bars.moveControl(drag.source.dndView.model, drag.source.DelegateModel.itemsIndex,
+                                 model, destIndex))
+                drag.accept(Qt.MoveAction)
+            else
+                drag.source.visible = true
         }
     }
 
@@ -148,8 +175,9 @@ ListView {
             }
 
             onEntered: (drag) => {
-                if (drag.source.dndView === playerBtnDND &&
-                        drag.source.DelegateModel.itemsIndex === playerBtnDND.count - 1) {
+                if (!playerBtnDND.acceptsDrag(drag)
+                        || (drag.source.dndView === playerBtnDND &&
+                            drag.source.DelegateModel.itemsIndex === playerBtnDND.count - 1)) {
                     drag.accepted = false
                 }
             }
