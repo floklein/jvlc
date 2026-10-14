@@ -127,6 +127,7 @@ class MainCtx : public QObject
     Q_PROPERTY(int mouseHideTimeout READ mouseHideTimeout NOTIFY mouseHideTimeoutChanged FINAL)
     Q_PROPERTY(QString accentColor READ accentColor NOTIFY accentColorChanged FINAL)
     Q_PROPERTY(bool reduceMotion READ reduceMotion NOTIFY reduceMotionChanged FINAL)
+    Q_PROPERTY(bool hideUI READ hideUI WRITE setHideUI NOTIFY hideUIChanged FINAL)
     Q_PROPERTY(bool albumSections READ albumSections WRITE setAlbumSections NOTIFY albumSectionsChanged FINAL)
     Q_PROPERTY(bool lyricsMode READ lyricsMode WRITE setLyricsMode NOTIFY lyricsModeChanged FINAL)
     Q_PROPERTY(bool usingTouch READ usingTouch NOTIFY usingTouchChanged FINAL)
@@ -273,6 +274,9 @@ public:
 
     // fades only, no slides: the Settings toggle or the system setting
     inline bool reduceMotion() const { return m_reduceMotionOption || m_systemReducedMotion; }
+
+    // the bars stay hidden until the pointer nears an edge, as in fullscreen
+    bool hideUI() const { return m_hideUI; }
 
     bool usingTouch() const { return m_usingTouch; }
 
@@ -496,6 +500,8 @@ protected:
     bool m_reduceMotionOption = false;
     bool m_systemReducedMotion = false;
 
+    bool m_hideUI = false;
+
     bool m_albumSections = true;
 
     bool m_lyricsMode = true;
@@ -530,6 +536,8 @@ public slots:
 
     void setPinVideoControls( bool );
     void setPinOpacity( float );
+
+    void setHideUI( bool );
 
     void setbgCone(bool);
     void updateIntfScaleFactor();
@@ -614,6 +622,8 @@ signals:
     void accentColorChanged();
 
     void reduceMotionChanged();
+
+    void hideUIChanged(bool hideUI);
 
     void navBoxToggled();
 

@@ -624,6 +624,15 @@ void MainCtx::setPinVideoControls(bool pinVideoControls)
     emit pinVideoControlsChanged();
 }
 
+void MainCtx::setHideUI(bool hideUI)
+{
+    if (m_hideUI == hideUI)
+        return;
+
+    m_hideUI = hideUI;
+    emit hideUIChanged(m_hideUI);
+}
+
 void MainCtx::setPinOpacity(float pinOpacity)
 {
     if (m_pinOpacity == pinOpacity)

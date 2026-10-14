@@ -720,7 +720,6 @@ qml_modules += {
        'player/qml/Player.qml',
        'player/qml/PlayerControlLayout.qml',
        'player/qml/PlayerPlaylistVisibilityFSM.qml',
-       'player/qml/PlayerToolbarVisibilityFSM.qml',
        'player/qml/MinimalView.qml',
        'player/qml/ContinueWatchingPill.qml',
        'player/qml/SliderBar.qml',
@@ -835,6 +834,8 @@ qml_modules += {
         'util/qml/GridSizeHelper.qml',
         'util/qml/NativeMenu.qml',
         'util/qml/FadeControllerStateGroup.qml',
+        'util/qml/BarRevealFSM.qml',
+        'util/qml/BarRevealStateGroup.qml',
         'util/qml/DelayedBehavior.qml',
         'util/qml/DelegateTouchTapHandler.qml',
         'util/qml/ClickGesture.qml',
@@ -949,6 +950,7 @@ qml_tests = {
     'tst_TrackMenuFSM': files('tests/tst_TrackMenuFSM.qml'),
     'tst_ClickGesture': files('tests/tst_ClickGesture.qml'),
     'tst_TimedPrompt': files('tests/tst_TimedPrompt.qml'),
+    'tst_BarRevealFSM': files('tests/tst_BarRevealFSM.qml'),
 }
 
 qmllibs = []

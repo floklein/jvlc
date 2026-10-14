@@ -89,6 +89,26 @@ T.Pane {
             contentItem.trackPositionSlider.showChapterMarks()
     }
 
+    // Gives the keyboard focus to the Play button, else to the bar
+    function focusPlayButton(reason) {
+        const find = (item) => {
+            if (item.objectName === "playButton")
+                return item
+            for (const child of item.children) {
+                const found = find(child)
+                if (found)
+                    return found
+            }
+            return null
+        }
+
+        const button = find(root.contentItem)
+        if (button && button.visible && button.enabled)
+            button.forceActiveFocus(reason)
+        else
+            root.forceActiveFocus(reason)
+    }
+
     function applyMenu(menu) {
         if (root.menu === menu)
             return

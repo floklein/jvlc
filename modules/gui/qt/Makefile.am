@@ -1142,7 +1142,6 @@ libqml_module_player_a_QML = \
 	player/qml/Player.qml \
 	player/qml/PlayerControlLayout.qml \
 	player/qml/PlayerPlaylistVisibilityFSM.qml \
-	player/qml/PlayerToolbarVisibilityFSM.qml \
 	player/qml/MinimalView.qml \
 	player/qml/ContinueWatchingPill.qml \
 	player/qml/SliderBar.qml \
@@ -1263,6 +1262,8 @@ libqml_module_util_a_QML = \
 	util/qml/TrackMenuFSM.qml \
 	util/qml/NativeMenu.qml \
 	util/qml/FadeControllerStateGroup.qml \
+	util/qml/BarRevealFSM.qml \
+	util/qml/BarRevealStateGroup.qml \
 	util/qml/GridSizeHelper.qml \
 	util/qml/DelayedBehavior.qml \
 	util/qml/DelegateTouchTapHandler.qml \
@@ -2367,5 +2368,7 @@ EXTRA_DIST += tests/tst_ClickGesture.qml
 TESTS += tests/tst_ClickGesture.qml
 EXTRA_DIST += tests/tst_TimedPrompt.qml
 TESTS += tests/tst_TimedPrompt.qml
+EXTRA_DIST += tests/tst_BarRevealFSM.qml
+TESTS += tests/tst_BarRevealFSM.qml
 endif
 endif

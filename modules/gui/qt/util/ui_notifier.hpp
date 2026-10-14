@@ -36,7 +36,8 @@ public:
         NothingToOpen,
         PlaylistAppended,
         PlaylistExported,
-        Bookmark
+        Bookmark,
+        HideUI
     };
 
     Q_ENUM(ID)

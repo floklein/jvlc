@@ -59,9 +59,13 @@ FocusScope {
 
     // Private
 
-    property bool _controlsUnderVideo: (MainCtx.pinVideoControls
-                                        &&
-                                        (MainCtx.intfMainWindow.visibility !== Window.FullScreen))
+    // The bars are docked above and below the video in a window. In fullscreen and
+    // in Hide UI they float over the video and are revealed from the edges.
+    property bool _controlsUnderVideo: (MainCtx.intfMainWindow.visibility !== Window.FullScreen)
+                                       && !MainCtx.hideUI
+
+    // the pointer reveals the bars within this distance of the top or bottom edge
+    readonly property real _edgeZone: VLCStyle.dp(64, VLCStyle.scale)
 
     property bool _keyPressed: false
 
@@ -111,10 +115,6 @@ FocusScope {
         rootPlayer.Navigation.defaultKeyReleaseAction(event)
     }
 
-    on_ControlsUnderVideoChanged: {
-        lockUnlockAutoHide(_controlsUnderVideo)
-    }
-
     // Functions
 
     function lockUnlockAutoHide(lock) {
@@ -138,12 +138,23 @@ FocusScope {
     // The right-hand panel slides over the video in fullscreen and Hide UI,
     // and is docked beside it in a window
     readonly property bool _rightPanelOverlaid: (MainCtx.intfMainWindow.visibility === Window.FullScreen)
-                                                || MainCtx.minimalView
+                                                || MainCtx.hideUI
     readonly property bool _rightPanelDocked: !_rightPanelOverlaid && playlistpopup.visible
+
+    function _isInEdgeZone(y) {
+        return (y < Math.max(_edgeZone, topBar.height))
+                || (y > height - Math.max(_edgeZone, controlBar.height))
+    }
+
+    // Esc in the bars: back to the video
+    function _focusVideo() {
+        playerToolbarVisibilityFSM.dismiss()
+        playerSpecializationLoader.forceActiveFocus(Qt.OtherFocusReason)
+    }
 
     // Whether the bars sit over the video on a Tint
     readonly property bool _panelsOverVideo: MainCtx.hasEmbededVideo
-                                             && !MainCtx.pinVideoControls
+                                             && !_controlsUnderVideo
                                              && !displayFadeRectangles
 
     //we draw both the view and the window here
@@ -152,7 +163,7 @@ FocusScope {
 
         // NOTE: We force the dark theme when the controls are drawn right over the
         //       video scrims. Panels over the video use the Theme's Tint.
-        palette: (MainCtx.hasEmbededVideo && !MainCtx.pinVideoControls && rootPlayer.displayFadeRectangles)
+        palette: (MainCtx.hasEmbededVideo && rootPlayer.displayFadeRectangles)
                  ? VLCStyle.darkPalette
                  : VLCStyle.palette
 
@@ -167,8 +178,12 @@ FocusScope {
         colorSet: ColorContext.View
     }
 
-    PlayerToolbarVisibilityFSM {
+    BarRevealFSM {
         id: playerToolbarVisibilityFSM
+
+        overlay: MainCtx.hasEmbededVideo && !rootPlayer._controlsUnderVideo
+        paused: Player.playingState === Player.PLAYING_STATE_PAUSED
+        interactive: Player.isInteractive
 
         onForceUnlock:{
             controlBar.forceUnlock()
@@ -176,6 +191,13 @@ FocusScope {
             topBar.forceUnlock()
 
             trackMenu.close()
+        }
+
+        onIsVisibleChanged: {
+            // the keyboard focus does not stay in hidden bars
+            if (!isVisible && MainCtx.hasEmbededVideo
+                    && (controlBar.activeFocus || topBar.activeFocus))
+                playerSpecializationLoader.forceActiveFocus(Qt.OtherFocusReason)
         }
     }
 
@@ -191,7 +213,6 @@ FocusScope {
         //playlist
         function onHasEmbededVideoChanged() {
             playlistVisibility.updateVideoEmbed()
-            playerToolbarVisibilityFSM.updateVideoEmbed()
         }
         function onAskShow() {
             playerToolbarVisibilityFSM.askShow()
@@ -314,19 +335,30 @@ FocusScope {
 
                     cursorShape: playerSpecializationLoader.cursorShape
 
-                    function onMouseEvent() {
+                    // x and y are in device pixels
+                    function onMouseMove(x, y) {
                         //short interval for mouse events
                         if (Player.isInteractive)
                             interactiveAutoHideTimer.restart()
-                        else
-                            playerToolbarVisibilityFSM.mouseMove();
+
+                        const dpr = MainCtx.effectiveDevicePixelRatio(Window.window)
+                        const pos = videoSurface.mapToItem(rootPlayer, x / dpr, y / dpr)
+
+                        playerToolbarVisibilityFSM.pointerMoved(rootPlayer._isInEdgeZone(pos.y))
+                    }
+
+                    function onMouseButton() {
+                        if (Player.isInteractive)
+                            interactiveAutoHideTimer.restart()
+
+                        playerToolbarVisibilityFSM.pointerMoved(playerToolbarVisibilityFSM.pointerInZone)
                     }
 
                     Component.onCompleted: {
-                        mouseMoved.connect(videoSurface.onMouseEvent)
-                        mousePressed.connect(videoSurface.onMouseEvent)
-                        mouseReleased.connect(videoSurface.onMouseEvent)
-                        mouseDblClicked.connect(videoSurface.onMouseEvent)
+                        mouseMoved.connect(videoSurface.onMouseMove)
+                        mousePressed.connect(videoSurface.onMouseButton)
+                        mouseReleased.connect(videoSurface.onMouseButton)
+                        mouseDblClicked.connect(videoSurface.onMouseButton)
                     }
 
                     // A single click pauses or resumes. The double click
@@ -357,9 +389,10 @@ FocusScope {
                             clickGesture.doubleClick()
                     }
 
+                    // the pointer hides when idle over the video, in fullscreen and Hide UI
                     Binding on cursorShape {
                         when: playerToolbarVisibilityFSM.started
-                            && !playerToolbarVisibilityFSM.isVisible
+                            && playerToolbarVisibilityFSM.pointerHidden
                             && !interactiveAutoHideTimer.running
                         value: Qt.BlankCursor
                     }
@@ -1001,9 +1034,11 @@ FocusScope {
     component BarVideoBlur : VideoBlur {
         required property Item bar
         required property bool overVideo
+        // the bar's reveal slide
+        required property Translate slide
 
         x: bar.x
-        y: bar.y
+        y: bar.y + slide.y
         width: bar.width
         height: bar.height
         opacity: bar.opacity
@@ -1015,11 +1050,13 @@ FocusScope {
 
     BarVideoBlur {
         bar: topBar
+        slide: topBarReveal.translate
         overVideo: MainCtx.hasEmbededVideo && !rootPlayer._controlsUnderVideo
     }
 
     BarVideoBlur {
         bar: controlBar
+        slide: controlBarReveal.translate
         overVideo: MainCtx.hasEmbededVideo && !rootPlayer._controlsUnderVideo
     }
 
@@ -1035,21 +1072,18 @@ FocusScope {
         topMargin: VLCStyle.applicationVerticalMargin
         sideMargin: VLCStyle.applicationHorizontalMargin
 
-        // NOTE: With pinned controls, the top controls are hidden when switching to
-        //       fullScreen.
-        visible: (MainCtx.pinVideoControls === false
-                  ||
-                  MainCtx.intfMainWindow.visibility !== Window.FullScreen)
-
         focus: true
         // the metadata title, else the file name
         title: Player.title || Player.name
 
-        pinControls: MainCtx.pinVideoControls
+        pinControls: rootPlayer._controlsUnderVideo
+
+        transform: topBarReveal.translate
 
         showCSD: MainCtx.clientSideDecoration && (MainCtx.intfMainWindow.visibility !== Window.FullScreen)
 
         Navigation.parentItem: rootPlayer
+        Navigation.cancelAction: MainCtx.hasEmbededVideo ? rootPlayer._focusVideo : null
         Navigation.downItem: {
             if (playlistVisibility.isPlaylistVisible)
                 return playlistpopup
@@ -1077,8 +1111,13 @@ FocusScope {
             MainCtx.playerView = false
         }
 
-        FadeControllerStateGroup {
+        BarRevealStateGroup {
+            id: topBarReveal
+
             target: topBar
+            edge: Qt.TopEdge
+            animate: playerToolbarVisibilityFSM.animate
+            reducedMotion: MainCtx.reduceMotion
         }
 
         // TODO: Make TopBar a Control and use background
@@ -1111,7 +1150,7 @@ FocusScope {
             color: windowTheme.bg.primary
             opacity: topBarAcrylicBg.opacity
 
-            visible: MainCtx.pinVideoControls && MainCtx.hasEmbededVideo
+            visible: rootPlayer._controlsUnderVideo && MainCtx.hasEmbededVideo
         }
 
         Rectangle {
@@ -1303,7 +1342,7 @@ FocusScope {
         id: toggleControlBarButton
         visible: Player.isInteractive
                  && MainCtx.hasEmbededVideo
-                 && !(MainCtx.pinVideoControls && !Player.fullscreen)
+                 && !rootPlayer._controlsUnderVideo
                  && (interactiveAutoHideTimer.running === true
                      || controlBar.state !== "hidden" || toggleControlBarButton.hovered)
         focus: true
@@ -1381,7 +1420,7 @@ FocusScope {
         bottomPadding: VLCStyle.applicationVerticalMargin
                        + (seekBarInline ? VLCStyle.dp(11, VLCStyle.scale) : VLCStyle.margin_xsmall)
 
-        textPosition: (MainCtx.pinVideoControls)
+        textPosition: (rootPlayer._controlsUnderVideo)
                       ? ControlBar.TimeTextPosition.LeftRightSlider
                       : ControlBar.TimeTextPosition.AboveSlider
 
@@ -1395,6 +1434,8 @@ FocusScope {
         }
 
         Navigation.parentItem: rootPlayer
+        Navigation.cancelAction: MainCtx.hasEmbededVideo ? rootPlayer._focusVideo
+                                                         : () => History.previous(Qt.BacktabFocusReason)
         Navigation.upItem: continueWatchingPill.visible ? continueWatchingPill
                                                         : rootPlayer._itemAboveControlBar
 
@@ -1414,7 +1455,7 @@ FocusScope {
         background: Rectangle {
             id: controlBarBackground
 
-            visible: !MainCtx.hasEmbededVideo || MainCtx.pinVideoControls || !rootPlayer.displayFadeRectangles
+            visible: !MainCtx.hasEmbededVideo || rootPlayer._controlsUnderVideo || !rootPlayer.displayFadeRectangles
 
             opacity: {
                 if (rootPlayer._panelsOverVideo) {
@@ -1444,8 +1485,15 @@ FocusScope {
             }
         }
 
-        FadeControllerStateGroup {
+        transform: controlBarReveal.translate
+
+        BarRevealStateGroup {
+            id: controlBarReveal
+
             target: controlBar
+            edge: Qt.BottomEdge
+            animate: playerToolbarVisibilityFSM.animate
+            reducedMotion: MainCtx.reduceMotion
         }
     }
 
@@ -1505,10 +1553,24 @@ FocusScope {
     target: MainCtx.intfMainWindow
 
         Keys.onPressed: (event) => {
-            if (Player.isInteractive)
+            if (Player.isInteractive) {
                 interactiveAutoHideTimer.restart()
-            else
-                playerToolbarVisibilityFSM.keyboardMove()
+                return
+            }
+
+            // Tab and F6 from the video reveal the bars instantly, with the focus on Play
+            const revealKey = (event.key === Qt.Key_Tab
+                               || event.key === Qt.Key_Backtab
+                               || event.key === Qt.Key_F6)
+            if (revealKey && MainCtx.hasEmbededVideo
+                    && (!playerToolbarVisibilityFSM.isVisible || playerSpecializationLoader.activeFocus)) {
+                playerToolbarVisibilityFSM.keyboardReveal()
+                controlBar.focusPlayButton(Qt.TabFocusReason)
+                event.accepted = true
+                return
+            }
+
+            playerToolbarVisibilityFSM.keyboardMove()
         }
     }
 }

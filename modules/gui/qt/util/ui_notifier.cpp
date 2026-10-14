@@ -74,4 +74,17 @@ void UINotifier::setupNotifications()
     {
         emit showNotification(Bookmark, qtr("Added \"%1\"").arg(name));
     });
+
+    // one-time hint, on the first use of Hide UI
+    connect(m_ctx, &MainCtx::hideUIChanged, this, [this]()
+    {
+        static const QString hintShownKey = QStringLiteral("MainWindow/hide-ui-hint-shown");
+
+        if (!m_ctx->hideUI() || m_ctx->settingValue(hintShownKey, false).toBool())
+            return;
+
+        m_ctx->setSettingValue(hintShownKey, true);
+        emit showNotification(HideUI
+                              , qtr("Point at the top or bottom edge to show the bars. Ctrl+H turns Hide UI off."));
+    });
 }

@@ -30,6 +30,9 @@ import VLC.Util
 T.Control {
     id: root
 
+    // ControlBar.focusPlayButton() looks for it
+    objectName: "playButton"
+
     // Properties
 
     property bool paintOnly: false

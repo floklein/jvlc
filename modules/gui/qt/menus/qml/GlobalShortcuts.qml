@@ -48,7 +48,7 @@ Item {
 
     ShortcutExt{ sequence:"F1"; onActivated: Qt.openUrlExternally("https://docs.videolan.me/vlc-user/") }
     ShortcutExt{ sequence: MainCtx.actionSequence("interface-fullscreen"); onActivated: MainCtx.toggleInterfaceFullScreen() }
-    ShortcutExt{ sequence: MainCtx.actionSequence("hide-ui"); onActivated: MainCtx.minimalView = !MainCtx.minimalView; }
+    ShortcutExt{ sequence: MainCtx.actionSequence("hide-ui"); onActivated: MainCtx.hideUI = !MainCtx.hideUI; }
 
     ShortcutExt{
         context: Qt.WindowShortcut
