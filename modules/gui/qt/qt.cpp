@@ -60,6 +60,7 @@ extern "C" char **environ;
 #include <QLoggingCategory>
 #include <QQmlError>
 #include <QList>
+#include <QStyle>
 #include <QTranslator>
 
 #if __has_include(<rhi/qrhi.h>) // Qt 6.6

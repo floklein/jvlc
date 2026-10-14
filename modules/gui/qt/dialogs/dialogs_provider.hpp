@@ -32,7 +32,7 @@
 
 #include "qt.hpp"
 
-#include "dialogs/open/open.hpp"
+#include "widgets/native/qvlcframe.hpp"
 
 #include "playlist/playlist_item.hpp"
 
@@ -43,6 +43,8 @@
 
 #include "dialogs/mediainfo/media_properties_model.hpp"
 
+#include <QEvent>
+#include <QFileDialog>
 #include <QObject>
 #include <QStringList>
 #include <QMessageBox>
@@ -76,7 +78,6 @@ class QEvent;
 class QSignalMapper;
 class VLCMenuBar;
 
-class OpenDialog;
 class FirstRunWizard;
 class ExtendedDialog;
 class PluginDialog;
@@ -103,7 +104,6 @@ public:
     };
     Q_ENUM(StreamAndCastTab)
 
-    Q_PROPERTY(bool openDialogVisible READ openDialogVisible NOTIFY openDialogVisibleChanged FINAL)
     Q_PROPERTY(bool firstRunDialogVisible READ firstRunDialogVisible NOTIFY firstRunDialogVisibleChanged FINAL)
     Q_PROPERTY(bool extendedDialogVisible READ extendedDialogVisible NOTIFY extendedDialogVisibleChanged FINAL)
     Q_PROPERTY(bool pluginDialogVisible READ pluginDialogVisible NOTIFY pluginDialogVisibleChanged FINAL)
@@ -161,7 +161,6 @@ private:
     // the Settings window is a QML window, see Dialogs.qml
     bool m_settingsDialogVisible = false;
 
-    std::unique_ptr<OpenDialog> m_openDialog;
     std::unique_ptr<FirstRunWizard> m_firstRunDialog;
     std::unique_ptr<ExtendedDialog> m_extendedDialog;
     QPointer<MediaPropertiesModel> m_playerMediaProperties;
@@ -172,7 +171,6 @@ private:
     QWidget* root;
     bool b_isDying;
 
-    void openDialog( OpenDialog::OpenTab );
     void playerMediaProperties( MediaPropertiesModel::Tab tab );
 
     template<typename T>
@@ -250,7 +248,6 @@ public slots:
     void quit();
 
 public:
-    bool openDialogVisible() const;
     bool firstRunDialogVisible() const;
     bool extendedDialogVisible() const;
     bool pluginDialogVisible() const;
@@ -270,6 +267,7 @@ signals:
      * which follows the player, toggles when shown again on the same tab */
     void showMediaProperties( MediaPropertiesModel *model, int tab );
     void showOpenDiscDialog();
+    void showOpenNetworkDialog();
 
     // requests to the QML dialogs
     void showMessages();
@@ -278,7 +276,6 @@ signals:
     void showJumpToTime();
 
     //visiblity signal
-    void openDialogVisibleChanged();
     void firstRunDialogVisibleChanged();
     void extendedDialogVisibleChanged();
     void pluginDialogVisibleChanged();

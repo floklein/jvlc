@@ -661,7 +661,9 @@ modules/gui/qt/dialogs/dialogs/qml/Dialogs.qml
 modules/gui/qt/dialogs/dialogs/qml/ErrorNotice.qml
 modules/gui/qt/dialogs/dialogs/qml/MessagesWindow.qml
 modules/gui/qt/dialogs/dialogs/qml/ProgramGuideWindow.qml
+modules/gui/qt/dialogs/dialogs/qml/TextInputDialog.qml
 modules/gui/qt/dialogs/dialogs/qml/WindowDialog.qml
+modules/gui/qt/dialogs/open/qml/OpenNetworkDialog.qml
 modules/gui/qt/dialogs/dialogs_provider.cpp
 modules/gui/qt/dialogs/dialogs_provider.hpp
 modules/gui/qt/dialogs/epg/programguidemodel.cpp
@@ -681,10 +683,6 @@ modules/gui/qt/dialogs/mediainfo/media_properties_model.cpp
 modules/gui/qt/dialogs/mediainfo/media_properties_model.hpp
 modules/gui/qt/dialogs/mediainfo/qml/MediaPropertiesDialog.qml
 modules/gui/qt/dialogs/messages/messagesmodel.cpp
-modules/gui/qt/dialogs/open/open.cpp
-modules/gui/qt/dialogs/open/open.hpp
-modules/gui/qt/dialogs/open/open_panels.cpp
-modules/gui/qt/dialogs/open/open_panels.hpp
 modules/gui/qt/dialogs/plugins/plugins.cpp
 modules/gui/qt/dialogs/plugins/plugins.hpp
 modules/gui/qt/dialogs/preferences/preferences_widgets.cpp
@@ -757,7 +755,6 @@ modules/gui/qt/medialibrary/qml/PlaylistMediaList.qml
 modules/gui/qt/medialibrary/qml/NewPlaylistDialog.qml
 modules/gui/qt/medialibrary/qml/PlaylistPicker.qml
 modules/gui/qt/medialibrary/qml/PlaylistDialogs.qml
-modules/gui/qt/medialibrary/qml/UrlListDisplay.qml
 modules/gui/qt/medialibrary/qml/VideoAll.qml
 modules/gui/qt/medialibrary/qml/VideoAllDisplay.qml
 modules/gui/qt/medialibrary/qml/VideoAllSubDisplay.qml
@@ -777,17 +774,16 @@ modules/gui/qt/menus/menus.hpp
 modules/gui/qt/menus/qml_menu_wrapper.cpp
 modules/gui/qt/menus/qml_menu_wrapper.hpp
 modules/gui/qt/network/addonsmodel.cpp
+modules/gui/qt/network/saved_streams_model.cpp
 modules/gui/qt/network/standardpathmodel.cpp
 modules/gui/qt/network/standardpathmodel.hpp
-modules/gui/qt/network/qml/BrowseDeviceView.qml
-modules/gui/qt/network/qml/BrowseDisplay.qml
-modules/gui/qt/network/qml/BrowseHomeDisplay.qml
 modules/gui/qt/network/qml/BrowseTreeDisplay.qml
 modules/gui/qt/network/qml/BrowseTreeHeader.qml
-modules/gui/qt/network/qml/DiscoverDisplay.qml
-modules/gui/qt/network/qml/DiscoverUrlDisplay.qml
+modules/gui/qt/network/qml/NetworkDisplay.qml
 modules/gui/qt/network/qml/NetworkGridItem.qml
-modules/gui/qt/network/qml/ServicesHomeDisplay.qml
+modules/gui/qt/network/qml/NetworkHomeDisplay.qml
+modules/gui/qt/network/qml/NetworkPlaylistDisplay.qml
+modules/gui/qt/network/qml/NetworkRow.qml
 modules/gui/qt/player/control_list_filter.cpp
 modules/gui/qt/player/control_list_filter.hpp
 modules/gui/qt/player/player_controlbar_model.cpp
@@ -1361,9 +1357,4 @@ share/org.videolan.vlc.appdata.xml.in.in
 # uncomment (and prepend $builddir} if you want to generate a proper vlc.pot
 
 #modules/gui/qt/dialogs/extended/ui_equalizer.h
-#modules/gui/qt/dialogs/open/ui_open.h
-#modules/gui/qt/dialogs/open/ui_open_capture.h
-#modules/gui/qt/dialogs/open/ui_open_disk.h
-#modules/gui/qt/dialogs/open/ui_open_file.h
-#modules/gui/qt/dialogs/open/ui_open_net.h
 #modules/gui/qt/dialogs/extended/ui_video_effects.h

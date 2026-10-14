@@ -41,6 +41,9 @@ T.Pane {
     property alias sort: gridSortFilter.sort
     property alias search: gridSortFilter.search
 
+    // an optional button placed before the sort and search controls
+    property alias action: actionLoader.sourceComponent
+
     readonly property ColorContext colorContext: ColorContext {
         id: theme
 
@@ -89,6 +92,15 @@ T.Pane {
             onHomeButtonClicked: reason => root.homeButtonClicked(reason)
 
             onBrowse:  (tree, reason) => root.browse(tree, reason)
+        }
+
+        Loader {
+            id: actionLoader
+
+            active: !!sourceComponent
+            visible: active
+
+            Layout.preferredWidth: item?.implicitWidth ?? 0
         }
 
         Widgets.ButtonExt {

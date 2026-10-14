@@ -37,6 +37,8 @@
 #include <QScreen>
 #include <QActionGroup>
 #include <QAbstractProxyModel>
+#include <QStyle>
+#include <QStyleOption>
 
 namespace
 {

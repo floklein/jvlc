@@ -526,6 +526,28 @@ Item {
         }
     }
 
+    Loader {
+        id: openNetworkDialogLoader
+        active: false
+
+        source: "qrc:///qt/qml/VLC/Dialogs/OpenNetworkDialog.qml"
+
+        onLoaded: {
+            item.rootWindow = Qt.binding(() => root.bgContent)
+            item.aboutToHide.connect(root.restoreFocus)
+        }
+
+        Connections {
+            target: DialogsProvider
+
+            function onShowOpenNetworkDialog() {
+                openNetworkDialogLoader.active = true
+                // a popup can't open in the event loop iteration that creates it
+                Qt.callLater(() => openNetworkDialogLoader.item?.open())
+            }
+        }
+    }
+
     // created on first use, then kept: it knows which changes need a restart
     Loader {
         id: settingsDialogLoader

@@ -36,6 +36,9 @@ Widgets.PageExt {
 
     property var contextMenu
 
+    // an optional button of the header
+    property Component headerAction: null
+
     readonly property var currentIndex: loader.currentItem?.currentIndex ?? -1
 
     signal browse(var tree, int reason)
@@ -48,6 +51,7 @@ Widgets.PageExt {
 
         path: root.headerPath
         providerModel: root.model
+        action: root.headerAction
 
         leftPadding: VLCStyle.dynamicAppMargins(width) + VLCStyle.layout_left_margin + root.leftPadding
         rightPadding: VLCStyle.dynamicAppMargins(width) + VLCStyle.layout_right_margin + root.rightPadding

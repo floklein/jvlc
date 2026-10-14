@@ -110,8 +110,6 @@ libqt_plugin_la_SOURCES = \
 	dialogs/messages/messagesmodel.cpp dialogs/messages/messagesmodel.hpp \
 	dialogs/mediainfo/media_properties_model.cpp dialogs/mediainfo/media_properties_model.hpp \
 	dialogs/open/disc_model.cpp dialogs/open/disc_model.hpp \
-	dialogs/open/open.cpp dialogs/open/open.hpp \
-	dialogs/open/open_panels.cpp dialogs/open/open_panels.hpp \
 	dialogs/plugins/plugins.cpp dialogs/plugins/plugins.hpp \
 	dialogs/preferences/preferences_widgets.cpp \
 	dialogs/preferences/preferences_widgets.hpp \
@@ -250,6 +248,14 @@ libqt_plugin_la_SOURCES = \
 	network/standardpathmodel.cpp \
 	network/standardpathmodel.hpp \
 	network/vlcmediasourcewrapper.hpp \
+	network/saved_streams_model.cpp \
+	network/saved_streams_model.hpp \
+	network/network_playlist_model.cpp \
+	network/network_playlist_model.hpp \
+	network/preparser_playlist_reader.cpp \
+	network/preparser_playlist_reader.hpp \
+	network/podcast_feeds.cpp \
+	network/podcast_feeds.hpp \
 	style/qtthemeprovider.hpp \
 	style/colorcontext.cpp \
 	style/colorcontext.hpp \
@@ -398,8 +404,6 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/messages/messagesmodel.moc.cpp \
 	dialogs/mediainfo/media_properties_model.moc.cpp \
 	dialogs/open/disc_model.moc.cpp \
-	dialogs/open/open.moc.cpp \
-	dialogs/open/open_panels.moc.cpp \
 	dialogs/plugins/plugins.moc.cpp \
 	dialogs/preferences/preferences_widgets.moc.cpp \
 	dialogs/convert/conversion_manager.moc.cpp \
@@ -456,6 +460,10 @@ nodist_libqt_plugin_la_SOURCES = \
 	network/networksourcesmodel.moc.cpp \
 	network/networkmediamodel.moc.cpp \
 	network/standardpathmodel.moc.cpp \
+	network/saved_streams_model.moc.cpp \
+	network/network_playlist_model.moc.cpp \
+	network/preparser_playlist_reader.moc.cpp \
+	network/podcast_feeds.moc.cpp \
 	style/colorcontext.moc.cpp \
 	style/systempalette.moc.cpp \
 	style/vlcicons.moc.cpp \
@@ -518,12 +526,7 @@ nodist_libqt_plugin_la_SOURCES = \
 nodist_libqt_plugin_la_SOURCES += \
 	dialogs/extended/ui_equalizer.h \
 	dialogs/extended/ui_video_effects.h \
-	dialogs/firstrun/ui_firstrunwizard.h \
-	dialogs/open/ui_open.h \
-	dialogs/open/ui_open_capture.h \
-	dialogs/open/ui_open_disk.h \
-	dialogs/open/ui_open_file.h \
-	dialogs/open/ui_open_net.h
+	dialogs/firstrun/ui_firstrunwizard.h
 
 
 # windows compositor
@@ -721,12 +724,7 @@ endif
 libqt_plugin_la_UI = \
 	dialogs/extended/equalizer.ui \
 	dialogs/extended/video_effects.ui \
-	dialogs/firstrun/firstrunwizard.ui \
-	dialogs/open/open.ui \
-	dialogs/open/open_capture.ui \
-	dialogs/open/open_disk.ui \
-	dialogs/open/open_file.ui \
-	dialogs/open/open_net.ui
+	dialogs/firstrun/firstrunwizard.ui
 EXTRA_DIST += $(libqt_plugin_la_UI)
 
 ui_%.h: %.ui
@@ -1005,6 +1003,7 @@ libqml_module_dialogs_a_QML = \
 	dialogs/dialogs/qml/MessagesWindow.qml \
 	dialogs/dialogs/qml/ModalDialog.qml \
 	dialogs/dialogs/qml/ProgramGuideWindow.qml \
+	dialogs/dialogs/qml/TextInputDialog.qml \
 	dialogs/dialogs/qml/WindowDialog.qml \
 	dialogs/settings/qml/SettingsDialog.qml \
 	dialogs/settings/qml/SettingsRow.qml \
@@ -1013,6 +1012,7 @@ libqml_module_dialogs_a_QML = \
 	dialogs/settings/qml/SettingsToggle.qml \
 	dialogs/mediainfo/qml/MediaPropertiesDialog.qml \
 	dialogs/open/qml/OpenDiscDialog.qml \
+	dialogs/open/qml/OpenNetworkDialog.qml \
 	dialogs/sout/qml/StreamCastDialog.qml \
 	dialogs/toolbar/qml/EditorDNDDelegate.qml \
 	dialogs/toolbar/qml/EditorDNDView.qml\
@@ -1069,7 +1069,6 @@ libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/MusicGenresDisplay.qml \
 	medialibrary/qml/MusicTrackListDisplay.qml \
 	medialibrary/qml/MusicTracksDisplay.qml \
-	medialibrary/qml/UrlListDisplay.qml \
 	medialibrary/qml/VideoDisplay.qml \
 	medialibrary/qml/VideoFoldersDisplay.qml \
 	medialibrary/qml/VideoAll.qml \
@@ -1116,19 +1115,16 @@ libqml_module_network_a_CXXFLAGS = $(libqt_plugin_la_CXXFLAGS)
 libqml_module_network_a_CPPFLAGS = $(libqt_plugin_la_CPPFLAGS)
 libqml_module_network_a_QML = \
 	network/qml/AddressbarButton.qml \
-	network/qml/BrowseDeviceView.qml \
-	network/qml/BrowseDisplay.qml \
-	network/qml/BrowseHomeDisplay.qml \
 	network/qml/BrowseTreeDisplay.qml \
 	network/qml/BrowseTreeHeader.qml \
-	network/qml/DiscoverDisplay.qml \
-	network/qml/DiscoverUrlDisplay.qml \
 	network/qml/NetworkAddressbar.qml \
+	network/qml/NetworkDisplay.qml \
 	network/qml/NetworkGridItem.qml \
+	network/qml/NetworkHomeDisplay.qml \
+	network/qml/NetworkPlaylistDisplay.qml \
+	network/qml/NetworkRow.qml \
 	network/qml/NetworkThumbnailItem.qml \
-	network/qml/ServicesHomeDisplay.qml \
-	network/qml/ServicesManage.qml \
-	network/qml/ServicesSources.qml
+	network/qml/ServicesManage.qml
 libqml_module_network_a_Singleton_QML =
 libqml_module_network_a_SOURCES = $(QML_MODULE_network_SRC)
 nodist_libqml_module_network_a_SOURCES = network/qmlassets.cpp $(QML_MODULE_network_NODIST_EXTRA)
@@ -2304,6 +2300,32 @@ test_disc_model_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_disc_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_disc_model
 TESTS += test_disc_model
+
+# test_saved_streams
+
+test_saved_streams_SOURCES = \
+	tests/test_saved_streams.cpp \
+	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
+	network/saved_streams_model.hpp network/saved_streams_model.cpp \
+	network/network_playlist_model.hpp network/network_playlist_model.cpp \
+	network/preparser_playlist_reader.hpp network/preparser_playlist_reader.cpp \
+	network/podcast_feeds.hpp network/podcast_feeds.cpp
+
+nodist_test_saved_streams_SOURCES = \
+	tests/test_saved_streams.moc \
+	network/saved_streams_model.moc.cpp \
+	network/network_playlist_model.moc.cpp \
+	network/preparser_playlist_reader.moc.cpp \
+	network/podcast_feeds.moc.cpp
+
+BUILT_SOURCES += tests/test_saved_streams.moc
+CLEANFILES += tests/test_saved_streams.moc
+test_saved_streams_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_saved_streams_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_saved_streams_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_saved_streams_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_saved_streams
+TESTS += test_saved_streams
 
 # test_vlcicons
 

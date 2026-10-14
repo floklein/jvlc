@@ -48,6 +48,7 @@
 
 #include "playlist/playlist_controller.hpp"
 #include "playlist/pasted_media.hpp"
+#include "network/saved_streams_model.hpp"
 #include "player/player_controller.hpp"
 #include "player/waveform.hpp"
 #include "medialibrary/medialib.hpp"
@@ -229,6 +230,9 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
     if (b_hasMedialibrary) {
         m_medialib = new MediaLib(p_intf, p_intf->p_mainPlaylistController);
     }
+
+    /* the Saved streams and Network Playlists of the Network section */
+    m_savedStreams = new SavedStreamsModel(QVLCUserDir(VLC_USERDATA_DIR) + QStringLiteral("/network.json"), this);
 
     /* Controlbar Profile Model Creation */
     m_controlbarProfileModel = new ControlbarProfileModel(p_intf->mainSettings, this);
@@ -971,17 +975,8 @@ bool MainCtx::pasteFromClipboard()
     THEMPL->playMedia(medias);
 
     /* Network links become Saved streams, as with Open Network Stream */
-    if (m_medialib && !streams.isEmpty())
-    {
-        m_medialib->runOnMLThread(this, [streams](vlc_medialibrary_t *ml) {
-            for (const QString &mrl : streams)
-            {
-                ml_unique_ptr<vlc_ml_media_t> media {vlc_ml_get_media_by_mrl(ml, qtu(mrl))};
-                if (!media)
-                    media.reset(vlc_ml_new_stream(ml, qtu(mrl)));
-            }
-        });
-    }
+    if (!streams.isEmpty())
+        m_savedStreams->save(streams);
     return true;
 }
 

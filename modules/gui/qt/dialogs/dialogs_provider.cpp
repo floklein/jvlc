@@ -44,7 +44,6 @@
 #include "dialogs/messages/messagesmodel.hpp"
 #include "dialogs/dialogs/dialogmodel.hpp"
 #include "dialogs/extended/extended.hpp"
-#include "dialogs/open/open.hpp"
 #include "dialogs/plugins/plugins.hpp"
 #include "dialogs/firstrun/firstrunwizard.hpp"
 
@@ -64,7 +63,6 @@
                                            N_("Open Folder") )
 
 #define ALL_DIALOG(X) \
-    X(openDialog) \
     X(firstRunDialog) \
     X(extendedDialog) \
     X(pluginDialog)
@@ -615,14 +613,8 @@ void DialogsProvider::openFileGenericDialog( intf_dialog_args_t *p_arg )
 }
 /****************************************************************************
  * All the open/add stuff
- * Open Dialog first - Simple Open then
  ****************************************************************************/
 
-void DialogsProvider::openDialog( OpenDialog::OpenTab i_tab )
-{
-    ensureDialog(m_openDialog);
-    m_openDialog->showTab( i_tab, OpenDialog::OPEN_AND_PLAY );
-}
 void DialogsProvider::openDialog()
 {
     simpleOpenDialog();
@@ -638,7 +630,8 @@ void DialogsProvider::openDiscDialog()
 }
 void DialogsProvider::openNetDialog()
 {
-    openDialog( OpenDialog::OPEN_NETWORK_TAB );
+    /* the QML Open Network Stream dialog, hosted by Dialogs.qml */
+    emit showOpenNetworkDialog();
 }
 void DialogsProvider::openCaptureDialog()
 {

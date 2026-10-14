@@ -63,6 +63,7 @@ class SearchCtx;
 class SortCtx;
 class VLCSystray;
 class MediaLib;
+class SavedStreamsModel;
 class MLBookmarkModel;
 class ColorSchemeModel;
 class VLCVarChoiceModel;
@@ -224,6 +225,7 @@ public:
     inline double getMaxIntfUserScaleFactor() const { return MAX_INTF_USER_SCALE_FACTOR; }
     inline bool hasMediaLibrary() const { return b_hasMedialibrary; }
     inline MediaLib* getMediaLibrary() const { return m_medialib; }
+    inline SavedStreamsModel* getSavedStreams() const { return m_savedStreams; }
     inline bool hasGridView() const { return m_gridView; }
     inline bool albumSections() const { return m_albumSections; }
     inline bool lyricsMode() const { return m_lyricsMode; }
@@ -459,6 +461,7 @@ protected:
     bool                 b_hasWayland = false;
     bool                 b_hasMedialibrary = false;
     MediaLib*            m_medialib = nullptr;
+    SavedStreamsModel*   m_savedStreams = nullptr;
     MLBookmarkModel*     m_bookmarks = nullptr;
     bool                 m_gridView = false;
     bool                 m_hasGridListMode = false;

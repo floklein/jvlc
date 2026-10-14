@@ -87,6 +87,10 @@
 #include "network/networksourcesmodel.hpp"
 #include "network/addonsmodel.hpp"
 #include "network/standardpathmodel.hpp"
+#include "network/saved_streams_model.hpp"
+#include "network/network_playlist_model.hpp"
+#include "network/preparser_playlist_reader.hpp"
+#include "network/podcast_feeds.hpp"
 
 #include "menus/qml_menu_wrapper.hpp"
 
@@ -413,6 +417,14 @@ void MainUI::registerQMLTypes()
         qmlRegisterType<AddonsModel>( uri, versionMajor, versionMinor, "ServicesDiscoveryModel");
         qmlRegisterType<StandardPathModel>( uri, versionMajor, versionMinor, "StandardPathModel");
         qmlRegisterType<MLFoldersModel>( uri, versionMajor, versionMinor, "MLFolderModel");
+
+        /* the Network section */
+        qmlRegisterSingletonInstance<SavedStreamsModel>(uri, versionMajor, versionMinor, "SavedStreams", m_mainCtx->getSavedStreams());
+        qmlRegisterType<NetworkPlaylistModel>( uri, versionMajor, versionMinor, "NetworkPlaylistModel");
+        qmlRegisterSingletonInstance<NetworkPlaylistReader>(uri, versionMajor, versionMinor, "NetworkPlaylistReader",
+                                                            new PreparserPlaylistReader(VLC_OBJECT(m_intf), this));
+        qmlRegisterSingletonInstance<PodcastFeeds>(uri, versionMajor, versionMinor, "PodcastFeeds",
+                                                   new PodcastFeeds(VLC_OBJECT(m_intf), this));
 
         qmlRegisterType<NetworkMediaContextMenu>( uri, versionMajor, versionMinor, "NetworkMediaContextMenu" );
         qmlRegisterType<NetworkDeviceContextMenu>( uri, versionMajor, versionMinor, "NetworkDeviceContextMenu" );
