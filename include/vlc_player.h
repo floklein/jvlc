@@ -2841,11 +2841,79 @@ vlc_player_vout_Snapshot(vlc_player_t *player);
 /**
  * Display an OSD message on all vouts
  *
+ * The message is also sent to the OSD listeners, cf.
+ * vlc_player_osd_AddListener().
+ *
  * @param player player instance
  * @param fmt format string
  */
 VLC_API void
 vlc_player_osd_Message(vlc_player_t *player, const char *fmt, ...);
+
+/**
+ * Player OSD listener opaque structure.
+ *
+ * This opaque structure is returned by vlc_player_osd_AddListener() and can
+ * be used to remove the listener via vlc_player_osd_RemoveListener().
+ */
+typedef struct vlc_player_osd_listener_id vlc_player_osd_listener_id;
+
+/**
+ * Player OSD callbacks
+ *
+ * Can be registered with vlc_player_osd_AddListener().
+ *
+ * @warning To avoid deadlocks, users should never call vlc_player_t
+ * functions from these callbacks.
+ */
+struct vlc_player_osd_cbs
+{
+    /**
+     * Called when the player shows an OSD message
+     *
+     * The messages of vlc_player_osd_Message() and the results of the player
+     * actions (volume, seek, pause, rate, delays, tracks, chapters and vout
+     * changes) are sent, even when no vout draws them. An interface can show
+     * them itself.
+     *
+     * @note This callback can be called from any thread, with or without the
+     * player lock held.
+     *
+     * @param player player instance
+     * @param text the message, e.g. "Subtitle delay: 50 ms"
+     * @param data opaque pointer set by vlc_player_osd_AddListener()
+     */
+    void (*on_message)(vlc_player_t *player, const char *text, void *data);
+};
+
+/**
+ * Add a listener callback for OSD messages
+ *
+ * @note The player instance doesn't need to be locked for vlc_player_osd_*()
+ * functions.
+ * @note Every registered callbacks need to be removed by the caller with
+ * vlc_player_osd_RemoveListener().
+ *
+ * @param player player instance
+ * @param cbs pointer to a vlc_player_osd_cbs structure, the structure must be
+ * valid during the lifetime of the player
+ * @param cbs_data opaque pointer used by the callbacks
+ * @return a valid listener id, or NULL in case of allocation error
+ */
+VLC_API vlc_player_osd_listener_id *
+vlc_player_osd_AddListener(vlc_player_t *player,
+                           const struct vlc_player_osd_cbs *cbs,
+                           void *cbs_data);
+
+/**
+ * Remove an OSD listener callback
+ *
+ * @param player player instance
+ * @param listener_id listener id returned by vlc_player_osd_AddListener()
+ */
+VLC_API void
+vlc_player_osd_RemoveListener(vlc_player_t *player,
+                              vlc_player_osd_listener_id *listener_id);
 
 /** @} vlc_player__vout */
 

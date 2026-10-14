@@ -38,6 +38,7 @@
 #include "player/sleep_timer.hpp"
 #include "player/playback_statistics.hpp"
 #include "player/seek_thumbnailer.hpp"
+#include "player/shortcut_message.hpp"
 
 #include "dialogs/toolbar/controlbar_profile_model.hpp"
 #include "dialogs/toolbar/controlbar_profile.hpp"
@@ -364,6 +365,7 @@ void MainUI::registerQMLTypes()
         qmlRegisterUncreatableType<PlaybackStatistics>(uri, versionMajor, versionMinor, "PlaybackStatistics", "the statistics of the current media");
         qmlRegisterType<WaveformBars>(uri, versionMajor, versionMinor, "WaveformBars");
         qmlRegisterType<SeekThumbnailer>(uri, versionMajor, versionMinor, "SeekThumbnailer");
+        qmlRegisterSingletonInstance<ShortcutMessage>(uri, versionMajor, versionMinor, "ShortcutMessage", m_mainCtx->shortcutMessage());
         qmlRegisterUncreatableMetaObject(VLCTickForeign::staticMetaObject, uri, versionMajor, versionMinor, "VLCTick", "Not Instantiable" );
         qmlRegisterTypesAndRevisions<VLCDuration>(uri, versionMajor);
         qmlRegisterTypesAndRevisions<VLCTime>(uri, versionMajor);

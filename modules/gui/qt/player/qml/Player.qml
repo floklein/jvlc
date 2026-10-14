@@ -995,42 +995,6 @@ FocusScope {
                         }
                     }
 
-                    Widgets.SubtitleLabel {
-                        id: labelVolume
-
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-
-                        anchors.rightMargin: VLCStyle.margin_normal
-                        anchors.topMargin: VLCStyle.margin_xxsmall
-
-                        visible: false
-
-                        text: qsTr("Volume %1%").arg(Math.round(Player.volume * 100))
-
-                        color: centerTheme.fg.primary
-
-                        font.weight: Font.Normal
-
-                        Connections {
-                            target: Player
-
-                            function onVolumeChanged() {
-                                animationVolume.restart()
-                            }
-                        }
-
-                        SequentialAnimation {
-                            id: animationVolume
-
-                            PropertyAction { target: labelVolume; property: "visible"; value: true }
-
-                            PauseAnimation { duration: VLCStyle.duration_humanMoment }
-
-                            PropertyAction { target: labelVolume; property: "visible"; value: false }
-                        }
-                    }
-
                 }
             }
         }
@@ -1165,6 +1129,16 @@ FocusScope {
 
             visible: rootPlayer._panelsOverVideo
         }
+    }
+
+    // top center of the video, below the Top bar while it shows
+    ShortcutMessagePill {
+        anchors.horizontalCenter: parent.horizontalCenter
+
+        y: ((topBar.visible && topBar.state !== "hidden") ? topBar.y + topBar.height : 0)
+           + VLCStyle.margin_normal
+
+        z: 2
     }
 
     // The right-hand panel: the Queue panel (Figma 491:1781), 400 px, from

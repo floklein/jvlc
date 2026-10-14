@@ -154,25 +154,32 @@ PLAYLIST_ACTION_HANDLER(Interact)
 PLAYLIST_ACTION_HANDLER(Playback)
 {
     VLC_UNUSED(intf);
+    vlc_player_t *player = vlc_playlist_GetPlayer(playlist);
     switch (action_id)
     {
         case ACTIONID_LOOP:
         {
             enum vlc_playlist_playback_repeat repeat_mode =
                 vlc_playlist_GetPlaybackRepeat(playlist);
+            const char *repeat_name;
             switch (repeat_mode)
             {
                 case VLC_PLAYLIST_PLAYBACK_REPEAT_NONE:
                     repeat_mode = VLC_PLAYLIST_PLAYBACK_REPEAT_ALL;
+                    repeat_name = _("All");
                     break;
                 case VLC_PLAYLIST_PLAYBACK_REPEAT_ALL:
                     repeat_mode = VLC_PLAYLIST_PLAYBACK_REPEAT_CURRENT;
+                    repeat_name = _("One");
                     break;
                 case VLC_PLAYLIST_PLAYBACK_REPEAT_CURRENT:
+                default:
                     repeat_mode = VLC_PLAYLIST_PLAYBACK_REPEAT_NONE;
+                    repeat_name = _("Off");
                     break;
             }
             vlc_playlist_SetPlaybackRepeat(playlist, repeat_mode);
+            vlc_player_osd_Message(player, _("Repeat: %s"), repeat_name);
             break;
         }
         case ACTIONID_RANDOM:
@@ -184,6 +191,9 @@ PLAYLIST_ACTION_HANDLER(Playback)
                     ? VLC_PLAYLIST_PLAYBACK_ORDER_RANDOM
                     : VLC_PLAYLIST_PLAYBACK_ORDER_NORMAL;
             vlc_playlist_SetPlaybackOrder(playlist, order_mode);
+            vlc_player_osd_Message(player, "%s",
+                order_mode == VLC_PLAYLIST_PLAYBACK_ORDER_RANDOM
+                    ? _("Shuffle: On") : _("Shuffle: Off"));
             break;
         }
         default:

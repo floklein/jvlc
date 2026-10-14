@@ -27,6 +27,7 @@
 #endif
 
 #include "maininterface/mainctx.hpp"
+#include "player/shortcut_message.hpp"
 
 VideoSurfaceProvider::VideoSurfaceProvider(bool threadedSurfaceUpdates, QObject* parent)
     : QObject(parent)
@@ -105,7 +106,11 @@ void VideoSurfaceProvider::onKeyPressed(int key, Qt::KeyboardModifiers modifiers
     QKeyEvent event(QEvent::KeyPress, key, modifiers);
     int vlckey = qtEventToVLCKey(&event);
     if (m_voutWindow)
+    {
+        /* the Shortcut message names the key */
+        ShortcutMessage::KeyScope scope(vlckey);
         vlc_window_ReportKeyPress(m_voutWindow, vlckey);
+    }
 }
 
 void VideoSurfaceProvider::onSurfacePropertiesChanged(const std::optional<QSizeF>& size,

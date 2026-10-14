@@ -162,6 +162,13 @@ struct vlc_player_vout_listener_id
     struct vlc_list node;
 };
 
+struct vlc_player_osd_listener_id
+{
+    const struct vlc_player_osd_cbs *cbs;
+    void *cbs_data;
+    struct vlc_list node;
+};
+
 struct vlc_player_aout_listener_id
 {
     const struct vlc_player_aout_cbs *cbs;
@@ -261,6 +268,7 @@ struct vlc_player_t
     vlc_mutex_t metadata_listeners_lock;
     vlc_mutex_t aout_listeners_lock;
     vlc_mutex_t vout_listeners_lock;
+    vlc_mutex_t osd_listeners_lock;
     vlc_cond_t start_delay_cond;
 
     bool start_paused;
@@ -274,6 +282,7 @@ struct vlc_player_t
     struct vlc_list metadata_listeners;
     struct vlc_list aout_listeners;
     struct vlc_list vout_listeners;
+    struct vlc_list osd_listeners;
 
     input_resource_t *resource;
     vlc_renderer_item_t *renderer;
@@ -573,6 +582,9 @@ vlc_player_osd_Message(vlc_player_t *player, const char *fmt, ...);
 
 void
 vlc_player_osd_Icon(vlc_player_t *player, vlc_osd_widget_type type);
+
+void
+vlc_player_osd_Pause(vlc_player_t *player, bool pause);
 
 void
 vlc_player_osd_Position(vlc_player_t *player,

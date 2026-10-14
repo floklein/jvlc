@@ -1020,6 +1020,7 @@ vlc_player_Lock(vlc_player_t *player)
     assert(!vlc_mutex_held(&player->metadata_listeners_lock));
     assert(!vlc_mutex_held(&player->vout_listeners_lock));
     assert(!vlc_mutex_held(&player->aout_listeners_lock));
+    assert(!vlc_mutex_held(&player->osd_listeners_lock));
     /* The timer lock should not be held (possible lock-order-inversion), cf.
      * vlc_player_timer_cbs.on_update documentation */
     assert(!vlc_mutex_held(&player->timer.lock));
@@ -1353,7 +1354,7 @@ vlc_player_SetPause(vlc_player_t *player, bool pause)
                                       &val);
 
     if (ret == VLC_SUCCESS)
-        vlc_player_osd_Icon(player, pause ? OSD_PAUSE_ICON : OSD_PLAY_ICON);
+        vlc_player_osd_Pause(player, pause);
 }
 
 void
@@ -2076,6 +2077,7 @@ vlc_player_InitLocks(vlc_player_t *player, enum vlc_player_lock_type lock_type)
     vlc_mutex_init(&player->metadata_listeners_lock);
     vlc_mutex_init(&player->vout_listeners_lock);
     vlc_mutex_init(&player->aout_listeners_lock);
+    vlc_mutex_init(&player->osd_listeners_lock);
     vlc_cond_init(&player->start_delay_cond);
     vlc_cond_init(&player->mainloop.wait);
 }
@@ -2098,6 +2100,7 @@ vlc_player_Delete(vlc_player_t *player)
     assert(vlc_list_is_empty(&player->metadata_listeners));
     assert(vlc_list_is_empty(&player->vout_listeners));
     assert(vlc_list_is_empty(&player->aout_listeners));
+    assert(vlc_list_is_empty(&player->osd_listeners));
 
     vlc_mutex_unlock(&player->lock);
 
@@ -2145,6 +2148,7 @@ vlc_player_New(vlc_object_t *parent, enum vlc_player_lock_type lock_type)
     vlc_list_init(&player->metadata_listeners);
     vlc_list_init(&player->vout_listeners);
     vlc_list_init(&player->aout_listeners);
+    vlc_list_init(&player->osd_listeners);
     vlc_list_init(&player->mainloop.stop_inputs);
     vlc_list_init(&player->mainloop.stopping_inputs);
     vlc_list_init(&player->mainloop.joinable_inputs);

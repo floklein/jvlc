@@ -543,6 +543,16 @@ void AppSettingsModel::addInterfaceRows()
         addRow(std::move(row));
     }
 
+    /* Subtitles: the Shortcut message */
+    const QString osd = qtr("On-screen messages");
+
+    {
+        Row row = makeRow("osd-shortcut-keys", "subtitles", osd, qtr("Show shortcut keys in on-screen messages"));
+        row.help = qtr("The message shown after an action also names the key that ran it.");
+        bindConfig(row, { QStringLiteral("qt-osd-shortcut-keys") });
+        addRow(std::move(row));
+    }
+
 }
 
 void AppSettingsModel::addControlsRows()
@@ -614,6 +624,7 @@ void AppSettingsModel::onSettingChanged(const QString& id)
     static const char* const mirrored[] = {
         "accent-color", "video-on-top", "window-decorations",
         "auto-hide-controls", "mouse-hide-timeout", "reduce-motion",
+        "osd-shortcut-keys",
     };
     for (const char* name : mirrored)
     {

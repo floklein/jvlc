@@ -279,6 +279,7 @@ libqt_plugin_la_SOURCES = \
 	player/delay_estimator.cpp \
 	player/delay_estimator.hpp \
 	player/seek_thumbnailer.cpp player/seek_thumbnailer.hpp \
+	player/shortcut_message.cpp player/shortcut_message.hpp \
 	player/player_controller.cpp player/player_controller.hpp player/player_controller_p.hpp \
 	player/player_controlbar_model.cpp player/player_controlbar_model.hpp \
 	player/control_list_model.cpp player/control_list_model.hpp \
@@ -488,6 +489,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	player/delay_estimator.moc.cpp \
 	player/input_models.moc.cpp \
 	player/seek_thumbnailer.moc.cpp \
+	player/shortcut_message.moc.cpp \
 	player/player_controller.moc.cpp \
 	player/player_controlbar_model.moc.cpp \
 	player/control_list_model.moc.cpp \
@@ -1168,6 +1170,7 @@ libqml_module_player_a_QML = \
 	player/qml/PlayerPlaylistVisibilityFSM.qml \
 	player/qml/MinimalView.qml \
 	player/qml/ContinueWatchingPill.qml \
+	player/qml/ShortcutMessagePill.qml \
 	player/qml/SliderBar.qml \
 	player/qml/TopBar.qml \
 	player/qml/TrackMenu.qml \
@@ -2270,6 +2273,27 @@ test_playback_tab_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_playback_tab_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_playback_tab
 TESTS += test_playback_tab
+
+# test_shortcut_message
+
+test_shortcut_message_SOURCES = \
+	tests/test_shortcut_message.cpp \
+	player/shortcut_message.cpp player/shortcut_message.hpp \
+	util/vlchotkeyconverter.cpp util/vlchotkeyconverter.hpp
+
+nodist_test_shortcut_message_SOURCES = \
+	tests/test_shortcut_message.moc \
+	player/shortcut_message.moc.cpp \
+	util/vlchotkeyconverter.moc.cpp
+
+BUILT_SOURCES += tests/test_shortcut_message.moc
+CLEANFILES += tests/test_shortcut_message.moc
+test_shortcut_message_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_shortcut_message_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_shortcut_message_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_shortcut_message_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_shortcut_message
+TESTS += test_shortcut_message
 
 # test_keys
 

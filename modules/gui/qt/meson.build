@@ -114,6 +114,7 @@ moc_headers = files(
     'player/input_models.hpp',
     'player/delay_estimator.hpp',
     'player/seek_thumbnailer.hpp',
+    'player/shortcut_message.hpp',
     'player/player_controller.hpp',
     'player/player_controlbar_model.hpp',
     'player/control_list_model.hpp',
@@ -404,6 +405,8 @@ qt_plugin_sources = files(
     'player/delay_estimator.cpp',
     'player/seek_thumbnailer.cpp',
     'player/seek_thumbnailer.hpp',
+    'player/shortcut_message.cpp',
+    'player/shortcut_message.hpp',
     'player/input_models.hpp',
     'player/player_controller.cpp',
     'player/player_controller.hpp',
@@ -749,6 +752,7 @@ qml_modules += {
        'player/qml/PlayerPlaylistVisibilityFSM.qml',
        'player/qml/MinimalView.qml',
        'player/qml/ContinueWatchingPill.qml',
+       'player/qml/ShortcutMessagePill.qml',
        'player/qml/SliderBar.qml',
        'player/qml/TopBar.qml',
        'player/qml/TrackMenu.qml',
@@ -1879,6 +1883,29 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_shortcut_message',
+            'sources': files(
+                'tests/test_shortcut_message.cpp',
+                'player/shortcut_message.cpp',
+                'player/shortcut_message.hpp',
+                'util/vlchotkeyconverter.cpp',
+                'util/vlchotkeyconverter.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_shortcut_message.cpp'
+            ),
+            'moc_headers': files(
+                'player/shortcut_message.hpp',
+                'util/vlchotkeyconverter.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qtest_qt6_dep]
         }

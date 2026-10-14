@@ -50,6 +50,7 @@
 #include "playlist/pasted_media.hpp"
 #include "network/saved_streams_model.hpp"
 #include "player/player_controller.hpp"
+#include "player/shortcut_message.hpp"
 #include "player/waveform.hpp"
 #include "medialibrary/medialib.hpp"
 
@@ -204,6 +205,7 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
 
     m_sort = new SortCtx(this);
     m_search = new SearchCtx(this);
+    m_shortcutMessage = new ShortcutMessage(p_intf->p_player, this);
     m_playqueuePanel = new SidePanelCtx(this);
     m_navigationPanel = new SidePanelCtx(this);
 
@@ -483,6 +485,10 @@ void MainCtx::loadPrefs(const bool callSignals)
     loadFromVLCOption(m_reduceMotionOption, "qt-reduce-motion", nullptr);
     if (callSignals && reduceMotion() != reduceMotionWas)
         emit reduceMotionChanged();
+
+    /* the Shortcut message replaces the video's own OSD, it follows its option */
+    m_shortcutMessage->setEnabled(var_InheritBool(p_intf, "osd"));
+    m_shortcutMessage->setShowKeys(var_InheritBool(p_intf, "qt-osd-shortcut-keys"));
 }
 
 void MainCtx::loadFromSettingsImpl(const bool callSignals)
@@ -573,11 +579,13 @@ void MainCtx::sendHotkey(Qt::Key key , Qt::KeyboardModifiers modifiers)
 {
     QKeyEvent event(QEvent::KeyPress, key, modifiers );
     int vlckey = qtEventToVLCKey(&event);
-    var_SetInteger(vlc_object_instance(p_intf), "key-pressed", vlckey);
+    sendVLCHotkey(vlckey);
 }
 
 void MainCtx::sendVLCHotkey(int vlcHotkey)
 {
+    /* the Shortcut message names the key */
+    ShortcutMessage::KeyScope scope(vlcHotkey);
     var_SetInteger(vlc_object_instance(p_intf), "key-pressed", vlcHotkey);
 }
 

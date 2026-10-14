@@ -168,6 +168,12 @@ FocusScope {
         }
     }
 
+    ShortcutMessagePill {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: VLCStyle.margin_normal
+    }
+
     Keys.onPressed: (event) => {
         if (event.accepted)
             return

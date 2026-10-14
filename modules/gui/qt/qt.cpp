@@ -301,6 +301,9 @@ static void ShowDialog   ( intf_thread_t *, int, int, intf_dialog_args_t * );
 #define APP_KEYS_TEXT N_( "Interface keyboard shortcuts" )
 #define APP_KEYS_LONGTEXT N_( "Keys of the interface actions changed in " \
     "Keyboard Shortcuts, as action=key pairs separated by tabulations." )
+#define OSD_SHORTCUT_KEYS_TEXT N_( "Show shortcut keys in on-screen messages" )
+#define OSD_SHORTCUT_KEYS_LONGTEXT N_( "The on-screen message shown after an action " \
+    "also names the key that ran it." )
 
 static const int i_notification_list[] =
     { NOTIFICATION_NEVER, NOTIFICATION_MINIMIZED, NOTIFICATION_ALWAYS };
@@ -485,6 +488,8 @@ vlc_module_begin ()
 
     add_string( "qt-app-keys", "", APP_KEYS_TEXT, APP_KEYS_LONGTEXT )
         change_private()
+    add_bool( "qt-osd-shortcut-keys", true, OSD_SHORTCUT_KEYS_TEXT,
+              OSD_SHORTCUT_KEYS_LONGTEXT )
 
     cannot_unload_broken_library()
 

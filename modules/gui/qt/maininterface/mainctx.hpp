@@ -68,6 +68,7 @@ class MLBookmarkModel;
 class ColorSchemeModel;
 class VLCVarChoiceModel;
 class SidePanelCtx;
+class ShortcutMessage;
 struct vlc_preparser_t;
 class ThreadRunner;
 
@@ -232,6 +233,7 @@ public:
     inline double getMaxIntfUserScaleFactor() const { return MAX_INTF_USER_SCALE_FACTOR; }
     inline bool hasMediaLibrary() const { return b_hasMedialibrary; }
     inline MediaLib* getMediaLibrary() const { return m_medialib; }
+    inline ShortcutMessage* shortcutMessage() const { return m_shortcutMessage; }
     inline SavedStreamsModel* getSavedStreams() const { return m_savedStreams; }
     inline bool hasGridView() const { return m_gridView; }
     inline bool albumSections() const { return m_albumSections; }
@@ -555,6 +557,7 @@ protected:
 
     SearchCtx* m_search = nullptr;
     SortCtx* m_sort = nullptr;
+    ShortcutMessage* m_shortcutMessage = nullptr;
 
 
     ThreadRunner* m_threadRunner = nullptr;

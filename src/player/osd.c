@@ -55,18 +55,74 @@ vlc_player_osd_ReleaseAll(vlc_player_t *player, vout_thread_t **vouts,
     (void) player;
 }
 
+vlc_player_osd_listener_id *
+vlc_player_osd_AddListener(vlc_player_t *player,
+                           const struct vlc_player_osd_cbs *cbs,
+                           void *cbs_data)
+{
+    assert(cbs);
+
+    vlc_player_osd_listener_id *listener = malloc(sizeof(*listener));
+    if (!listener)
+        return NULL;
+
+    listener->cbs = cbs;
+    listener->cbs_data = cbs_data;
+
+    vlc_mutex_lock(&player->osd_listeners_lock);
+    vlc_list_append(&listener->node, &player->osd_listeners);
+    vlc_mutex_unlock(&player->osd_listeners_lock);
+
+    return listener;
+}
+
+void
+vlc_player_osd_RemoveListener(vlc_player_t *player,
+                              vlc_player_osd_listener_id *id)
+{
+    assert(id);
+
+    vlc_mutex_lock(&player->osd_listeners_lock);
+    vlc_list_remove(&id->node);
+    vlc_mutex_unlock(&player->osd_listeners_lock);
+    free(id);
+}
+
+/* Interfaces can show the messages themselves, even without video output */
+static void
+vlc_player_osd_Notify(vlc_player_t *player, const char *text)
+{
+    vlc_mutex_lock(&player->osd_listeners_lock);
+    vlc_player_osd_listener_id *listener;
+    vlc_list_foreach(listener, &player->osd_listeners, node)
+    {
+        if (listener->cbs->on_message)
+            listener->cbs->on_message(player, text, listener->cbs_data);
+    }
+    vlc_mutex_unlock(&player->osd_listeners_lock);
+}
+
+static void
+vouts_osd_MessageVa(vlc_player_t *player, vout_thread_t **vouts, size_t count,
+                    const char *fmt, va_list args)
+{
+    char *text;
+    if (vasprintf(&text, fmt, args) == -1)
+        return;
+
+    vlc_player_osd_Notify(player, text);
+    for (size_t i = 0; i < count; ++i)
+        vout_OSDMessage(vouts[i], VOUT_SPU_CHANNEL_OSD, "%s", text);
+    free(text);
+}
+
 static inline void
-vouts_osd_Message(vout_thread_t **vouts, size_t count, const char *fmt, ...)
+vouts_osd_Message(vlc_player_t *player, vout_thread_t **vouts, size_t count,
+                  const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    for (size_t i = 0; i < count; ++i)
-    {
-        va_list acpy;
-        va_copy(acpy, args);
-        vout_OSDMessageVa(vouts[i], VOUT_SPU_CHANNEL_OSD, fmt, acpy);
-        va_end(acpy);
-    }
+    vouts_osd_MessageVa(player, vouts, count, fmt, args);
     va_end(args);
 }
 
@@ -94,13 +150,7 @@ vlc_player_osd_Message(vlc_player_t *player, const char *fmt, ...)
 
     va_list args;
     va_start(args, fmt);
-    for (size_t i = 0; i < count; ++i)
-    {
-        va_list acpy;
-        va_copy(acpy, args);
-        vout_OSDMessageVa(vouts[i], VOUT_SPU_CHANNEL_OSD, fmt, acpy);
-        va_end(acpy);
-    }
+    vouts_osd_MessageVa(player, vouts, count, fmt, args);
     va_end(args);
 
     vlc_player_osd_ReleaseAll(player, vouts, count);
@@ -115,6 +165,13 @@ vlc_player_osd_Icon(vlc_player_t *player, vlc_osd_widget_type type)
     vouts_osd_Icon(vouts, count, type);
 
     vlc_player_osd_ReleaseAll(player, vouts, count);
+}
+
+void
+vlc_player_osd_Pause(vlc_player_t *player, bool pause)
+{
+    vlc_player_osd_Icon(player, pause ? OSD_PAUSE_ICON : OSD_PLAY_ICON);
+    vlc_player_osd_Notify(player, pause ? _("Pause") : _("Play"));
 }
 
 void
@@ -141,10 +198,11 @@ vlc_player_osd_Position(vlc_player_t *player,
         {
             char len_text[MSTRTIME_MAX_SIZE];
             vlc_tick_to_str(len_text, input->length);
-            vouts_osd_Message(vouts, count, "%s / %s", time_text, len_text);
+            vouts_osd_Message(player, vouts, count, "%s / %s", time_text,
+                              len_text);
         }
         else
-            vouts_osd_Message(vouts, count, "%s", time_text);
+            vouts_osd_Message(player, vouts, count, "%s", time_text);
     }
 
     if (vlc_player_vout_IsFullscreen(player))
@@ -161,12 +219,15 @@ vlc_player_osd_Volume(vlc_player_t *player, bool mute_action)
     bool mute = vlc_player_aout_IsMuted(player);
     int volume = lroundf(vlc_player_aout_GetVolume(player) * 100.f);
     if (mute_action && mute)
+    {
         vouts_osd_Icon(vouts, count, OSD_MUTE_ICON);
+        vlc_player_osd_Notify(player, _("Mute"));
+    }
     else
     {
         if (vlc_player_vout_IsFullscreen(player))
             vouts_osd_Slider(vouts, count, volume, OSD_VERT_SLIDER);
-        vouts_osd_Message(vouts, count, _("Volume: %ld%%"), volume);
+        vouts_osd_Message(player, vouts, count, _("Volume: %ld%%"), (long) volume);
     }
 
     vlc_player_osd_ReleaseAll(player, vouts, count);
@@ -250,7 +311,8 @@ vlc_player_osd_Program(vlc_player_t *player, const char *name)
 }
 
 static bool
-vout_osd_PrintVariableText(vout_thread_t *vout, const char *varname, int vartype,
+vout_osd_PrintVariableText(vlc_player_t *player, vout_thread_t *vout,
+                           const char *varname, int vartype,
                            vlc_value_t varval, const char *osdfmt)
 {
     bool found = false;
@@ -267,7 +329,7 @@ vout_osd_PrintVariableText(vout_thread_t *vout, const char *varname, int vartype
                  strcmp(choices[i].psz_string, varval.psz_string) == 0) ||
                 (!isvarstring && choices[i].f_float == varval.f_float))
             {
-                vouts_osd_Message(&vout, 1, osdfmt, choices_text[i]);
+                vouts_osd_Message(player, &vout, 1, osdfmt, choices_text[i]);
                 found = true;
             }
         if (isvarstring)
@@ -286,30 +348,31 @@ vlc_player_vout_OSDCallback(vlc_object_t *this, const char *var,
     VLC_UNUSED(oldval);
 
     vout_thread_t *vout = (vout_thread_t *)this;
+    vlc_player_t *player = data;
 
     if (strcmp(var, "aspect-ratio") == 0)
-        vout_osd_PrintVariableText(vout, var, VLC_VAR_STRING,
+        vout_osd_PrintVariableText(player, vout, var, VLC_VAR_STRING,
                                    newval, _("Aspect ratio: %s"));
 
     else if (strcmp(var, "autoscale") == 0)
-        vouts_osd_Message(&vout, 1, newval.b_bool ?
+        vouts_osd_Message(player, &vout, 1, newval.b_bool ?
                           _("Scaled to screen") : _("Original size"));
 
     else if (strcmp(var, "crop") == 0)
-        vout_osd_PrintVariableText(vout, var, VLC_VAR_STRING, newval,
+        vout_osd_PrintVariableText(player, vout, var, VLC_VAR_STRING, newval,
                                    _("Crop: %s"));
 
     else if (strcmp(var, "crop-bottom") == 0)
-        vouts_osd_Message(&vout, 1, _("Bottom crop: %d px"), newval.i_int);
+        vouts_osd_Message(player, &vout, 1, _("Bottom crop: %d px"), newval.i_int);
 
     else if (strcmp(var, "crop-top") == 0)
-        vouts_osd_Message(&vout, 1, _("Top crop: %d px"), newval.i_int);
+        vouts_osd_Message(player, &vout, 1, _("Top crop: %d px"), newval.i_int);
 
     else if (strcmp(var, "crop-left") == 0)
-        vouts_osd_Message(&vout, 1, _("Left crop: %d px"), newval.i_int);
+        vouts_osd_Message(player, &vout, 1, _("Left crop: %d px"), newval.i_int);
 
     else if (strcmp(var, "crop-right") == 0)
-        vouts_osd_Message(&vout, 1, _("Right crop: %d px"), newval.i_int);
+        vouts_osd_Message(player, &vout, 1, _("Right crop: %d px"), newval.i_int);
 
     else if (strcmp(var, "deinterlace") == 0 ||
              strcmp(var, "deinterlace-mode") == 0)
@@ -319,34 +382,33 @@ vlc_player_vout_OSDCallback(vlc_object_t *this, const char *var,
             newval.i_int : var_GetInteger(vout, "deinterlace");
         char *mode = varmode ?
             newval.psz_string : var_GetString(vout, "deinterlace-mode");
-        vouts_osd_Message(&vout, 1, _("Deinterlace %s (%s)"),
+        vouts_osd_Message(player, &vout, 1, _("Deinterlace %s (%s)"),
                           on == 1 ? _("On") : _("Off"), mode);
         if (!varmode)
             free(mode);
     }
 
     else if (strcmp(var, "sub-margin") == 0 && newval.i_int != oldval.i_int)
-        vouts_osd_Message(&vout, 1, _("Subtitle position %d px"), newval.i_int);
+        vouts_osd_Message(player, &vout, 1, _("Subtitle position %d px"), newval.i_int);
 
     else if (strcmp(var, "secondary-sub-margin") == 0 && newval.i_int != oldval.i_int)
-        vouts_osd_Message(&vout, 1, _("Secondary subtitle position %d px"), newval.i_int);
+        vouts_osd_Message(player, &vout, 1, _("Secondary subtitle position %d px"), newval.i_int);
 
     else if (strcmp(var, "sub-text-scale") == 0)
-        vouts_osd_Message(&vout, 1, _("Subtitle text scale %d%%"), newval.i_int);
+        vouts_osd_Message(player, &vout, 1, _("Subtitle text scale %d%%"), newval.i_int);
 
     else if (strcmp(var, "zoom") == 0)
     {
         if (newval.f_float == 1.f)
-            vouts_osd_Message(&vout, 1, _("Zooming reset"));
+            vouts_osd_Message(player, &vout, 1, _("Zooming reset"));
         else
         {
-            bool found =  vout_osd_PrintVariableText(vout, var, VLC_VAR_FLOAT,
+            bool found =  vout_osd_PrintVariableText(player, vout, var, VLC_VAR_FLOAT,
                                                      newval, _("Zoom mode: %s"));
             if (!found)
-                vouts_osd_Message(&vout, 1, _("Zoom: x%.2f"), newval.f_float);
+                vouts_osd_Message(player, &vout, 1, _("Zoom: x%.2f"), newval.f_float);
         }
     }
 
-    (void) data;
     return VLC_SUCCESS;
 }
