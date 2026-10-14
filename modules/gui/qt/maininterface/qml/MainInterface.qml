@@ -408,6 +408,23 @@ Item {
             source: "qrc:///qt/qml/VLC/Menus/GlobalShortcuts.qml"
         }
 
+        // Open Capture Device: a window of its own, kept across view changes
+        Loader {
+            id: openCaptureDialogLoader
+
+            active: false
+            source: "qrc:///qt/qml/VLC/Dialogs/OpenCaptureDialog.qml"
+
+            Connections {
+                target: DialogsProvider
+
+                function onShowOpenCaptureDialog() {
+                    openCaptureDialogLoader.active = true
+                    openCaptureDialogLoader.item.open()
+                }
+            }
+        }
+
         Loader {
             // About, Messages and Program Guide windows
             source: "qrc:///qt/qml/VLC/Dialogs/DialogWindows.qml"

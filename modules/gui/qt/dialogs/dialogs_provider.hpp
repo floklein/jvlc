@@ -247,6 +247,7 @@ public:
 signals:
     void releaseMouseEvents();
     void showToolbarEditorDialog();
+    void showOpenCaptureDialog();
     /* opens Convert with these media, if any */
     void showConvertDialog(const QStringList& mrls);
     /* Shows the Properties & Metadata window of a media. The live window,

@@ -93,6 +93,8 @@ endif
 
 libqt_plugin_la_SOURCES = \
 	qt.cpp qt.hpp plugins.hpp \
+	dialogs/capture/capture_preview.cpp dialogs/capture/capture_preview.hpp \
+	dialogs/capture/open_capture_model.cpp dialogs/capture/open_capture_model.hpp \
 	dialogs/dialogs/dialogmodel.cpp \
 	dialogs/dialogs/dialogmodel.hpp \
 	dialogs/dialogs_provider.cpp dialogs/dialogs_provider.hpp \
@@ -318,6 +320,7 @@ libqt_plugin_la_SOURCES = \
 	util/flickable_scroll_handler.hpp \
 	util/qt_dirs.cpp util/qt_dirs.hpp \
 	util/proxycolumnmodel.hpp \
+	util/module_options_model.cpp util/module_options_model.hpp \
 	util/registry.cpp util/registry.hpp \
 	util/renderer_manager.cpp util/renderer_manager.hpp \
 	util/singleton.hpp \
@@ -384,6 +387,8 @@ moc_verbose__0 = $(moc_verbose_0)
 dialogs/dialogs_provider.moc.cpp: $(top_builddir)/config.h
 
 nodist_libqt_plugin_la_SOURCES = \
+	dialogs/capture/capture_preview.moc.cpp \
+	dialogs/capture/open_capture_model.moc.cpp \
 	dialogs/dialogs/dialogmodel.moc.cpp \
 	dialogs/dialogs_provider.moc.cpp \
 	dialogs/extended/extended.moc.cpp \
@@ -492,6 +497,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	util/item_key_event_filter.moc.cpp \
 	util/effects_image_provider.moc.cpp \
 	util/flickable_scroll_handler.moc.cpp \
+	util/module_options_model.moc.cpp \
 	util/renderer_manager.moc.cpp \
 	util/validators.moc.cpp \
 	util/varchoicemodel.moc.cpp \
@@ -1007,6 +1013,8 @@ libqml_module_dialogs_a_ModulePath = VLC/Dialogs
 libqml_module_dialogs_a_CXXFLAGS = $(libqt_plugin_la_CXXFLAGS)
 libqml_module_dialogs_a_CPPFLAGS = $(libqt_plugin_la_CPPFLAGS)
 libqml_module_dialogs_a_QML = \
+	dialogs/capture/qml/ModuleOptionsView.qml \
+	dialogs/capture/qml/OpenCaptureDialog.qml \
 	dialogs/convert/qml/ConversionProfileEditor.qml \
 	dialogs/convert/qml/ConversionsIndicator.qml \
 	dialogs/convert/qml/ConvertDialog.qml \
@@ -1960,6 +1968,30 @@ test_vlc_dialog_model_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_vlc_dialog_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_vlc_dialog_model
 TESTS += test_vlc_dialog_model
+
+# test_open_capture_model
+
+test_open_capture_model_SOURCES = \
+	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
+	tests/test_open_capture_model.cpp \
+	dialogs/capture/open_capture_model.cpp dialogs/capture/open_capture_model.hpp \
+	dialogs/capture/capture_preview.cpp dialogs/capture/capture_preview.hpp \
+	util/module_options_model.cpp util/module_options_model.hpp
+
+nodist_test_open_capture_model_SOURCES = \
+	tests/test_open_capture_model.moc \
+	dialogs/capture/open_capture_model.moc.cpp \
+	dialogs/capture/capture_preview.moc.cpp \
+	util/module_options_model.moc.cpp
+
+BUILT_SOURCES += tests/test_open_capture_model.moc
+CLEANFILES += tests/test_open_capture_model.moc
+test_open_capture_model_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_open_capture_model_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_open_capture_model_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_open_capture_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_open_capture_model
+TESTS += test_open_capture_model
 
 # test_messages_model
 

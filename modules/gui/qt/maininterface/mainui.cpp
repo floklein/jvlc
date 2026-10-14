@@ -63,6 +63,9 @@
 #include "dialogs/help/aboutmodel.hpp"
 #include "dialogs/dialogs_provider.hpp"
 #include "dialogs/dialogs/dialogmodel.hpp"
+#include "dialogs/capture/open_capture_model.hpp"
+#include "dialogs/capture/capture_preview.hpp"
+#include "util/module_options_model.hpp"
 #include "dialogs/convert/conversion_manager.hpp"
 #include "dialogs/convert/conversion_profile_model.hpp"
 #include "dialogs/messages/messagesmodel.hpp"
@@ -285,6 +288,12 @@ void MainUI::registerQMLTypes()
         qmlRegisterSingletonInstance<DialogsProvider>(uri, versionMajor, versionMinor, "DialogsProvider", DialogsProvider::getInstance());
         assert(DialogErrorModel::getInstance<false>());
         qmlRegisterSingletonInstance<DialogErrorModel>(uri, versionMajor, versionMinor, "DialogErrorModel", DialogErrorModel::getInstance<false>());
+        qmlRegisterSingletonType<OpenCaptureModel>(uri, versionMajor, versionMinor, "OpenCaptureModel",
+                                                   [intf = m_intf](QQmlEngine*, QJSEngine*) -> QObject* {
+                                                       return new OpenCaptureModel(intf);
+                                                   });
+        qmlRegisterUncreatableType<ModuleOptionsModel>(uri, versionMajor, versionMinor, "ModuleOptionsModel", "");
+        qmlRegisterUncreatableType<CapturePreview>(uri, versionMajor, versionMinor, "CapturePreview", "");
         qmlRegisterType<ConversionProfileModel>( uri, versionMajor, versionMinor, "ConversionProfileModel" );
         qmlRegisterSingletonInstance<ConversionManager>(uri, versionMajor, versionMinor, "Conversions", new ConversionManager(VLC_OBJECT(m_intf), this));
         assert(MessagesModel::getInstance<false>());

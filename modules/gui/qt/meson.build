@@ -29,6 +29,8 @@ if host_machine.system() == 'darwin' and qt6_dep.found()
 endif
 
 moc_headers = files(
+    'dialogs/capture/capture_preview.hpp',
+    'dialogs/capture/open_capture_model.hpp',
     'dialogs/dialogs/dialogmodel.hpp',
     'dialogs/dialogs_provider.hpp',
     'dialogs/extended/extended.hpp',
@@ -137,6 +139,7 @@ moc_headers = files(
     'util/item_key_event_filter.hpp',
     'util/effects_image_provider.hpp',
     'util/flickable_scroll_handler.hpp',
+    'util/module_options_model.hpp',
     'util/renderer_manager.hpp',
     'util/validators.hpp',
     'util/varchoicemodel.hpp',
@@ -191,6 +194,10 @@ qt_plugin_sources = files(
     'qt.cpp',
     'qt.hpp',
     'plugins.hpp',
+    'dialogs/capture/capture_preview.cpp',
+    'dialogs/capture/capture_preview.hpp',
+    'dialogs/capture/open_capture_model.cpp',
+    'dialogs/capture/open_capture_model.hpp',
     'dialogs/dialogs/dialogmodel.cpp',
     'dialogs/dialogs/dialogmodel.hpp',
     'dialogs/dialogs_provider.cpp',
@@ -455,6 +462,8 @@ qt_plugin_sources = files(
     'util/proxycolumnmodel.hpp',
     'util/registry.cpp',
     'util/registry.hpp',
+    'util/module_options_model.cpp',
+    'util/module_options_model.hpp',
     'util/renderer_manager.cpp',
     'util/renderer_manager.hpp',
     'util/singleton.hpp',
@@ -578,6 +587,8 @@ qml_modules += {
     'target' : 'dialogs',
     'outdir' : 'VLC/Dialogs',
     'sources': files(
+        'dialogs/capture/qml/ModuleOptionsView.qml',
+        'dialogs/capture/qml/OpenCaptureDialog.qml',
         'dialogs/convert/qml/ConversionProfileEditor.qml',
         'dialogs/convert/qml/ConversionsIndicator.qml',
         'dialogs/convert/qml/ConvertDialog.qml',
@@ -1545,6 +1556,33 @@ if qt6_dep.found()
             ),
             'moc_headers': files(
                 'dialogs/dialogs/dialogmodel.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_open_capture_model',
+            'sources': files(
+                'tests/vlc_stub_modules.cpp',
+                'tests/test_open_capture_model.cpp',
+                'dialogs/capture/open_capture_model.hpp',
+                'dialogs/capture/open_capture_model.cpp',
+                'dialogs/capture/capture_preview.hpp',
+                'dialogs/capture/capture_preview.cpp',
+                'util/module_options_model.hpp',
+                'util/module_options_model.cpp'
+            ),
+            'moc_sources': files(
+                'tests/test_open_capture_model.cpp'
+            ),
+            'moc_headers': files(
+                'dialogs/capture/open_capture_model.hpp',
+                'dialogs/capture/capture_preview.hpp',
+                'util/module_options_model.hpp'
             ),
             'suite': ['qt'],
             'include_directories' : qt_include_dir,

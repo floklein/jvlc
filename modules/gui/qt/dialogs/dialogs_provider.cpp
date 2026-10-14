@@ -638,7 +638,8 @@ void DialogsProvider::openNetDialog()
 }
 void DialogsProvider::openCaptureDialog()
 {
-    openDialog( OpenDialog::OPEN_CAPTURE_TAB );
+    /* the QML Open Capture Device dialog, see MainInterface.qml */
+    emit showOpenCaptureDialog();
 }
 
 /**
