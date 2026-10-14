@@ -9,6 +9,7 @@
 #include <QKeyEvent>
 #include <QWheelEvent>
 #include <QApplication>
+#include <QKeySequence>
 #include <vlc_actions.h>
 
 /***************************************************************************
@@ -370,4 +371,65 @@ QString vlcActionKeyText( vlc_object_t *obj, const char *action )
         text[last] = text[last].toUpper();
 
     return text;
+}
+
+namespace {
+
+struct AppAction
+{
+    const char *name;
+    const char *sequence;
+};
+
+/* The actions of the interface itself and their keys. The player actions are
+ * core hotkeys ("key-*" options), shared with the other interfaces. */
+const AppAction appActions[] = {
+    { "about",                "Shift+F1" },
+    { "add-bookmark",         "Ctrl+B" },
+    { "adjustments",          "Ctrl+E" },
+    { "codec-info",           "Ctrl+J" },
+    { "convert",              "Ctrl+R" },
+    { "hide-ui",              "Ctrl+H" },
+    { "interface-fullscreen", "F11" },
+    { "jump-to-time",         "Ctrl+T" },
+    { "library-search",       "Ctrl+F" },
+    { "media-info",           "Ctrl+I" },
+    { "messages",             "Ctrl+M" },
+    { "open-capture",         "Ctrl+C" },
+    { "open-clipboard",       "Ctrl+V" },
+    { "open-disc",            "Ctrl+D" },
+    { "open-file",            "Ctrl+O" },
+    { "open-folder",          "Ctrl+Shift+O" },
+    { "open-network",         "Ctrl+N" },
+    { "save-queue",           "Ctrl+Y" },
+    { "settings",             "Ctrl+P" },
+    { "show-queue",           "Ctrl+L" },
+    { "stream",               "Ctrl+S" },
+};
+
+}
+
+QString appActionSequence( const QString &action )
+{
+    for( const AppAction &appAction : appActions )
+    {
+        if( action == QLatin1String( appAction.name ) )
+            return QString::fromLatin1( appAction.sequence );
+    }
+    return {};
+}
+
+QString actionKeyText( vlc_object_t *obj, const QString &action )
+{
+    const QString sequence = appActionSequence( action );
+    if( !sequence.isEmpty() )
+        return QKeySequence( sequence, QKeySequence::PortableText )
+                .toString( QKeySequence::NativeText );
+
+    // only known actions have a "key-" option
+    const QByteArray option = "key-" + action.toUtf8();
+    if( vlc_actions_get_id( option.constData() ) == ACTIONID_NONE )
+        return {};
+
+    return vlcActionKeyText( obj, option.constData() + 4 );
 }

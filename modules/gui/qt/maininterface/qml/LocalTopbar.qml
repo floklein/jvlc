@@ -45,7 +45,6 @@ T.ToolBar {
 
     property bool _showCSD: MainCtx.clientSideDecoration
         && !(MainCtx.intfMainWindow.visibility === Window.FullScreen)
-        && !MainCtx.hasToolbarMenu
 
     //whether the navigation pannel is actually visible or not
     property alias navigationVisible: navigationVisibilty.checked
@@ -201,10 +200,9 @@ T.ToolBar {
                 Widgets.IconToolButton {
                     id: menuBtn
 
-                    visible: !MainCtx.hasToolbarMenu
                     font.pixelSize: VLCStyle.icon_banner
                     text: VLCIcons.more
-                    description: qsTr("Menu")
+                    description: qsTr("VLC menu")
                     width: VLCStyle.bannerButton_width
                     height: VLCStyle.bannerButton_height
                     checked: contextMenu.shown

@@ -34,12 +34,14 @@
 #include "mainctx.hpp"
 #include "mainctx_submodels.hpp"
 #include "medialibrary/mlhelper.hpp"
+#include "medialibrary/mlbookmarkmodel.hpp"
 
 #include "compositor.hpp"
 #include "util/renderer_manager.hpp"
 #include "util/csdbuttonmodel.hpp"
 
 #include "util/vlchotkeyconverter.hpp"
+#include "util/context_menu_key_filter.hpp"
 #include "util/qt_dirs.hpp"                     // toNativeSeparators
 
 #include "util/color_scheme_model.hpp"
@@ -193,6 +195,9 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
         styleHints->setColorScheme(scheme);
     });
 #endif
+
+    // Shift+F10 opens context menus like the Menu key
+    qApp->installEventFilter(new ContextMenuKeyFilter(this));
 
     m_sort = new SortCtx(this);
     m_search = new SearchCtx(this);
@@ -437,8 +442,6 @@ void MainCtx::loadPrefs(const bool callSignals)
         emit interfaceAlwaysOnTopChanged(b_interfaceOnTop);
     });
 
-    loadFromVLCOption(m_hasToolbarMenu, "qt-menubar", &MainCtx::hasToolbarMenuChanged);
-
     loadFromVLCOption(m_windowTitlebar, "qt-titlebar" , &MainCtx::useClientSideDecorationChanged);
 
     loadFromVLCOption(m_smoothScroll, "qt-smooth-scrolling", &MainCtx::smoothScrollChanged);
@@ -615,18 +618,6 @@ void MainCtx::setIntfUserScaleFactor(double newValue)
     updateIntfScaleFactor();
 }
 
-void MainCtx::setHasToolbarMenu( bool hasToolbarMenu )
-{
-    if (m_hasToolbarMenu == hasToolbarMenu)
-        return;
-
-    m_hasToolbarMenu = hasToolbarMenu;
-
-    config_PutInt("qt-menubar", (int) hasToolbarMenu);
-
-    emit hasToolbarMenuChanged();
-}
-
 void MainCtx::setPinVideoControls(bool pinVideoControls)
 {
     if (m_pinVideoControls == pinVideoControls)
@@ -689,7 +680,27 @@ QUrl MainCtx::folderMRL(const QUrl &fileMRL) const
 
 QString MainCtx::actionShortcut(const QString &action) const
 {
-    return vlcActionKeyText(VLC_OBJECT(vlc_object_instance(p_intf)), qtu(action));
+    return actionKeyText(VLC_OBJECT(vlc_object_instance(p_intf)), action);
+}
+
+QString MainCtx::actionSequence(const QString &action) const
+{
+    return appActionSequence(action);
+}
+
+void MainCtx::addBookmark()
+{
+    if (!m_medialib)
+        return;
+
+    if (!m_bookmarks)
+    {
+        m_bookmarks = new MLBookmarkModel(this);
+        m_bookmarks->setPlayer(p_intf->p_player);
+        m_bookmarks->setMl(m_medialib);
+        connect(m_bookmarks, &MLBookmarkModel::added, this, &MainCtx::bookmarkAdded);
+    }
+    m_bookmarks->add();
 }
 
 QString MainCtx::displayMRL(const QUrl &mrl) const
@@ -891,11 +902,6 @@ void MainCtx::onWindowClose( QWindow* )
     {
         emit askToQuit(); /* ask THEDP to quit, so we have a unique method */
     }
-}
-
-void MainCtx::toggleToolbarMenu()
-{
-    setHasToolbarMenu(!m_hasToolbarMenu);
 }
 
 void MainCtx::toggleInterfaceFullScreen()

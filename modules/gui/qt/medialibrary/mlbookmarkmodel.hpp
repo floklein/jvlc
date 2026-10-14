@@ -78,10 +78,16 @@ public:
     MediaLib* ml() const;
     void setMl(MediaLib* ml);
 
+    /// bookmark the current time of the playing media, adding the media to
+    /// the media library if it is not there yet; added() confirms it
     Q_INVOKABLE void add();
     void remove( const QModelIndexList& indexes );
     void clear();
     Q_INVOKABLE void select( const QModelIndex& index );
+
+signals:
+    /// a bookmark named @a name was added by add()
+    void added( const QString& name );
 
 private:
     static void onCurrentMediaChanged( vlc_player_t* player, input_item_t* media,

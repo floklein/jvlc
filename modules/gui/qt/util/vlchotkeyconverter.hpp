@@ -31,6 +31,25 @@ struct vlc_object_t;
 QString vlcActionKeyText( struct vlc_object_t *obj, const char *action );
 
 /**
+ * @brief the key sequence of an action of the interface itself (opening a
+ * dialog, showing a view...), as opposed to the core hotkeys
+ * @param action action name, e.g. "open-folder"
+ * @return a portable key sequence ("Ctrl+Shift+O"), or an empty string if
+ * @a action is not an interface action
+ */
+QString appActionSequence( const QString &action );
+
+/**
+ * @brief the key shown next to an action in menus and tooltips
+ * @param obj object the core key bindings are inherited from
+ * @param action a core hotkey action ("play-pause") or an interface action
+ * ("open-folder")
+ * @return the key ("Space", "Ctrl+Shift+O"), or an empty string if the
+ * action has no key
+ */
+QString actionKeyText( struct vlc_object_t *obj, const QString &action );
+
+/**
  * @brief The WheelToVLCConverter class aggregates wheel events and
  * emit a signal once it gathers a full scroll step, as VLC doesn't handle
  * fractionnal scroll events

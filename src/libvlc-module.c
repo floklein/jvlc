@@ -2465,27 +2465,30 @@ vlc_module_begin ()
 #   define KEY_POSITION           "t"
 #   define KEY_JUMP_MEXTRASHORT   "Shift+Left"
 #   define KEY_JUMP_PEXTRASHORT   "Shift+Right"
-#   define KEY_JUMP_MSHORT        "Alt+Left"
-#   define KEY_JUMP_PSHORT        "Alt+Right"
+    /* The plain arrows seek and change the volume, as in other players. In
+       disc menus, the hotkeys module makes them move in the menu instead, so
+       the menu navigation actions have no key of their own. */
+#   define KEY_JUMP_MSHORT        "Left\tAlt+Left"
+#   define KEY_JUMP_PSHORT        "Right\tAlt+Right"
 #   define KEY_JUMP_MMEDIUM       "Ctrl+Left"
 #   define KEY_JUMP_PMEDIUM       "Ctrl+Right"
 #   define KEY_JUMP_MLONG         "Ctrl+Alt+Left"
 #   define KEY_JUMP_PLONG         "Ctrl+Alt+Right"
 #   define KEY_NAV_ACTIVATE       "Enter"
-#   define KEY_NAV_UP             "Up"
-#   define KEY_NAV_DOWN           "Down"
-#   define KEY_NAV_LEFT           "Left"
-#   define KEY_NAV_RIGHT          "Right"
+#   define KEY_NAV_UP             NULL
+#   define KEY_NAV_DOWN           NULL
+#   define KEY_NAV_LEFT           NULL
+#   define KEY_NAV_RIGHT          NULL
 #   define KEY_QUIT               "Ctrl+q"
 
 #ifdef _WIN32 /* On Windows, people expect volume keys to control the master */
-#   define KEY_VOL_UP             "Ctrl+Up"
-#   define KEY_VOL_DOWN           "Ctrl+Down"
+#   define KEY_VOL_UP             "Up\tCtrl+Up"
+#   define KEY_VOL_DOWN           "Down\tCtrl+Down"
 #   define KEY_VOL_MUTE           "m"
 #   define KEY_FRAME_NEXT         "e"
 #else
-#   define KEY_VOL_UP             "Ctrl+Up\tVolume Up"
-#   define KEY_VOL_DOWN           "Ctrl+Down\tVolume Down"
+#   define KEY_VOL_UP             "Up\tCtrl+Up\tVolume Up"
+#   define KEY_VOL_DOWN           "Down\tCtrl+Down\tVolume Down"
 #   define KEY_VOL_MUTE           "m\tVolume Mute"
 #   define KEY_FRAME_NEXT         "e\tBrowser Next"
 #endif
@@ -2575,7 +2578,8 @@ vlc_module_begin ()
 #   define KEY_PLAY_BOOKMARK3     "F3"
 #   define KEY_PLAY_BOOKMARK4     "F4"
 #   define KEY_PLAY_BOOKMARK5     "F5"
-#   define KEY_PLAY_BOOKMARK6     "F6"
+    /* F6 moves the keyboard focus between the areas of the interface */
+#   define KEY_PLAY_BOOKMARK6     NULL
 #   define KEY_PLAY_BOOKMARK7     "F7"
 #   define KEY_PLAY_BOOKMARK8     "F8"
 #   define KEY_PLAY_BOOKMARK9     "F9"

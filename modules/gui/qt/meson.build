@@ -143,6 +143,7 @@ moc_headers = files(
     'util/varchoicemodel.hpp',
     'util/variables.hpp',
     'util/vlchotkeyconverter.hpp',
+    'util/context_menu_key_filter.hpp',
     'util/vlctick.hpp',
     'util/dismiss_popup_event_filter.hpp',
     'util/list_selection_model.hpp',
@@ -474,6 +475,10 @@ qt_plugin_sources = files(
     'util/vlctick.hpp',
     'util/vlchotkeyconverter.cpp',
     'util/vlchotkeyconverter.hpp',
+    'util/context_menu_key_filter.cpp',
+    'util/context_menu_key_filter.hpp',
+    'util/glyph_icon.cpp',
+    'util/glyph_icon.hpp',
     'util/shared_input_item.hpp',
     'util/fast_gaussian_blur_template.h',
     'util/effects_image_provider.cpp',
@@ -618,7 +623,6 @@ qml_modules += {
     'outdir' : 'VLC/MainInterface',
     'sources': files(
         'maininterface/qml/LocalTopbar.qml',
-        'maininterface/qml/MenuTopbar.qml',
         'maininterface/qml/MainInterface.qml',
         'maininterface/qml/MainViewLoader.qml',
         'maininterface/qml/MainDisplay.qml',
@@ -686,7 +690,6 @@ qml_modules += {
     'outdir' : 'VLC/Menus',
     'sources': files(
         'menus/qml/GlobalShortcuts.qml',
-        'menus/qml/Menubar.qml',
         'menus/qml/ShortcutExt.qml'
     ),
 }
@@ -1612,6 +1615,29 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_keys',
+            'sources': files(
+                'tests/test_keys.cpp',
+                'util/vlchotkeyconverter.cpp',
+                'util/vlchotkeyconverter.hpp',
+                'util/context_menu_key_filter.cpp',
+                'util/context_menu_key_filter.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_keys.cpp'
+            ),
+            'moc_headers': files(
+                'util/vlchotkeyconverter.hpp',
+                'util/context_menu_key_filter.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qtest_qt6_dep]
         }

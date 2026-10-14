@@ -46,8 +46,6 @@ FocusScope {
 
     // the Top bar is the window's title bar: drag, double-click and the window buttons
     property bool showCSD: false
-    // the classic menu bar (F10), above the Top bar
-    property bool showToolbar: false
     property bool pinControls: false
 
     // height the Top bar covers over the content
@@ -81,7 +79,6 @@ FocusScope {
     // Settings
 
     implicitHeight: topMargin
-                    + (menubar.visible ? menubar.implicitHeight : 0)
                     + Math.max(_barHeight,
                                resumeDialog.visible ? resumeDialog.implicitHeight + VLCStyle.dp(12, VLCStyle.scale) : 0)
 
@@ -123,27 +120,11 @@ FocusScope {
         }
     }
 
-    Menus.Menubar {
-        id: menubar
-
-        anchors.top: parent.top
-        anchors.topMargin: root.topMargin
-        anchors.left: parent.left
-        anchors.leftMargin: root.sideMargin
-        anchors.right: parent.right
-
-        visible: root.showToolbar
-        enabled: root.showToolbar
-
-        onHoveredChanged: menu => root.requestLockUnlockAutoHide(hovered)
-        onMenuOpenedChanged: menu => root.requestLockUnlockAutoHide(menuOpened)
-    }
-
     Item {
         id: bar
 
-        anchors.top: menubar.visible ? menubar.bottom : parent.top
-        anchors.topMargin: menubar.visible ? 0 : root.topMargin
+        anchors.top: parent.top
+        anchors.topMargin: root.topMargin
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
@@ -249,7 +230,6 @@ FocusScope {
 
                     onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
 
-                    // TODO: the redesign's VLC menu (#40)
                     Menus.QmlGlobalMenu {
                         id: vlcMenu
 

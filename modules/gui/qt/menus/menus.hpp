@@ -74,32 +74,31 @@ public:
     /* destructor for parentless Menus (kept in static variables) */
     static void freeRendererMenu(){ delete rendererMenu; rendererMenu = NULL; }
 
-    /* All main Menus */
-    static void FileMenu( qt_intf_t *, QMenu * );
+    /* The VLC menu: opening media, media tools, customization and the app */
+    static void VLCMenuEntries( qt_intf_t *, QMenu * );
+
+    static void OpenEntries( qt_intf_t *, QMenu *, bool icons );
 
     static void ToolsMenu( qt_intf_t *, QMenu * );
 
-    static void ViewMenu(qt_intf_t *, QMenu *);
-
-    static void InterfacesMenu( qt_intf_t *p_intf, QMenu * );
     static void ExtensionsMenu( qt_intf_t *p_intf, QMenu * );
 
-    static void NavigMenu( qt_intf_t *, QMenu * );
-
-    static void RebuildNavigMenu(qt_intf_t *, QMenu *);
+    /* Submenus of the right-click menu */
+    static void PlaybackMenu( qt_intf_t *, QMenu * );
 
     static void VideoMenu( qt_intf_t *, QMenu * );
 
-    static void SubtitleMenu( qt_intf_t *, QMenu *current, bool b_popup = false );
-
     static void AudioMenu( qt_intf_t *, QMenu * );
 
-    static void HelpMenu( qt_intf_t *, QMenu *menu );
+    static void SubtitleMenu( qt_intf_t *, QMenu * );
 
-    /* Popups Menus */
-    static void PopupMenuStaticEntries( QMenu *menu );
-    static void PopupMenuPlaylistEntries( QMenu *menu, qt_intf_t *p_intf );
-    static void PopupMenuPlaylistControlEntries( QMenu *menu, qt_intf_t *p_intf );
+    static void QueueMenu( qt_intf_t *, QMenu * );
+
+    static void RepeatAndShuffleEntries( qt_intf_t *, QMenu * );
+
+    /* Entries of the right-click menu, also used by the systray menu */
+    static void PopupMenuStaticEntries( QMenu *menu, qt_intf_t *p_intf );
+    static void PopupMenuPlaylistEntries( QMenu *menu, qt_intf_t *p_intf, bool icons = false );
     static void PopupMenuControlEntries( QMenu *menu, qt_intf_t *p_intf, bool b = true );
 
     static void VolumeEntries( qt_intf_t *p_intf, QMenu *current );

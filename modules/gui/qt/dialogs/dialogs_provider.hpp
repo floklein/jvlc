@@ -191,6 +191,7 @@ public slots:
     // Options expanded if asked
     void showSettings(const QString& page = {}, bool advanced = false);
     void setSettingsDialogVisible(bool visible);
+    void keyboardShortcutsDialog();
     void firstRunDialog();
     void extendedDialog();
     void synchroDialog();

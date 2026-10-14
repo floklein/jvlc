@@ -997,7 +997,6 @@ FocusScope {
         pinControls: MainCtx.pinVideoControls
 
         showCSD: MainCtx.clientSideDecoration && (MainCtx.intfMainWindow.visibility !== Window.FullScreen)
-        showToolbar: MainCtx.hasToolbarMenu && (MainCtx.intfMainWindow.visibility !== Window.FullScreen)
 
         Navigation.parentItem: rootPlayer
         Navigation.downItem: {

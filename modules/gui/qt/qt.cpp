@@ -249,9 +249,6 @@ static void ShowDialog   ( intf_thread_t *, int, int, intf_dialog_args_t * );
     "the titlebar and move window buttons within the interface (Client Side Decoration)" )
 
 
-#define QT_MENUBAR_TEXT N_( "Show the menu bar" )
-#define QT_MENUBAR_LONGTEXT N_( "This option displays the classic menu bar" )
-
 #define QT_PIN_CONTROLS_TEXT N_("Pin video controls")
 #define QT_PIN_CONTROLS_LONGTEXT N_("Place video controls above and below the video instead of above")
 
@@ -418,7 +415,8 @@ vlc_module_begin ()
 #endif
               QT_CLIENT_SIDE_DECORATION_TEXT, QT_CLIENT_SIDE_DECORATION_LONGTEXT )
 
-    add_bool( "qt-menubar", false, QT_MENUBAR_TEXT, QT_MENUBAR_LONGTEXT )
+    /* the VLC menu and the right-click menu replace the menu bar */
+    add_obsolete_bool( "qt-menubar" )
 
     add_bool( "qt-embedded-open", false, QT_NATIVEOPEN_TEXT,
                nullptr )

@@ -710,7 +710,6 @@ modules/gui/qt/maininterface/mainctx.cpp
 modules/gui/qt/maininterface/mainctx.hpp
 modules/gui/qt/maininterface/mainctx_win32.cpp
 modules/gui/qt/maininterface/mainctx_win32.hpp
-modules/gui/qt/maininterface/qml/MenuTopbar.qml
 modules/gui/qt/maininterface/qml/LocalTopbar.qml
 modules/gui/qt/maininterface/qml/MainDisplay.qml
 modules/gui/qt/maininterface/qml/MainInterface.qml
@@ -781,7 +780,6 @@ modules/gui/qt/menus/custom_menus.cpp
 modules/gui/qt/menus/custom_menus.hpp
 modules/gui/qt/menus/menus.cpp
 modules/gui/qt/menus/menus.hpp
-modules/gui/qt/menus/qml/Menubar.qml
 modules/gui/qt/menus/qml_menu_wrapper.cpp
 modules/gui/qt/menus/qml_menu_wrapper.hpp
 modules/gui/qt/network/addonsmodel.cpp

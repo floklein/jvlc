@@ -63,6 +63,7 @@ class SearchCtx;
 class SortCtx;
 class VLCSystray;
 class MediaLib;
+class MLBookmarkModel;
 class ColorSchemeModel;
 class VLCVarChoiceModel;
 class SidePanelCtx;
@@ -112,7 +113,6 @@ class MainCtx : public QObject
     Q_PROPERTY(bool clientSideDecoration READ useClientSideDecoration NOTIFY useClientSideDecorationChanged FINAL)
     Q_PROPERTY(bool hasFirstrun READ hasFirstrun CONSTANT FINAL)
     Q_PROPERTY(int  csdBorderSize READ CSDBorderSize NOTIFY useClientSideDecorationChanged FINAL)
-    Q_PROPERTY(bool hasToolbarMenu READ hasToolbarMenu WRITE setHasToolbarMenu NOTIFY hasToolbarMenuChanged FINAL)
     Q_PROPERTY(bool canShowVideoPIP READ canShowVideoPIP CONSTANT FINAL)
     Q_PROPERTY(bool pinVideoControls READ pinVideoControls WRITE setPinVideoControls NOTIFY pinVideoControlsChanged FINAL)
     Q_PROPERTY(float pinOpacity READ pinOpacity WRITE setPinOpacity NOTIFY pinOpacityChanged FINAL)
@@ -238,7 +238,6 @@ public:
     bool hasVLM() const;
     bool useClientSideDecoration() const;
     bool hasFirstrun() const;
-    inline bool hasToolbarMenu() const { return m_hasToolbarMenu; }
     inline bool canShowVideoPIP() const { return m_canShowVideoPIP; }
     inline void setCanShowVideoPIP(bool canShowVideoPIP) { m_canShowVideoPIP = canShowVideoPIP; }
 
@@ -417,9 +416,18 @@ public:
 
     Q_INVOKABLE QString displayMRL(const QUrl &mrl) const;
 
-    /// the key currently bound to the hotkey @a action ("play-pause"), for
-    /// accessible names and tooltips; empty when the action has no key
+    /// the key currently bound to @a action, a core hotkey ("play-pause") or
+    /// an interface action ("open-folder"), for menus, accessible names and
+    /// tooltips; empty when the action has no key
     Q_INVOKABLE QString actionShortcut(const QString &action) const;
+
+    /// the key sequence of the interface action @a action ("open-folder"),
+    /// for the interface's shortcuts
+    Q_INVOKABLE QString actionSequence(const QString &action) const;
+
+    /// add a bookmark at the current time of the playing media;
+    /// bookmarkAdded() confirms it
+    Q_INVOKABLE void addBookmark();
 
     double artistAlbumsWidth() const;
     void setArtistAlbumsWidth(double newArtistAlbumsWidth);
@@ -454,13 +462,13 @@ protected:
     bool                 b_hasWayland = false;
     bool                 b_hasMedialibrary = false;
     MediaLib*            m_medialib = nullptr;
+    MLBookmarkModel*     m_bookmarks = nullptr;
     bool                 m_gridView = false;
     bool                 m_hasGridListMode = false;
     Grouping             m_grouping = GROUPING_NONE;
     ColorSchemeModel*    m_colorScheme = nullptr;
     bool                 m_windowTitlebar = true;
     // NOTE: Ideally this should be a QVLCBool.
-    bool                 m_hasToolbarMenu = false;
     bool                 m_canShowVideoPIP = false;
 
     /* Pinned */
@@ -521,7 +529,6 @@ protected:
     ThreadRunner* m_threadRunner = nullptr;
 
 public slots:
-    void toggleToolbarMenu();
     void toggleInterfaceFullScreen();
     void setPlayerPlaylistWidth( double factor );
     void setInterfaceAlwaysOnTop( bool );
@@ -532,7 +539,6 @@ public slots:
     void setLyricsMode( bool );
     void incrementIntfUserScaleFactor( bool increment);
     void setIntfUserScaleFactor( double );
-    void setHasToolbarMenu( bool );
 
     void setPinVideoControls( bool );
     void setPinOpacity( float );
@@ -568,6 +574,8 @@ signals:
     void setInterfaceFullScreen( bool );
     void toggleWindowVisibility(bool requestActivate = false);
     void askToQuit();
+    /// addBookmark() added the bookmark @a name
+    void bookmarkAdded(const QString &name);
     void askShow();
     void askBoss();
     void askRaise();
@@ -586,7 +594,6 @@ signals:
     void lyricsModeChanged( bool );
     void colorSchemeChanged( QString );
     void useClientSideDecorationChanged();
-    void hasToolbarMenuChanged();
 
     /// forward window maximise query to the actual window or widget
     void requestInterfaceMaximized();

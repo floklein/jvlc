@@ -90,8 +90,9 @@ INTF_ACTION_HANDLER()
             varname = "intf-boss";
             break;
         case ACTIONID_INTF_POPUP_MENU:
-            varname = "intf-popupmenu";
-            break;
+            /* show the menu even if a click hid the last one */
+            var_SetBool(vlc_object_instance(intf), "intf-popupmenu", true);
+            return;
         default:
             vlc_assert_unreachable();
     }
@@ -1225,12 +1226,51 @@ player_on_vout_changed(vlc_player_t *player,
     }
 }
 
+/* The plain arrows seek and change the volume, but in disc menus they move
+ * in the menu, as the menu navigation actions have no key by default. */
+static vlc_action_id_t
+DiscMenuAction(intf_thread_t *intf, vlc_action_id_t action_id)
+{
+    vlc_action_id_t nav_id;
+    switch (action_id)
+    {
+        case ACTIONID_JUMP_BACKWARD_SHORT:
+            nav_id = ACTIONID_NAV_LEFT;
+            break;
+        case ACTIONID_JUMP_FORWARD_SHORT:
+            nav_id = ACTIONID_NAV_RIGHT;
+            break;
+        case ACTIONID_VOL_UP:
+            nav_id = ACTIONID_NAV_UP;
+            break;
+        case ACTIONID_VOL_DOWN:
+            nav_id = ACTIONID_NAV_DOWN;
+            break;
+        default:
+            return action_id;
+    }
+
+    /* the keys with a modifier (Alt+Left, Ctrl+Up) keep seeking and changing
+     * the volume */
+    int64_t key = var_GetInteger(vlc_object_instance(intf), "key-pressed");
+    if (key & KEY_MODIFIER)
+        return action_id;
+
+    vlc_player_t *player = vlc_playlist_GetPlayer(intf->p_sys->playlist);
+    vlc_player_Lock(player);
+    const struct vlc_player_title *title = vlc_player_GetSelectedTitle(player);
+    bool in_menu = title != NULL && (title->flags & VLC_PLAYER_TITLE_MENU);
+    vlc_player_Unlock(player);
+
+    return in_menu ? nav_id : action_id;
+}
+
 static int
 ActionCallback(vlc_object_t *obj, char const *var,
                vlc_value_t ov, vlc_value_t newval, void *data)
 {
     VLC_UNUSED(obj); VLC_UNUSED(var); VLC_UNUSED(ov);
-    handle_action(data, newval.i_int);
+    handle_action(data, DiscMenuAction(data, newval.i_int));
     return VLC_SUCCESS;
 }
 

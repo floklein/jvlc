@@ -246,42 +246,19 @@ FocusScope {
         }
     }
 
-    MenuTopbar {
-        id: menuTopbar
-        z: 6
-
-        visible: MainCtx.hasToolbarMenu
-        enabled: visible
-
-        anchors {
-            top: parent.top
-            right: parent.right
-            left: parent.left
-        }
-
-        plListView: {
-            if (playlistLoader.active)
-                return playlistLoader.item
-            else if (playlistWindowLoader.status === Loader.Ready)
-                return playlistWindowLoader.item.playlistView
-            else
-                return null
-        }
-    }
-
     LocalTopbar {
         id: localTopbar
         z: 5
 
         anchors {
-            top: menuTopbar.visible ? menuTopbar.bottom : parent.top
+            top: parent.top
             left: parent.left
             right: parent.right
         }
 
         leftPadding: VLCStyle.applicationHorizontalMargin
         rightPadding: VLCStyle.applicationHorizontalMargin
-        topPadding: menuTopbar.visible ? 0 : VLCStyle.applicationVerticalMargin
+        topPadding: VLCStyle.applicationVerticalMargin
 
         plListView: {
             if (playlistLoader.active)
@@ -296,7 +273,6 @@ FocusScope {
         playqueueVisible: pannelVisiblity.showPlayqueue
 
         Navigation.parentItem: g_mainDisplay
-        Navigation.upItem: menuTopbar
         Navigation.downItem: mainRow
 
         onToggleNavigationVisibility: pannelVisiblity.toggleNavigationVisibility()

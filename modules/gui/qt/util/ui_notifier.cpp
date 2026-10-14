@@ -69,4 +69,9 @@ void UINotifier::setupNotifications()
                                                             : qtr("Could not export to %1").arg(file));
         });
     }
+
+    connect(m_ctx, &MainCtx::bookmarkAdded, this, [this](const QString &name)
+    {
+        emit showNotification(Bookmark, qtr("Added \"%1\"").arg(name));
+    });
 }

@@ -142,7 +142,6 @@ void FirstRunWizard::finish()
     p_intf->p_mi->getColorScheme()->setCurrentIndex( colorSchemeGroup->checkedId() );
 
     /* Layout Page settings */
-    config_PutInt( "qt-menubar", ui.layoutGroup->checkedId() );
     config_PutInt( "qt-titlebar", ui.layoutGroup->checkedId() );
 
     config_PutInt( "qt-pin-controls", ui.layoutGroup->checkedId() );
@@ -325,7 +324,6 @@ void FirstRunWizard::reject()
     p_intf->p_mi->getColorScheme()->setCurrentIndex( 0 );
 
     /* Layout Page settings */
-    config_PutInt( "qt-menubar", 0 );
     config_PutInt( "qt-titlebar", 0 );
     p_intf->p_mi->setPinVideoControls( 0 );
 

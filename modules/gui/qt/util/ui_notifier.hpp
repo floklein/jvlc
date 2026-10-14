@@ -35,7 +35,8 @@ public:
         MinimalView,
         NothingToOpen,
         PlaylistAppended,
-        PlaylistExported
+        PlaylistExported,
+        Bookmark
     };
 
     Q_ENUM(ID)

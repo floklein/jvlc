@@ -242,35 +242,64 @@ void MLBookmarkModel::sort( int column, Qt::SortOrder order )
 
 void MLBookmarkModel::add()
 {
+    if (!m_player || !m_mediaLib)
+        return;
+
     vlc_tick_t currentTime;
+    QString mrl;
     {
         vlc_player_locker lock{ m_player };
         currentTime = vlc_player_GetTime( m_player );
+        input_item_t* media = vlc_player_GetCurrentMedia( m_player );
+        if (media)
+            mrl = qfu( media->psz_uri );
     }
 
-    if (m_currentMediaId == 0)
+    if (mrl.isEmpty() || currentTime == VLC_TICK_INVALID)
         return;
 
-    m_mediaLib->runOnMLThread(this,
+    struct Ctx {
+        QString name;
+    };
+    m_mediaLib->runOnMLThread<Ctx>(this,
     //ML thread
-    [mediaId = m_currentMediaId, currentTime, count = rowCount()](vlc_medialibrary_t* ml)
+    [mrl, currentTime](vlc_medialibrary_t* ml, Ctx& ctx)
     {
+        // media played from outside the library get an entry on their first bookmark
+        ml_unique_ptr<vlc_ml_media_t> media { vlc_ml_get_media_by_mrl( ml, qtu(mrl) ) };
+        if (!media)
+            media.reset( vlc_ml_new_external_media( ml, qtu(mrl) ) );
+        if (!media)
+            return;
+
         int64_t time = MS_FROM_VLC_TICK(currentTime);
 
-        vlc_ml_media_add_bookmark(ml, mediaId, time);
+        if (vlc_ml_media_add_bookmark(ml, media->i_id, time) != VLC_SUCCESS)
+            return;
 
-        ml_unique_ptr<vlc_ml_media_t> media { vlc_ml_get_media(ml, mediaId) };
-
-        if (media)
-        {
-            QString name = qtr("Bookmark at %1").arg(VLCDuration::fromMS( time ).formatHMS());
-
-            vlc_ml_media_update_bookmark(ml, mediaId, time, qtu(name), nullptr);
-        }
+        QString name = qtr("Bookmark at %1").arg(VLCDuration::fromMS( time ).formatHMS());
+        vlc_ml_media_update_bookmark(ml, media->i_id, time, qtu(name), nullptr);
+        ctx.name = name;
     },
     //UI thread
-    [this](){
-        refresh( MLBOOKMARKMODEL_REFRESH );
+    [this, mrl](quint64, Ctx& ctx){
+        if (ctx.name.isEmpty())
+            return;
+
+        // the media may just have entered the library
+        if (m_currentMediaId == 0)
+        {
+            uint64_t revision;
+            {
+                vlc::threads::mutex_locker lock{ m_mutex };
+                revision = m_revision;
+            }
+            updateMediaId(revision, mrl);
+        }
+        else
+            refresh( MLBOOKMARKMODEL_REFRESH );
+
+        emit added( ctx.name );
     });
 }
 

@@ -17,19 +17,12 @@
  *****************************************************************************/
 import QtQuick
 
+import VLC.MainInterface
 import VLC.MediaLibrary
 import VLC.Menus
-import VLC.Player
 
 Item {
-    // Ctrl+B adds a bookmark at the current time
-    MLBookmarkModel {
-        id: bookmarkModel
-        player: Player
-        ml: MediaLib
-    }
-
-    ShortcutExt{ sequence:"Ctrl+B"; onActivated: bookmarkModel.add() }
+    ShortcutExt{ sequence: MainCtx.actionSequence("add-bookmark"); onActivated: MainCtx.addBookmark() }
 
     MLRecentMediaModel {
         id: recentModel

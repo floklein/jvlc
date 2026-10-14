@@ -325,7 +325,6 @@ void MainUI::registerQMLTypes()
         qmlRegisterType<SortMenuVideo>( uri, versionMajor, versionMinor, "SortMenuVideo" );
         qmlRegisterType<SortMenuAlbums>( uri, versionMajor, versionMinor, "SortMenuAlbums" );
         qmlRegisterType<QmlGlobalMenu>( uri, versionMajor, versionMinor, "QmlGlobalMenu" );
-        qmlRegisterType<QmlMenuBar>( uri, versionMajor, versionMinor, "QmlMenuBar" );
 
         qmlRegisterModule(uri, versionMajor, versionMinor);
         qmlProtectModule(uri, versionMajor);

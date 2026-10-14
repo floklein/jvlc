@@ -325,6 +325,8 @@ libqt_plugin_la_SOURCES = \
 	util/varchoicemodel.cpp  util/varchoicemodel.hpp \
 	util/variables.cpp util/variables.hpp \
 	util/vlchotkeyconverter.cpp util/vlchotkeyconverter.hpp \
+	util/context_menu_key_filter.cpp util/context_menu_key_filter.hpp \
+	util/glyph_icon.cpp util/glyph_icon.hpp \
 	util/vlctick.cpp \
 	util/vlctick.hpp \
 	util/shared_input_item.hpp \
@@ -499,6 +501,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	util/dismiss_popup_event_filter.moc.cpp \
 	util/list_selection_model.moc.cpp \
 	util/vlchotkeyconverter.moc.cpp \
+	util/context_menu_key_filter.moc.cpp \
 	util/qsgtextureview.moc.cpp \
 	util/textureproviderobserver.moc.cpp \
 	util/kirigamiwheelhandler.moc.cpp \
@@ -1032,7 +1035,6 @@ libqml_module_maininterface_a_ModulePath = VLC/MainInterface
 libqml_module_maininterface_a_CXXFLAGS = $(libqt_plugin_la_CXXFLAGS)
 libqml_module_maininterface_a_CPPFLAGS = $(libqt_plugin_la_CPPFLAGS)
 libqml_module_maininterface_a_QML = \
-	maininterface/qml/MenuTopbar.qml \
 	maininterface/qml/LocalTopbar.qml \
 	maininterface/qml/MainInterface.qml \
 	maininterface/qml/MainViewLoader.qml \
@@ -1107,7 +1109,6 @@ libqml_module_menus_a_CXXFLAGS = $(libqt_plugin_la_CXXFLAGS)
 libqml_module_menus_a_CPPFLAGS = $(libqt_plugin_la_CPPFLAGS)
 libqml_module_menus_a_QML = \
 	menus/qml/GlobalShortcuts.qml \
-	menus/qml/Menubar.qml \
 	menus/qml/ShortcutExt.qml
 libqml_module_menus_a_Singleton_QML =
 libqml_module_menus_a_SOURCES = $(QML_MODULE_menus_SRC)
@@ -2016,6 +2017,27 @@ test_seek_thumbnailer_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_seek_thumbnailer_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_seek_thumbnailer
 TESTS += test_seek_thumbnailer
+
+# test_keys
+
+test_keys_SOURCES = \
+	tests/test_keys.cpp \
+	util/vlchotkeyconverter.cpp util/vlchotkeyconverter.hpp \
+	util/context_menu_key_filter.cpp util/context_menu_key_filter.hpp
+
+nodist_test_keys_SOURCES = \
+	tests/test_keys.moc \
+	util/vlchotkeyconverter.moc.cpp \
+	util/context_menu_key_filter.moc.cpp
+
+BUILT_SOURCES += tests/test_keys.moc
+CLEANFILES += tests/test_keys.moc
+test_keys_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_keys_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_keys_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_keys_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_keys
+TESTS += test_keys
 
 # test_vlc_dialog_model
 
