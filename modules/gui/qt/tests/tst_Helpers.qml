@@ -53,6 +53,27 @@ TestCase {
         compare(Helpers.accessibleName(data.name, data.shortcut), data.result)
     }
 
+    // The Top bar's title stays centered on the window, slides aside when it
+    // meets a side zone, then truncates: the side zones keep their room until
+    // the title has none left
+    function test_centeredSpan_data() {
+        return [
+            { tag: "centered", center: 500, width: 200, left: 100, right: 900, x: 400, spanWidth: 200 },
+            { tag: "slides right of the left zone", center: 250, width: 200, left: 200, right: 900, x: 200, spanWidth: 200 },
+            { tag: "slides left of the right zone", center: 850, width: 200, left: 100, right: 900, x: 700, spanWidth: 200 },
+            { tag: "truncates", center: 500, width: 300, left: 300, right: 500, x: 300, spanWidth: 200 },
+            { tag: "no room", center: 500, width: 300, left: 400, right: 400, x: 400, spanWidth: 0 },
+            // the side zones overlap: the left one gives way up to the right one
+            { tag: "sides overlap", center: 500, width: 300, left: 500, right: 300, x: 300, spanWidth: 0 },
+        ]
+    }
+
+    function test_centeredSpan(data) {
+        const span = Helpers.centeredSpan(data.center, data.width, data.left, data.right)
+        compare(span.x, data.x)
+        compare(span.width, data.spanWidth)
+    }
+
     // The speed field of the Playback tab accepts 0.25x to 4x
     function test_parseSpeed_data() {
         return [

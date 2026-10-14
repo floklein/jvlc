@@ -19,6 +19,7 @@ import QtQuick
 import QtQuick.Layouts
 
 import VLC.MainInterface
+import VLC.Util
 
 Repeater {
     id: repeater
@@ -27,6 +28,49 @@ Repeater {
 
     property real availableWidth: Number.MAX_VALUE
     property real availableHeight: Number.MAX_VALUE
+
+    // how far the bar folds in a narrow window (ControlBarFolding.Level). The
+    // controls that fold read it (foldLevel) or fold away at their foldStep.
+    property int foldLevel: ControlBarFolding.Full
+
+    // for each control, its width at each fold level (see ControlBarFolding)
+    readonly property var foldWidths: {
+        const widths = []
+        for (let i = 0; i < count; ++i) {
+            const loader = itemAt(i)
+            const item = loader?.item
+            if (!item)
+                continue
+
+            if (item.foldWidths !== undefined) {
+                widths.push(item.foldWidths)
+                continue
+            }
+
+            const width = Math.max(loader.Layout.minimumWidth, 0)
+            const foldStep = item.foldStep ?? 0
+            if (foldStep > 0) {
+                const steps = []
+                for (let level = 0; level <= ControlBarFolding.TracksFolded; ++level)
+                    steps.push(level >= foldStep ? 0 : width)
+                widths.push(steps)
+            } else {
+                widths.push(width)
+            }
+        }
+        return widths
+    }
+
+    // the ids of the controls folded away, which the VLC menu shows instead
+    readonly property var foldedControls: {
+        const controls = []
+        for (let i = 0; i < count; ++i) {
+            const loader = itemAt(i)
+            if (loader?.folded)
+                controls.push(loader.controlId)
+        }
+        return controls
+    }
 
     signal requestLockUnlockAutoHide(bool lock)
     signal menuOpened(var menu)
@@ -52,11 +96,26 @@ Repeater {
 
         source: PlayerControlbarControls.control(model.id).source
 
+        readonly property int controlId: model.id
+
+        // folded into the VLC menu in a narrow window
+        readonly property bool folded: !!item && ((item.foldStep ?? 0) > 0)
+                                       && (repeater.foldLevel >= item.foldStep)
+
+        // whether the control fits in what is left of the bar, when even
+        // folding could not make room (an unusual Layout in a narrow window)
+        property bool fits: true
+
+        visible: !folded && fits
+
         focus: (index === 0)
 
         Layout.fillWidth: (item && item.Layout.minimumWidth > 0)
         Layout.minimumWidth: Layout.fillWidth ? item.Layout.minimumWidth : (item ? item.implicitWidth : -1)
         Layout.maximumWidth: Layout.fillWidth ? (item ? item.implicitWidth : -1) : -1
+        // a control that only takes the room the others leave (the title)
+        // prefers its minimum width
+        Layout.preferredWidth: (Layout.fillWidth && item.Layout.preferredWidth >= 0) ? item.Layout.preferredWidth : -1
 
         Layout.minimumHeight: 0
         Layout.maximumHeight: Math.min((item && item.implicitHeight <= 0) ? Number.MAX_VALUE : item.implicitHeight, repeater.availableHeight)
@@ -64,7 +123,7 @@ Repeater {
 
         Layout.alignment: repeater.alignment
 
-        Binding on visible {
+        Binding on fits {
             delayed: true // this is important
             when: condition
             value: {
@@ -104,6 +163,18 @@ Repeater {
                 item.activeFocusOnTab = true
 
             item.visible = Qt.binding(function() { return loader.visible })
+
+            if (item.foldLevel !== undefined)
+                item.foldLevel = Qt.binding(function() { return repeater.foldLevel })
+
+            // a divider separates nothing once what follows it is hidden
+            if (item.separating !== undefined) {
+                item.separating = Qt.binding(function() {
+                    void repeater.count
+                    const next = repeater.itemAt(index + 1)
+                    return !!next && next.visible
+                })
+            }
 
             if (item.requestLockUnlockAutoHide)
                 item.requestLockUnlockAutoHide.connect(repeater.requestLockUnlockAutoHide)

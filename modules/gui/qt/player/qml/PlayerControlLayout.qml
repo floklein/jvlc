@@ -24,6 +24,7 @@ import VLC.MainInterface
 import VLC.Style
 import VLC.Widgets as Widgets
 import VLC.PlayerControls
+import VLC.Util
 
 FocusScope {
     id: playerControlLayout
@@ -35,6 +36,26 @@ FocusScope {
     property real layoutSpacing: VLCStyle.margin_xxlarge // spacing between layouts (left, center, and right)
 
     property int identifier: -1
+
+    // In a narrow window, fold less important controls in a decided order:
+    // the duration, the current time, the volume cone (down to the speaker),
+    // then audio, subtitles and adjustments into the VLC menu. Only the
+    // Control bar folds, as only it has a VLC menu to fold into.
+    property bool folding: false
+
+    readonly property int foldLevel: folding ? barFolding.level : ControlBarFolding.Full
+
+    // the ids of the controls folded into the VLC menu
+    readonly property var foldedControls: {
+        if (!folding)
+            return []
+        if (loaderLeftRight.active)
+            return loaderLeftRight.item?.foldedControls ?? []
+        return [loaderLeft, loaderCenter, loaderRight].reduce((controls, loader) => {
+            return (loader.active && loader.item) ? controls.concat(loader.item.foldedControls)
+                                                  : controls
+        }, [])
+    }
 
     // the zones of the Top bar instead of the Control bar
     property bool topBar: false
@@ -77,8 +98,25 @@ FocusScope {
     // When the center zone holds an item that stretches (the inline seek bar),
     // the left and right zones keep their natural width and the center zone
     // takes the rest, instead of being centered.
-    readonly property bool _centerExpands: !loaderLeftRight.active
+    readonly property bool _centerExpands: !loaderLeftRight.active && !topBar
                                            && (loaderCenter.item?.expanding ?? false)
+
+    // The Top bar's center zone (the title) stays centered on the window,
+    // slides aside when it meets a side zone, then truncates: the side zones
+    // keep their full width until the center has no room left.
+    readonly property var _topBarCenterSpan: {
+        const sideRoom = (loader) => {
+            if (!loader.active || !loader.item)
+                return 0
+            // the zone's controls, its padding filler and the margin
+            return loader.item.Layout.maximumWidth + layoutSpacing - spacing
+        }
+
+        return Helpers.centeredSpan(width / 2 + centerOffset,
+                                    loaderCenter.item?.Layout.maximumWidth ?? 0,
+                                    sideRoom(loaderLeft),
+                                    width - sideRoom(loaderRight))
+    }
 
     states: State {
         name: "centerExpands"
@@ -117,6 +155,32 @@ FocusScope {
 
     // Children
 
+    ControlBarFolding {
+        id: barFolding
+
+        availableWidth: playerControlLayout.width
+
+        spacing: playerControlLayout.spacing
+
+        // the left and right zones only: the filler between them sits
+        // between two spacings
+        zoneSpacing: loaderLeftRight.active ? playerControlLayout.layoutSpacing + 2 * playerControlLayout.spacing
+                                            : playerControlLayout.layoutSpacing
+
+        // a center zone that doesn't stretch stays centered on the bar
+        centered: !loaderLeftRight.active && !playerControlLayout._centerExpands
+
+        zones: {
+            if (!playerControlLayout.folding)
+                return []
+            if (loaderLeftRight.active)
+                return loaderLeftRight.item?.foldZones ?? []
+            return [loaderLeft, loaderCenter, loaderRight].map((loader) => {
+                return (loader.active && loader.item) ? loader.item.foldWidths : []
+            })
+        }
+    }
+
     Loader {
         id: loaderLeftRight
 
@@ -131,6 +195,9 @@ FocusScope {
 
         sourceComponent: RowLayout {
             spacing: playerControlLayout.spacing
+
+            readonly property var foldZones: [leftRepeater.foldWidths, rightRepeater.foldWidths]
+            readonly property var foldedControls: leftRepeater.foldedControls.concat(rightRepeater.foldedControls)
 
             focus: true
 
@@ -157,6 +224,8 @@ FocusScope {
 
                 availableWidth: loaderLeftRight.width
                 availableHeight: loaderLeftRight.height
+
+                foldLevel: playerControlLayout.foldLevel
 
                 Component.onCompleted: {
                     requestLockUnlockAutoHide.connect(playerControlLayout.requestLockUnlockAutoHide)
@@ -205,6 +274,8 @@ FocusScope {
                 availableWidth: loaderLeftRight.width
                 availableHeight: loaderLeftRight.height
 
+                foldLevel: playerControlLayout.foldLevel
+
                 Component.onCompleted: {
                     requestLockUnlockAutoHide.connect(playerControlLayout.requestLockUnlockAutoHide)
                     menuOpened.connect(playerControlLayout.menuOpened)
@@ -248,6 +319,8 @@ FocusScope {
 
             spacing: playerControlLayout.spacing
 
+            foldLevel: playerControlLayout.foldLevel
+
             focus: true
 
             altFocusAction: () => Navigation.defaultNavigationRight()
@@ -268,7 +341,12 @@ FocusScope {
 
         anchors {
             horizontalCenter: parent.horizontalCenter
-            horizontalCenterOffset: playerControlLayout.centerOffset
+            horizontalCenterOffset: {
+                if (!playerControlLayout.topBar)
+                    return playerControlLayout.centerOffset
+                const span = playerControlLayout._topBarCenterSpan
+                return span.x + span.width / 2 - playerControlLayout.width / 2
+            }
             top: parent.top
             bottom: parent.bottom
         }
@@ -280,6 +358,9 @@ FocusScope {
             delayed: true
             when: loaderCenter._componentCompleted && !playerControlLayout._centerExpands
             value: {
+                if (playerControlLayout.topBar)
+                    return playerControlLayout._topBarCenterSpan.width
+
                 const item = loaderCenter.item
 
                 const minimumWidth = (item && item.Layout.minimumWidth > 0) ? item.Layout.minimumWidth : implicitWidth
@@ -312,6 +393,8 @@ FocusScope {
             focus: true
 
             spacing: playerControlLayout.spacing
+
+            foldLevel: playerControlLayout.foldLevel
 
             altFocusAction: () => Navigation.defaultNavigationUp()
 
@@ -356,6 +439,8 @@ FocusScope {
             alignment: (Qt.AlignVCenter | Qt.AlignRight)
 
             spacing: playerControlLayout.spacing
+
+            foldLevel: playerControlLayout.foldLevel
 
             focus: true
 

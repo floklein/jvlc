@@ -17,6 +17,7 @@
  *****************************************************************************/
 import QtQuick
 import QtQuick.Templates as T
+import QtQuick.Layouts
 
 import VLC.MainInterface
 import VLC.Style
@@ -40,6 +41,14 @@ Item {
     enabled: false
 
     implicitWidth: Math.min(Math.ceil(metrics.advanceWidth), VLCStyle.dp(400, VLCStyle.scale))
+
+    // In a narrow window the title truncates first: it takes the room the
+    // other controls leave, and hides below a few characters. It folds
+    // nothing, so the bar counts it at its minimum.
+    readonly property real _minimumWidth: Math.min(implicitWidth, VLCStyle.dp(32, VLCStyle.scale))
+
+    Layout.minimumWidth: paintOnly ? -1 : _minimumWidth
+    Layout.preferredWidth: paintOnly ? -1 : _minimumWidth
     implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
 
     Accessible.role: Accessible.TitleBar

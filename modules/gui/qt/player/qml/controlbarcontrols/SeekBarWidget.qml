@@ -44,10 +44,22 @@ FocusScope {
     readonly property real _timeWidth: VLCStyle.dp(76, VLCStyle.scale)
     readonly property real _minimumBarWidth: VLCStyle.dp(64, VLCStyle.scale)
 
+    // how far the Control bar folds (ControlBarFolding.Level)
+    property int foldLevel: ControlBarFolding.Full
+
+    // the room the seek bar needs at each fold level
+    readonly property var foldWidths: [
+        _minimumBarWidth + (_timeWidth + spacing) * 2,
+        _minimumBarWidth + _timeWidth + spacing,
+        _minimumBarWidth
+    ]
+
     // in a narrow window the seek bar stays: the duration goes first, then
     // the current time
-    readonly property bool _showDuration: width >= (_timeWidth + spacing) * 2 + _minimumBarWidth
-    readonly property bool _showTime: width >= _timeWidth + spacing + _minimumBarWidth
+    readonly property bool _showDuration: foldLevel < ControlBarFolding.NoDuration
+                                          && width >= (_timeWidth + spacing) * 2 + _minimumBarWidth
+    readonly property bool _showTime: foldLevel < ControlBarFolding.NoTime
+                                      && width >= _timeWidth + spacing + _minimumBarWidth
 
     readonly property ColorContext colorContext: ColorContext {
         id: theme

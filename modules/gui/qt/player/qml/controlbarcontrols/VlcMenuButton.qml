@@ -48,12 +48,28 @@ Widgets.IconToolButton {
         vlcMenu.close()
     }
 
+    // the player, whose Control bar folds controls into this menu in a
+    // narrow window
+    readonly property var _player: ((typeof rootPlayer !== 'undefined') && (rootPlayer !== null))
+                                   ? rootPlayer
+                                   : null
+
     Menus.QmlGlobalMenu {
         id: vlcMenu
 
         ctx: MainCtx
 
+        // the folded controls come first
+        foldedControls: root.paintOnly ? [] : (root._player?.foldedControls ?? [])
+
         onAboutToShow: root.requestLockUnlockAutoHide(true)
         onAboutToHide: root.requestLockUnlockAutoHide(false)
+
+        // after the menu closed, so that what it opens isn't closed by the
+        // click that picked it
+        onFoldedControlTriggered: (control) => {
+            if (root._player)
+                Qt.callLater(root._player.triggerFoldedControl, control)
+        }
     }
 }

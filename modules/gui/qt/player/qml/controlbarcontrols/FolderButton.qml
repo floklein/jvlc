@@ -42,6 +42,12 @@ T.Button {
                             VLCStyle.dp(240, VLCStyle.scale))
     implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
 
+    // In a narrow window the folder name truncates once the title is gone
+    // (and in the Control bar, once the controls have folded), then the
+    // button hides. The bar counts it at its full width.
+    Layout.minimumWidth: paintOnly ? -1 : Math.min(implicitWidth, VLCStyle.dp(80, VLCStyle.scale))
+    readonly property var foldWidths: [implicitWidth]
+
     // an empty folder button takes no room
     visible: folderName !== ""
 

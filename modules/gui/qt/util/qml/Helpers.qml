@@ -85,6 +85,17 @@ QtObject {
         return qsTr("%1, %2").arg(name).arg(shortcut)
     }
 
+    // Where an item of a given width goes, centered on `center`, between a
+    // left and a right limit: it slides aside rather than cross a limit, then
+    // shrinks, down to nothing. When the limits cross, it sits at the right
+    // one, so that what is on the left can only use the room up to there.
+    // Returns {x, width}.
+    function centeredSpan(center: real, width: real, left: real, right: real) : var {
+        const spanWidth = Math.max(0, Math.min(width, right - left))
+        const x = Math.min(Math.max(center - spanWidth / 2, left), right - spanWidth)
+        return { x: x, width: spanWidth }
+    }
+
     function pointInRadius(x: real, y: real, radius: real) : bool {
          return (x * x + y * y < radius * radius)
     }

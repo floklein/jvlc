@@ -244,6 +244,9 @@ void QmlGlobalMenu::popup(QPoint pos)
         aboutToHide();
     });
 
+    FoldedEntries( p_intf, m_menu.get(), m_foldedControls,
+                   [this]( int control ) { emit foldedControlTriggered( control ); } );
+
     VLCMenuEntries( p_intf, m_menu.get() );
 
     m_menu->popup(pos);

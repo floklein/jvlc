@@ -37,6 +37,105 @@ T.Pane {
     // the cone works in percent
     readonly property int _maxvol: MainCtx.maxVolume
 
+    // how far the Control bar folds (ControlBarFolding.Level): in a narrow
+    // window the cone collapses to the speaker, and pops up over it
+    property int foldLevel: ControlBarFolding.Full
+
+    readonly property bool compact: !paintOnly && (foldLevel >= ControlBarFolding.CompactVolume)
+
+    readonly property real _compactWidth: leftPadding + rightPadding + volumeBtn.implicitWidth
+    readonly property real _fullWidth: _compactWidth + volumeWidget.spacing + volControl.implicitWidth
+
+    // the room the widget needs at each fold level
+    readonly property var foldWidths: [_fullWidth, _fullWidth, _fullWidth, _compactWidth]
+
+    // the pop-up cone shows while the pointer or the focus is on the speaker
+    // or on the cone
+    readonly property bool _popupWanted: compact && (volumeBtn.hovered || volumeBtn.visualFocus
+                                                     || popupHover.hovered || volControl.pressed
+                                                     || volControl.activeFocus)
+
+    signal requestLockUnlockAutoHide(bool lock)
+
+    on_PopupWantedChanged: {
+        if (_popupWanted) {
+            popupHideTimer.stop()
+            volumePopup.open()
+        } else if (!compact) {
+            popupHideTimer.stop()
+            volumePopup.close()
+        } else {
+            popupHideTimer.restart()
+        }
+    }
+
+    states: State {
+        name: "compact"
+        when: root.compact
+
+        ParentChange {
+            target: volControl
+            parent: popupContent
+            x: 0
+            y: 0
+        }
+    }
+
+    Timer {
+        id: popupHideTimer
+
+        interval: 300
+        onTriggered: volumePopup.close()
+    }
+
+    T.Popup {
+        id: volumePopup
+
+        parent: volumeBtn
+
+        // centered over the speaker
+        x: (parent.width - width) / 2
+        y: -height - VLCStyle.margin_xsmall
+
+        padding: VLCStyle.margin_xsmall
+
+        implicitWidth: implicitContentWidth + leftPadding + rightPadding
+        implicitHeight: implicitContentHeight + topPadding + bottomPadding
+
+        modal: false
+        focus: false
+        closePolicy: T.Popup.CloseOnEscape
+
+        onOpened: root.requestLockUnlockAutoHide(true)
+        onClosed: root.requestLockUnlockAutoHide(false)
+
+        // a popup is not in the item tree: it takes the palette of the bar
+        readonly property ColorContext colorContext: ColorContext {
+            id: popupTheme
+
+            palette: volControl.colorContext.palette
+            colorSet: ColorContext.Window
+        }
+
+        // the bar's own color, around the cone's track
+        background: Rectangle {
+            color: popupTheme.bg.primary
+            radius: VLCStyle.radius_large
+            border.color: popupTheme.border
+        }
+
+        contentItem: Item {
+            id: popupContent
+
+            implicitWidth: volControl.implicitWidth
+            implicitHeight: volControl.implicitHeight
+
+            HoverHandler {
+                id: popupHover
+            }
+        }
+    }
+
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
                             implicitContentWidth + leftPadding + rightPadding)
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
@@ -89,7 +188,26 @@ T.Pane {
             }
 
             Navigation.parentItem: root
-            Navigation.rightItem: volControl
+            Navigation.rightItem: root.compact ? null : volControl
+
+            // without the cone beside it, the arrows change the volume
+            Keys.onUpPressed: (event) => {
+                if (!root.compact) {
+                    event.accepted = false
+                    return
+                }
+                Player.muted = false
+                Player.setVolumeUp()
+            }
+
+            Keys.onDownPressed: (event) => {
+                if (!root.compact) {
+                    event.accepted = false
+                    return
+                }
+                Player.muted = false
+                Player.setVolumeDown()
+            }
         }
 
         Widgets.SliderExt {

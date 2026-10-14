@@ -31,6 +31,8 @@
 
 #include <QObject>
 
+#include <functional>
+
 class VLCMenu : public QMenu
 {
     Q_OBJECT
@@ -73,6 +75,11 @@ public:
 
     /* The VLC menu: opening media, media tools, customization and the app */
     static void VLCMenuEntries( qt_intf_t *, QMenu * );
+
+    /* The Control bar's controls folded in a narrow window (ControlListModel
+     * ids), at the top of the VLC menu: trigger runs the picked one */
+    static void FoldedEntries( qt_intf_t *, QMenu *, const QList<int> &folded,
+                               const std::function<void(int)> &trigger );
 
     static void OpenEntries( qt_intf_t *, QMenu *, bool icons );
 

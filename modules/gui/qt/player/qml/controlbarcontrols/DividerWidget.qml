@@ -25,6 +25,11 @@ Item {
 
     property bool paintOnly: false
 
+    // whether a control follows it: before nothing (the folder button hidden
+    // in a narrow window) it draws no line, but keeps its room so that the
+    // controls around it don't move
+    property bool separating: true
+
     // not focusable: the Control bar gives focus to enabled items
     enabled: false
 
@@ -43,5 +48,7 @@ Item {
         height: VLCStyle.dp(16, VLCStyle.scale)
 
         color: theme.separator
+
+        visible: root.separating || root.paintOnly
     }
 }

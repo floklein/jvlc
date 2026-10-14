@@ -870,6 +870,7 @@ qml_modules += {
         'util/qml/FSM.qml',
         'util/qml/FSMState.qml',
         'util/qml/TrackMenuFSM.qml',
+        'util/qml/ControlBarFolding.qml',
         'util/qml/RightPanelFSM.qml',
         'util/qml/GridSizeHelper.qml',
         'util/qml/NativeMenu.qml',
@@ -992,6 +993,7 @@ qml_tests = {
     'tst_ClickGesture': files('tests/tst_ClickGesture.qml'),
     'tst_TimedPrompt': files('tests/tst_TimedPrompt.qml'),
     'tst_BarRevealFSM': files('tests/tst_BarRevealFSM.qml'),
+    'tst_ControlBarFolding': files('tests/tst_ControlBarFolding.qml'),
     'tst_RightPanelFSM': files('tests/tst_RightPanelFSM.qml'),
 }
 

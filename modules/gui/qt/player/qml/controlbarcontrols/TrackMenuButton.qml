@@ -34,6 +34,9 @@ Widgets.IconToolButton {
     required property string glyph
     required property string activeGlyph
 
+    // folds into the VLC menu in a narrow window
+    readonly property int foldStep: ControlBarFolding.TracksFolded
+
     readonly property var _trackMenu: ((typeof rootPlayer !== 'undefined') && (rootPlayer !== null))
                                       ? rootPlayer.trackMenu
                                       : null

@@ -147,6 +147,9 @@ class QmlGlobalMenu : public VLCMenuBar
     SIMPLE_MENU_PROPERTY(MainCtx*, ctx, nullptr)
 
     Q_PROPERTY(bool shown READ isShown NOTIFY shownChanged FINAL)
+    // the Control bar's controls folded in a narrow window (ControlListModel
+    // ids), shown at the top of the menu
+    SIMPLE_MENU_PROPERTY(QList<int>, foldedControls, {})
 
 public:
     explicit QmlGlobalMenu(QObject *parent = nullptr);
@@ -157,6 +160,8 @@ signals:
     void aboutToShow();
     void aboutToHide();
     void shownChanged();
+    // a folded control was picked: the player runs it as its button would
+    void foldedControlTriggered(int control);
 
 public slots:
     void popup( QPoint pos );

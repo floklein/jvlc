@@ -37,6 +37,7 @@
 #include "maininterface/mainctx_submodels.hpp"
 #include "dialogs/dialogs_provider.hpp"                   /* Dialogs display */
 #include "player/player_controller.hpp"                      /* Input Management */
+#include "player/control_list_model.hpp"                  /* Folded controls */
 #include "player/waveform.hpp"                               /* Show waveform */
 #include "playlist/playlist_controller.hpp"
 #include "dialogs/extensions/extensions_manager.hpp"                 /* Extensions menu */
@@ -266,6 +267,48 @@ void VLCMenuBar::VLCMenuEntries( qt_intf_t *p_intf, QMenu *menu )
                        []() { THEDP->quit(); } );
     action->setMenuRole( QAction::QuitRole );
     setIcon( action, menu, VLCIcons::quit_tt_base, VLCIcons::quit_tt_accent );
+}
+
+/**
+ * The Control bar's controls folded in a narrow window: audio, subtitles and
+ * adjustments, in the order of the Control bar, then a separator
+ **/
+void VLCMenuBar::FoldedEntries( qt_intf_t *p_intf, QMenu *menu, const QList<int> &folded,
+                                const std::function<void(int)> &trigger )
+{
+    struct Entry
+    {
+        int control;
+        const char *text;
+        const char *keyAction;
+        QChar base;
+        QChar accent;
+    };
+
+    static const Entry entries[] = {
+        { ControlListModel::AUDIO_BUTTON, N_( "&Audio" ), "audio-track",
+          VLCIcons::audio_tt_base, VLCIcons::audio_tt_accent },
+        { ControlListModel::SUBTITLES_BUTTON, N_( "Su&btitles" ), "subtitle-track",
+          VLCIcons::subtitle_tt_base, VLCIcons::subtitle_tt_accent },
+        { ControlListModel::EXTENDED_BUTTON, N_( "Ad&justments" ), "adjustments",
+          VLCIcons::settings_tt_base, VLCIcons::settings_tt_accent },
+    };
+
+    bool added = false;
+    for( const Entry &entry : entries )
+    {
+        if( !folded.contains( entry.control ) )
+            continue;
+
+        const int control = entry.control;
+        QAction *action = addEntry( p_intf, menu, qtr( entry.text ), entry.keyAction,
+                                    [trigger, control]() { trigger( control ); } );
+        setIcon( action, menu, entry.base, entry.accent );
+        added = true;
+    }
+
+    if( added )
+        menu->addSeparator();
 }
 
 /**

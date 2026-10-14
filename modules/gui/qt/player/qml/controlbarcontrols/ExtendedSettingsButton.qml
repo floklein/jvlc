@@ -28,6 +28,9 @@ import VLC.Util
 Widgets.IconToolButton {
     id: extdSettingsBtn
 
+    // folds into the VLC menu in a narrow window
+    readonly property int foldStep: ControlBarFolding.TracksFolded
+
     text: VLCIcons.settings
 
     description: qsTr("Adjustments")

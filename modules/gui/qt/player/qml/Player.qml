@@ -43,6 +43,25 @@ FocusScope {
     // the Track menu, opened by the buttons of the Control bar
     readonly property alias trackMenu: trackMenu
 
+    // the controls the Control bar folded in a narrow window (ControlListModel
+    // ids): the VLC menu shows them at its top
+    readonly property var foldedControls: controlBar.foldedControls
+
+    // a folded control picked in the VLC menu does what its button does
+    function triggerFoldedControl(control) {
+        switch (control) {
+        case ControlListModel.AUDIO_BUTTON:
+            trackMenu.openOnTab(TrackMenuFSM.Audio)
+            break
+        case ControlListModel.SUBTITLES_BUTTON:
+            trackMenu.openOnTab(TrackMenuFSM.Subtitles)
+            break
+        case ControlListModel.EXTENDED_BUTTON:
+            MainCtx.toggleAdjustments()
+            break
+        }
+    }
+
     readonly property string coverSource: {
         if (Player.artwork &&
             Player.artwork.toString())
@@ -1494,6 +1513,9 @@ FocusScope {
         hoverEnabled: true
 
         focus: true
+
+        // audio, subtitles and adjustments fold into the Top bar's VLC menu
+        folding: true
 
         // the Two-row Layout puts the seek bar on its own row
         seekBarOwnRow: true

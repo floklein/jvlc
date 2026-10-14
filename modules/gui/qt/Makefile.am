@@ -1295,6 +1295,7 @@ libqml_module_util_a_QML = \
 	util/qml/FSM.qml \
 	util/qml/FSMState.qml \
 	util/qml/TrackMenuFSM.qml \
+	util/qml/ControlBarFolding.qml \
 	util/qml/RightPanelFSM.qml \
 	util/qml/NativeMenu.qml \
 	util/qml/FadeControllerStateGroup.qml \
@@ -2607,6 +2608,8 @@ EXTRA_DIST += tests/tst_TimedPrompt.qml
 TESTS += tests/tst_TimedPrompt.qml
 EXTRA_DIST += tests/tst_BarRevealFSM.qml
 TESTS += tests/tst_BarRevealFSM.qml
+EXTRA_DIST += tests/tst_ControlBarFolding.qml
+TESTS += tests/tst_ControlBarFolding.qml
 EXTRA_DIST += tests/tst_RightPanelFSM.qml
 TESTS += tests/tst_RightPanelFSM.qml
 endif

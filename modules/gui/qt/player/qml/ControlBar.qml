@@ -69,6 +69,13 @@ T.Pane {
 
     property var menu: undefined
 
+    // fold controls into the VLC menu in a narrow window (the player's
+    // Control bar, which has a Top bar with the VLC menu)
+    property bool folding: false
+
+    // the ids of the controls folded into the VLC menu in a narrow window
+    readonly property var foldedControls: contentItem.playerControlLayout.foldedControls
+
     signal requestLockUnlockAutoHide(bool lock)
 
     ///incomming signal to request all menu and popup to close
@@ -411,6 +418,8 @@ T.Pane {
                 Layout.fillHeight: true
 
                 identifier: root.identifier
+
+                folding: root.folding
 
                 // Figma 491:1779: one 32 px row, 8 px between items, 20 px between zones
                 spacing: root._redesignRows ? VLCStyle.spacing_8 : VLCStyle.margin_normal

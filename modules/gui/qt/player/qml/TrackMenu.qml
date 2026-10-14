@@ -80,6 +80,14 @@ T.Popup {
         fsm.buttonClicked(tab)
     }
 
+    // the VLC menu opens it when the audio and subtitles buttons are folded
+    function openOnTab(tab) {
+        if (fsm.opened)
+            fsm.selectTab(tab)
+        else
+            fsm.buttonClicked(tab)
+    }
+
     // Events
 
     // the devices plugged in since the last time

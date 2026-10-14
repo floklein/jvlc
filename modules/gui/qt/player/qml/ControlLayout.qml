@@ -40,21 +40,26 @@ FocusScope {
         delayed: true
         when: controlLayout._componentCompleted
         value: {
-            const count = repeater.count
-
-            if (count === 0)
-                return 0
-
+            // the controls folded into the VLC menu take no room
+            let count = 0
             let size = 0
 
-            for (let i = 0; i < count; ++i) {
+            for (let i = 0; i < repeater.count; ++i) {
                 const item = repeater.itemAt(i)
+
+                if (item.folded)
+                    continue
+
+                ++count
 
                 if (item.Layout.minimumWidth < 0)
                     size += item.implicitWidth
                 else
                     size += item.Layout.minimumWidth
             }
+
+            if (count === 0)
+                return 0
 
             return size + ((count - 1 + ((controlLayout.alignment & (Qt.AlignLeft | Qt.AlignRight)) ? 1 : 0)) * playerControlLayout.spacing)
         }
@@ -65,10 +70,15 @@ FocusScope {
         when: controlLayout._componentCompleted
         value: {
             let maximumWidth = 0
-            const count = repeater.count
+            let count = 0
 
-            for (let i = 0; i < count; ++i) {
+            for (let i = 0; i < repeater.count; ++i) {
                 const item = repeater.itemAt(i)
+
+                if (item.folded)
+                    continue
+
+                ++count
                 maximumWidth += item.implicitWidth
             }
 
@@ -79,6 +89,11 @@ FocusScope {
     }
 
     property alias alignment: repeater.alignment
+
+    // narrow-window folding, see ControlRepeater
+    property alias foldLevel: repeater.foldLevel
+    readonly property alias foldWidths: repeater.foldWidths
+    readonly property alias foldedControls: repeater.foldedControls
 
     // whether an item stretches to fill the zone, like the inline seek bar
     readonly property bool expanding: {
