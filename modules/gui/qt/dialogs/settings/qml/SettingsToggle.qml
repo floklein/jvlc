@@ -37,6 +37,8 @@ T.AbstractButton {
     Accessible.checkable: true
     Accessible.checked: control.checked
     Accessible.onPressAction: control.clicked()
+    // UI Automation toggles a check box rather than pressing it
+    Accessible.onToggleAction: control.clicked()
 
     Keys.priority: Keys.AfterItem
     Keys.onPressed: (event) => Navigation.defaultKeyAction(event)

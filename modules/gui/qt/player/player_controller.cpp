@@ -25,6 +25,8 @@
 #include "player_controller_p.hpp"
 #include "util/shared_input_item.hpp"
 #include "player/waveform.hpp"
+#include "player/sleep_timer.hpp"
+#include "player/playback_statistics.hpp"
 
 #include <vlc_actions.h>           /* ACTION_ID */
 #include <vlc_url.h>            /* vlc_uri_decode */
@@ -35,6 +37,7 @@
 #include <vlc_vout.h>
 #include <vlc_preparser.h>
 #include <vlc_media_library.h>
+#include <vlc_playlist.h>
 
 #include <QFile>
 #include <QDir>
@@ -1292,6 +1295,41 @@ PlayerController::PlayerController( qt_intf_t *_p_intf )
     };
     connect( this, &PlayerController::inputChanged, this, updateWaveformMedia );
     connect( &d_ptr->m_videoTracks, &TrackListModel::countChanged, this, updateWaveformMedia );
+
+    // The statistics overlay
+    d_ptr->m_statistics = new PlaybackStatistics( this );
+    connect( this, &PlayerController::statisticsUpdated,
+             d_ptr->m_statistics, &PlaybackStatistics::update );
+    connect( this, &PlayerController::inputChanged,
+             d_ptr->m_statistics, &PlaybackStatistics::reset );
+
+    // The sleep timer: it pauses after a duration; at the end of an item,
+    // the player pauses by itself on the last frame
+    d_ptr->m_sleepTimer = new SleepTimer( this );
+    connect( d_ptr->m_sleepTimer, &SleepTimer::pauseRequested, this, [this]() {
+        Q_D(PlayerController);
+        vlc_player_locker lock{ d->m_player };
+        vlc_player_Pause( d->m_player );
+    } );
+    connect( d_ptr->m_sleepTimer, &SleepTimer::pauseAtEndOfItemChanged, this, [this]() {
+        Q_D(PlayerController);
+        vlc_player_locker lock{ d->m_player };
+        vlc_player_SetPlayAndPause( d->m_player, d->m_sleepTimer->pauseAtEndOfItem() );
+    } );
+    const auto updateSleepTimerItem = [this]() {
+        Q_D(PlayerController);
+        qint64 left = -1;
+        if ( d->m_remainingTime.valid() && d->m_rate > 0.f )
+            left = d->m_remainingTime.asMilliseconds() / d->m_rate;
+        d->m_sleepTimer->setItemTimeLeft( left );
+    };
+    connect( this, &PlayerController::remainingTimeChanged, this, updateSleepTimerItem );
+    connect( this, &PlayerController::rateChanged, this, updateSleepTimerItem );
+    connect( this, &PlayerController::rateChanged, this, &PlayerController::updateSleepTimerQueue );
+    connect( this, &PlayerController::playingStateChanged, this, [this]( PlayingState state ) {
+        Q_D(PlayerController);
+        d->m_sleepTimer->setPaused( state == PLAYING_STATE_PAUSED );
+    } );
 }
 
 PlayerController::~PlayerController()
@@ -2327,6 +2365,55 @@ SeekWaveform* PlayerController::getWaveform()
 {
     Q_D(PlayerController);
     return d->m_waveform;
+}
+
+SleepTimer* PlayerController::getSleepTimer()
+{
+    Q_D(PlayerController);
+    return d->m_sleepTimer;
+}
+
+PlaybackStatistics* PlayerController::getStatistics()
+{
+    Q_D(PlayerController);
+    return d->m_statistics;
+}
+
+void PlayerController::updateSleepTimerQueue()
+{
+    Q_D(PlayerController);
+
+    vlc_playlist_t *playlist = d->p_intf->p_playlist;
+    if ( !playlist )
+        return;
+
+    bool last = false;
+    qint64 queueLeft = 0;
+    vlc_playlist_Lock( playlist );
+    {
+        const ssize_t current = vlc_playlist_GetCurrentIndex( playlist );
+        const size_t count = vlc_playlist_Count( playlist );
+        /* in Queue order; with "repeat all" the Queue never ends, the timer
+         * still pauses at its last item */
+        last = current >= 0 && static_cast<size_t>( current ) + 1 >= count;
+        for ( size_t i = current + 1; current >= 0 && i < count; ++i )
+        {
+            input_item_t *media = vlc_playlist_item_GetMedia( vlc_playlist_Get( playlist, i ) );
+            const vlc_tick_t duration = input_item_GetDuration( media );
+            if ( duration == INPUT_DURATION_UNSET || duration == INPUT_DURATION_INDEFINITE )
+            {
+                queueLeft = -1;
+                break;
+            }
+            queueLeft += MS_FROM_VLC_TICK( duration );
+        }
+    }
+    vlc_playlist_Unlock( playlist );
+    if ( queueLeft > 0 && d->m_rate > 0.f )
+        queueLeft /= d->m_rate;
+
+    d->m_sleepTimer->setLastItem( last );
+    d->m_sleepTimer->setQueueTimeLeft( queueLeft );
 }
 
 #undef QABSTRACTLIST_GETTER

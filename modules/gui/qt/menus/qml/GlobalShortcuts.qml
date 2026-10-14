@@ -42,7 +42,7 @@ Item {
     ShortcutExt{ sequence: root.sequence("convert"); onActivated: DialogsProvider.openAndTranscodingDialogs(); }
     ShortcutExt{ sequence: root.sequence("stream"); onActivated: DialogsProvider.openAndStreamingDialogs(); }
     ShortcutExt{ sequence:"Ctrl+Q"; onActivated: DialogsProvider.quit(); }
-    ShortcutExt{ sequence: root.sequence("adjustments"); onActivated: DialogsProvider.extendedDialog(); }
+    ShortcutExt{ sequence: root.sequence("adjustments"); onActivated: MainCtx.toggleAdjustments(); }
     ShortcutExt{ sequence: root.sequence("media-info"); onActivated: DialogsProvider.mediaInfoDialog(); }
     ShortcutExt{ sequence: root.sequence("codec-info"); onActivated: DialogsProvider.mediaCodecDialog(); }
     ShortcutExt{ sequence: root.sequence("messages"); onActivated: DialogsProvider.messagesDialog(); }

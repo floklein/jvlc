@@ -120,6 +120,8 @@ moc_headers = files(
     'player/control_list_filter.hpp',
     'player/waveform.hpp',
     'player/waveform_bars.hpp',
+    'player/sleep_timer.hpp',
+    'player/playback_statistics.hpp',
     'playlist/playlist_controller.hpp',
     'playlist/playlist_item.hpp',
     'playlist/playlist_model.hpp',
@@ -416,6 +418,10 @@ qt_plugin_sources = files(
     'player/waveform.hpp',
     'player/waveform_bars.cpp',
     'player/waveform_bars.hpp',
+    'player/sleep_timer.cpp',
+    'player/sleep_timer.hpp',
+    'player/playback_statistics.cpp',
+    'player/playback_statistics.hpp',
     'playlist/media.hpp',
     'playlist/playlist_common.hpp',
     'playlist/playlist_controller.cpp',
@@ -746,6 +752,9 @@ qml_modules += {
        'player/qml/SliderBar.qml',
        'player/qml/TopBar.qml',
        'player/qml/TrackMenu.qml',
+       'player/qml/AdjustmentsSidebar.qml',
+       'player/qml/AdjustmentsPlaybackTab.qml',
+       'player/qml/StatisticsOverlay.qml',
        'player/qml/TracksMenu.qml',
        'player/qml/TracksPage.qml',
        'player/qml/TracksPageAudio.qml',
@@ -857,6 +866,7 @@ qml_modules += {
         'util/qml/FSM.qml',
         'util/qml/FSMState.qml',
         'util/qml/TrackMenuFSM.qml',
+        'util/qml/RightPanelFSM.qml',
         'util/qml/GridSizeHelper.qml',
         'util/qml/NativeMenu.qml',
         'util/qml/FadeControllerStateGroup.qml',
@@ -912,6 +922,7 @@ qml_modules += {
         'widgets/qml/IconToolButton.qml',
         'widgets/qml/IconTrackButton.qml',
         'widgets/qml/TwoToneIcon.qml',
+        'widgets/qml/PanelTab.qml',
         'widgets/qml/ImageToolButton.qml',
         'widgets/qml/ListViewExt.qml',
         'widgets/qml/TableViewExt.qml',
@@ -977,6 +988,7 @@ qml_tests = {
     'tst_ClickGesture': files('tests/tst_ClickGesture.qml'),
     'tst_TimedPrompt': files('tests/tst_TimedPrompt.qml'),
     'tst_BarRevealFSM': files('tests/tst_BarRevealFSM.qml'),
+    'tst_RightPanelFSM': files('tests/tst_RightPanelFSM.qml'),
 }
 
 qmllibs = []
@@ -1840,6 +1852,29 @@ if qt6_dep.found()
             'moc_headers': files(
                 'player/seek_thumbnailer.hpp',
                 'util/vlctick.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_playback_tab',
+            'sources': files(
+                'tests/test_playback_tab.cpp',
+                'player/sleep_timer.cpp',
+                'player/sleep_timer.hpp',
+                'player/playback_statistics.cpp',
+                'player/playback_statistics.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_playback_tab.cpp'
+            ),
+            'moc_headers': files(
+                'player/sleep_timer.hpp',
+                'player/playback_statistics.hpp'
             ),
             'suite': ['qt'],
             'include_directories' : qt_include_dir,

@@ -44,6 +44,7 @@ class VLCVarChoiceModel : public QAbstractListModel
     Q_OBJECT
 public:
     Q_PROPERTY(bool hasCurrent READ hasCurrent NOTIFY hasCurrentChanged FINAL)
+    Q_PROPERTY(int currentRow READ currentRow NOTIFY currentRowChanged FINAL)
 
     template<typename T>
     VLCVarChoiceModel(T *p_object, const char* varName, QObject *parent = nullptr);
@@ -82,6 +83,7 @@ signals:
     void dataUpdated(const vlc_object_t* object, QVariant oldvalue, QVariant newvalue, QPrivateSignal);
     void listUpdated(const vlc_object_t* object, int action, QVariant newvalue, QPrivateSignal);
     void hasCurrentChanged( bool );
+    void currentRowChanged( int );
 
 private:
     int updateData(const vlc_object_t* object, const vlc_value_t& oldvalue, const vlc_value_t& newvalue);
@@ -204,6 +206,7 @@ bool VLCVarChoiceModel::resetObject(T* p_object)
     {
         m_current = newCurrent;
         emit hasCurrentChanged(newCurrent != -1);
+        emit currentRowChanged(newCurrent);
     }
 
     free(val_list);

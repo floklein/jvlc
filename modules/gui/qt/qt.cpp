@@ -1326,6 +1326,15 @@ static void *Thread( void *obj )
             if (config_GetInt("qt-play-adds-to-queue") != mpc->playAddsToQueue())
                 config_PutInt("qt-play-adds-to-queue", mpc->playAddsToQueue());
         });
+
+        /* the sleep timer's "End of Queue" follows the Queue */
+        PlayerController *player = p_intf->p_mainPlayerController;
+        QObject::connect(mpc, &vlc::playlist::PlaylistController::currentIndexChanged,
+                         player, &PlayerController::updateSleepTimerQueue);
+        QObject::connect(mpc, &vlc::playlist::PlaylistController::countChanged,
+                         player, &PlayerController::updateSleepTimerQueue);
+        QObject::connect(player, &PlayerController::inputChanged,
+                         player, &PlayerController::updateSleepTimerQueue);
     }
 
     /* The Queue survives restarts */

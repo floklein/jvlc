@@ -18,13 +18,13 @@
 import QtQuick
 
 
+import VLC.MainInterface
 import VLC.Widgets as Widgets
 import VLC.Style
 import VLC.Dialogs
 import VLC.Util
 
-// The adjustments button of the Control bar
-// TODO: open the Adjustments sidebar (#50) instead of the dialog
+// The adjustments button of the Control bar: opens the Adjustments sidebar
 Widgets.IconToolButton {
     id: extdSettingsBtn
 
@@ -41,5 +41,10 @@ Widgets.IconToolButton {
 
     AccessibleCompat.id: "extendedSettingsButton"
 
-    onClicked: DialogsProvider.extendedDialog()
+    checked: MainCtx.adjustmentsOpened
+
+    Accessible.checkable: true
+    Accessible.checked: checked
+
+    onClicked: MainCtx.toggleAdjustments()
 }

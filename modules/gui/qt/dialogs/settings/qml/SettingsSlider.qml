@@ -35,6 +35,8 @@ Item {
     property string accessibleName
     // apply while dragging, or only on release
     property bool liveUpdate: true
+    // a label under each tick instead of the start, middle and end values
+    property var tickLabels: []
 
     signal moved(real value)
 
@@ -159,6 +161,7 @@ Item {
 
         Text {
             id: startLabel
+            visible: root.tickLabels.length === 0
             text: root.format(root.from)
             color: textTheme.fg.secondary
             font.pixelSize: VLCStyle.fontSize_small
@@ -166,6 +169,7 @@ Item {
         }
 
         Text {
+            visible: root.tickLabels.length === 0
             anchors.horizontalCenter: parent.horizontalCenter
             text: root.format((root.from + root.to) / 2)
             color: textTheme.fg.secondary
@@ -174,11 +178,34 @@ Item {
         }
 
         Text {
+            visible: root.tickLabels.length === 0
             anchors.right: parent.right
             text: root.format(root.to)
             color: textTheme.fg.secondary
             font.pixelSize: VLCStyle.fontSize_small
             font.family: VLCStyle.fontFamily
+        }
+
+        // centered under their tick, the first and last ones flush with the ends
+        Repeater {
+            model: root.tickLabels
+
+            Text {
+                required property string modelData
+                required property int index
+
+                readonly property real _tickX: VLCStyle.dp(2, VLCStyle.scale)
+                                               + index * (labels.width - VLCStyle.dp(4, VLCStyle.scale))
+                                                 / Math.max(1, root.tickLabels.length - 1)
+
+                x: index === 0 ? 0
+                   : (index === root.tickLabels.length - 1 ? labels.width - width
+                                                           : _tickX - width / 2)
+                text: modelData
+                color: textTheme.fg.secondary
+                font.pixelSize: VLCStyle.fontSize_small
+                font.family: VLCStyle.fontFamily
+            }
         }
     }
 }

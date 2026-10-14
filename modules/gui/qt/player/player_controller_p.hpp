@@ -200,6 +200,8 @@ public:
     RendererManager m_rendererManager;
 
     SeekWaveform* m_waveform = nullptr;
+    SleepTimer* m_sleepTimer = nullptr;
+    PlaybackStatistics* m_statistics = nullptr;
 
     // meta
     QString m_title;

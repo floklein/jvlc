@@ -726,8 +726,16 @@ QMenu* VLCMenuBar::PopupMenu( qt_intf_t *p_intf, bool show )
     menu->addSeparator();
 
     /* Adjustments, Queue and opening */
-    action = addEntry( p_intf, menu, qtr( "Ad&justments" ), "adjustments",
-                       []() { THEDP->extendedDialog(); } );
+    /* the Adjustments sidebar of the player, the old dialog for skins */
+    if( mi && !p_intf->b_isDialogProvider )
+        action = addEntry( p_intf, menu, qtr( "Ad&justments" ), "adjustments",
+                           [mi = QPointer<MainCtx>( mi )]() {
+                               if( mi )
+                                   mi->toggleAdjustments();
+                           } );
+    else
+        action = addEntry( p_intf, menu, qtr( "Ad&justments" ), "adjustments",
+                           []() { THEDP->extendedDialog(); } );
     setIcon( action, menu, VLCIcons::settings_tt_base, VLCIcons::settings_tt_accent );
 
     submenu = new QMenu( qtr( "&Queue" ), menu );

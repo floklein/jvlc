@@ -52,4 +52,39 @@ TestCase {
     function test_accessibleName(data) {
         compare(Helpers.accessibleName(data.name, data.shortcut), data.result)
     }
+
+    // The speed field of the Playback tab accepts 0.25x to 4x
+    function test_parseSpeed_data() {
+        return [
+            { tag: "plain", text: "1.5", speed: 1.5 },
+            { tag: "with x", text: "1.25x", speed: 1.25 },
+            { tag: "with multiplication sign", text: " 3 × ", speed: 3 },
+            { tag: "decimal comma", text: "0,75", speed: 0.75 },
+            { tag: "maximum", text: "4", speed: 4 },
+            { tag: "above the maximum", text: "8", speed: 4 },
+            { tag: "below the minimum", text: "0.1", speed: 0.25 },
+            { tag: "zero", text: "0", speed: 0.25 },
+            { tag: "not a number", text: "fast", speed: -1 },
+            { tag: "empty", text: "", speed: -1 },
+        ]
+    }
+
+    function test_parseSpeed(data) {
+        compare(Helpers.parseSpeed(data.text), data.speed)
+    }
+
+    function test_formatSpeed_data() {
+        return [
+            { tag: "normal", speed: 1, text: "1x" },
+            { tag: "quarter", speed: 0.25, text: "0.25x" },
+            { tag: "half", speed: 0.5, text: "0.5x" },
+            { tag: "fine", speed: 1.04, text: "1.04x" },
+            { tag: "rounded", speed: 1.2999999, text: "1.3x" },
+            { tag: "fast", speed: 4, text: "4x" },
+        ]
+    }
+
+    function test_formatSpeed(data) {
+        compare(Helpers.formatSpeed(data.speed), data.text)
+    }
 }

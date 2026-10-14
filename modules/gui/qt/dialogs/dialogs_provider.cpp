@@ -312,6 +312,12 @@ void DialogsProvider::synchroDialog()
         m_extendedDialog->hide();
 }
 
+void DialogsProvider::showExtendedDialogTab( int tab )
+{
+    ensureDialog(m_extendedDialog);
+    m_extendedDialog->showTab( tab );
+}
+
 void DialogsProvider::messagesDialog(int page)
 {
     /* page 1 was the errors tab of the old dialog */

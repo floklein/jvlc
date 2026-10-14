@@ -133,6 +133,10 @@ class MainCtx : public QObject
     Q_PROPERTY(bool lyricsMode READ lyricsMode WRITE setLyricsMode NOTIFY lyricsModeChanged FINAL)
     // Show waveform: the music player draws its seek bar as a waveform
     Q_PROPERTY(bool showWaveform READ showWaveform WRITE setShowWaveform NOTIFY showWaveformChanged FINAL)
+    // Show Statistics: the player shows the statistics overlay
+    Q_PROPERTY(bool showStatistics READ showStatistics WRITE setShowStatistics NOTIFY showStatisticsChanged FINAL)
+    // the player shows the Adjustments sidebar (set by the player view)
+    Q_PROPERTY(bool adjustmentsOpened MEMBER m_adjustmentsOpened NOTIFY adjustmentsOpenedChanged FINAL)
     Q_PROPERTY(bool usingTouch READ usingTouch NOTIFY usingTouchChanged FINAL)
     Q_PROPERTY(CSDButtonModel *csdButtonModel READ csdButtonModel CONSTANT FINAL)
     Q_PROPERTY(MainInterfaceModes mainInterfaceModes READ getMainInterfaceModes NOTIFY mainInterfaceModesChanged FINAL)
@@ -233,6 +237,7 @@ public:
     inline bool albumSections() const { return m_albumSections; }
     inline bool lyricsMode() const { return m_lyricsMode; }
     inline bool showWaveform() const { return m_showWaveform; }
+    inline bool showStatistics() const { return m_showStatistics; }
     inline ColorSchemeModel* getColorScheme() const { return m_colorScheme; }
     bool hasVLM() const;
     bool useClientSideDecoration() const;
@@ -434,6 +439,20 @@ public:
     /// bookmarkAdded() confirms it
     Q_INVOKABLE void addBookmark();
 
+    /// the Adjustments sidebar of the player, which shares the right-hand
+    /// slot with the Queue panel. Tabs: Playback, Video, Audio, Subtitles
+    /// (RightPanelFSM.Tab). From the library, the player view opens first.
+    enum AdjustmentsRequest { AdjustmentsLastTab = -1, AdjustmentsNone = -2 };
+    Q_ENUM(AdjustmentsRequest)
+    /// the adjustments button, Ctrl+E and the menus: open on the last tab,
+    /// or close
+    Q_INVOKABLE void toggleAdjustments();
+    /// "More settings" of the Track menu: open on @a tab
+    Q_INVOKABLE void openAdjustments(int tab);
+    /// the request left for a player view that was not open, or
+    /// AdjustmentsNone
+    Q_INVOKABLE int takePendingAdjustments();
+
     double artistAlbumsWidth() const;
     void setArtistAlbumsWidth(double newArtistAlbumsWidth);
 
@@ -518,6 +537,9 @@ protected:
 
     bool m_lyricsMode = true;
     bool m_showWaveform = true;
+    bool m_showStatistics = false;
+    int m_pendingAdjustments = AdjustmentsNone;
+    bool m_adjustmentsOpened = false;
 
     bool m_usingTouch = false;
 
@@ -546,6 +568,7 @@ public slots:
     void setAlbumSections( bool );
     void setLyricsMode( bool );
     void setShowWaveform( bool );
+    void setShowStatistics( bool );
     void incrementIntfUserScaleFactor( bool increment);
     void setIntfUserScaleFactor( double );
 
@@ -604,6 +627,11 @@ signals:
     void albumSectionsChanged( bool );
     void lyricsModeChanged( bool );
     void showWaveformChanged( bool );
+    void showStatisticsChanged( bool );
+    /// the player view opens or closes the Adjustments sidebar
+    void adjustmentsToggled();
+    void adjustmentsRequested( int tab );
+    void adjustmentsOpenedChanged();
     void colorSchemeChanged( QString );
     void useClientSideDecorationChanged();
 

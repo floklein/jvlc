@@ -146,7 +146,10 @@ void VLCVarChoiceModel::onDataUpdated(const vlc_object_t* object, QVariant , QVa
         }
 
     if (m_current != oldCurrent)
+    {
         emit hasCurrentChanged(m_current != -1);
+        emit currentRowChanged(m_current);
+    }
     if (m_current != -1)
         emit dataChanged(index(m_current), index(m_current), { Qt::CheckStateRole } );
     if (oldCurrent != -1)

@@ -269,4 +269,18 @@ QtObject {
         }
         return seconds
     }
+
+    // Reads a playback speed typed as "1.5", "1.5x" or "1,5×", clamped to
+    // 0.25x..4x. Returns -1 if it is not a number.
+    function parseSpeed(text: string) : real {
+        const value = text.trim().replace(/[x×]$/i, "").trim().replace(",", ".")
+        if (!/^[0-9]*\.?[0-9]+$/.test(value))
+            return -1
+        return Math.min(Math.max(parseFloat(value), 0.25), 4)
+    }
+
+    // A playback speed as "1x", "0.25x", "1.04x"
+    function formatSpeed(speed: real) : string {
+        return (Math.round(speed * 100) / 100) + "x"
+    }
 }

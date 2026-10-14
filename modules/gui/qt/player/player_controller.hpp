@@ -40,6 +40,8 @@
 
 Q_MOC_INCLUDE("util/renderer_manager.hpp")
 Q_MOC_INCLUDE("player/waveform.hpp")
+Q_MOC_INCLUDE("player/sleep_timer.hpp")
+Q_MOC_INCLUDE("player/playback_statistics.hpp")
 
 using vlc_player_locker = vlc_locker<vlc_player_t, vlc_player_Lock, vlc_player_Unlock>;
 
@@ -48,6 +50,8 @@ using SharedAOut = ::vlc::vlc_shared_data_ptr<audio_output_t, &aout_Hold, &aout_
 
 class RendererManager;
 class SeekWaveform;
+class SleepTimer;
+class PlaybackStatistics;
 class QSignalMapper;
 
 class IMEvent : public QEvent
@@ -232,6 +236,10 @@ public:
 
     // the waveform seek bar of the music player
     Q_PROPERTY(SeekWaveform* waveform READ getWaveform CONSTANT FINAL)
+
+    // the sleep timer and the statistics overlay of the Playback tab
+    Q_PROPERTY(SleepTimer* sleepTimer READ getSleepTimer CONSTANT FINAL)
+    Q_PROPERTY(PlaybackStatistics* statistics READ getStatistics CONSTANT FINAL)
 
     // High resolution time fed by SMPTE Timer
     Q_PROPERTY(QString highResolutionTime READ highResolutionTime FINAL)
@@ -453,6 +461,12 @@ public slots:
     RendererManager* getRendererManager();
 
     SeekWaveform* getWaveform();
+
+    SleepTimer* getSleepTimer();
+    PlaybackStatistics* getStatistics();
+    /// the sleep timer follows the Queue: call when the current item, the
+    /// items or the repeat mode change
+    void updateSleepTimerQueue();
 
 signals:
     //playback

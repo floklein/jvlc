@@ -202,6 +202,9 @@ public slots:
     void firstRunDialog();
     void extendedDialog();
     void synchroDialog();
+    /// Shows the Adjustments and Effects dialog on a tab (0 audio, 1 video,
+    /// 2 synchronization), for the Adjustments sidebar tabs not built yet
+    void showExtendedDialogTab( int tab );
     /// Opens Messages, showing only the errors if page is 1
     void messagesDialog( int page = 0 );
     /// Asks for a file and saves the visible Messages lines to it

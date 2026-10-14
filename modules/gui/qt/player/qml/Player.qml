@@ -72,6 +72,8 @@ FocusScope {
     // what the arrow up reaches from the Control bar (or the
     // continue-watching pill above it)
     readonly property Item _itemAboveControlBar: {
+        if (rightPanel.adjustmentsOpened)
+            return adjustmentsPanel
         if (playlistVisibility.isPlaylistVisible)
             return playlistpopup
         if (Player.isInteractive)
@@ -89,8 +91,20 @@ FocusScope {
 
     // Events
 
-    Component.onCompleted: MainCtx.preferHotkeys = true
-    Component.onDestruction: MainCtx.preferHotkeys = false
+    Component.onCompleted: {
+        MainCtx.preferHotkeys = true
+
+        // the adjustments were asked for from the library
+        const pending = MainCtx.takePendingAdjustments()
+        if (pending === MainCtx.AdjustmentsLastTab)
+            rightPanel.toggleAdjustments()
+        else if (pending >= 0)
+            rightPanel.openAdjustments(pending)
+    }
+    Component.onDestruction: {
+        MainCtx.preferHotkeys = false
+        MainCtx.adjustmentsOpened = false
+    }
 
     Keys.priority: Keys.AfterItem
     Keys.onPressed: (event) => {
@@ -139,7 +153,25 @@ FocusScope {
     // and is docked beside it in a window
     readonly property bool _rightPanelOverlaid: (MainCtx.intfMainWindow.visibility === Window.FullScreen)
                                                 || MainCtx.hideUI
-    readonly property bool _rightPanelDocked: !_rightPanelOverlaid && playlistpopup.visible
+    readonly property bool _rightPanelDocked: !_rightPanelOverlaid
+                                              && (playlistpopup.visible || adjustmentsPanel.visible)
+
+    // the panel in the right-hand slot, the one sliding in while they swap
+    readonly property Item _rightPanel: adjustmentsPanel.visible
+                                        && (rightPanel.adjustmentsOpened || !playlistpopup.visible)
+                                        ? adjustmentsPanel : playlistpopup
+
+    // the Track menu tabs (TrackMenuFSM.Tab) in the sidebar
+    function _adjustmentsTab(trackMenuTab) {
+        switch (trackMenuTab) {
+        case TrackMenuFSM.Video:
+            return RightPanelFSM.Video
+        case TrackMenuFSM.Audio:
+            return RightPanelFSM.Audio
+        default:
+            return RightPanelFSM.Subtitles
+        }
+    }
 
     function _isInEdgeZone(y) {
         return (y < Math.max(_edgeZone, topBar.height))
@@ -204,7 +236,42 @@ FocusScope {
     PlayerPlaylistVisibilityFSM {
         id: playlistVisibility
 
-        onIsPlaylistVisibleChanged: lockUnlockAutoHide(isPlaylistVisible)
+        onIsPlaylistVisibleChanged: {
+            lockUnlockAutoHide(isPlaylistVisible)
+            if (isPlaylistVisible)
+                rightPanel.queueOpened()
+        }
+    }
+
+    // The Queue panel and the Adjustments sidebar share the right-hand slot:
+    // only one of them is open at a time
+    RightPanelFSM {
+        id: rightPanel
+
+        queueVisible: playlistVisibility.isPlaylistVisible
+        music: Player.isStarted && !Player.hasVideoOutput
+
+        // the sidebar opens on its last tab, also after a restart
+        tab: Number(MainCtx.settingValue("MainWindow/adjustments-tab", RightPanelFSM.Playback))
+        onTabChanged: MainCtx.setSettingValue("MainWindow/adjustments-tab", tab)
+
+        onRequestCloseQueue: playlistVisibility.togglePlaylistVisibility()
+
+        onAdjustmentsOpenedChanged: {
+            rootPlayer.lockUnlockAutoHide(adjustmentsOpened)
+            MainCtx.adjustmentsOpened = adjustmentsOpened
+        }
+    }
+
+    Connections {
+        target: MainCtx
+
+        function onAdjustmentsToggled() {
+            rightPanel.toggleAdjustments()
+        }
+        function onAdjustmentsRequested(tab) {
+            rightPanel.openAdjustments(tab)
+        }
     }
 
     Connections {
@@ -241,7 +308,7 @@ FocusScope {
         anchors {
             left: parent.left
             // a docked right-hand panel shrinks the video
-            right: rootPlayer._rightPanelDocked ? playlistpopup.left : parent.right
+            right: rootPlayer._rightPanelDocked ? rootPlayer._rightPanel.left : parent.right
             rightMargin: rootPlayer._rightPanelDocked ? VLCStyle.spacing_20 : 0
             top: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? topBar.bottom : parent.top
             bottom: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? controlBar.top : parent.bottom
@@ -1026,6 +1093,8 @@ FocusScope {
         Navigation.parentItem: rootPlayer
         Navigation.cancelAction: MainCtx.hasEmbededVideo ? rootPlayer._focusVideo : null
         Navigation.downItem: {
+            if (rightPanel.adjustmentsOpened)
+                return adjustmentsPanel
             if (playlistVisibility.isPlaylistVisible)
                 return playlistpopup
             if (MainCtx.hasEmbededVideo)
@@ -1200,6 +1269,112 @@ FocusScope {
         }
     }
 
+    // The Adjustments sidebar (Figma 2238:9432), in the same slot as the
+    // Queue panel and sliding the same way
+    Loader {
+        id: adjustmentsPanel
+
+        anchors {
+            top: topBar.bottom
+            right: parent.right
+            bottom: parent.bottom
+
+            bottomMargin: parent.height - rootPlayer.positionSliderY + VLCStyle.spacing_20
+        }
+
+        width: VLCStyle.sidePanel_width
+
+        focus: false
+
+        // loaded while shown, and while it slides out
+        active: rightPanel.adjustmentsOpened || visible
+
+        state: rightPanel.adjustmentsOpened ? "expanded" : "retracted"
+
+        Component.onCompleted: {
+            Qt.callLater(() => { adjustmentsTransition.enabled = true; })
+        }
+
+        states: [
+            State {
+                name: "expanded"
+                PropertyChanges {
+                    target: adjustmentsPanel
+                    anchors.rightMargin: VLCStyle.spacing_20
+                    visible: true
+                }
+           }, State {
+                name: "retracted"
+                PropertyChanges {
+                    target: adjustmentsPanel
+                    anchors.rightMargin: - (adjustmentsPanel.width + VLCStyle.spacing_20)
+                    visible: false
+                }
+           }
+        ]
+
+        // slides in and out, 150 ms
+        transitions: Transition {
+            id: adjustmentsTransition
+            enabled: false
+
+            from: "retracted"; to: "expanded";
+            reversible: true
+
+            SequentialAnimation {
+                PropertyAction { property: "visible" }
+
+                NumberAnimation {
+                    property: "anchors.rightMargin"
+                    duration: MainCtx.reduceMotion ? 0 : VLCStyle.duration_short * 1.5
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
+                }
+            }
+        }
+
+        sourceComponent: AdjustmentsSidebar {
+            id: adjustmentsSidebar
+
+            height: adjustmentsPanel.height
+            width: adjustmentsPanel.width
+
+            focus: true
+
+            fsm: rightPanel
+
+            // the Tint over the video, the view background when docked
+            background: Rectangle {
+                radius: VLCStyle.radius_large
+                color: rootPlayer._rightPanelOverlaid ? windowTheme.tint : adjustmentsSidebar.colorContext.bg.primary
+            }
+
+            Navigation.parentItem: rootPlayer
+            Navigation.upItem: topBar
+            Navigation.downItem: Player.isInteractive ? toggleControlBarButton : controlBar
+            Navigation.cancelAction: closeAdjustments
+
+            function closeAdjustments() {
+                rightPanel.closeAdjustments()
+                controlBar.forceActiveFocus()
+            }
+        }
+    }
+
+    // "Show Statistics" of the Playback tab
+    Loader {
+        anchors {
+            top: topBar.bottom
+            left: parent.left
+            topMargin: VLCStyle.spacing_20
+            leftMargin: VLCStyle.spacing_20 + VLCStyle.applicationHorizontalMargin
+        }
+
+        active: MainCtx.showStatistics && Player.isStarted
+
+        sourceComponent: StatisticsOverlay { }
+    }
+
     Dialogs {
         z: 10
         bgContent: rootPlayer
@@ -1285,7 +1460,9 @@ FocusScope {
         iconTxt: controlBar.state === "hidden" ? VLCIcons.expand_inverted : VLCIcons.expand
 
         Navigation.parentItem: rootPlayer
-        Navigation.upItem: playlistVisibility.isPlaylistVisible ? playlistpopup : (MainCtx.hasEmbededVideo ? playerSpecializationLoader : topBar)
+        Navigation.upItem: rightPanel.adjustmentsOpened ? adjustmentsPanel
+                           : playlistVisibility.isPlaylistVisible ? playlistpopup
+                           : (MainCtx.hasEmbededVideo ? playerSpecializationLoader : topBar)
         Navigation.downItem: controlBar
 
         onClicked:{
@@ -1359,7 +1536,7 @@ FocusScope {
 
         // hide right text so that it won't overlap with play queue
         showRemainingTime: (textPosition !== ControlBar.TimeTextPosition.AboveSlider)
-                           || !playlistVisibility.isPlaylistVisible
+                           || !(playlistVisibility.isPlaylistVisible || rightPanel.adjustmentsOpened)
 
         onStateChanged: {
             if (state === "visible")
@@ -1452,8 +1629,8 @@ FocusScope {
         onOpened: rootPlayer.lockUnlockAutoHide(true)
         onClosed: rootPlayer.lockUnlockAutoHide(false)
 
-        // TODO: open the Adjustments sidebar on this tab (#50)
-        onRequestAdjustments: (tab) => DialogsProvider.extendedDialog()
+        // "More settings": the Adjustments sidebar on the same tab
+        onRequestAdjustments: (tab) => rightPanel.openAdjustments(rootPlayer._adjustmentsTab(tab))
     }
 
     TapHandler {

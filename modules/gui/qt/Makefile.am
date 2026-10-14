@@ -288,6 +288,10 @@ libqt_plugin_la_SOURCES = \
 	player/waveform.hpp \
 	player/waveform_bars.cpp \
 	player/waveform_bars.hpp \
+	player/sleep_timer.cpp \
+	player/sleep_timer.hpp \
+	player/playback_statistics.cpp \
+	player/playback_statistics.hpp \
 	playlist/media.hpp \
 	playlist/playlist_common.hpp \
 	playlist/playlist_controller.cpp \
@@ -490,6 +494,8 @@ nodist_libqt_plugin_la_SOURCES = \
 	player/control_list_filter.moc.cpp \
 	player/waveform.moc.cpp \
 	player/waveform_bars.moc.cpp \
+	player/sleep_timer.moc.cpp \
+	player/playback_statistics.moc.cpp \
 	playlist/playlist_controller.moc.cpp \
 	playlist/playlist_item.moc.cpp \
 	playlist/playlist_model.moc.cpp \
@@ -1165,6 +1171,9 @@ libqml_module_player_a_QML = \
 	player/qml/SliderBar.qml \
 	player/qml/TopBar.qml \
 	player/qml/TrackMenu.qml \
+	player/qml/AdjustmentsSidebar.qml \
+	player/qml/AdjustmentsPlaybackTab.qml \
+	player/qml/StatisticsOverlay.qml \
 	player/qml/TracksMenu.qml \
 	player/qml/TracksPage.qml \
 	player/qml/TracksPageAudio.qml \
@@ -1283,6 +1292,7 @@ libqml_module_util_a_QML = \
 	util/qml/FSM.qml \
 	util/qml/FSMState.qml \
 	util/qml/TrackMenuFSM.qml \
+	util/qml/RightPanelFSM.qml \
 	util/qml/NativeMenu.qml \
 	util/qml/FadeControllerStateGroup.qml \
 	util/qml/BarRevealFSM.qml \
@@ -1338,6 +1348,7 @@ libqml_module_widgets_a_QML = \
 	widgets/qml/IconToolButton.qml \
 	widgets/qml/IconTrackButton.qml \
 	widgets/qml/TwoToneIcon.qml \
+	widgets/qml/PanelTab.qml \
 	widgets/qml/ImageToolButton.qml \
 	widgets/qml/ListViewExt.qml \
 	widgets/qml/TableViewExt.qml \
@@ -2239,6 +2250,27 @@ test_seek_thumbnailer_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_seek_thumbnailer
 TESTS += test_seek_thumbnailer
 
+# test_playback_tab
+
+test_playback_tab_SOURCES = \
+	tests/test_playback_tab.cpp \
+	player/sleep_timer.cpp player/sleep_timer.hpp \
+	player/playback_statistics.cpp player/playback_statistics.hpp
+
+nodist_test_playback_tab_SOURCES = \
+	tests/test_playback_tab.moc \
+	player/sleep_timer.moc.cpp \
+	player/playback_statistics.moc.cpp
+
+BUILT_SOURCES += tests/test_playback_tab.moc
+CLEANFILES += tests/test_playback_tab.moc
+test_playback_tab_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_playback_tab_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_playback_tab_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_playback_tab_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_playback_tab
+TESTS += test_playback_tab
+
 # test_keys
 
 test_keys_SOURCES = \
@@ -2551,5 +2583,7 @@ EXTRA_DIST += tests/tst_TimedPrompt.qml
 TESTS += tests/tst_TimedPrompt.qml
 EXTRA_DIST += tests/tst_BarRevealFSM.qml
 TESTS += tests/tst_BarRevealFSM.qml
+EXTRA_DIST += tests/tst_RightPanelFSM.qml
+TESTS += tests/tst_RightPanelFSM.qml
 endif
 endif

@@ -73,6 +73,7 @@
 
 #include <QWindow>
 #include <QScreen>
+#include <utility>
 
 #include <QOperatingSystemVersion>
 
@@ -346,6 +347,8 @@ MainCtx::~MainCtx()
 
         settings->setValue( "show-waveform", m_showWaveform );
 
+        settings->setValue( "show-statistics", m_showStatistics );
+
         /* Save the stackCentralW sizes */
         settings->endGroup();
     }
@@ -517,6 +520,8 @@ void MainCtx::loadFromSettingsImpl(const bool callSignals)
     loadFromSettings(m_lyricsMode, "MainWindow/lyrics-mode", true, this, &MainCtx::lyricsModeChanged);
 
     loadFromSettings(m_showWaveform, "MainWindow/show-waveform", true, this, &MainCtx::showWaveformChanged);
+
+    loadFromSettings(m_showStatistics, "MainWindow/show-statistics", false, this, &MainCtx::showStatisticsChanged);
 
     const auto colorSchemeIndex = getSettings()->value( "MainWindow/color-scheme-index", 0 ).toInt();
     m_colorScheme->setCurrentIndex(colorSchemeIndex);
@@ -728,6 +733,34 @@ void MainCtx::addBookmark()
     m_bookmarks->add();
 }
 
+void MainCtx::toggleAdjustments()
+{
+    if (getEffectiveMainInterfaceMode() == MAININTERFACE_MODE_PLAYER)
+    {
+        emit adjustmentsToggled();
+        return;
+    }
+    /* the player view opens with the sidebar */
+    m_pendingAdjustments = AdjustmentsLastTab;
+    setPlayerView(true);
+}
+
+void MainCtx::openAdjustments(int tab)
+{
+    if (getEffectiveMainInterfaceMode() == MAININTERFACE_MODE_PLAYER)
+    {
+        emit adjustmentsRequested(tab);
+        return;
+    }
+    m_pendingAdjustments = tab;
+    setPlayerView(true);
+}
+
+int MainCtx::takePendingAdjustments()
+{
+    return std::exchange(m_pendingAdjustments, static_cast<int>(AdjustmentsNone));
+}
+
 QString MainCtx::displayMRL(const QUrl &mrl) const
 {
     return urlToDisplayString(mrl);
@@ -807,6 +840,15 @@ void MainCtx::setShowWaveform(bool enabled)
 
     m_showWaveform = enabled;
     emit showWaveformChanged(enabled);
+}
+
+void MainCtx::setShowStatistics(bool enabled)
+{
+    if (m_showStatistics == enabled)
+        return;
+
+    m_showStatistics = enabled;
+    emit showStatisticsChanged(enabled);
 }
 
 void MainCtx::setInterfaceAlwaysOnTop( bool on_top )
