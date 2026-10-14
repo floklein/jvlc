@@ -1148,7 +1148,7 @@ libqml_module_player_a_QML = \
 	player/qml/PlayerPlaylistVisibilityFSM.qml \
 	player/qml/PlayerToolbarVisibilityFSM.qml \
 	player/qml/MinimalView.qml \
-	player/qml/ResumeDialog.qml \
+	player/qml/ContinueWatchingPill.qml \
 	player/qml/SliderBar.qml \
 	player/qml/TopBar.qml \
 	player/qml/TrackMenu.qml \
@@ -1269,7 +1269,9 @@ libqml_module_util_a_QML = \
 	util/qml/FadeControllerStateGroup.qml \
 	util/qml/GridSizeHelper.qml \
 	util/qml/DelayedBehavior.qml \
-	util/qml/DelegateTouchTapHandler.qml
+	util/qml/DelegateTouchTapHandler.qml \
+	util/qml/ClickGesture.qml \
+	util/qml/TimedPrompt.qml
 libqml_module_util_a_Singleton_QML = \
 	util/qml/Helpers.qml
 libqml_module_util_a_SOURCES = $(QML_MODULE_util_SRC)
@@ -2328,5 +2330,9 @@ EXTRA_DIST += tests/tst_Helpers.qml
 TESTS += tests/tst_Helpers.qml
 EXTRA_DIST += tests/tst_TrackMenuFSM.qml
 TESTS += tests/tst_TrackMenuFSM.qml
+EXTRA_DIST += tests/tst_ClickGesture.qml
+TESTS += tests/tst_ClickGesture.qml
+EXTRA_DIST += tests/tst_TimedPrompt.qml
+TESTS += tests/tst_TimedPrompt.qml
 endif
 endif

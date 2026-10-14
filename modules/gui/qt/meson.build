@@ -726,7 +726,7 @@ qml_modules += {
        'player/qml/PlayerPlaylistVisibilityFSM.qml',
        'player/qml/PlayerToolbarVisibilityFSM.qml',
        'player/qml/MinimalView.qml',
-       'player/qml/ResumeDialog.qml',
+       'player/qml/ContinueWatchingPill.qml',
        'player/qml/SliderBar.qml',
        'player/qml/TopBar.qml',
        'player/qml/TrackMenu.qml',
@@ -840,7 +840,9 @@ qml_modules += {
         'util/qml/NativeMenu.qml',
         'util/qml/FadeControllerStateGroup.qml',
         'util/qml/DelayedBehavior.qml',
-        'util/qml/DelegateTouchTapHandler.qml'
+        'util/qml/DelegateTouchTapHandler.qml',
+        'util/qml/ClickGesture.qml',
+        'util/qml/TimedPrompt.qml'
     ),
     'singletons': files(
         'util/qml/Helpers.qml',
@@ -949,6 +951,8 @@ qml_tests = {
     'tst_Helpers': files('tests/tst_Helpers.qml'),
     'tst_JumpToTime': files('tests/tst_JumpToTime.qml'),
     'tst_TrackMenuFSM': files('tests/tst_TrackMenuFSM.qml'),
+    'tst_ClickGesture': files('tests/tst_ClickGesture.qml'),
+    'tst_TimedPrompt': files('tests/tst_TimedPrompt.qml'),
 }
 
 qmllibs = []

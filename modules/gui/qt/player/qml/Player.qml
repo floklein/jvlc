@@ -65,6 +65,18 @@ FocusScope {
 
     property bool _keyPressed: false
 
+    // what the arrow up reaches from the Control bar (or the
+    // continue-watching pill above it)
+    readonly property Item _itemAboveControlBar: {
+        if (playlistVisibility.isPlaylistVisible)
+            return playlistpopup
+        if (Player.isInteractive)
+            return toggleControlBarButton
+        if (!MainCtx.hasEmbededVideo)
+            return playerSpecializationLoader
+        return topBar
+    }
+
     // Settings
 
     Accessible.role: Accessible.Client
@@ -315,6 +327,34 @@ FocusScope {
                         mousePressed.connect(videoSurface.onMouseEvent)
                         mouseReleased.connect(videoSurface.onMouseEvent)
                         mouseDblClicked.connect(videoSurface.onMouseEvent)
+                    }
+
+                    // A single click pauses or resumes. The double click
+                    // toggles fullscreen in the core (video_window.c).
+                    // Interactive media (DVD menus) use the clicks.
+                    ClickGesture {
+                        id: clickGesture
+
+                        enabled: !Player.isInteractive
+
+                        // mouseMoved reports device pixels
+                        dragThreshold: Qt.styleHints.startDragDistance * Screen.devicePixelRatio
+
+                        onSingleClicked: MainPlaylistController.togglePlayPause()
+                    }
+
+                    onMouseMoved: (x, y) => clickGesture.move(x, y)
+                    onMousePressed: (button) => {
+                        if (button === 0) // left
+                            clickGesture.press()
+                    }
+                    onMouseReleased: (button) => {
+                        if (button === 0)
+                            clickGesture.release()
+                    }
+                    onMouseDblClicked: (button) => {
+                        if (button === 0)
+                            clickGesture.doubleClick()
                     }
 
                     Binding on cursorShape {
@@ -996,12 +1036,10 @@ FocusScope {
         sideMargin: VLCStyle.applicationHorizontalMargin
 
         // NOTE: With pinned controls, the top controls are hidden when switching to
-        //       fullScreen. Except when resume is visible
+        //       fullScreen.
         visible: (MainCtx.pinVideoControls === false
                   ||
-                  MainCtx.intfMainWindow.visibility !== Window.FullScreen
-                  ||
-                  resumeVisible)
+                  MainCtx.intfMainWindow.visibility !== Window.FullScreen)
 
         focus: true
         // the metadata title, else the file name
@@ -1285,11 +1323,38 @@ FocusScope {
         }
     }
 
+    ContinueWatchingPill {
+        id: continueWatchingPill
+
+        // Figma: centered, 24 px above the Control bar
+        anchors {
+            bottom: controlBar.top
+            bottomMargin: VLCStyle.dp(24, VLCStyle.scale)
+            horizontalCenter: parent.horizontalCenter
+        }
+
+        width: Math.min(implicitWidth, rootPlayer.width - 2 * VLCStyle.margin_large)
+
+        colorContext.palette: windowTheme.palette
+
+        Navigation.parentItem: rootPlayer
+        Navigation.upItem: rootPlayer._itemAboveControlBar
+        Navigation.downItem: controlBar
+
+        onRequestLockUnlockAutoHide: (lock) => rootPlayer.lockUnlockAutoHide(lock)
+
+        // the focus goes back to the Control bar with the pill
+        onClosing: {
+            if (activeFocus)
+                controlBar.forceActiveFocus(Qt.TabFocusReason)
+        }
+    }
+
     Widgets.FloatingNotification {
         id: notif
 
         anchors {
-            bottom: controlBar.top
+            bottom: continueWatchingPill.visible ? continueWatchingPill.top : controlBar.top
             left: parent.left
             right: parent.right
             margins: VLCStyle.margin_large
@@ -1330,15 +1395,8 @@ FocusScope {
         }
 
         Navigation.parentItem: rootPlayer
-        Navigation.upItem: {
-            if (playlistVisibility.isPlaylistVisible)
-                return playlistpopup
-            if (Player.isInteractive)
-                return toggleControlBarButton
-            if (!MainCtx.hasEmbededVideo)
-                return playerSpecializationLoader
-            return topBar
-        }
+        Navigation.upItem: continueWatchingPill.visible ? continueWatchingPill
+                                                        : rootPlayer._itemAboveControlBar
 
         //initial state value is "", using a binding avoid animation on startup
         Binding on state {

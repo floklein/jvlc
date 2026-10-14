@@ -62,10 +62,6 @@ FocusScope {
 
     readonly property bool _fullscreen: MainCtx.intfMainWindow.visibility === Window.FullScreen
 
-    // Aliases
-
-    property alias resumeVisible: resumeDialog.visible
-
     // Signals
 
     signal requestLockUnlockAutoHide(bool lock)
@@ -79,8 +75,7 @@ FocusScope {
     // Settings
 
     implicitHeight: topMargin
-                    + Math.max(_barHeight,
-                               resumeDialog.visible ? resumeDialog.implicitHeight + VLCStyle.dp(12, VLCStyle.scale) : 0)
+                    + _barHeight
 
     Accessible.role: Accessible.ToolBar
     Accessible.name: qsTr("Top bar")
@@ -138,8 +133,6 @@ FocusScope {
             anchors.verticalCenter: parent.verticalCenter
 
             spacing: VLCStyle.dp(7, VLCStyle.scale)
-
-            visible: !root.resumeVisible
 
             focus: true
 
@@ -370,30 +363,6 @@ FocusScope {
             }
         }
 
-        ResumeDialog {
-            id: resumeDialog
-
-            anchors.left: parent.left
-            anchors.leftMargin: root._padding + VLCStyle.margin_xsmall
-            anchors.verticalCenter: parent.verticalCenter
-
-            maxWidth: rightGroup.x - anchors.leftMargin - VLCStyle.margin_large
-
-            colorContext.palette: theme.palette
-
-            Navigation.parentItem: rootPlayer
-
-            onHidden: {
-                if (activeFocus) {
-                    menuButton.forceActiveFocus()
-                }
-            }
-
-            onVisibleChanged: {
-                root.requestLockUnlockAutoHide(visible)
-            }
-        }
-
         // the media title, centered on the window, as long as it doesn't
         // overlap the side groups
         T.Label {
@@ -406,8 +375,6 @@ FocusScope {
             anchors.verticalCenter: parent.verticalCenter
 
             width: Math.max(0, Math.min(implicitWidth, _rightLimit - _leftLimit))
-
-            visible: !root.resumeVisible
 
             text: root.title !== "" ? root.title : qsTr("VLC Media Player")
             color: theme.fg.secondary
