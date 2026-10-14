@@ -538,26 +538,41 @@ int vlc_pipe (int fds[2])
      * Using FILE_FLAG_OVERLAPPED allows us to perform non-blocking I/O,
      * which is the correct approach for async operations in Windows. */
 # if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-    static atomic_uint_least64_t count = 0;
+    static atomic_ulong count = 0;
 
-    uint_least64_t c = atomic_fetch_add(&count, 1);
+    /* Pipe names are global to the machine: make them unique to this process
+     * so that two VLC processes never create (or open) the same pipe. Refuse
+     * to join an existing instance, which could be left by a dead process
+     * whose PID was reused, and try the next name then. */
+    wchar_t pipeName[64];
+    HANDLE hRead;
+    for (unsigned tries = 0;; tries++) {
+        unsigned long c = atomic_fetch_add(&count, 1);
 
-    TCHAR pipeName[MAX_PATH] = {0};
-    if (wsprintf(pipeName, TEXT("\\\\.\\pipe\\AnonPipe_%lu"), c) < 0) {
-        return -1;
+        _snwprintf(pipeName, ARRAY_SIZE(pipeName),
+                   L"\\\\.\\pipe\\vlc-pipe-%lu-%lu", GetCurrentProcessId(), c);
+        pipeName[ARRAY_SIZE(pipeName) - 1] = L'\0';
+
+        hRead = CreateNamedPipeW(pipeName,
+                                 PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED |
+                                 FILE_FLAG_FIRST_PIPE_INSTANCE,
+                                 PIPE_TYPE_BYTE | PIPE_READMODE_BYTE |
+                                 PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
+                                 1, 4096 * 8, 4096 * 8, 0, NULL);
+        if (hRead != INVALID_HANDLE_VALUE)
+            break;
+
+        DWORD error = GetLastError();
+        if ((error != ERROR_ACCESS_DENIED && error != ERROR_PIPE_BUSY)
+         || tries >= 16) {
+            return -1;
+        }
     }
 
-    HANDLE hRead = CreateNamedPipe(pipeName,
-                            PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED,
-                            PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
-                            1, 4096 * 8, 4096 * 8, 0, NULL);
-    if (hRead == INVALID_HANDLE_VALUE) {
-        return -1;
-    }
-
-    HANDLE hWrite = CreateFile(pipeName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
-                               FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
-                               NULL);
+    HANDLE hWrite = CreateFileW(pipeName, GENERIC_WRITE, 0, NULL,
+                                OPEN_EXISTING,
+                                FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
+                                NULL);
     if (hWrite == INVALID_HANDLE_VALUE) {
         CloseHandle(hRead);
         return -1;

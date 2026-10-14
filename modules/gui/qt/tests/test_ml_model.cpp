@@ -220,6 +220,7 @@ private slots:
         m_model.reset();
         m_queueMedialib.reset();
         m_medialib.reset();
+        resetQueue();
     }
 
     /**
@@ -248,7 +249,7 @@ private slots:
 
         m_model->appendRange(1, 1000);
         m_model->componentComplete();
-        QTRY_COMPARE_WITH_TIMEOUT(m_model->getCount(), 1000u, 100);
+        QTRY_COMPARE(m_model->getCount(), 1000u);
     }
 
 
@@ -383,7 +384,6 @@ private slots:
 
         QTRY_COMPARE(queueNames(), QStringList({"ml:7", "ml:8", "ml:9", "ml:10"}));
         QCOMPARE(currentIndex(), 0);
-        clearQueue();
     }
 
     void testPlaySelectionPlaysOnlySelection()
@@ -394,7 +394,6 @@ private slots:
         model->addAndPlay({model->index(1), model->index(4)});
 
         QTRY_COMPARE(queueNames(), QStringList({"ml:2", "ml:5"}));
-        clearQueue();
     }
 
     void testPlayReplacesQueueWithUndo()
@@ -407,7 +406,6 @@ private slots:
 
         QTRY_COMPARE(queueNames(), QStringList({"ml:2", "ml:3"}));
         QVERIFY(controller.canUndoReplace());
-        clearQueue();
     }
 
     void testPlayNextFromLibrary()
@@ -422,7 +420,6 @@ private slots:
         QTRY_COMPARE(queueNames().size(), 3);
         QCOMPARE(queueNames().at(1), QStringLiteral("ml:3"));
         QCOMPARE(currentIndex(), 0);
-        clearQueue();
     }
 
     void testAddToQueueFromLibrary()
@@ -435,7 +432,6 @@ private slots:
 
         QTRY_COMPARE(queueNames().size(), 2);
         QCOMPARE(queueNames().at(1), QStringLiteral("ml:3"));
-        clearQueue();
     }
 
 private:
@@ -475,11 +471,23 @@ private:
         return static_cast<int>(vlc_playlist_GetCurrentIndex(playlist));
     }
 
-    void clearQueue()
+    /* Leave an empty Queue and an idle player to the next test, even if this
+     * one failed: a player still started, or still stopping the previous
+     * media, would move the current item of the next test's Queue. */
+    void resetQueue()
     {
         vlc_playlist_t *playlist = m_env->intf->p_playlist;
-        vlc::playlist::vlc_playlist_locker locker(playlist);
-        vlc_playlist_Clear(playlist);
+        vlc_player_t *player = vlc_playlist_GetPlayer(playlist);
+        {
+            vlc::playlist::vlc_playlist_locker locker(playlist);
+            vlc_playlist_Stop(playlist);
+            vlc_playlist_Clear(playlist);
+        }
+        QTRY_VERIFY([&] {
+            vlc::playlist::vlc_playlist_locker locker(playlist);
+            return vlc_player_GetCurrentMedia(player) == nullptr
+                && vlc_player_GetState(player) == VLC_PLAYER_STATE_STOPPED;
+        }());
     }
 
     std::unique_ptr<VLCTestingEnv> m_env;
