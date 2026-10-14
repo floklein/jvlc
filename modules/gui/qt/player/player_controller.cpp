@@ -24,6 +24,7 @@
 #include "player_controller.hpp"
 #include "player_controller_p.hpp"
 #include "util/shared_input_item.hpp"
+#include "player/waveform.hpp"
 
 #include <vlc_actions.h>           /* ACTION_ID */
 #include <vlc_url.h>            /* vlc_uri_decode */
@@ -1273,10 +1274,30 @@ PlayerController::PlayerController( qt_intf_t *_p_intf )
 {
     connect( &d_ptr->m_position_timer, &QTimer::timeout, this, &PlayerController::updatePositionFromTimer );
     connect( &d_ptr->m_time_timer, &QTimer::timeout, this, &PlayerController::updateTimeFromTimer );
+
+    // The waveform seek bar: peaks are cached in the user cache folder
+    QString waveformCacheDir;
+    if ( char *psz_cachedir = config_GetUserDir( VLC_CACHE_DIR ) )
+    {
+        waveformCacheDir = QDir( QString::fromUtf8( psz_cachedir ) ).filePath( QStringLiteral( "waveforms" ) );
+        free( psz_cachedir );
+    }
+    d_ptr->m_waveform = new SeekWaveform( VLC_OBJECT(_p_intf), waveformCacheDir, this );
+    // a video starts with no video track yet: wait for its tracks before decoding
+    d_ptr->m_waveform->setStartDelay( 1000 );
+
+    const auto updateWaveformMedia = [this]() {
+        Q_D(PlayerController);
+        d->m_waveform->setMedia( d->m_url, d->m_videoTracks.getCount() > 0 );
+    };
+    connect( this, &PlayerController::inputChanged, this, updateWaveformMedia );
+    connect( &d_ptr->m_videoTracks, &TrackListModel::countChanged, this, updateWaveformMedia );
 }
 
 PlayerController::~PlayerController()
 {
+    // waits for a running decode, which uses the interface
+    delete d_ptr->m_waveform;
 }
 
 // PLAYBACK
@@ -1424,6 +1445,15 @@ void PlayerController::jumpBwd()
     if( !d->isCurrentItemSynced() )
         return;
     vlc_player_JumpTime( d->m_player, vlc_tick_from_sec( -i_interval ) );
+}
+
+void PlayerController::jumpSeconds( int seconds )
+{
+    Q_D(PlayerController);
+    vlc_player_locker lock{ d->m_player };
+    if( !d->isCurrentItemSynced() )
+        return;
+    vlc_player_JumpTime( d->m_player, vlc_tick_from_sec( seconds ) );
 }
 
 void PlayerController::jumpToTime(int seconds)
@@ -2292,6 +2322,12 @@ QABSTRACTLIST_GETTER( VLCVarChoiceModel, getAudioStereoMode, m_audioStereoMode)
 QABSTRACTLIST_GETTER( VLCVarChoiceModel, getAudioMixMode, m_audioMixMode)
 QABSTRACTLIST_GETTER( VLCVarChoiceModel, getAudioVisualizations, m_audioVisualization)
 QABSTRACTLIST_GETTER( RendererManager, getRendererManager, m_rendererManager)
+
+SeekWaveform* PlayerController::getWaveform()
+{
+    Q_D(PlayerController);
+    return d->m_waveform;
+}
 
 #undef QABSTRACTLIST_GETTER
 

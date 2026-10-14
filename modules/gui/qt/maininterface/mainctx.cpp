@@ -49,6 +49,7 @@
 #include "playlist/playlist_controller.hpp"
 #include "playlist/pasted_media.hpp"
 #include "player/player_controller.hpp"
+#include "player/waveform.hpp"
 #include "medialibrary/medialib.hpp"
 
 #include "dialogs/dialogs_provider.hpp"
@@ -258,6 +259,10 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
     connect( THEMIM, &PlayerController::inputChanged, this, &MainCtx::onInputChanged );
     connect( THEMIM, &PlayerController::hasVideoOutputChanged, this, &MainCtx::onVOutChanged );
 
+    /* the waveform is only decoded while the user shows it */
+    THEMIM->getWaveform()->setEnabled( m_showWaveform );
+    connect( this, &MainCtx::showWaveformChanged, THEMIM->getWaveform(), &SeekWaveform::setEnabled );
+
     /* END CONNECTS ON IM */
 
     /* VideoWidget connects for asynchronous calls */
@@ -334,6 +339,8 @@ MainCtx::~MainCtx()
         settings->setValue( "album-sections", m_albumSections );
 
         settings->setValue( "lyrics-mode", m_lyricsMode );
+
+        settings->setValue( "show-waveform", m_showWaveform );
 
         /* Save the stackCentralW sizes */
         settings->endGroup();
@@ -504,6 +511,8 @@ void MainCtx::loadFromSettingsImpl(const bool callSignals)
     loadFromSettings(m_albumSections, "MainWindow/album-sections", true, this, &MainCtx::albumSectionsChanged);
 
     loadFromSettings(m_lyricsMode, "MainWindow/lyrics-mode", true, this, &MainCtx::lyricsModeChanged);
+
+    loadFromSettings(m_showWaveform, "MainWindow/show-waveform", true, this, &MainCtx::showWaveformChanged);
 
     const auto colorSchemeIndex = getSettings()->value( "MainWindow/color-scheme-index", 0 ).toInt();
     m_colorScheme->setCurrentIndex(colorSchemeIndex);
@@ -779,6 +788,15 @@ void MainCtx::setLyricsMode(bool enabled)
 
     m_lyricsMode = enabled;
     emit lyricsModeChanged(enabled);
+}
+
+void MainCtx::setShowWaveform(bool enabled)
+{
+    if (m_showWaveform == enabled)
+        return;
+
+    m_showWaveform = enabled;
+    emit showWaveformChanged(enabled);
 }
 
 void MainCtx::setInterfaceAlwaysOnTop( bool on_top )

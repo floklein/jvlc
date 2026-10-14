@@ -50,6 +50,12 @@ T.ProgressBar {
     readonly property bool _thick: barHeight >= VLCStyle.dp(12, VLCStyle.scale)
     readonly property real _inset: _thick ? VLCStyle.dp(2, VLCStyle.scale) : 0
 
+    // The waveform seek bar of the music player (Figma 4778:26191): loudness
+    // buckets of the media in 0..1 drawn as bars instead of the played part.
+    // Empty draws the plain bar.
+    property var peaks: []
+    readonly property bool _waveform: _thick && !!peaks && peaks.length > 0
+
     // a press this close to a chapter start selects the chapter
     readonly property real _chapterSnapDistance: VLCStyle.dp(4, VLCStyle.scale)
 
@@ -628,7 +634,7 @@ T.ProgressBar {
             x: control._inset
             y: control._inset
             width: control.visualPosition * (parent.width - control._inset * 2)
-            visible: control._thick || !Player.hasChapters
+            visible: (control._thick || !Player.hasChapters) && !control._waveform
             color: control._thick ? theme.bg.highlight : theme.fg.primary
             height: control.barHeight - control._inset * 2
             radius: control._thick ? VLCStyle.radius_small : control._seekPointsRadius
@@ -642,6 +648,50 @@ T.ProgressBar {
                 when: (progressRect.mutabilityGroup !== undefined)
                 value: (Player.playingState === Player.PLAYING_STATE_PLAYING) ? Item.DynamicMutabilityGroup
                                                                               : Item.StaticMutabilityGroup
+            }
+        }
+
+        // the waveform: bars still to play, with the played ones over them up
+        // to the handle
+        Item {
+            id: waveform
+
+            anchors.fill: parent
+
+            visible: control._waveform
+
+            component Bars : WaveformBars {
+                height: waveform.height
+
+                peaks: control._waveform ? control.peaks : []
+
+                barWidth: VLCStyle.dp(2, VLCStyle.scale)
+                barSpacing: VLCStyle.dp(3, VLCStyle.scale)
+                minimumBarHeight: VLCStyle.dp(2, VLCStyle.scale)
+                maximumBarHeight: height - VLCStyle.dp(14, VLCStyle.scale)
+            }
+
+            Bars {
+                id: waveformBars
+
+                x: VLCStyle.dp(6, VLCStyle.scale)
+                width: parent.width - x * 2
+
+                color: theme.fg.secondary
+            }
+
+            Item {
+                x: waveformBars.x
+                width: Math.max(0, sliderHandle.x - x)
+                height: parent.height
+
+                clip: true
+
+                Bars {
+                    width: waveformBars.width
+
+                    color: theme.fg.highlight
+                }
             }
         }
 
@@ -800,7 +850,9 @@ T.ProgressBar {
                           : (control.visualPosition * control.availableWidth) - width / 2
         y: (control.barHeight - height) / 2
 
-        implicitWidth: control._thick ? VLCStyle.dp(8, VLCStyle.scale) : sliderHandle._size
+        // the waveform's handle is a 4 px bar (Figma 4778:26192)
+        implicitWidth: control._thick ? VLCStyle.dp(control._waveform ? 4 : 8, VLCStyle.scale)
+                                      : sliderHandle._size
         implicitHeight: control._thick ? control.barHeight - control._inset * 2 : sliderHandle._size
         radius: control._thick ? VLCStyle.radius_small : VLCStyle.margin_small
         color: theme.fg.primary

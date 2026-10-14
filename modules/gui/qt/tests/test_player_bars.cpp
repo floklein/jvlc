@@ -142,15 +142,17 @@ private slots:
                                 C::EXTENDED_BUTTON, C::PLAYLIST_BUTTON }));
     }
 
-    void testDefaultMusicLayoutHasNoSubtitlesButton()
+    void testDefaultMusicLayout()
     {
         std::unique_ptr<ControlbarProfile> profile {
             ControlbarProfileModel::generateProfileFromStyle(ControlbarProfileModel::Style::DEFAULT_STYLE) };
         QVERIFY(profile);
 
+        // the music player adds the ±15 s skips around play (Figma 4778:26181)
         const int audio = PlayerControlbarModel::Audioplayer;
         QCOMPARE(controls(profile.get(), audio, 0),
-                 (QVector<int>{ C::PREVIOUS_BUTTON, C::PLAY_BUTTON, C::NEXT_BUTTON }));
+                 (QVector<int>{ C::PREVIOUS_BUTTON, C::SKIP_BACK_BUTTON, C::PLAY_BUTTON,
+                                C::SKIP_FW_BUTTON, C::NEXT_BUTTON }));
         QCOMPARE(controls(profile.get(), audio, 1),
                  (QVector<int>{ C::SEEK_BAR }));
         QCOMPARE(controls(profile.get(), audio, 2),

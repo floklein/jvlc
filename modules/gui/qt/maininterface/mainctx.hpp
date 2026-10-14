@@ -130,6 +130,8 @@ class MainCtx : public QObject
     Q_PROPERTY(bool hideUI READ hideUI WRITE setHideUI NOTIFY hideUIChanged FINAL)
     Q_PROPERTY(bool albumSections READ albumSections WRITE setAlbumSections NOTIFY albumSectionsChanged FINAL)
     Q_PROPERTY(bool lyricsMode READ lyricsMode WRITE setLyricsMode NOTIFY lyricsModeChanged FINAL)
+    // Show waveform: the music player draws its seek bar as a waveform
+    Q_PROPERTY(bool showWaveform READ showWaveform WRITE setShowWaveform NOTIFY showWaveformChanged FINAL)
     Q_PROPERTY(bool usingTouch READ usingTouch NOTIFY usingTouchChanged FINAL)
     Q_PROPERTY(CSDButtonModel *csdButtonModel READ csdButtonModel CONSTANT FINAL)
     Q_PROPERTY(MainInterfaceModes mainInterfaceModes READ getMainInterfaceModes NOTIFY mainInterfaceModesChanged FINAL)
@@ -225,6 +227,7 @@ public:
     inline bool hasGridView() const { return m_gridView; }
     inline bool albumSections() const { return m_albumSections; }
     inline bool lyricsMode() const { return m_lyricsMode; }
+    inline bool showWaveform() const { return m_showWaveform; }
     inline ColorSchemeModel* getColorScheme() const { return m_colorScheme; }
     bool hasVLM() const;
     bool useClientSideDecoration() const;
@@ -505,6 +508,7 @@ protected:
     bool m_albumSections = true;
 
     bool m_lyricsMode = true;
+    bool m_showWaveform = true;
 
     bool m_usingTouch = false;
 
@@ -531,6 +535,7 @@ public slots:
     void setGridView( bool );
     void setAlbumSections( bool );
     void setLyricsMode( bool );
+    void setShowWaveform( bool );
     void incrementIntfUserScaleFactor( bool increment);
     void setIntfUserScaleFactor( double );
 
@@ -587,6 +592,7 @@ signals:
     void hasGridListModeChanged( bool );
     void albumSectionsChanged( bool );
     void lyricsModeChanged( bool );
+    void showWaveformChanged( bool );
     void colorSchemeChanged( QString );
     void useClientSideDecorationChanged();
 

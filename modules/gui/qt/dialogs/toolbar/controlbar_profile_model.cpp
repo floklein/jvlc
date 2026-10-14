@@ -124,11 +124,14 @@ decltype (ControlbarProfileModel::m_defaults)
                         PlayerControlbarModel::Audioplayer,
                         {
                             {
-                                // Music drops the subtitles button but keeps
-                                // the adjustments (equalizer)
+                                // The music player (Figma 4778:26181) adds
+                                // the ±15 s skips, drops the subtitles button
+                                // but keeps the adjustments (equalizer)
                                 {
                                     ControlListModel::PREVIOUS_BUTTON,
+                                    ControlListModel::SKIP_BACK_BUTTON,
                                     ControlListModel::PLAY_BUTTON,
+                                    ControlListModel::SKIP_FW_BUTTON,
                                     ControlListModel::NEXT_BUTTON
                                 },
                                 {

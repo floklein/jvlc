@@ -112,6 +112,8 @@ moc_headers = files(
     'player/player_controlbar_model.hpp',
     'player/control_list_model.hpp',
     'player/control_list_filter.hpp',
+    'player/waveform.hpp',
+    'player/waveform_bars.hpp',
     'playlist/playlist_controller.hpp',
     'playlist/playlist_item.hpp',
     'playlist/playlist_model.hpp',
@@ -390,6 +392,10 @@ qt_plugin_sources = files(
     'player/control_list_model.hpp',
     'player/control_list_filter.cpp',
     'player/control_list_filter.hpp',
+    'player/waveform.cpp',
+    'player/waveform.hpp',
+    'player/waveform_bars.cpp',
+    'player/waveform_bars.hpp',
     'playlist/media.hpp',
     'playlist/playlist_common.hpp',
     'playlist/playlist_controller.cpp',
@@ -1684,6 +1690,27 @@ if qt6_dep.found()
             'link_with': [libvlccore, libvlc],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_waveform',
+            'sources': files(
+                'tests/test_waveform.cpp',
+                'player/waveform.cpp',
+                'player/waveform.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_waveform.cpp'
+            ),
+            'moc_headers': files(
+                'player/waveform.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep],
+            'module_depends': ['filesystem', 'wav', 'araw', 'packetizer_copy']
         }
 
         vlc_tests += {

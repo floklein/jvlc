@@ -32,6 +32,8 @@
 #include "player/control_list_model.hpp"
 #include "player/control_list_filter.hpp"
 #include "player/delay_estimator.hpp"
+#include "player/waveform.hpp"
+#include "player/waveform_bars.hpp"
 #include "player/seek_thumbnailer.hpp"
 
 #include "dialogs/toolbar/controlbar_profile_model.hpp"
@@ -347,6 +349,8 @@ void MainUI::registerQMLTypes()
         qmlRegisterUncreatableType<RendererManager>(uri, versionMajor, versionMinor, "RendererManager", "devices to cast to, see Player.rendererManager" );
         qmlRegisterTypesAndRevisions<TimedText>(uri, versionMajor);
         qmlRegisterType<PlayerHighResolutionTimeUpdater>(uri, versionMajor, versionMinor, "HighResolutionTimeUpdater");
+        qmlRegisterUncreatableType<SeekWaveform>(uri, versionMajor, versionMinor, "SeekWaveform", "the waveform of the current media");
+        qmlRegisterType<WaveformBars>(uri, versionMajor, versionMinor, "WaveformBars");
         qmlRegisterType<SeekThumbnailer>(uri, versionMajor, versionMinor, "SeekThumbnailer");
         qmlRegisterUncreatableMetaObject(VLCTickForeign::staticMetaObject, uri, versionMajor, versionMinor, "VLCTick", "Not Instantiable" );
         qmlRegisterTypesAndRevisions<VLCDuration>(uri, versionMajor);

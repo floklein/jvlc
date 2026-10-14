@@ -111,6 +111,9 @@ FocusScope {
 
             barHeight: root.implicitHeight
 
+            // local music with Show waveform on draws the waveform seek bar
+            peaks: root.paintOnly ? [] : Player.waveform.peaks
+
             focus: true
             activeFocusOnTab: true
 

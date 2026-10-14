@@ -681,27 +681,34 @@ FocusScope {
                     }
 
                     ColumnLayout {
+                        id: coverColumn
+
                         parent: leftSideParent.visible ? rightSideParent : centerContent
 
                         anchors.centerIn: parent
                         spacing: 0
 
+                        // The music player (Figma 4767:23726): a large cover with
+                        // rounded corners, then "title - artist"
                         Item {
                             id: coverItem
-                            Layout.preferredHeight: rootPlayer.height / sizeConstant
+                            Layout.preferredHeight: Math.min(centerContent.height * heightRatio,
+                                                             coverColumn.parent.width - VLCStyle.margin_xlarge * 2)
                             Layout.preferredWidth: cover.paintedWidth
                             Layout.maximumHeight: centerContent.height
                             Layout.alignment: Qt.AlignHCenter
 
-                            readonly property real sizeConstant: 2.7182
+                            // the cover takes three quarters of the view, less
+                            // when the current lyric shows under it
+                            readonly property real heightRatio: (Player.hasLyrics && !audioFocusScope.lyricsLayoutActive) ? 0.6 : 0.75
 
                             Image {
                                 id: cover
 
                                 //source aspect ratio
                                 readonly property real sar: paintedWidth / paintedHeight
-                                readonly property int maximumWidth: Helpers.alignUp((Screen.desktopAvailableWidth * eDPR / coverItem.sizeConstant), 32)
-                                readonly property int maximumHeight: Helpers.alignUp((Screen.desktopAvailableHeight * eDPR / coverItem.sizeConstant), 32)
+                                readonly property int maximumWidth: Helpers.alignUp((Screen.desktopAvailableWidth * eDPR * 0.75), 32)
+                                readonly property int maximumHeight: Helpers.alignUp((Screen.desktopAvailableHeight * eDPR * 0.75), 32)
 
                                 readonly property int maximumSize: Math.min(maximumWidth, maximumHeight)
 
@@ -734,6 +741,10 @@ FocusScope {
 
                                 sourceSize: Qt.size(maximumSize, maximumSize)
 
+                                // still sizes the cover and feeds the blurred background,
+                                // while the rounded cover below draws it
+                                visible: !roundedCover.visible
+
                                 Accessible.role: Accessible.Graphic
                                 Accessible.name: qsTr("Cover")
 
@@ -752,63 +763,56 @@ FocusScope {
                                                                                                                   }
                                                                                                               })
                                 }
+                            }
 
-                                Widgets.RoundedRectangleShadow {
-                                    color: bgtheme.shadow.alpha(.18)
-                                    yOffset: VLCStyle.dp(24, VLCStyle.scale)
-                                    blurRadius: VLCStyle.dp(54, VLCStyle.scale)
-                                }
+                            // Sampling the mipmapped `cover` texture here draws it
+                            // squeezed, so this loads its own copy
+                            Widgets.ImageExt {
+                                id: roundedCover
 
+                                anchors.fill: cover
+
+                                visible: (GraphicsInfo.shaderType === GraphicsInfo.RhiShader)
+
+                                source: cover.source
+                                sourceSize: cover.sourceSize
+                                cache: false
+                                fillMode: Image.PreserveAspectFit
+                                radius: VLCStyle.dp(20, VLCStyle.scale)
+
+                                // a faint glow around the cover
                                 Widgets.RoundedRectangleShadow {
-                                    color: bgtheme.shadow.alpha(.22)
-                                    yOffset: VLCStyle.dp(5, VLCStyle.scale)
-                                    blurRadius: VLCStyle.dp(14, VLCStyle.scale)
+                                    color: bgtheme.fg.primary.alpha(.05)
+                                    blurRadius: VLCStyle.dp(90, VLCStyle.scale)
                                 }
                             }
                         }
 
                         Widgets.SubtitleLabel {
-                            id: albumLabel
+                            id: titleLabel
 
                             Layout.alignment: Qt.AlignHCenter
-                            Layout.topMargin: VLCStyle.margin_xxlarge
+                            Layout.maximumWidth: coverColumn.parent.width - VLCStyle.margin_xlarge * 2
+                            Layout.topMargin: Math.round(centerContent.height * 0.074)
 
                             Binding on visible {
                                 delayed: true
-                                when: albumLabel.componentCompleted
-                                value: centerContent.height > (albumLabel.y + albumLabel.height)
+                                when: titleLabel.componentCompleted
+                                value: centerContent.height > (titleLabel.y + titleLabel.height)
                             }
 
-                            text: Player.album
+                            // "title - artist"
+                            text: {
+                                const title = Player.title || Player.name
+                                return Player.artist ? qsTr("%1 - %2").arg(title).arg(Player.artist)
+                                                     : title
+                            }
+                            elide: Text.ElideRight
                             font.pixelSize: VLCStyle.fontSize_xxlarge
+                            font.weight: Font.Medium
                             horizontalAlignment: Text.AlignHCenter
-                            color: centerTheme.fg.primary
-                            Accessible.description: qsTr("album")
-
-                            property bool componentCompleted: false
-
-                            Component.onCompleted: {
-                                componentCompleted = true
-                            }
-                        }
-
-                        Widgets.MenuLabel {
-                            id: artistLabel
-
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.topMargin: VLCStyle.margin_small
-
-                            Binding on visible {
-                                delayed: true
-                                when: artistLabel.componentCompleted
-                                value: centerContent.height > (artistLabel.y + artistLabel.height)
-                            }
-
-                            text: Player.artist
-                            font.weight: Font.Light
-                            horizontalAlignment: Text.AlignHCenter
-                            color: centerTheme.fg.primary
-                            Accessible.description: qsTr("artist")
+                            color: centerTheme.fg.secondary
+                            Accessible.description: qsTr("title and artist")
 
                             property bool componentCompleted: false
 
@@ -878,70 +882,6 @@ FocusScope {
                             Accessible.description: text
                         }
 
-                        Widgets.NavigableRow {
-                            id: audioControls
-
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.topMargin: VLCStyle.margin_large
-
-                            Binding on visible {
-                                delayed: true
-                                when: audioControls.componentCompleted
-                                value: Player.videoTracks.count === 0 && centerContent.height > (audioControls.y + audioControls.height)
-                            }
-
-                            focus: true
-                            spacing: VLCStyle.margin_xxsmall
-                            Navigation.parentItem: rootPlayer
-                            Navigation.upItem: topBar
-                            Navigation.downItem: syncToPlaybackCheckBox
-
-                            property bool componentCompleted: false
-
-                            Component.onCompleted: {
-                                componentCompleted = true
-                            }
-
-                            Widgets.IconToolButton {
-                                text: VLCIcons.skip_back
-                                font.pixelSize: VLCStyle.icon_audioPlayerButton
-                                onClicked: Player.jumpBwd()
-                                description: qsTr("Step back")
-
-                                AccessibleCompat.id: "audioStepBackButton"
-                            }
-
-                            Widgets.IconToolButton {
-                                text: VLCIcons.visualization
-                                font.pixelSize: VLCStyle.icon_audioPlayerButton
-                                onClicked: Player.toggleVisualization()
-                                description: qsTr("Visualization")
-
-                                AccessibleCompat.id: "audioVisualizationButton"
-                            }
-
-                            Widgets.IconToolButton {
-                                text: VLCIcons.topbar_music
-                                font.pixelSize: VLCStyle.icon_audioPlayerButton
-                                checked: MainCtx.lyricsMode
-                                onClicked: MainCtx.lyricsMode = !MainCtx.lyricsMode
-                                description: qsTr("Lyrics")
-
-                                Accessible.role: Accessible.Button
-                                Accessible.name: qsTr("Toggle lyrics view")
-                                AccessibleCompat.id: "audioLyricsButton"
-                            }
-
-                            Widgets.IconToolButton{
-                                text: VLCIcons.skip_for
-                                font.pixelSize: VLCStyle.icon_audioPlayerButton
-                                onClicked: Player.jumpFwd()
-                                description: qsTr("Step forward")
-
-                                AccessibleCompat.id: "audioStepForwardButton"
-                            }
-                        }
-
                         // "Sync to Playback" checkbox pinned to bottom of right panel
                         Widgets.CheckBoxExt {
                             id: syncToPlaybackCheckBox
@@ -983,7 +923,7 @@ FocusScope {
                             AccessibleCompat.id: "syncToPlaybackCheckBox"
 
                             Navigation.parentItem: rootPlayer
-                            Navigation.upItem: audioControls
+                            Navigation.upItem: topBar
                             Navigation.downItem: Player.isInteractive ? toggleControlBarButton : controlBar
                         }
                     }
@@ -1261,10 +1201,7 @@ FocusScope {
 
             function closePlaylist() {
                 playlistVisibility.togglePlaylistVisibility()
-                if (audioControls.visible)
-                    audioControls.forceActiveFocus()
-                else
-                    controlBar.forceActiveFocus()
+                controlBar.forceActiveFocus()
             }
         }
     }

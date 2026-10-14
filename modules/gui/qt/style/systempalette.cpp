@@ -607,6 +607,9 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         setColor(CS, C::Bg, C::Secondary, C::Normal, t.dividerBright);
         setColor(CS, C::Bg, C::Highlight, C::Normal, t.bgAccentBright);
         setColor(CS, C::Fg, C::Primary, C::Normal, t.accentMain);
+        // waveform seek bar: bars still to play, and played bars
+        setColor(CS, C::Fg, C::Secondary, C::Normal, t.fgA4);
+        setColor(CS, C::Fg, C::Highlight, C::Normal, t.accentDim);
         setColor(CS, C::Fg, C::Positive, C::Normal, t.positive);
         setColor(CS, C::Fg, C::Neutral, C::Normal, t.neutral);
         setColor(CS, C::Fg, C::Negative, C::Normal, t.negative);

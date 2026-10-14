@@ -39,6 +39,7 @@
 #include "util/vlctick.hpp"
 
 Q_MOC_INCLUDE("util/renderer_manager.hpp")
+Q_MOC_INCLUDE("player/waveform.hpp")
 
 using vlc_player_locker = vlc_locker<vlc_player_t, vlc_player_Lock, vlc_player_Unlock>;
 
@@ -46,6 +47,7 @@ using SharedVOutThread = ::vlc::vlc_shared_data_ptr<vout_thread_t, &vout_Hold, &
 using SharedAOut = ::vlc::vlc_shared_data_ptr<audio_output_t, &aout_Hold, &aout_Release>;
 
 class RendererManager;
+class SeekWaveform;
 class QSignalMapper;
 
 class IMEvent : public QEvent
@@ -228,6 +230,9 @@ public:
     Q_PROPERTY(bool recording READ isRecording WRITE setRecording NOTIFY recordingChanged FINAL)
     Q_PROPERTY(RendererManager* rendererManager READ getRendererManager CONSTANT FINAL)
 
+    // the waveform seek bar of the music player
+    Q_PROPERTY(SeekWaveform* waveform READ getWaveform CONSTANT FINAL)
+
     // High resolution time fed by SMPTE Timer
     Q_PROPERTY(QString highResolutionTime READ highResolutionTime FINAL)
 
@@ -243,6 +248,8 @@ public slots:
     void jumpFwd();
     void jumpBwd();
     void jumpTime( VLCTime i_time );
+    /// jumps by a number of seconds from the current time (music ±15 s skips)
+    void jumpSeconds( int seconds );
     /// Jump to Time: seeks to a time from the start, in seconds
     void jumpToTime( int seconds );
     void jumpToPos( double );
@@ -444,6 +451,8 @@ public slots:
 
     //Renderer
     RendererManager* getRendererManager();
+
+    SeekWaveform* getWaveform();
 
 signals:
     //playback

@@ -199,6 +199,8 @@ public:
 
     RendererManager m_rendererManager;
 
+    SeekWaveform* m_waveform = nullptr;
+
     // meta
     QString m_title;
     QString m_artist;

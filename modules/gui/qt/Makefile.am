@@ -268,6 +268,10 @@ libqt_plugin_la_SOURCES = \
 	player/control_list_model.cpp player/control_list_model.hpp \
 	player/control_list_filter.cpp \
 	player/control_list_filter.hpp \
+	player/waveform.cpp \
+	player/waveform.hpp \
+	player/waveform_bars.cpp \
+	player/waveform_bars.hpp \
 	playlist/media.hpp \
 	playlist/playlist_common.hpp \
 	playlist/playlist_controller.cpp \
@@ -462,6 +466,8 @@ nodist_libqt_plugin_la_SOURCES = \
 	player/player_controlbar_model.moc.cpp \
 	player/control_list_model.moc.cpp \
 	player/control_list_filter.moc.cpp \
+	player/waveform.moc.cpp \
+	player/waveform_bars.moc.cpp \
 	playlist/playlist_controller.moc.cpp \
 	playlist/playlist_item.moc.cpp \
 	playlist/playlist_model.moc.cpp \
@@ -2084,6 +2090,25 @@ test_player_bars_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_player_bars_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_player_bars
 TESTS += test_player_bars
+
+# test_waveform
+
+test_waveform_SOURCES = \
+	tests/test_waveform.cpp \
+	player/waveform.cpp player/waveform.hpp
+
+nodist_test_waveform_SOURCES = \
+	tests/test_waveform.moc \
+	player/waveform.moc.cpp
+
+BUILT_SOURCES += tests/test_waveform.moc
+CLEANFILES += tests/test_waveform.moc
+test_waveform_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_waveform_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_waveform_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_waveform_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_waveform
+TESTS += test_waveform
 
 # test_seek_thumbnailer
 

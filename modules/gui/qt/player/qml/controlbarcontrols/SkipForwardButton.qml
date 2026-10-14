@@ -26,11 +26,20 @@ import VLC.Util
 Widgets.IconToolButton {
     id: stepfwdBtn
 
+    // the music player skips 15 s (Figma 4778:26181), the video player the
+    // short jump size
+    readonly property bool _music: !Player.hasVideoOutput
+
     enabled: Player.seekable
 
-    text: VLCIcons.skip_for
-    onClicked: Player.jumpFwd()
-    description: qsTr("Step forward")
+    text: _music ? VLCIcons.forward_15_sec : VLCIcons.skip_for
+    onClicked: {
+        if (_music)
+            Player.jumpSeconds(15)
+        else
+            Player.jumpFwd()
+    }
+    description: _music ? qsTr("Forward 15 seconds") : qsTr("Step forward")
 
     AccessibleCompat.id: "skipForwardButton"
 }

@@ -37,6 +37,7 @@
 #include "maininterface/mainctx_submodels.hpp"
 #include "dialogs/dialogs_provider.hpp"                   /* Dialogs display */
 #include "player/player_controller.hpp"                      /* Input Management */
+#include "player/waveform.hpp"                               /* Show waveform */
 #include "playlist/playlist_controller.hpp"
 #include "dialogs/extensions/extensions_manager.hpp"                 /* Extensions menu */
 #include "util/varchoicemodel.hpp"
@@ -681,6 +682,19 @@ QMenu* VLCMenuBar::PopupMenu( qt_intf_t *p_intf, bool show )
         action->setChecked( mi->hideUI() );
         setIcon( action, menu, VLCIcons::ui_tt_base, VLCIcons::ui_tt_accent );
         menu->addSeparator();
+    }
+
+    /* Music player views: the waveform toggle only exists for local music */
+    if( mi )
+    {
+        const bool b_waveform = THEMIM->getWaveform()->available();
+        const bool b_lyrics = !THEMIM->getVout() && THEMIM->hasLyrics();
+        if( b_waveform )
+            menu->addAction( new BooleanPropertyAction( qtr( "Show &Waveform" ), mi, "showWaveform", menu ) );
+        if( b_lyrics )
+            menu->addAction( new BooleanPropertyAction( qtr( "&Lyrics View" ), mi, "lyricsMode", menu ) );
+        if( b_waveform || b_lyrics )
+            menu->addSeparator();
     }
 
     /* Playback, Video, Audio and Subtitle */
