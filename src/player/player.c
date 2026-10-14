@@ -1577,6 +1577,23 @@ vlc_player_GetRenderer(vlc_player_t *player)
 }
 
 int
+vlc_player_SetStreamOutput(vlc_player_t *player, const char *sout)
+{
+    vlc_player_assert_locked(player);
+
+    /* The inputs inherit the player's "sout" variable when they are
+     * created */
+    return var_SetString(player, "sout", sout != NULL ? sout : "");
+}
+
+char *
+vlc_player_GetStreamOutput(vlc_player_t *player)
+{
+    vlc_player_assert_locked(player);
+    return var_GetNonEmptyString(player, "sout");
+}
+
+int
 vlc_player_SetAtoBLoop(vlc_player_t *player, enum vlc_player_abloop abloop)
 {
     struct vlc_player_input *input = vlc_player_get_input_locked(player);

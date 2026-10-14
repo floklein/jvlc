@@ -23,10 +23,8 @@
 #endif
 
 #include <vlc_common.h>
-#include <vlc_renderer_discovery.h>
 
 #include "custom_menus.hpp"
-#include "util/renderer_manager.hpp"
 
 // MediaLibrary includes
 #include "medialibrary/mlbookmarkmodel.hpp"
@@ -42,111 +40,11 @@
 #include <QMenu>
 #include <QAction>
 #include <QActionGroup>
-#include <QWidgetAction>
-#include <QVBoxLayout>
-#include <QLabel>
-#include <QProgressBar>
 #include <QMetaObject>
 #include <QMetaProperty>
 #include <QMetaMethod>
 
 #include "util/vlcaccess_image_provider.hpp"
-
-RendererMenu::RendererMenu( QMenu* parent, qt_intf_t* intf, PlayerController* player )
-    : QMenu( parent)
-    , p_intf( intf )
-    , m_renderManager(player->getRendererManager())
-{
-    setTitle( qtr("&Renderer") );
-
-    QAction *action = new QAction( qtr("<Local>"), this );
-    action->setCheckable(true);
-    action->setChecked(!m_renderManager->useRenderer());
-    connect(action, &QAction::triggered, this, [this](bool checked){
-        if (checked) {
-            m_renderManager->disableRenderer();
-        }
-    });
-    addAction( action );
-    connect(m_renderManager,  &RendererManager::useRendererChanged, action,
-            [action, this](){
-                action->setChecked(!m_renderManager->useRenderer());
-    });
-
-    QAction* separator = addSeparator();
-
-    ListMenuHelper* helper = new ListMenuHelper(this, m_renderManager, separator, this);
-    connect(helper, &ListMenuHelper::select, this, [this](int row, bool checked){
-        m_renderManager->setData(m_renderManager->index(row), checked, Qt::CheckStateRole);
-    });
-
-    QActionGroup* actionGroup = helper->getActionGroup();
-    actionGroup->setExclusionPolicy(QActionGroup::ExclusionPolicy::Exclusive);
-    //the <Local> node is part of the group
-    actionGroup->addAction(action);
-
-    QWidget *statusWidget = new QWidget();
-    statusWidget->setLayout( new QVBoxLayout );
-    m_statusLabel = new QLabel();
-    statusWidget->layout()->addWidget( m_statusLabel );
-    m_statusProgressBar = new QProgressBar();
-    m_statusProgressBar->setMaximumHeight( 10 );
-    m_statusProgressBar->setStyleSheet( QString(R"RAW(
-        QProgressBar:horizontal {
-            border: none;
-            background: transparent;
-            padding: 1px;
-        }
-        QProgressBar::chunk:horizontal {
-            background: qlineargradient(x1: 0, y1: 0.5, x2: 1, y2: 0.5,
-                        stop: 0 white, stop: 0.4 orange, stop: 0.6 orange, stop: 1 white);
-        })RAW") );
-    m_statusProgressBar->setRange( 0, 0 );
-    m_statusProgressBar->setSizePolicy( QSizePolicy::MinimumExpanding, QSizePolicy::Maximum );
-    statusWidget->layout()->addWidget( m_statusProgressBar );
-
-    QWidgetAction *qwa = new QWidgetAction( this );
-    qwa->setDefaultWidget( statusWidget );
-    qwa->setDisabled( true );
-    addAction( qwa );
-    m_statusAction = qwa;
-
-    connect( this, &RendererMenu::aboutToShow, m_renderManager, &RendererManager::StartScan );
-    connect( m_renderManager, &RendererManager::statusChanged, this, &RendererMenu::updateStatus );
-    connect( m_renderManager, &RendererManager::scanRemainChanged, this, &RendererMenu::updateStatus );
-    updateStatus();
-}
-
-RendererMenu::~RendererMenu()
-{}
-
-void RendererMenu::updateStatus()
-{
-
-    switch (m_renderManager->getStatus())
-    {
-    case RendererManager::RendererStatus::RUNNING:
-    {
-        int scanRemain = m_renderManager->getScanRemain();
-        m_statusLabel->setText( qtr("Scanning...").
-               append( QString(" (%1s)").arg( scanRemain ) ) );
-        m_statusProgressBar->setVisible( true );
-        m_statusAction->setVisible( true );
-        break;
-    }
-    case RendererManager::RendererStatus::FAILED:
-    {
-        m_statusLabel->setText( "Failed (no discovery module available)" );
-        m_statusProgressBar->setVisible( false );
-        m_statusAction->setVisible( true );
-        break;
-    }
-    case RendererManager::RendererStatus::IDLE:
-        m_statusAction->setVisible( false );
-        break;
-    }
-}
-
 
 /*   CheckableListMenu   */
 

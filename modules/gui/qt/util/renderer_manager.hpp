@@ -49,12 +49,14 @@ public:
     Q_PROPERTY(int scanRemain READ getScanRemain NOTIFY scanRemainChanged FINAL)
     Q_PROPERTY(RendererStatus status READ getStatus NOTIFY statusChanged FINAL)
     Q_PROPERTY(bool useRenderer READ useRenderer NOTIFY useRendererChanged FINAL)
+    ///name of the device the player casts to, empty when it plays here
+    Q_PROPERTY(QString rendererName READ rendererName NOTIFY useRendererChanged FINAL)
 
 public:
     RendererManager( qt_intf_t* intf, vlc_player_t* player );
     virtual ~RendererManager();
 
-    void disableRenderer();
+    Q_INVOKABLE void disableRenderer();
 
 public slots:
     void StartScan();
@@ -72,6 +74,7 @@ public:
     int getScanRemain() const;
     RendererStatus getStatus() const;
     bool useRenderer() const;
+    QString rendererName() const;
 signals:
     void statusChanged();
     void scanRemainChanged();

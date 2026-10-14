@@ -240,29 +240,6 @@ private:
     std::unique_ptr<QMenu> m_menu;
 };
 
-class QmlRendererMenu : public QObject
-{
-    Q_OBJECT
-
-    SIMPLE_MENU_PROPERTY(MainCtx *, ctx, nullptr)
-
-public:
-    explicit QmlRendererMenu(QObject * parent = nullptr);
-
-public: // Interface
-    Q_INVOKABLE void popup(const QPoint & position, bool above = false);
-    Q_INVOKABLE void close();
-
-signals:
-    void aboutToHide();
-    void aboutToShow();
-
-private:
-    QmlMenuPositioner m_positioner;
-
-    std::unique_ptr<RendererMenu> m_menu;
-};
-
 // Tracks
 
 class QmlTrackMenu : public QObject

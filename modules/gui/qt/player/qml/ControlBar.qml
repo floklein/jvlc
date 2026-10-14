@@ -358,38 +358,75 @@ T.Pane {
             Layout.rightMargin: Layout.leftMargin
         }
 
-        PlayerControlLayout {
-            id: playerControlLayout
-
+        RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.leftMargin: root.seekBarInline ? 0 : VLCStyle.margin_large
             Layout.rightMargin: root.seekBarInline ? 0 : VLCStyle.margin_large
 
-            identifier: root.identifier
+            spacing: playerControlLayout.spacing
 
-            // Figma 491:1779: one 32 px row, 8 px between items, 20 px between zones
-            spacing: root.seekBarInline ? VLCStyle.spacing_8 : VLCStyle.margin_normal
-            layoutSpacing: root.seekBarInline ? VLCStyle.spacing_20 : VLCStyle.margin_xxlarge
+            visible: playerControlLayout.visible || castButtonLoader.active
 
-            implicitHeight: {
-                if (root.seekBarInline)
-                    return VLCStyle.dp(32, VLCStyle.scale)
-                return MainCtx.pinVideoControls ? VLCStyle.controlLayoutHeightPinned
-                                                : VLCStyle.controlLayoutHeight
+            PlayerControlLayout {
+                id: playerControlLayout
+
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                identifier: root.identifier
+
+                // Figma 491:1779: one 32 px row, 8 px between items, 20 px between zones
+                spacing: root.seekBarInline ? VLCStyle.spacing_8 : VLCStyle.margin_normal
+                layoutSpacing: root.seekBarInline ? VLCStyle.spacing_20 : VLCStyle.margin_xxlarge
+
+                implicitHeight: {
+                    if (root.seekBarInline)
+                        return VLCStyle.dp(32, VLCStyle.scale)
+                    return MainCtx.pinVideoControls ? VLCStyle.controlLayoutHeightPinned
+                                                    : VLCStyle.controlLayoutHeight
+                }
+
+                visible: !model?.empty ?? false
+
+                Navigation.upItem: (trackPositionSlider.enabled && !root.seekBarInline) ? trackPositionSlider
+                                                                                      : root.Navigation.upItem
+
+                onRequestLockUnlockAutoHide: (lock) => root.requestLockUnlockAutoHide(lock)
+
+                onMenuOpened: (menu) => root.applyMenu(menu)
+
+                Component.onCompleted: {
+                    root.forceUnlock.connect(playerControlLayout.forceUnlock)
+                }
             }
 
-            visible: !model?.empty ?? false
+            // While the playback is cast to a device, the Cast button shows in
+            // the Control bar even if the Layout does not have it
+            Loader {
+                id: castButtonLoader
 
-            Navigation.upItem: (trackPositionSlider.enabled && !root.seekBarInline) ? trackPositionSlider
-                                                                                  : root.Navigation.upItem
+                Layout.alignment: Qt.AlignVCenter
 
-            onRequestLockUnlockAutoHide: (lock) => root.requestLockUnlockAutoHide(lock)
+                active: {
+                    if (!Player.rendererManager.useRenderer)
+                        return false
+                    const model = playerControlLayout.model
+                    if (!model)
+                        return true
+                    // re-evaluate when the zones change
+                    void (model.left.count + model.center.count + model.right.count)
+                    return !(model.left.contains(ControlListModel.RENDERER_BUTTON)
+                             || model.center.contains(ControlListModel.RENDERER_BUTTON)
+                             || model.right.contains(ControlListModel.RENDERER_BUTTON))
+                }
 
-            onMenuOpened: (menu) => root.applyMenu(menu)
+                sourceComponent: CastButton {
+                    onRequestLockUnlockAutoHide: (lock) => root.requestLockUnlockAutoHide(lock)
+                    onMenuOpened: (menu) => root.applyMenu(menu)
 
-            Component.onCompleted: {
-                root.forceUnlock.connect(playerControlLayout.forceUnlock)
+                    Component.onCompleted: root.forceUnlock.connect(forceUnlock)
+                }
             }
         }
     }

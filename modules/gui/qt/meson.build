@@ -52,9 +52,7 @@ moc_headers = files(
     'dialogs/convert/conversion_profile_model.hpp',
     'dialogs/settings/settings_model.hpp',
     'dialogs/settings/settings_pages.hpp',
-    'dialogs/sout/profile_selector.hpp',
-    'dialogs/sout/sout.hpp',
-    'dialogs/sout/sout_widgets.hpp',
+    'dialogs/sout/stream_output.hpp',
     'dialogs/systray/systray.hpp',
     'dialogs/toolbar/controlbar_profile.hpp',
     'dialogs/toolbar/controlbar_profile_model.hpp',
@@ -238,13 +236,9 @@ qt_plugin_sources = files(
     'dialogs/settings/settings_model.hpp',
     'dialogs/settings/settings_pages.cpp',
     'dialogs/settings/settings_pages.hpp',
-    'dialogs/sout/profile_selector.cpp',
-    'dialogs/sout/profile_selector.hpp',
     'dialogs/sout/profiles.hpp',
-    'dialogs/sout/sout.cpp',
-    'dialogs/sout/sout.hpp',
-    'dialogs/sout/sout_widgets.cpp',
-    'dialogs/sout/sout_widgets.hpp',
+    'dialogs/sout/stream_output.cpp',
+    'dialogs/sout/stream_output.hpp',
     'dialogs/systray/systray.cpp',
     'dialogs/systray/systray.hpp',
     'dialogs/toolbar/controlbar_profile.hpp',
@@ -569,8 +563,6 @@ ui_sources = files(
     'dialogs/open/open_disk.ui',
     'dialogs/open/open_file.ui',
     'dialogs/open/open_net.ui',
-    'dialogs/sout/profiles.ui',
-    'dialogs/sout/sout.ui',
 )
 
 qml_modules = []
@@ -601,6 +593,7 @@ qml_modules += {
         'dialogs/settings/qml/SettingsToggle.qml',
         'dialogs/mediainfo/qml/MediaPropertiesDialog.qml',
         'dialogs/open/qml/OpenDiscDialog.qml',
+        'dialogs/sout/qml/StreamCastDialog.qml',
         'dialogs/toolbar/qml/EditorDNDDelegate.qml',
         'dialogs/toolbar/qml/EditorDNDView.qml',
         'dialogs/toolbar/qml/EditorDummyButton.qml',
@@ -789,7 +782,7 @@ qml_modules += {
        'player/qml/controlbarcontrols/ProgramButton.qml',
        'player/qml/controlbarcontrols/QuitButton.qml',
        'player/qml/controlbarcontrols/RandomButton.qml',
-       'player/qml/controlbarcontrols/RendererButton.qml',
+       'player/qml/controlbarcontrols/CastButton.qml',
        'player/qml/controlbarcontrols/RecordButton.qml',
        'player/qml/controlbarcontrols/ReverseButton.qml',
        'player/qml/controlbarcontrols/SkipBackButton.qml',
@@ -1490,6 +1483,32 @@ if qt6_dep.found()
             ),
             'moc_headers': files(
                 'dialogs/convert/conversion_manager.hpp',
+                'dialogs/convert/conversion_profile_model.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_stream_output',
+            'sources': files(
+                'tests/vlc_stub_modules.cpp',
+                'tests/test_stream_output.cpp',
+                'dialogs/sout/stream_output.hpp',
+                'dialogs/sout/stream_output.cpp',
+                'dialogs/convert/conversion_profile_model.hpp',
+                'dialogs/convert/conversion_profile_model.cpp',
+                'util/soutchain.hpp',
+                'util/soutchain.cpp'
+            ),
+            'moc_sources': files(
+                'tests/test_stream_output.cpp'
+            ),
+            'moc_headers': files(
+                'dialogs/sout/stream_output.hpp',
                 'dialogs/convert/conversion_profile_model.hpp'
             ),
             'suite': ['qt'],

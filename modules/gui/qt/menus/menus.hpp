@@ -71,9 +71,6 @@ public:
     static QMenu* MiscPopupMenu( qt_intf_t *, bool );
 
 
-    /* destructor for parentless Menus (kept in static variables) */
-    static void freeRendererMenu(){ delete rendererMenu; rendererMenu = NULL; }
-
     /* The VLC menu: opening media, media tools, customization and the app */
     static void VLCMenuEntries( qt_intf_t *, QMenu * );
 
@@ -102,8 +99,6 @@ public:
     static void PopupMenuControlEntries( QMenu *menu, qt_intf_t *p_intf, bool b = true );
 
     static void VolumeEntries( qt_intf_t *p_intf, QMenu *current );
-
-    static RendererMenu *rendererMenu;
 };
 
 #endif

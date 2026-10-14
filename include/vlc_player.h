@@ -2271,6 +2271,29 @@ vlc_player_SetRenderer(vlc_player_t *player, vlc_renderer_item_t *renderer);
 VLC_API vlc_renderer_item_t *
 vlc_player_GetRenderer(vlc_player_t *player);
 
+/**
+ * Set the stream output
+ *
+ * Valid for the next medias the player opens: restart the current media to
+ * apply it to that media. A renderer, if set, takes precedence.
+ *
+ * @param player locked player instance
+ * @param sout a stream output chain ("#..."), or NULL to play locally again
+ * @return VLC_SUCCESS or a VLC error code
+ */
+VLC_API int
+vlc_player_SetStreamOutput(vlc_player_t *player, const char *sout);
+
+/**
+ * Get the stream output
+ *
+ * @param player locked player instance
+ * @return the stream output chain set by vlc_player_SetStreamOutput() (to
+ * be freed), or NULL if none
+ */
+VLC_API char *
+vlc_player_GetStreamOutput(vlc_player_t *player);
+
 /** @} vlc_player__renderer */
 
 /**

@@ -44,7 +44,6 @@
 #include "dialogs/messages/messagesmodel.hpp"
 #include "dialogs/dialogs/dialogmodel.hpp"
 #include "dialogs/extended/extended.hpp"
-#include "dialogs/sout/sout.hpp"
 #include "dialogs/open/open.hpp"
 #include "dialogs/plugins/plugins.hpp"
 #include "dialogs/firstrun/firstrunwizard.hpp"
@@ -79,8 +78,6 @@ DialogsProvider::DialogsProvider( qt_intf_t *_p_intf )
 
 DialogsProvider::~DialogsProvider()
 {
-    /* free parentless menus  */
-    VLCMenuBar::freeRendererMenu();
 }
 
 QString DialogsProvider::getSaveFileName( QWidget *parent,
@@ -878,35 +875,15 @@ void DialogsProvider::streamingDialog( QWindow *parent,
         return;
     }
 
-    QStringList outputMRLs;
+    /* Stream & Cast streams the current item or the Queue */
+    Q_UNUSED( parent );
+    Q_UNUSED( options );
+    streamAndCastDialog( STREAM_TAB );
+}
 
-    /* Stream */
-    // Does streaming multiple files make sense?  I suppose so, just stream one
-    // after the other, but not at the moment.
-    SoutDialog *s = new SoutDialog( parent, p_intf, mrls[0] );
-    s->setAttribute( Qt::WA_QuitOnClose, false ); // See #4883
-    if( s->exec() == QDialog::Accepted )
-    {
-        outputMRLs.append(s->getChain());
-        delete s;
-    }
-    else
-    {
-        delete s; return;
-    }
-
-    /* Get SoutChain(s) */
-    QVector<vlc::playlist::Media> outputMedias;
-
-    for( auto it = outputMRLs.cbegin(); it != outputMRLs.cend(); ++it )
-    {
-        const QString &mrl = mrls[std::distance(outputMRLs.cbegin(), it)];
-        QString title = "Converting " + mrl;
-        outputMedias.append(vlc::playlist::Media(mrl, title, options + (*it).split(" :")));
-    }
-
-    if( !outputMedias.empty() )
-        THEMPL->append(outputMedias, true);
+void DialogsProvider::streamAndCastDialog( int tab )
+{
+    emit showStreamAndCastDialog( tab );
 }
 
 void DialogsProvider::streamingDialog(const QList<QUrl> &urls, bool b_stream )
@@ -925,8 +902,7 @@ void DialogsProvider::streamingDialog(const QList<QUrl> &urls, bool b_stream )
 
 void DialogsProvider::openAndStreamingDialogs()
 {
-    ensureDialog(m_openDialog);
-    m_openDialog->showTab( OpenDialog::OPEN_FILE_TAB, OpenDialog::OPEN_AND_STREAM );
+    streamAndCastDialog();
 }
 
 void DialogsProvider::openAndTranscodingDialogs()

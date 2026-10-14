@@ -889,6 +889,7 @@ vlc_player_GetSelectedTitleIdx
 vlc_player_GetSignal
 vlc_player_GetState
 vlc_player_GetStatistics
+vlc_player_GetStreamOutput
 vlc_player_GetSubtitleTextScale
 vlc_player_GetTeletextPage
 vlc_player_GetTime
@@ -948,6 +949,7 @@ vlc_player_SetEsIdDelay
 vlc_player_SetRecordingEnabled
 vlc_player_SetRenderer
 vlc_player_SetStartPaused
+vlc_player_SetStreamOutput
 vlc_player_SetPlayAndPause
 vlc_player_SetPauseAtEnd
 vlc_player_IsEnded

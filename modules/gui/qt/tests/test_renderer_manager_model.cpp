@@ -17,6 +17,7 @@
  *****************************************************************************/
 #include <QTest>
 #include <QAbstractItemModelTester>
+#include <QSignalSpy>
 
 #include "vlc_stub_modules.hpp"
 
@@ -359,6 +360,31 @@ private slots:
         QCOMPARE(m_model->rowCount(), 1);
         QCOMPARE(m_model->data(selidx, RendererManager::SELECTED), true);
         QCOMPARE(m_model->useRenderer(), true);
+    }
+
+    //the Cast tab and the cast button show which device is used
+    void testCastDevice() {
+        QSignalSpy changed(m_model, &RendererManager::useRendererChanged);
+        m_model->StartScan();
+        auto r0 = pushDummyRDItem(0);
+        auto r1 = pushDummyRDItem(1);
+
+        QCOMPARE(m_model->rendererName(), QString());
+
+        m_model->setData(m_model->index(1), true, RendererManager::SELECTED);
+        QCOMPARE(m_model->rendererName(), QString("name1"));
+        QCOMPARE(changed.count(), 1);
+
+        m_model->disableRenderer();
+        QCOMPARE(m_model->rendererName(), QString());
+        QCOMPARE(changed.count(), 2);
+    }
+
+    //QML delegates read whether their device is used
+    void testSelectedRoleName() {
+        const QHash<int, QByteArray> roles = m_model->roleNames();
+        QCOMPARE(roles.value(RendererManager::SELECTED), QByteArray("selected"));
+        QCOMPARE(roles.value(RendererManager::NAME), QByteArray("name"));
     }
 
     //deleting the model without stopping the scan

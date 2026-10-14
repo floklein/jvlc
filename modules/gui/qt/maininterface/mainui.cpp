@@ -76,6 +76,8 @@
 #include <QTimer>
 #include "dialogs/mediainfo/media_properties_model.hpp"
 #include "dialogs/open/disc_model.hpp"
+#include "dialogs/sout/stream_output.hpp"
+#include "util/renderer_manager.hpp"
 #include "util/vlchotkeyconverter.hpp"
 
 #include "network/networkmediamodel.hpp"
@@ -307,6 +309,7 @@ void MainUI::registerQMLTypes()
         assert(MessagesModel::getInstance<false>());
         qmlRegisterSingletonInstance<MessagesModel>(uri, versionMajor, versionMinor, "MessagesModel", MessagesModel::getInstance<false>());
         qmlRegisterSingletonInstance<ProgramGuideModel>(uri, versionMajor, versionMinor, "ProgramGuideModel", createProgramGuideModel());
+        qmlRegisterSingletonInstance<StreamOutput>(uri, versionMajor, versionMinor, "StreamOutput", new StreamOutput(m_intf->p_playlist, this));
         qmlRegisterUncreatableType<MediaPropertiesModel>( uri, versionMajor, versionMinor, "MediaPropertiesModel", "");
         qmlRegisterType<DiscModel>( uri, versionMajor, versionMinor, "DiscModel" );
 
@@ -342,6 +345,7 @@ void MainUI::registerQMLTypes()
         qmlRegisterUncreatableType<ProgramListModel>(uri, versionMajor, versionMinor, "ProgramListModel", "available programs of a media" );
         assert(m_intf->p_mainPlayerController);
         qmlRegisterSingletonInstance<PlayerController>(uri, versionMajor, versionMinor, "Player", m_intf->p_mainPlayerController);
+        qmlRegisterUncreatableType<RendererManager>(uri, versionMajor, versionMinor, "RendererManager", "devices to cast to, see Player.rendererManager" );
         qmlRegisterTypesAndRevisions<TimedText>(uri, versionMajor);
         qmlRegisterType<PlayerHighResolutionTimeUpdater>(uri, versionMajor, versionMinor, "HighResolutionTimeUpdater");
         qmlRegisterType<SeekThumbnailer>(uri, versionMajor, versionMinor, "SeekThumbnailer");
@@ -351,7 +355,6 @@ void MainUI::registerQMLTypes()
 
         qmlRegisterType<QmlBookmarkMenu>( uri, versionMajor, versionMinor, "QmlBookmarkMenu" );
         qmlRegisterType<QmlProgramMenu>( uri, versionMajor, versionMinor, "QmlProgramMenu" );
-        qmlRegisterType<QmlRendererMenu>( uri, versionMajor, versionMinor, "QmlRendererMenu" );
         qmlRegisterType<QmlSubtitleMenu>( uri, versionMajor, versionMinor, "QmlSubtitleMenu" );
         qmlRegisterType<QmlAudioMenu>( uri, versionMajor, versionMinor, "QmlAudioMenu" );
         qmlRegisterType<QmlAudioContextMenu>( uri, versionMajor, versionMinor, "QmlAudioContextMenu" );

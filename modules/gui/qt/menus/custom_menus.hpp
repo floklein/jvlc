@@ -122,32 +122,6 @@ private:
     QString m_propertyName;
 };
 
-class RendererManager;
-class QProgressBar;
-class QLabel;
-class PlayerController;
-class RendererMenu : public QMenu
-{
-    Q_OBJECT
-
-public:
-    RendererMenu( QMenu* parent, qt_intf_t* intf, PlayerController* playerController );
-    virtual ~RendererMenu();
-
-private slots:
-    void updateStatus();
-
-protected:
-    QProgressBar* m_statusProgressBar;
-    QLabel* m_statusLabel;
-
-    QAction *m_statusAction;
-    QActionGroup *group;
-    qt_intf_t *p_intf;
-    RendererManager* m_renderManager = nullptr;
-};
-
-
 class RecentMenu : public QMenu
 {
     Q_OBJECT

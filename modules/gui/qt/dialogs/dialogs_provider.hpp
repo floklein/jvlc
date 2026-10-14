@@ -96,6 +96,13 @@ public:
     };
     Q_ENUM(Mode)
 
+    enum StreamAndCastTab
+    {
+        CAST_TAB,
+        STREAM_TAB
+    };
+    Q_ENUM(StreamAndCastTab)
+
     Q_PROPERTY(bool openDialogVisible READ openDialogVisible NOTIFY openDialogVisibleChanged FINAL)
     Q_PROPERTY(bool firstRunDialogVisible READ firstRunDialogVisible NOTIFY firstRunDialogVisibleChanged FINAL)
     Q_PROPERTY(bool extendedDialogVisible READ extendedDialogVisible NOTIFY extendedDialogVisibleChanged FINAL)
@@ -230,6 +237,8 @@ public slots:
                           QStringList options = QStringList("") );
     void streamingDialog( const QList<QUrl>& urls, bool b_stream = true );
     void openAndStreamingDialogs();
+    /* Stream & Cast, on a tab (StreamAndCastTab) or on the last one shown */
+    void streamAndCastDialog( int tab = -1 );
     void openAndTranscodingDialogs();
 
     void savePlayingToPlaylist();
@@ -255,6 +264,8 @@ signals:
     void showOpenCaptureDialog();
     /* opens Convert with these media, if any */
     void showConvertDialog(const QStringList& mrls);
+    /* opens Stream & Cast on a tab (StreamAndCastTab), -1 for the last one */
+    void showStreamAndCastDialog(int tab);
     /* Shows the Properties & Metadata window of a media. The live window,
      * which follows the player, toggles when shown again on the same tab */
     void showMediaProperties( MediaPropertiesModel *model, int tab );

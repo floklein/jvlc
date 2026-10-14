@@ -4155,8 +4155,9 @@ static int EsOutVaPrivControlLocked(es_out_sys_t *p_sys, input_source_t *source,
                 EsOutDestroyDecoder(p_sys, es);
                 *selected_es++ = vlc_es_id_Hold(&es->id);
             }
-            *selected_es = NULL;
         }
+        /* terminate the list even without any ES (START_ALL_ES reads it) */
+        *selected_es = NULL;
         return VLC_SUCCESS;
     }
     case ES_OUT_PRIV_START_ALL_ES:

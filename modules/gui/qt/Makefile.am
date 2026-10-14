@@ -123,12 +123,9 @@ libqt_plugin_la_SOURCES = \
 	dialogs/settings/settings_model.hpp \
 	dialogs/settings/settings_pages.cpp \
 	dialogs/settings/settings_pages.hpp \
-	dialogs/sout/profile_selector.cpp \
-	dialogs/sout/profile_selector.hpp \
 	dialogs/sout/profiles.hpp \
-	dialogs/sout/sout.cpp dialogs/sout/sout.hpp \
-	dialogs/sout/sout_widgets.cpp \
-	dialogs/sout/sout_widgets.hpp \
+	dialogs/sout/stream_output.cpp \
+	dialogs/sout/stream_output.hpp \
 	dialogs/systray/systray.cpp \
 	dialogs/systray/systray.hpp \
 	dialogs/toolbar/controlbar_profile.hpp \
@@ -407,9 +404,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/convert/conversion_profile_model.moc.cpp \
 	dialogs/settings/settings_model.moc.cpp \
 	dialogs/settings/settings_pages.moc.cpp \
-	dialogs/sout/profile_selector.moc.cpp \
-	dialogs/sout/sout.moc.cpp \
-	dialogs/sout/sout_widgets.moc.cpp \
+	dialogs/sout/stream_output.moc.cpp \
 	dialogs/systray/systray.moc.cpp \
 	dialogs/toolbar/controlbar_profile.moc.cpp \
 	dialogs/toolbar/controlbar_profile_model.moc.cpp \
@@ -524,9 +519,7 @@ nodist_libqt_plugin_la_SOURCES += \
 	dialogs/open/ui_open_capture.h \
 	dialogs/open/ui_open_disk.h \
 	dialogs/open/ui_open_file.h \
-	dialogs/open/ui_open_net.h \
-	dialogs/sout/ui_profiles.h \
-	dialogs/sout/ui_sout.h
+	dialogs/open/ui_open_net.h
 
 
 # windows compositor
@@ -729,9 +722,7 @@ libqt_plugin_la_UI = \
 	dialogs/open/open_capture.ui \
 	dialogs/open/open_disk.ui \
 	dialogs/open/open_file.ui \
-	dialogs/open/open_net.ui \
-	dialogs/sout/profiles.ui \
-	dialogs/sout/sout.ui
+	dialogs/open/open_net.ui
 EXTRA_DIST += $(libqt_plugin_la_UI)
 
 ui_%.h: %.ui
@@ -1018,6 +1009,7 @@ libqml_module_dialogs_a_QML = \
 	dialogs/settings/qml/SettingsToggle.qml \
 	dialogs/mediainfo/qml/MediaPropertiesDialog.qml \
 	dialogs/open/qml/OpenDiscDialog.qml \
+	dialogs/sout/qml/StreamCastDialog.qml \
 	dialogs/toolbar/qml/EditorDNDDelegate.qml \
 	dialogs/toolbar/qml/EditorDNDView.qml\
 	dialogs/toolbar/qml/EditorDummyButton.qml \
@@ -1213,7 +1205,7 @@ libqml_module_playercontrols_a_QML = \
 	player/qml/controlbarcontrols/ProgramButton.qml \
 	player/qml/controlbarcontrols/QuitButton.qml \
 	player/qml/controlbarcontrols/RandomButton.qml \
-	player/qml/controlbarcontrols/RendererButton.qml \
+	player/qml/controlbarcontrols/CastButton.qml \
 	player/qml/controlbarcontrols/RecordButton.qml \
 	player/qml/controlbarcontrols/ReverseButton.qml \
 	player/qml/controlbarcontrols/SkipBackButton.qml \
@@ -1930,6 +1922,31 @@ test_conversion_manager_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_conversion_manager_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_conversion_manager
 TESTS += test_conversion_manager
+
+# test_stream_output
+
+test_stream_output_SOURCES = \
+	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
+	tests/test_stream_output.cpp \
+	dialogs/sout/stream_output.hpp \
+	dialogs/sout/stream_output.cpp \
+	dialogs/convert/conversion_profile_model.hpp \
+	dialogs/convert/conversion_profile_model.cpp \
+	util/soutchain.hpp util/soutchain.cpp
+
+nodist_test_stream_output_SOURCES = \
+	tests/test_stream_output.moc \
+	dialogs/sout/stream_output.moc.cpp \
+	dialogs/convert/conversion_profile_model.moc.cpp
+
+BUILT_SOURCES += tests/test_stream_output.moc
+CLEANFILES += tests/test_stream_output.moc
+test_stream_output_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_stream_output_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_stream_output_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_stream_output_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_stream_output
+TESTS += test_stream_output
 
 # test_thread_runner
 

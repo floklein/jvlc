@@ -486,33 +486,6 @@ void QmlProgramMenu::close()
         m_menu->close();
 }
 
-// QmlRendererMenu
-
-/* explicit */ QmlRendererMenu::QmlRendererMenu(QObject * parent)
-    : QObject(parent)
-{}
-
-// Interface
-
-/* Q_INVOKABLE */ void QmlRendererMenu::popup(const QPoint & position, bool above)
-{
-    if (m_ctx == nullptr)
-        return;
-
-    m_menu = std::make_unique<RendererMenu>(nullptr, m_ctx->getIntf(), m_ctx->getIntf()->p_mainPlayerController);
-
-    connect(m_menu.get(), &QMenu::aboutToHide, this, &QmlRendererMenu::aboutToHide);
-    connect(m_menu.get(), &QMenu::aboutToShow, this, &QmlRendererMenu::aboutToShow);
-
-    m_positioner.popup(m_menu.get(), position, above);
-}
-
-void QmlRendererMenu::close()
-{
-    if (m_menu)
-        m_menu->close();
-}
-
 // Tracks
 
 // QmlTrackMenu
@@ -904,9 +877,9 @@ void PlaylistContextMenu::popup(int selectedIndex, QPoint pos )
     }
 
     if (m_selectionModel->hasSelection()) {
-        action = m_menu->addAction( qtr("Stream") );
-        connect(action, &QAction::triggered, [selectedUrlList]( ) {
-            DialogsProvider::getInstance()->streamingDialog(selectedUrlList, false);
+        action = m_menu->addAction( qtr("Stream && Cast...") );
+        connect(action, &QAction::triggered, []( ) {
+            DialogsProvider::getInstance()->streamAndCastDialog(DialogsProvider::STREAM_TAB);
         });
 
         action = m_menu->addAction( qtr("Convert...") );

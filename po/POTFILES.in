@@ -693,15 +693,9 @@ modules/gui/qt/dialogs/settings/settings_model.cpp
 modules/gui/qt/dialogs/settings/settings_pages.cpp
 modules/gui/qt/dialogs/settings/qml/SettingsDialog.qml
 modules/gui/qt/dialogs/settings/qml/SettingsRow.qml
-modules/gui/qt/dialogs/sout/convert.cpp
-modules/gui/qt/dialogs/sout/convert.hpp
-modules/gui/qt/dialogs/sout/profile_selector.cpp
-modules/gui/qt/dialogs/sout/profile_selector.hpp
 modules/gui/qt/dialogs/sout/profiles.hpp
-modules/gui/qt/dialogs/sout/sout.cpp
-modules/gui/qt/dialogs/sout/sout.hpp
-modules/gui/qt/dialogs/sout/sout_widgets.cpp
-modules/gui/qt/dialogs/sout/sout_widgets.hpp
+modules/gui/qt/dialogs/sout/stream_output.cpp
+modules/gui/qt/dialogs/sout/stream_output.hpp
 modules/gui/qt/dialogs/toolbar/controlbar_profile_model.cpp
 modules/gui/qt/dialogs/toolbar/controlbar_profile_model.hpp
 modules/gui/qt/dialogs/toolbar/qml/ToolbarEditor.qml
@@ -840,7 +834,7 @@ modules/gui/qt/player/qml/controlbarcontrols/ProgramButton.qml
 modules/gui/qt/player/qml/controlbarcontrols/QuitButton.qml
 modules/gui/qt/player/qml/controlbarcontrols/RandomButton.qml
 modules/gui/qt/player/qml/controlbarcontrols/RecordButton.qml
-modules/gui/qt/player/qml/controlbarcontrols/RendererButton.qml
+modules/gui/qt/player/qml/controlbarcontrols/CastButton.qml
 modules/gui/qt/player/qml/controlbarcontrols/ReverseButton.qml
 modules/gui/qt/player/qml/controlbarcontrols/SkipBackButton.qml
 modules/gui/qt/player/qml/controlbarcontrols/SkipForwardButton.qml
@@ -1372,6 +1366,4 @@ share/org.videolan.vlc.appdata.xml.in.in
 #modules/gui/qt/dialogs/open/ui_open_disk.h
 #modules/gui/qt/dialogs/open/ui_open_file.h
 #modules/gui/qt/dialogs/open/ui_open_net.h
-#modules/gui/qt/dialogs/sout/ui_profiles.h
-#modules/gui/qt/dialogs/sout/ui_sout.h
 #modules/gui/qt/dialogs/extended/ui_video_effects.h

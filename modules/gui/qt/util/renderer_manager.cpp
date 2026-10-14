@@ -324,6 +324,7 @@ QHash<int,QByteArray> RendererManager::roleNames() const
         { SOUT, QByteArrayLiteral("sour") },
         { ICON_URI, QByteArrayLiteral("iconUri") },
         { FLAGS, QByteArrayLiteral("flags") },
+        { SELECTED, QByteArrayLiteral("selected") },
     };
 }
 
@@ -388,6 +389,14 @@ bool RendererManager::useRenderer() const
 {
     Q_D(const RendererManager);
     return d->m_selectedItem.get() != nullptr;
+}
+
+QString RendererManager::rendererName() const
+{
+    Q_D(const RendererManager);
+    if (!d->m_selectedItem)
+        return {};
+    return qfu(vlc_renderer_item_name(d->m_selectedItem.get()));
 }
 
 void RendererManager::StartScan()

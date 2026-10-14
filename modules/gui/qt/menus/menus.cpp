@@ -67,8 +67,6 @@ using namespace vlc::playlist;
   actionKeyText()).
   */
 
-RendererMenu *VLCMenuBar::rendererMenu = NULL;
-
 namespace {
 
 /* the text of a menu entry, followed by the current key of its action, which
