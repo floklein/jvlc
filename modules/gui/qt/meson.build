@@ -50,6 +50,8 @@ moc_headers = files(
     'dialogs/convert/conversion_profile_model.hpp',
     'dialogs/settings/settings_model.hpp',
     'dialogs/settings/settings_pages.hpp',
+    'dialogs/shortcuts/app_shortcuts_model.hpp',
+    'dialogs/shortcuts/shortcuts_model.hpp',
     'dialogs/sout/stream_output.hpp',
     'dialogs/systray/systray.hpp',
     'dialogs/toolbar/controlbar_profile.hpp',
@@ -240,6 +242,10 @@ qt_plugin_sources = files(
     'dialogs/settings/settings_pages.hpp',
     'dialogs/settings/settings_registry.cpp',
     'dialogs/settings/settings_registry.hpp',
+    'dialogs/shortcuts/app_shortcuts_model.cpp',
+    'dialogs/shortcuts/app_shortcuts_model.hpp',
+    'dialogs/shortcuts/shortcuts_model.cpp',
+    'dialogs/shortcuts/shortcuts_model.hpp',
     'dialogs/sout/profiles.hpp',
     'dialogs/sout/stream_output.cpp',
     'dialogs/sout/stream_output.hpp',
@@ -605,6 +611,8 @@ qml_modules += {
         'dialogs/settings/qml/SettingsSegmented.qml',
         'dialogs/settings/qml/SettingsSlider.qml',
         'dialogs/settings/qml/SettingsToggle.qml',
+        'dialogs/shortcuts/qml/KeyboardShortcutsDialog.qml',
+        'dialogs/shortcuts/qml/ShortcutKeyField.qml',
         'dialogs/mediainfo/qml/MediaPropertiesDialog.qml',
         'dialogs/open/qml/OpenDiscDialog.qml',
         'dialogs/toolbar/qml/EditorDashedBorder.qml',
@@ -1910,6 +1918,29 @@ if qt6_dep.found()
             'link_with': [libvlccore, libvlc],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_shortcuts_model',
+            'sources': files(
+                'tests/test_shortcuts_model.cpp',
+                'dialogs/shortcuts/shortcuts_model.hpp',
+                'dialogs/shortcuts/shortcuts_model.cpp',
+                'util/vlchotkeyconverter.cpp',
+                'util/vlchotkeyconverter.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_shortcuts_model.cpp'
+            ),
+            'moc_headers': files(
+                'dialogs/shortcuts/shortcuts_model.hpp',
+                'util/vlchotkeyconverter.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
         }
 
         vlc_tests += {

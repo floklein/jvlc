@@ -82,6 +82,8 @@ public:
         SearchOnlyRole,
         OptionsRole,
         ExpandedRole,
+        ButtonTextRole,
+        ConfirmTextRole,
     };
     Q_ENUM(Roles)
 
@@ -169,6 +171,10 @@ public:
 
         // Action rows
         std::function<void()> action;
+        // the text of the button
+        QString buttonText;
+        // asks for confirmation first, with this text on the button
+        QString confirmText;
     };
 
     explicit SettingsModel(qt_intf_t* intf = nullptr, QObject* parent = nullptr);

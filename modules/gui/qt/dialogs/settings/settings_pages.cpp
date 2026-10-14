@@ -24,7 +24,9 @@
 
 #include "maininterface/mainctx.hpp"
 #include "dialogs/dialogs_provider.hpp"
+#include "dialogs/shortcuts/app_shortcuts_model.hpp"
 #include "util/color_scheme_model.hpp"
+#include "util/vlchotkeyconverter.hpp"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -36,6 +38,7 @@
 #include <QScreen>
 #include <QSettings>
 
+#include <vlc_actions.h>
 #include <vlc_configuration.h>
 
 #ifdef _WIN32
@@ -198,8 +201,12 @@ AppSettingsModel::AppSettingsModel(QObject* parent)
 {
     connect(this, &SettingsModel::settingChanged, this, &AppSettingsModel::onSettingChanged);
     connect(this, &SettingsModel::allReset, this, [this]() {
-        if (m_ctx)
-            m_ctx->reloadPrefs();
+        if (!m_ctx)
+            return;
+        m_ctx->reloadPrefs();
+        // the keyboard shortcuts were reset too
+        vlc_actions_reload(VLC_OBJECT(vlc_object_instance(intf())));
+        m_ctx->notifyKeyBindingsChanged();
     });
 }
 
@@ -212,6 +219,7 @@ void AppSettingsModel::setCtx(MainCtx* ctx)
 
     addGeneralRows();
     addInterfaceRows();
+    addControlsRows();
 
     /* Advanced Options: every other option, then General's reset */
     qt_intf_t* p_intf = intf();
@@ -228,6 +236,8 @@ void AppSettingsModel::addResetRow()
     row.help = qtr("Puts back every setting of this Profile, keyboard shortcuts included, "
                    "as VLC first had them. The settings shared by all profiles are kept.");
     row.advanced = true;
+    row.buttonText = qtr("Reset…");
+    row.confirmText = qtr("Reset all");
     row.action = [this]() { resetAll(); };
     addRow(std::move(row));
 }
@@ -533,6 +543,64 @@ void AppSettingsModel::addInterfaceRows()
         addRow(std::move(row));
     }
 
+}
+
+void AppSettingsModel::addControlsRows()
+{
+    MainCtx* ctx = m_ctx;
+
+    /* Keyboard Shortcuts */
+    const QString shortcuts = qtr("Keyboard Shortcuts");
+
+    {
+        Row row = makeRow("edit-shortcuts", "controls", shortcuts, qtr("All shortcuts"), Action);
+        row.help = qtr("Find and change the keys of every action.");
+        row.buttonText = qtr("Edit Keyboard Shortcuts");
+        row.action = []() { THEDP->keyboardShortcutsDialog(); };
+        addRow(std::move(row));
+    }
+
+    {
+        Row row = makeRow("reset-shortcuts", "controls", shortcuts, qtr("Reset all shortcuts"), Action);
+        row.help = qtr("Every action gets its default keys back, in this profile.");
+        row.buttonText = qtr("Reset…");
+        row.confirmText = qtr("Reset all");
+        row.action = [ctx]() {
+            AppShortcutsModel model;
+            model.setCtx(ctx);
+            model.resetAll();
+            if (model.modified())
+                model.save();
+        };
+        addRow(std::move(row));
+    }
+
+    /* The search also finds the shortcut actions, and opens Keyboard
+     * Shortcuts on them. The core ones ("key-*" options) come with Advanced
+     * Options, these are the interface's own. */
+    vlc_object_t* libvlc = VLC_OBJECT(vlc_object_instance(intf()));
+    ShortcutsModel actions;
+    actions.load(libvlc);
+    for (int i = 0; i < actions.rowCount(); ++i)
+    {
+        const QModelIndex index = actions.index(i);
+        if (index.data(ShortcutsModel::HasGlobalKeyRole).toBool())
+            continue;
+        const QString name = index.data(ShortcutsModel::NameRole).toString();
+
+        Row row;
+        row.id = QStringLiteral("app-key-") + name;
+        row.page = QStringLiteral("controls");
+        row.section = shortcuts;
+        row.label = index.data(ShortcutsModel::LabelRole).toString();
+        row.control = Shortcut;
+        row.searchOnly = true;
+        row.read = [libvlc, name]() { return QVariant(appActionSequence(libvlc, name)); };
+        row.readDefault = [name]() { return QVariant(appActionDefaultSequence(name)); };
+        // changed in Keyboard Shortcuts only
+        row.write = [](const QVariant&) { return false; };
+        addRow(std::move(row));
+    }
 }
 
 void AppSettingsModel::onSettingChanged(const QString& id)

@@ -22,7 +22,14 @@ import VLC.MediaLibrary
 import VLC.Menus
 
 Item {
-    ShortcutExt{ sequence: MainCtx.actionSequence("add-bookmark"); onActivated: MainCtx.addBookmark() }
+    id: root
+
+    // the key of an interface action, updated when Keyboard Shortcuts saves
+    function sequence(action: string) : string {
+        return MainCtx.keyBindingsRevision >= 0 ? MainCtx.actionSequence(action) : ""
+    }
+
+    ShortcutExt{ sequence: root.sequence("add-bookmark"); onActivated: MainCtx.addBookmark() }
 
     MLRecentMediaModel {
         id: recentModel

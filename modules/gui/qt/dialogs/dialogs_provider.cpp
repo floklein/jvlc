@@ -280,10 +280,9 @@ bool DialogsProvider::prefsDialogVisible() const
     return m_settingsDialogVisible;
 }
 
-/* the Controls page of Settings, until the Keyboard Shortcuts dialog */
-void DialogsProvider::keyboardShortcutsDialog()
+void DialogsProvider::keyboardShortcutsDialog(const QString& action)
 {
-    showSettings(QStringLiteral("controls"));
+    emit showKeyboardShortcutsDialog(action);
 }
 
 void DialogsProvider::firstRunDialog()

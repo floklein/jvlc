@@ -719,6 +719,10 @@ QVariant SettingsModel::data(const QModelIndex& index, int role) const
         return row.groupLabel;
     case SearchOnlyRole:
         return row.searchOnly;
+    case ButtonTextRole:
+        return row.buttonText;
+    case ConfirmTextRole:
+        return row.confirmText;
     case OptionsRole:
         return row.options;
     case ExpandedRole:
@@ -794,6 +798,8 @@ QHash<int, QByteArray> SettingsModel::roleNames() const
         { SearchOnlyRole, "searchOnly" },
         { OptionsRole, "options" },
         { ExpandedRole, "expanded" },
+        { ButtonTextRole, "buttonText" },
+        { ConfirmTextRole, "confirmText" },
     };
 }
 

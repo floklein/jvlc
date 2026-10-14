@@ -292,4 +292,14 @@ VLC_API const char* const*
 vlc_actions_get_key_names(vlc_object_t *p_obj);
 #define vlc_actions_get_key_names(x) vlc_actions_get_key_names(VLC_OBJECT(x))
 
+/**
+ * Rebuild the key maps from the configuration, after "key-*" or
+ * "global-key-*" options changed. Modules that grab global keys read them
+ * when they start only.
+ * \return VLC_SUCCESS, or an error code if there are no key maps
+ */
+VLC_API int
+vlc_actions_reload(vlc_object_t *p_obj);
+#define vlc_actions_reload(x) vlc_actions_reload(VLC_OBJECT(x))
+
 #endif

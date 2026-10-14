@@ -11,6 +11,8 @@
 #include <QApplication>
 #include <QKeySequence>
 #include <vlc_actions.h>
+#include <vlc_configuration.h>
+#include <vlc_variables.h>
 
 /***************************************************************************
  * Hotkeys converters
@@ -197,7 +199,11 @@ static int keycmp( const void *a, const void *b )
 
 int qtEventToVLCKey( QKeyEvent *e )
 {
-    int qtk = e->key();
+    return qtKeyToVLC( e->key(), e->modifiers() );
+}
+
+int qtKeyToVLC( int qtk, Qt::KeyboardModifiers modifiers )
+{
     uint32_t i_vlck = 0;
 
     if( qtk <= 0xff )
@@ -220,8 +226,58 @@ int qtEventToVLCKey( QKeyEvent *e )
     }
 
     /* Handle modifiers */
-    i_vlck |= qtKeyModifiersToVLC( *e );
+    if( modifiers & Qt::ShiftModifier ) i_vlck |= KEY_MODIFIER_SHIFT;
+    if( modifiers & Qt::AltModifier ) i_vlck |= KEY_MODIFIER_ALT;
+    if( modifiers & Qt::ControlModifier ) i_vlck |= KEY_MODIFIER_CTRL;
+    if( modifiers & Qt::MetaModifier ) i_vlck |= KEY_MODIFIER_META;
     return i_vlck;
+}
+
+QString vlcKeyToQtSequence( unsigned vlck )
+{
+    const uint32_t code = vlck & ~KEY_MODIFIER;
+    int qtk = 0;
+
+    /* special keys, the first Qt key wins (Return rather than Enter) */
+    for( const vlc_qt_key_t &key : keys )
+    {
+        if( key.vlc == code )
+        {
+            qtk = key.qt;
+            break;
+        }
+    }
+
+    if( qtk == 0 )
+    {
+        /* the reverse of qtKeyToVLC(): Qt uses uppercase */
+        if( code >= 'a' && code <= 'z' )
+            qtk = code - 32;
+        else if( code >= 0xE0 && code <= 0xFE && code != 0xF7 )
+            qtk = code - 32;
+        else if( code >= ' ' && code <= 0xff ) // Qt::Key_Space is ' '
+            qtk = code;
+        else
+            return {};
+    }
+
+    Qt::KeyboardModifiers modifiers;
+    if( vlck & KEY_MODIFIER_SHIFT ) modifiers |= Qt::ShiftModifier;
+    if( vlck & KEY_MODIFIER_ALT ) modifiers |= Qt::AltModifier;
+    if( vlck & KEY_MODIFIER_CTRL ) modifiers |= Qt::ControlModifier;
+    if( vlck & KEY_MODIFIER_META ) modifiers |= Qt::MetaModifier;
+
+    return QKeySequence( QKeyCombination( modifiers, Qt::Key( qtk ) ) )
+            .toString( QKeySequence::PortableText );
+}
+
+unsigned qtSequenceToVLCKey( const QString &sequence )
+{
+    const QKeySequence keySequence( sequence, QKeySequence::PortableText );
+    if( keySequence.isEmpty() )
+        return KEY_UNSET;
+    const QKeyCombination combination = keySequence[0];
+    return qtKeyToVLC( combination.key(), combination.keyboardModifiers() );
 }
 
 Qt::Orientations WheelToVLCConverter::getWheelOrientation(int x, int y)
@@ -352,6 +408,18 @@ QString VLCKeyToString( unsigned val, bool locale )
     return r;
 }
 
+QString vlcKeyText( unsigned vlck )
+{
+    QString text = VLCKeyToString( vlck, true );
+
+    // show letter keys as they are printed on the keyboard: "Shift+R"
+    const qsizetype last = text.lastIndexOf( '+', -2 ) + 1;
+    if( text.size() - last == 1 )
+        text[last] = text[last].toUpper();
+
+    return text;
+}
+
 QString vlcActionKeyText( vlc_object_t *obj, const char *action )
 {
     uint_fast32_t *keycodes = nullptr;
@@ -361,14 +429,9 @@ QString vlcActionKeyText( vlc_object_t *obj, const char *action )
     for( size_t i = 0; i < count && text.isEmpty(); ++i )
     {
         if( keycodes[i] != KEY_UNSET )
-            text = VLCKeyToString( keycodes[i], true );
+            text = vlcKeyText( keycodes[i] );
     }
     free( keycodes );
-
-    // show letter keys as they are printed on the keyboard: "Shift+R"
-    const qsizetype last = text.lastIndexOf( '+', -2 ) + 1;
-    if( text.size() - last == 1 )
-        text[last] = text[last].toUpper();
 
     return text;
 }
@@ -381,8 +444,10 @@ struct AppAction
     const char *sequence;
 };
 
-/* The actions of the interface itself and their keys. The player actions are
- * core hotkeys ("key-*" options), shared with the other interfaces. */
+/* The actions of the interface itself and their default keys. The player
+ * actions are core hotkeys ("key-*" options), shared with the other
+ * interfaces. Keyboard Shortcuts saves the keys changed by the user in
+ * "qt-app-keys". */
 const AppAction appActions[] = {
     { "about",                "Shift+F1" },
     { "add-bookmark",         "Ctrl+B" },
@@ -409,7 +474,15 @@ const AppAction appActions[] = {
 
 }
 
-QString appActionSequence( const QString &action )
+QStringList appActionNames()
+{
+    QStringList names;
+    for( const AppAction &appAction : appActions )
+        names.append( QString::fromLatin1( appAction.name ) );
+    return names;
+}
+
+QString appActionDefaultSequence( const QString &action )
 {
     for( const AppAction &appAction : appActions )
     {
@@ -419,11 +492,53 @@ QString appActionSequence( const QString &action )
     return {};
 }
 
+QHash<QString, QString> parseAppKeys( const QString &value )
+{
+    QHash<QString, QString> keys;
+    for( const QString &entry : value.split( '\t', Qt::SkipEmptyParts ) )
+    {
+        const qsizetype separator = entry.indexOf( '=' );
+        if( separator > 0 )
+            keys.insert( entry.left( separator ), entry.mid( separator + 1 ) );
+    }
+    return keys;
+}
+
+QString formatAppKeys( const QHash<QString, QString> &keys )
+{
+    QStringList names = keys.keys();
+    names.sort();
+    QStringList entries;
+    for( const QString &name : names )
+        entries.append( name + '=' + keys.value( name ) );
+    return entries.join( '\t' );
+}
+
+QString appActionSequence( vlc_object_t *obj, const QString &action )
+{
+    const QString defaultSequence = appActionDefaultSequence( action );
+    if( defaultSequence.isEmpty() )
+        return {};
+
+    // the option belongs to the Qt module, it may not be loaded
+    char *value = nullptr;
+    if( obj && ( config_GetType( "qt-app-keys" ) || var_Type( obj, "qt-app-keys" ) ) )
+        value = var_InheritString( obj, "qt-app-keys" );
+    const QHash<QString, QString> keys = parseAppKeys( qfu( value ) );
+    free( value );
+
+    const auto it = keys.constFind( action );
+    if( it == keys.cend() )
+        return defaultSequence;
+    if( it->isEmpty() )
+        return {};
+    return vlcKeyToQtSequence( vlc_str2keycode( qtu( *it ) ) );
+}
+
 QString actionKeyText( vlc_object_t *obj, const QString &action )
 {
-    const QString sequence = appActionSequence( action );
-    if( !sequence.isEmpty() )
-        return QKeySequence( sequence, QKeySequence::PortableText )
+    if( !appActionDefaultSequence( action ).isEmpty() )
+        return QKeySequence( appActionSequence( obj, action ), QKeySequence::PortableText )
                 .toString( QKeySequence::NativeText );
 
     // only known actions have a "key-" option

@@ -24,35 +24,41 @@ import VLC.Dialogs
 // MainCtx.actionSequence(), as the keys shown in the menus do; the player
 // actions are core hotkeys.
 Item {
+    id: root
 
-    ShortcutExt{ context: Qt.WindowShortcut; sequence: MainCtx.actionSequence("open-file"); onActivated: DialogsProvider.simpleOpenDialog(); }
-    ShortcutExt{ context: Qt.WindowShortcut; sequence: MainCtx.actionSequence("open-folder"); onActivated: DialogsProvider.PLOpenDir(); }
-    ShortcutExt{ sequence: MainCtx.actionSequence("open-disc"); onActivated: DialogsProvider.openDiscDialog(); }
-    ShortcutExt{ sequence: MainCtx.actionSequence("open-network"); onActivated: DialogsProvider.openNetDialog(); }
-    ShortcutExt{ sequence: MainCtx.actionSequence("open-capture"); onActivated: DialogsProvider.openCaptureDialog(); }
+    // the key of an interface action, updated when Keyboard Shortcuts saves
+    function sequence(action: string) : string {
+        return MainCtx.keyBindingsRevision >= 0 ? MainCtx.actionSequence(action) : ""
+    }
+
+    ShortcutExt{ context: Qt.WindowShortcut; sequence: root.sequence("open-file"); onActivated: DialogsProvider.simpleOpenDialog(); }
+    ShortcutExt{ context: Qt.WindowShortcut; sequence: root.sequence("open-folder"); onActivated: DialogsProvider.PLOpenDir(); }
+    ShortcutExt{ sequence: root.sequence("open-disc"); onActivated: DialogsProvider.openDiscDialog(); }
+    ShortcutExt{ sequence: root.sequence("open-network"); onActivated: DialogsProvider.openNetDialog(); }
+    ShortcutExt{ sequence: root.sequence("open-capture"); onActivated: DialogsProvider.openCaptureDialog(); }
     // A focused text field takes Paste first (ShortcutOverride)
     ShortcutExt{ context: Qt.WindowShortcut; sequences: [StandardKey.Paste]; onActivated: MainCtx.pasteFromClipboard(); }
-    ShortcutExt{ context: Qt.WindowShortcut; sequence: MainCtx.actionSequence("save-queue"); onActivated: DialogsProvider.savePlayingToPlaylist(); }
-    ShortcutExt{ sequence: MainCtx.actionSequence("convert"); onActivated: DialogsProvider.openAndTranscodingDialogs(); }
-    ShortcutExt{ sequence: MainCtx.actionSequence("stream"); onActivated: DialogsProvider.openAndStreamingDialogs(); }
+    ShortcutExt{ context: Qt.WindowShortcut; sequence: root.sequence("save-queue"); onActivated: DialogsProvider.savePlayingToPlaylist(); }
+    ShortcutExt{ sequence: root.sequence("convert"); onActivated: DialogsProvider.openAndTranscodingDialogs(); }
+    ShortcutExt{ sequence: root.sequence("stream"); onActivated: DialogsProvider.openAndStreamingDialogs(); }
     ShortcutExt{ sequence:"Ctrl+Q"; onActivated: DialogsProvider.quit(); }
-    ShortcutExt{ sequence: MainCtx.actionSequence("adjustments"); onActivated: DialogsProvider.extendedDialog(); }
-    ShortcutExt{ sequence: MainCtx.actionSequence("media-info"); onActivated: DialogsProvider.mediaInfoDialog(); }
-    ShortcutExt{ sequence: MainCtx.actionSequence("codec-info"); onActivated: DialogsProvider.mediaCodecDialog(); }
-    ShortcutExt{ sequence: MainCtx.actionSequence("messages"); onActivated: DialogsProvider.messagesDialog(); }
-    ShortcutExt{ sequence: MainCtx.actionSequence("settings"); onActivated: DialogsProvider.prefsDialog(); }
-    ShortcutExt{ sequence: MainCtx.actionSequence("jump-to-time"); onActivated: DialogsProvider.gotoTimeDialog(); }
-    ShortcutExt{ sequence: MainCtx.actionSequence("about"); onActivated: DialogsProvider.aboutDialog(); }
+    ShortcutExt{ sequence: root.sequence("adjustments"); onActivated: DialogsProvider.extendedDialog(); }
+    ShortcutExt{ sequence: root.sequence("media-info"); onActivated: DialogsProvider.mediaInfoDialog(); }
+    ShortcutExt{ sequence: root.sequence("codec-info"); onActivated: DialogsProvider.mediaCodecDialog(); }
+    ShortcutExt{ sequence: root.sequence("messages"); onActivated: DialogsProvider.messagesDialog(); }
+    ShortcutExt{ sequence: root.sequence("settings"); onActivated: DialogsProvider.prefsDialog(); }
+    ShortcutExt{ sequence: root.sequence("jump-to-time"); onActivated: DialogsProvider.gotoTimeDialog(); }
+    ShortcutExt{ sequence: root.sequence("about"); onActivated: DialogsProvider.aboutDialog(); }
 
-    ShortcutExt{ sequence: MainCtx.actionSequence("show-queue"); onActivated: MainCtx.playqueuePanel.visible = !MainCtx.playqueuePanel.visible; }
+    ShortcutExt{ sequence: root.sequence("show-queue"); onActivated: MainCtx.playqueuePanel.visible = !MainCtx.playqueuePanel.visible; }
 
     ShortcutExt{ sequence:"F1"; onActivated: Qt.openUrlExternally("https://docs.videolan.me/vlc-user/") }
-    ShortcutExt{ sequence: MainCtx.actionSequence("interface-fullscreen"); onActivated: MainCtx.toggleInterfaceFullScreen() }
-    ShortcutExt{ sequence: MainCtx.actionSequence("hide-ui"); onActivated: MainCtx.hideUI = !MainCtx.hideUI; }
+    ShortcutExt{ sequence: root.sequence("interface-fullscreen"); onActivated: MainCtx.toggleInterfaceFullScreen() }
+    ShortcutExt{ sequence: root.sequence("hide-ui"); onActivated: MainCtx.hideUI = !MainCtx.hideUI; }
 
     ShortcutExt{
         context: Qt.WindowShortcut
-        sequence: MainCtx.actionSequence("library-search")
+        sequence: root.sequence("library-search")
         onActivated: {
             MainCtx.playerView = false
             MainCtx.search.askShow()

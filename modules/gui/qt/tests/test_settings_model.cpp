@@ -495,6 +495,33 @@ private slots:
         QCOMPARE(triggered, 1);
     }
 
+    // "Edit Keyboard Shortcuts" opens at once, "Reset…" asks first
+    void testActionRowButtonTexts()
+    {
+        Row edit;
+        edit.id = "edit-shortcuts";
+        edit.page = "controls";
+        edit.control = SettingsModel::Action;
+        edit.buttonText = "Edit Keyboard Shortcuts";
+        edit.action = []() {};
+        m_model->addRow(edit);
+
+        Row reset;
+        reset.id = "reset-shortcuts";
+        reset.page = "controls";
+        reset.control = SettingsModel::Action;
+        reset.buttonText = "Reset…";
+        reset.confirmText = "Reset all shortcuts";
+        reset.action = []() {};
+        m_model->addRow(reset);
+
+        QCOMPARE(role("edit-shortcuts", SettingsModel::ButtonTextRole).toString(), QString("Edit Keyboard Shortcuts"));
+        QCOMPARE(role("edit-shortcuts", SettingsModel::ConfirmTextRole).toString(), QString());
+        QCOMPARE(role("reset-shortcuts", SettingsModel::ConfirmTextRole).toString(), QString("Reset all shortcuts"));
+        // never shows as changed
+        QCOMPARE(role("edit-shortcuts", SettingsModel::IsDefaultRole).toBool(), true);
+    }
+
     /* Advanced Options */
 
     void testAdvancedOptionsAreCollapsedByDefault()

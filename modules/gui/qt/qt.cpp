@@ -298,6 +298,10 @@ static void ShowDialog   ( intf_thread_t *, int, int, intf_dialog_args_t * );
 #define REDUCE_MOTION_LONGTEXT N_( "Use fades instead of sliding animations. " \
     "Motion is also reduced when the operating system asks for it." )
 
+#define APP_KEYS_TEXT N_( "Interface keyboard shortcuts" )
+#define APP_KEYS_LONGTEXT N_( "Keys of the interface actions changed in " \
+    "Keyboard Shortcuts, as action=key pairs separated by tabulations." )
+
 static const int i_notification_list[] =
     { NOTIFICATION_NEVER, NOTIFICATION_MINIMIZED, NOTIFICATION_ALWAYS };
 
@@ -478,6 +482,9 @@ vlc_module_begin ()
     add_string( "qt-accent-color", "default", ACCENT_COLOR_TEXT, ACCENT_COLOR_LONGTEXT )
 
     add_bool( "qt-reduce-motion", false, REDUCE_MOTION_TEXT, REDUCE_MOTION_LONGTEXT )
+
+    add_string( "qt-app-keys", "", APP_KEYS_TEXT, APP_KEYS_LONGTEXT )
+        change_private()
 
     cannot_unload_broken_library()
 

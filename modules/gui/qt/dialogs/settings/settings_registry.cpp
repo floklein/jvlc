@@ -251,8 +251,7 @@ Placement place(const SettingsOption& option)
         placement.page = QStringLiteral("controls");
         placement.section = qtr("Keyboard shortcuts");
         placement.shortcut = true;
-        // the core reads the keys once
-        placement.effect = EffectRestart;
+        // Keyboard Shortcuts reloads the core key map
         return placement;
     }
 

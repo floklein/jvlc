@@ -278,7 +278,7 @@ FocusScope {
             id: controlLoader
 
             Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-            Layout.preferredWidth: model.control === SettingsModel.Toggle || model.control === SettingsModel.Action
+            Layout.preferredWidth: model.control === SettingsModel.Toggle
                                    ? implicitWidth : VLCStyle.dp(320, VLCStyle.scale)
             Layout.preferredHeight: implicitHeight
 
@@ -553,26 +553,49 @@ FocusScope {
         }
     }
 
-    // the keys of a shortcut action, changed in Keyboard Shortcuts
+    // the keys of a shortcut action: opens Keyboard Shortcuts on it
     Component {
         id: shortcutComponent
 
-        Text {
-            text: {
+        Widgets.ButtonExt {
+            id: shortcutButton
+
+            // "key-play-pause", "app-key-open-folder"
+            readonly property string actionName: root.row.settingId.replace(/^(app-)?key-/, "")
+            readonly property string keys: {
                 const keys = (root.row.value || "").split("\t").filter((key) => key !== "")
-                return keys.length > 0 ? keys.join(", ") : qsTr("None")
+                // letters as printed on the keyboard: "Ctrl+Q"
+                return keys.map((key) => {
+                    const start = key.lastIndexOf("+", key.length - 2) + 1
+                    return key.length - start === 1 ? key.substring(0, start) + key.substring(start).toUpperCase()
+                                                    : key
+                }).join(", ")
             }
-            horizontalAlignment: Text.AlignRight
-            elide: Text.ElideLeft
-            color: theme.fg.primary
-            font.pixelSize: VLCStyle.fontSize_normal
-            font.family: VLCStyle.fontFamily
-            Accessible.role: Accessible.StaticText
-            Accessible.name: root.row.label + ": " + text
+
+            implicitHeight: VLCStyle.dp(32, VLCStyle.scale)
+            text: keys !== "" ? keys : qsTr("None")
+            font.family: VLCStyle.fontFamily_mono
+            Accessible.name: qsTr("%1: %2, change the key").arg(root.row.label).arg(text)
+
+            background: Rectangle {
+                radius: VLCStyle.radius_normal
+                color: shortcutButton.hovered || shortcutButton.visualFocus ? theme.bg.highlight
+                                                                            : shortcutTheme.bg.primary
+                border.width: shortcutButton.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : 0
+                border.color: theme.accent
+            }
+
+            readonly property ColorContext shortcutContext: ColorContext {
+                id: shortcutTheme
+                colorSet: ColorContext.ComboBox
+            }
+
+            onClicked: DialogsProvider.keyboardShortcutsDialog(shortcutButton.actionName)
         }
     }
 
-    // a button asking for confirmation first
+    // a button, asking for confirmation first when the row has a
+    // confirmText
     Component {
         id: actionComponent
 
@@ -592,10 +615,12 @@ FocusScope {
             Widgets.ButtonExt {
                 id: actionButton
 
+                Layout.fillWidth: true
                 Layout.preferredHeight: VLCStyle.dp(32, VLCStyle.scale)
-                text: action.confirming ? qsTr("Reset all") : qsTr("Reset…")
+                text: action.confirming ? root.row.confirmText : root.row.buttonText
                 font.weight: Font.DemiBold
-                Accessible.name: action.confirming ? qsTr("Confirm “%1”").arg(root.row.label) : root.row.label
+                Accessible.name: action.confirming ? qsTr("Confirm “%1”").arg(root.row.label)
+                                                   : qsTr("%1: %2").arg(root.row.label).arg(root.row.buttonText)
 
                 background: Rectangle {
                     radius: VLCStyle.radius_normal
@@ -607,7 +632,7 @@ FocusScope {
                 }
 
                 onClicked: {
-                    if (!action.confirming) {
+                    if (!action.confirming && root.row.confirmText !== "") {
                         action.confirming = true
                         return
                     }

@@ -123,6 +123,10 @@ libqt_plugin_la_SOURCES = \
 	dialogs/settings/settings_pages.hpp \
 	dialogs/settings/settings_registry.cpp \
 	dialogs/settings/settings_registry.hpp \
+	dialogs/shortcuts/app_shortcuts_model.cpp \
+	dialogs/shortcuts/app_shortcuts_model.hpp \
+	dialogs/shortcuts/shortcuts_model.cpp \
+	dialogs/shortcuts/shortcuts_model.hpp \
 	dialogs/sout/profiles.hpp \
 	dialogs/sout/stream_output.cpp \
 	dialogs/sout/stream_output.hpp \
@@ -416,6 +420,8 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/convert/conversion_profile_model.moc.cpp \
 	dialogs/settings/settings_model.moc.cpp \
 	dialogs/settings/settings_pages.moc.cpp \
+	dialogs/shortcuts/app_shortcuts_model.moc.cpp \
+	dialogs/shortcuts/shortcuts_model.moc.cpp \
 	dialogs/sout/stream_output.moc.cpp \
 	dialogs/systray/systray.moc.cpp \
 	dialogs/toolbar/controlbar_profile.moc.cpp \
@@ -1018,6 +1024,8 @@ libqml_module_dialogs_a_QML = \
 	dialogs/settings/qml/SettingsSegmented.qml \
 	dialogs/settings/qml/SettingsSlider.qml \
 	dialogs/settings/qml/SettingsToggle.qml \
+	dialogs/shortcuts/qml/KeyboardShortcutsDialog.qml \
+	dialogs/shortcuts/qml/ShortcutKeyField.qml \
 	dialogs/mediainfo/qml/MediaPropertiesDialog.qml \
 	dialogs/open/qml/OpenDiscDialog.qml \
 	dialogs/toolbar/qml/EditorDashedBorder.qml \
@@ -2251,6 +2259,27 @@ test_keys_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_keys_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_keys
 TESTS += test_keys
+
+# test_shortcuts_model
+
+test_shortcuts_model_SOURCES = \
+	tests/test_shortcuts_model.cpp \
+	dialogs/shortcuts/shortcuts_model.cpp dialogs/shortcuts/shortcuts_model.hpp \
+	util/vlchotkeyconverter.cpp util/vlchotkeyconverter.hpp
+
+nodist_test_shortcuts_model_SOURCES = \
+	tests/test_shortcuts_model.moc \
+	dialogs/shortcuts/shortcuts_model.moc.cpp \
+	util/vlchotkeyconverter.moc.cpp
+
+BUILT_SOURCES += tests/test_shortcuts_model.moc
+CLEANFILES += tests/test_shortcuts_model.moc
+test_shortcuts_model_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_shortcuts_model_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_shortcuts_model_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_shortcuts_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_shortcuts_model
+TESTS += test_shortcuts_model
 
 # test_vlc_dialog_model
 

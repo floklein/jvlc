@@ -578,5 +578,29 @@ Item {
             }
         }
     }
+
+    // loads the keys again each time it opens, see KeyboardShortcutsDialog
+    Loader {
+        id: keyboardShortcutsDialogLoader
+        active: false
+        source: "qrc:///qt/qml/VLC/Dialogs/KeyboardShortcutsDialog.qml"
+
+        Connections {
+            target: DialogsProvider
+
+            function onShowKeyboardShortcutsDialog(action) {
+                keyboardShortcutsDialogLoader.active = true
+                keyboardShortcutsDialogLoader.item.openOn(action)
+            }
+        }
+
+        Connections {
+            target: keyboardShortcutsDialogLoader.item
+            function onFinished() {
+                // drops the model and its unsaved changes
+                Qt.callLater(() => keyboardShortcutsDialogLoader.active = false)
+            }
+        }
+    }
 }
 

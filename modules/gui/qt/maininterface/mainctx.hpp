@@ -159,6 +159,9 @@ class MainCtx : public QObject
     Q_PROPERTY(unsigned windowExtendedMargin READ windowExtendedMargin WRITE setWindowExtendedMargin NOTIFY windowExtendedMarginChanged)
     Q_PROPERTY(SearchCtx* search MEMBER m_search CONSTANT FINAL)
     Q_PROPERTY(SortCtx* sort MEMBER m_sort CONSTANT FINAL)
+    /// changes when Keyboard Shortcuts saves new keys: read it in bindings
+    /// that call actionSequence() or actionShortcut() to follow them
+    Q_PROPERTY(int keyBindingsRevision MEMBER m_keyBindingsRevision NOTIFY keyBindingsRevisionChanged FINAL)
 
 
 public:
@@ -424,6 +427,9 @@ public:
     /// for the interface's shortcuts
     Q_INVOKABLE QString actionSequence(const QString &action) const;
 
+    /// Keyboard Shortcuts saved new keys
+    void notifyKeyBindingsChanged();
+
     /// add a bookmark at the current time of the playing media;
     /// bookmarkAdded() confirms it
     Q_INVOKABLE void addBookmark();
@@ -519,6 +525,7 @@ protected:
     int m_osVersion;
 
     bool m_bgCone = true;
+    int m_keyBindingsRevision = 0;
     bool m_windowSuportExtendedFrame = false;
     unsigned m_windowExtendedMargin = 0;
 
@@ -580,6 +587,7 @@ signals:
     void askToQuit();
     /// addBookmark() added the bookmark @a name
     void bookmarkAdded(const QString &name);
+    void keyBindingsRevisionChanged();
     void askShow();
     void askBoss();
     void askRaise();

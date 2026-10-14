@@ -704,7 +704,13 @@ QString MainCtx::actionShortcut(const QString &action) const
 
 QString MainCtx::actionSequence(const QString &action) const
 {
-    return appActionSequence(action);
+    return appActionSequence(VLC_OBJECT(vlc_object_instance(p_intf)), action);
+}
+
+void MainCtx::notifyKeyBindingsChanged()
+{
+    ++m_keyBindingsRevision;
+    emit keyBindingsRevisionChanged();
 }
 
 void MainCtx::addBookmark()

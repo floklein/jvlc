@@ -196,7 +196,9 @@ public slots:
     // Options expanded if asked
     void showSettings(const QString& page = {}, bool advanced = false);
     void setSettingsDialogVisible(bool visible);
-    void keyboardShortcutsDialog();
+    // opens Keyboard Shortcuts, on the action @a action ("play-pause") if
+    // given
+    void keyboardShortcutsDialog(const QString& action = {});
     void firstRunDialog();
     void extendedDialog();
     void synchroDialog();
@@ -258,6 +260,7 @@ signals:
     void showToolbarEditorDialog();
     void showSettingsDialog(const QString& page, bool advanced);
     void hideSettingsDialog();
+    void showKeyboardShortcutsDialog(const QString& action);
     void showOpenCaptureDialog();
     /* opens Convert with these media, if any */
     void showConvertDialog(const QStringList& mrls);

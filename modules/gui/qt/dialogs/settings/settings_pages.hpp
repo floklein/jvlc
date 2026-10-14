@@ -52,6 +52,7 @@ signals:
 private:
     void addGeneralRows();
     void addInterfaceRows();
+    void addControlsRows();
     void addResetRow();
     void onSettingChanged(const QString& id);
 

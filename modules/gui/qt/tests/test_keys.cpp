@@ -24,6 +24,7 @@
 #include <vlc_common.h>
 #include <vlc_variables.h>
 #include <vlc_actions.h>
+#include <vlc_configuration.h>
 #include "../../../../lib/libvlc_internal.h"
 
 #include <QTest>
@@ -152,12 +153,43 @@ private slots:
         var_Destroy(obj(), "key-stop");
     }
 
+    // a rebinding saved by Keyboard Shortcuts works without a restart
+    void testKeyMapFollowsRebindingAfterReload()
+    {
+        config_PutPsz("key-stop", "Ctrl+Alt+s");
+        QCOMPARE(vlc_actions_reload(obj()), VLC_SUCCESS);
+
+        QCOMPARE(actionForKey("Ctrl+Alt+s"), int(ACTIONID_STOP));
+        QCOMPARE(actionForKey("s"), 0);
+
+        config_PutPsz("key-stop", config_FindConfig("key-stop")->orig.psz);
+        QCOMPARE(vlc_actions_reload(obj()), VLC_SUCCESS);
+        QCOMPARE(actionForKey("Ctrl+Alt+s"), 0);
+    }
+
     // shortcuts of the interface use the same key as the menus
     void testInterfaceShortcutSequence()
     {
-        QCOMPARE(appActionSequence("open-folder"), QStringLiteral("Ctrl+Shift+O"));
-        QCOMPARE(appActionSequence("library-search"), QStringLiteral("Ctrl+F"));
-        QCOMPARE(appActionSequence("play-pause"), QString());
+        QCOMPARE(appActionSequence(obj(), "open-folder"), QStringLiteral("Ctrl+Shift+O"));
+        QCOMPARE(appActionSequence(obj(), "library-search"), QStringLiteral("Ctrl+F"));
+        QCOMPARE(appActionSequence(obj(), "play-pause"), QString());
+    }
+
+    // keys of interface actions changed in Keyboard Shortcuts
+    void testInterfaceShortcutsFollowRebinding()
+    {
+        var_Create(obj(), "qt-app-keys", VLC_VAR_STRING);
+        var_SetString(obj(), "qt-app-keys", "open-folder=Ctrl+Alt+f\tsettings=");
+
+        QCOMPARE(appActionSequence(obj(), "open-folder"), QStringLiteral("Ctrl+Alt+F"));
+        QCOMPARE(actionKeyText(obj(), "open-folder"), QStringLiteral("Ctrl+Alt+F"));
+        // unbound
+        QCOMPARE(appActionSequence(obj(), "settings"), QString());
+        QCOMPARE(actionKeyText(obj(), "settings"), QString());
+        // not overridden
+        QCOMPARE(appActionSequence(obj(), "open-file"), QStringLiteral("Ctrl+O"));
+
+        var_Destroy(obj(), "qt-app-keys");
     }
 
     // Shift+F10 opens context menus like the Menu key

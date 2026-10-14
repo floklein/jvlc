@@ -1,8 +1,10 @@
 #ifndef VLC_HOTKEY_CONVERTER_HPP
 #define VLC_HOTKEY_CONVERTER_HPP
 
+#include <QHash>
 #include <QObject>
 #include <QPoint>
+#include <QStringList>
 #include <QtQml/qqmlregistration.h>
 
 /* VLC Key/Wheel hotkeys interactions */
@@ -16,8 +18,26 @@ class QInputEvent;
 
 int qtKeyModifiersToVLC( const QInputEvent& e );
 int qtEventToVLCKey( QKeyEvent *e );
+int qtKeyToVLC( int key, Qt::KeyboardModifiers modifiers );
 int qtWheelEventToVLCKey( const QWheelEvent& e );
 QString VLCKeyToString( unsigned val, bool );
+
+/**
+ * @brief a VLC key code as a portable Qt key sequence ("Ctrl+Shift+O")
+ * @return the sequence, or an empty string for keys Qt has no name for
+ */
+QString vlcKeyToQtSequence( unsigned vlck );
+/**
+ * @brief the VLC key code of the first key of a portable Qt key sequence
+ * @return the key code, or KEY_UNSET
+ */
+unsigned qtSequenceToVLCKey( const QString &sequence );
+
+/**
+ * @brief a VLC key code for display: translated, letters in uppercase
+ * ("Space", "Shift+R")
+ */
+QString vlcKeyText( unsigned vlck );
 
 struct vlc_object_t;
 
@@ -31,13 +51,36 @@ struct vlc_object_t;
 QString vlcActionKeyText( struct vlc_object_t *obj, const char *action );
 
 /**
- * @brief the key sequence of an action of the interface itself (opening a
- * dialog, showing a view...), as opposed to the core hotkeys
+ * @brief the actions of the interface itself (opening a dialog, showing a
+ * view...), as opposed to the core hotkeys
+ */
+QStringList appActionNames();
+
+/**
+ * @brief the default key sequence of an interface action
  * @param action action name, e.g. "open-folder"
  * @return a portable key sequence ("Ctrl+Shift+O"), or an empty string if
  * @a action is not an interface action
  */
-QString appActionSequence( const QString &action );
+QString appActionDefaultSequence( const QString &action );
+
+/**
+ * @brief the keys of interface actions changed by the user, as stored in the
+ * "qt-app-keys" option: "name=key" entries (VLC key names, an empty key for
+ * none) separated by tabulations
+ */
+QHash<QString, QString> parseAppKeys( const QString &value );
+QString formatAppKeys( const QHash<QString, QString> &keys );
+
+/**
+ * @brief the key sequence of an action of the interface itself, as changed
+ * by the user in Keyboard Shortcuts
+ * @param obj object the "qt-app-keys" option is inherited from
+ * @param action action name, e.g. "open-folder"
+ * @return a portable key sequence ("Ctrl+Shift+O"), or an empty string if
+ * @a action is not an interface action or has no key
+ */
+QString appActionSequence( struct vlc_object_t *obj, const QString &action );
 
 /**
  * @brief the key shown next to an action in menus and tooltips

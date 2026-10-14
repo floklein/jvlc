@@ -692,6 +692,9 @@ modules/gui/qt/dialogs/settings/settings_pages.cpp
 modules/gui/qt/dialogs/settings/settings_registry.cpp
 modules/gui/qt/dialogs/settings/qml/SettingsDialog.qml
 modules/gui/qt/dialogs/settings/qml/SettingsRow.qml
+modules/gui/qt/dialogs/shortcuts/shortcuts_model.cpp
+modules/gui/qt/dialogs/shortcuts/qml/KeyboardShortcutsDialog.qml
+modules/gui/qt/dialogs/shortcuts/qml/ShortcutKeyField.qml
 modules/gui/qt/dialogs/sout/profiles.hpp
 modules/gui/qt/dialogs/sout/stream_output.cpp
 modules/gui/qt/dialogs/sout/stream_output.hpp
