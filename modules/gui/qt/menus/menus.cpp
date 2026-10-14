@@ -675,10 +675,10 @@ QMenu* VLCMenuBar::PopupMenu( qt_intf_t *p_intf, bool show )
         action = addEntry( p_intf, menu, qtr( "&Hide UI" ), "hide-ui",
                            [mi = QPointer<MainCtx>( mi )]( bool checked ) {
                                if( mi )
-                                   mi->setMinimalView( checked );
+                                   mi->setHideUI( checked );
                            } );
         action->setCheckable( true );
-        action->setChecked( mi->isMinimalView() );
+        action->setChecked( mi->hideUI() );
         setIcon( action, menu, VLCIcons::ui_tt_base, VLCIcons::ui_tt_accent );
         menu->addSeparator();
     }
