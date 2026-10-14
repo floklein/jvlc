@@ -78,6 +78,7 @@
 
 #ifdef _WIN32
 #include <QFileInfo>
+#include <windows.h>
 #endif
 
 #include <vlc_interface.h>
@@ -125,6 +126,15 @@ template <>
 bool loadVLCOption<bool>(vlc_object_t *obj, const char *name)
 {
     return var_InheritBool(obj, name);
+}
+
+template <>
+QString loadVLCOption<QString>(vlc_object_t *obj, const char *name)
+{
+    char *value = var_InheritString(obj, name);
+    QString result = qfu(value);
+    free(value);
+    return result;
 }
 
 }
@@ -410,10 +420,14 @@ void MainCtx::loadPrefs(const bool callSignals)
             signal(this);
     };
 
-    bool minimalMode = false;
-    /* Are we in the enhanced always-video mode or not ? */
-    loadFromVLCOption(minimalMode, "qt-minimal-view", nullptr);
-    setMinimalView(minimalMode);
+    /* Are we in the enhanced always-video mode or not ? Only read at start:
+     * the option says how VLC starts, changing it must not leave the mode. */
+    if (!callSignals)
+    {
+        bool minimalMode = false;
+        loadFromVLCOption(minimalMode, "qt-minimal-view", nullptr);
+        setMinimalView(minimalMode);
+    }
 
     loadFromVLCOption(m_bgCone, "qt-bgcone", &MainCtx::bgConeToggled);
 
@@ -440,6 +454,19 @@ void MainCtx::loadPrefs(const bool callSignals)
     loadFromVLCOption(m_safeArea, "qt-safe-area", &MainCtx::safeAreaChanged);
 
     loadFromVLCOption(m_mouseHideTimeout, "mouse-hide-timeout", &MainCtx::mouseHideTimeoutChanged);
+
+    loadFromVLCOption(m_accentColor, "qt-accent-color", &MainCtx::accentColorChanged);
+
+    const bool reduceMotionWas = reduceMotion();
+#ifdef _WIN32
+    /* Windows "Animation effects" (Settings > Accessibility > Visual effects) */
+    BOOL animations = TRUE;
+    if (SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animations, 0))
+        m_systemReducedMotion = !animations;
+#endif
+    loadFromVLCOption(m_reduceMotionOption, "qt-reduce-motion", nullptr);
+    if (callSignals && reduceMotion() != reduceMotionWas)
+        emit reduceMotionChanged();
 }
 
 void MainCtx::loadFromSettingsImpl(const bool callSignals)

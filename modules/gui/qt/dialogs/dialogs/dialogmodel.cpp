@@ -22,6 +22,7 @@
 
 // VLC includes
 #include <vlc_dialog.h>
+#include <vlc_configuration.h>
 #include "qt.hpp"
 #include <QThread>
 
@@ -108,6 +109,14 @@ void DialogErrorModel::onError(void * p_data,
                                const char * psz_title, const char * psz_text)
 {
     auto model = static_cast<DialogErrorModel *>(p_data);
+
+    /* Settings > General > "Show error dialogs" */
+    if (config_GetType("qt-error-dialogs") != 0
+        && !var_InheritBool(model->m_intf, "qt-error-dialogs"))
+    {
+        msg_Err(model->m_intf, "%s: %s", psz_title, psz_text);
+        return;
+    }
 
     DialogErrorModel::DialogError error { psz_title, psz_text };
 

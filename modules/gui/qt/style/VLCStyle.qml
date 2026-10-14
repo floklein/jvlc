@@ -303,6 +303,10 @@ QtObject {
 
     readonly property int dragDelta: MainCtx.dp(12, scale)
 
+    // reduced motion (Settings > Interface or the system setting): animate with
+    // fades only, never slides
+    readonly property bool reduceMotion: MainCtx.reduceMotion
+
     // durations. Values are aligned on Kirigami
 
     //should be used for animation that benefits from a longer animation than duration_long

@@ -1,0 +1,457 @@
+/*****************************************************************************
+ * Copyright (C) 2026 VLC authors and VideoLAN
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * ( at your option ) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
+ *****************************************************************************/
+import QtQuick
+import QtQuick.Window
+import QtQuick.Templates as T
+import QtQuick.Layouts
+
+import VLC.MainInterface
+import VLC.Widgets as Widgets
+import VLC.Style
+import VLC.Dialogs
+
+// The Settings window: categories grouped App, Media and System, search, and
+// rows that apply as soon as they change.
+Window {
+    id: root
+
+    transientParent: MainCtx.intfMainWindow
+    flags: Qt.Dialog
+    modality: Qt.NonModal
+
+    title: qsTr("Settings")
+
+    width: VLCStyle.dp(1048, VLCStyle.scale)
+    height: VLCStyle.dp(865, VLCStyle.scale)
+    minimumWidth: VLCStyle.dp(720, VLCStyle.scale)
+    minimumHeight: VLCStyle.dp(480, VLCStyle.scale)
+
+    color: theme.bg.primary
+
+    property string currentPage: "general"
+    // asked by a deep link, for the Advanced Options section of the page
+    property bool advancedRequested: false
+
+    readonly property bool searching: searchField.text.trim() !== ""
+
+    // categories, see GLOSSARY.md "Settings"
+    readonly property var pages: [
+        { group: qsTr("App") },
+        { page: "general",     title: qsTr("General"),     icon: "settings" },
+        { page: "interface",   title: qsTr("Interface"),   icon: "interface" },
+        { page: "privacy",     title: qsTr("Privacy"),     icon: "privacy" },
+        { page: "controls",    title: qsTr("Controls"),    icon: "hotkeys" },
+        { group: qsTr("Media") },
+        { page: "playback",    title: qsTr("Playback"),    icon: "playback" },
+        { page: "video",       title: qsTr("Video"),       icon: "video" },
+        { page: "audio",       title: qsTr("Audio"),       icon: "audio" },
+        { page: "subtitles",   title: qsTr("Subtitles"),   icon: "subtitles" },
+        { page: "library",     title: qsTr("Library"),     icon: "folder" },
+        { group: qsTr("System") },
+        { page: "network",     title: qsTr("Network"),     icon: "streaming" },
+        { page: "performance", title: qsTr("Performance"), icon: "preferences" },
+        { page: "recording",   title: qsTr("Recording"),   icon: "record" },
+        { page: "extensions",  title: qsTr("Extensions"),  icon: "plugins" },
+    ]
+
+    function pageTitle(page: string) : string {
+        const entry = pages.find((p) => p.page === page)
+        return entry ? entry.title : ""
+    }
+
+    // the icon of a category, its "_active" variant when selected
+    function pageIcon(name: string, active: bool) : string {
+        const glyph = active ? VLCIcons[name + "_active"] : undefined
+        return glyph !== undefined ? glyph : (VLCIcons[name] ?? VLCIcons.settings)
+    }
+
+    function openPage(page: string, advanced: bool) {
+        if (page !== "" && pageTitle(page) !== "")
+            root.currentPage = page
+        root.advancedRequested = advanced
+        searchField.text = ""
+        root.show()
+        root.raise()
+        root.requestActivate()
+    }
+
+    onVisibleChanged: DialogsProvider.setSettingsDialogVisible(visible)
+
+    Component.onCompleted: {
+        root.developerMode = !!appSettings.value("developer-mode")
+
+        if (MainCtx.createWindowWithoutRedirectionSurface) { // Win32
+            const ret = MainCtx.createWindowWithoutRedirectionSurface(this)
+            if (!ret)
+                console.debug("MainCtx::createWindowWithoutRedirectionSurface(): returned false for window", this)
+        }
+    }
+
+    Shortcut {
+        sequences: [StandardKey.Cancel]
+        onActivated: {
+            if (root.searching)
+                searchField.text = ""
+            else
+                root.close()
+        }
+    }
+
+    Shortcut {
+        sequences: [StandardKey.Find]
+        onActivated: searchField.forceActiveFocus(Qt.ShortcutFocusReason)
+    }
+
+    SettingsModel {
+        id: appSettings
+        ctx: MainCtx
+    }
+
+    // developer rows show in developer mode
+    property bool developerMode: false
+
+    Connections {
+        target: appSettings
+        function onSettingChanged(id, value) {
+            if (id === "developer-mode")
+                root.developerMode = !!value
+        }
+    }
+
+    SettingsFilterModel {
+        id: rowsModel
+        sourceModel: appSettings
+        page: root.currentPage
+        searchPattern: searchField.text
+        showDeveloper: root.developerMode
+    }
+
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: 0
+
+        // the contexts of the items below inherit this palette
+        readonly property ColorContext colorContext: ColorContext {
+            id: theme
+            palette: VLCStyle.palette
+            colorSet: ColorContext.View
+        }
+
+        // header: search, page title, Profile, close
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: VLCStyle.dp(50, VLCStyle.scale)
+            color: theme.bg.secondary
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: VLCStyle.spacing_8
+                anchors.rightMargin: VLCStyle.spacing_14
+                spacing: 0
+
+                Rectangle {
+                    Layout.preferredWidth: VLCStyle.dp(200, VLCStyle.scale)
+                    Layout.preferredHeight: VLCStyle.dp(34, VLCStyle.scale)
+                    radius: VLCStyle.radius_normal
+                    color: windowTheme.bg.primary
+
+                    readonly property ColorContext colorContext: ColorContext {
+                        id: windowTheme
+                        colorSet: ColorContext.Window
+                    }
+
+                    Widgets.IconLabel {
+                        id: searchIcon
+                        anchors.left: parent.left
+                        anchors.leftMargin: VLCStyle.spacing_8
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: VLCIcons.search
+                        color: theme.fg.secondary
+                        font.pixelSize: VLCStyle.icon_normal
+                    }
+
+                    T.TextField {
+                        id: searchField
+
+                        anchors.left: searchIcon.right
+                        anchors.leftMargin: VLCStyle.spacing_10
+                        anchors.right: parent.right
+                        anchors.rightMargin: VLCStyle.spacing_8
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+
+                        placeholderText: qsTr("Search")
+                        placeholderTextColor: theme.fg.secondary
+                        color: theme.fg.primary
+                        selectionColor: theme.bg.highlight
+                        font.pixelSize: VLCStyle.fontSize_normal
+                        font.family: VLCStyle.fontFamily
+                        verticalAlignment: Text.AlignVCenter
+
+                        Accessible.name: qsTr("Search settings")
+
+                        KeyNavigation.down: rowsView
+                    }
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: VLCStyle.margin_xlarge
+                    text: root.searching ? qsTr("Search results") : root.pageTitle(root.currentPage)
+                    elide: Text.ElideRight
+                    color: theme.fg.secondary
+                    font.pixelSize: VLCStyle.fontSize_xlarge
+                    font.family: VLCStyle.fontFamily
+                    Accessible.role: Accessible.Heading
+                    Accessible.name: text
+                }
+
+                // the Profile being edited
+                Text {
+                    text: qsTr("Profile: %1").arg(appSettings.profileName)
+                    color: theme.fg.secondary
+                    font.pixelSize: VLCStyle.fontSize_normal
+                    font.family: VLCStyle.fontFamily
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: 0
+
+            // categories
+            Item {
+                Layout.preferredWidth: VLCStyle.dp(216, VLCStyle.scale)
+                Layout.fillHeight: true
+
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: VLCStyle.spacing_8
+                    radius: VLCStyle.radius_normal
+                    color: sidebarTheme.bg.primary
+
+                    readonly property ColorContext colorContext: ColorContext {
+                        id: sidebarTheme
+                        colorSet: ColorContext.Window
+                    }
+
+                    Flickable {
+                        anchors.fill: parent
+                        anchors.margins: VLCStyle.spacing_6
+                        contentHeight: categories.implicitHeight
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+
+                        Column {
+                            id: categories
+                            width: parent.width
+                            spacing: VLCStyle.spacing_8
+
+                            Repeater {
+                                model: root.pages
+
+                                delegate: Loader {
+                                    required property var modelData
+                                    width: categories.width
+                                    sourceComponent: modelData.group !== undefined ? groupComponent : categoryComponent
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // rows of the page or search results
+            ListView {
+                id: rowsView
+
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                clip: true
+                focus: true
+                boundsBehavior: Flickable.StopAtBounds
+                keyNavigationEnabled: true
+
+                // pages start with a section title that has its own space
+                topMargin: root.searching ? VLCStyle.spacing_20 : 0
+                bottomMargin: VLCStyle.margin_xlarge
+                leftMargin: VLCStyle.margin_large
+                rightMargin: VLCStyle.margin_large
+
+                model: rowsModel
+
+                section.property: root.searching ? "" : "section"
+                section.criteria: ViewSection.FullString
+                section.delegate: Item {
+                    required property string section
+
+                    width: rowsView.width - rowsView.leftMargin - rowsView.rightMargin
+                    // 20 between sections (and above the first one), 10 around the title
+                    height: VLCStyle.spacing_20 + 2 * VLCStyle.spacing_10 + sectionLabel.implicitHeight
+
+                    Text {
+                        id: sectionLabel
+                        y: VLCStyle.spacing_20 + VLCStyle.spacing_10
+                        text: parent.section
+                        color: theme.fg.primary
+                        font.pixelSize: VLCStyle.fontSize_xlarge
+                        font.weight: Font.Medium
+                        font.family: VLCStyle.fontFamily
+                        Accessible.role: Accessible.Heading
+                        Accessible.name: text
+                    }
+                }
+
+                delegate: SettingsRow {
+                    width: rowsView.width - rowsView.leftMargin - rowsView.rightMargin
+                    settingsModel: appSettings
+                    path: root.searching ? root.pageTitle(model.page) + " › " + model.section : ""
+                }
+
+                T.ScrollBar.vertical: Widgets.ScrollBarExt { }
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: rowsView.count === 0
+                    width: parent.width - 2 * VLCStyle.margin_large
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    text: root.searching ? qsTr("No settings match “%1”.").arg(searchField.text.trim())
+                                         : qsTr("This page has no settings yet.")
+                    color: theme.fg.secondary
+                    font.pixelSize: VLCStyle.fontSize_normal
+                    font.family: VLCStyle.fontFamily
+                }
+            }
+        }
+
+        // some changes need a restart
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: VLCStyle.dp(52, VLCStyle.scale)
+            visible: appSettings.restartRequired
+            color: theme.bg.secondary
+
+            Accessible.role: Accessible.AlertMessage
+            Accessible.name: restartText.text
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: VLCStyle.margin_large
+                anchors.rightMargin: VLCStyle.margin_large
+                spacing: VLCStyle.spacing_10
+
+                Text {
+                    id: restartText
+                    Layout.fillWidth: true
+                    text: qsTr("Some changes apply after VLC restarts.")
+                    elide: Text.ElideRight
+                    color: theme.fg.primary
+                    font.pixelSize: VLCStyle.fontSize_normal
+                    font.family: VLCStyle.fontFamily
+                }
+
+                Widgets.ActionButtonPrimary {
+                    text: qsTr("Restart VLC")
+                    onClicked: appSettings.restartVLC()
+                }
+            }
+        }
+    }
+
+    Component {
+        id: groupComponent
+
+        Text {
+            leftPadding: VLCStyle.spacing_10
+            topPadding: VLCStyle.spacing_8
+            bottomPadding: VLCStyle.spacing_8
+            text: parent.modelData.group
+            color: theme.fg.secondary
+            font.pixelSize: VLCStyle.fontSize_normal
+            font.family: VLCStyle.fontFamily
+            Accessible.role: Accessible.Heading
+            Accessible.name: text
+        }
+    }
+
+    Component {
+        id: categoryComponent
+
+        T.AbstractButton {
+            id: category
+
+            readonly property var entry: parent.modelData
+            readonly property bool current: !root.searching && root.currentPage === entry.page
+
+            implicitHeight: VLCStyle.dp(40, VLCStyle.scale)
+            padding: VLCStyle.spacing_4
+            focusPolicy: Qt.StrongFocus
+
+            Accessible.role: Accessible.PageTab
+            Accessible.name: entry.title
+            Accessible.checkable: true
+            Accessible.checked: current
+            Accessible.onPressAction: category.clicked()
+
+            onClicked: {
+                searchField.text = ""
+                root.currentPage = entry.page
+            }
+
+            readonly property ColorContext colorContext: ColorContext {
+                id: categoryTheme
+                colorSet: ColorContext.Item
+                focused: category.visualFocus
+                hovered: category.hovered
+            }
+
+            background: Rectangle {
+                radius: VLCStyle.radius_xxsmall
+                color: category.current ? categoryTheme.bg.highlight : categoryTheme.bg.primary
+                border.width: category.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : 0
+                border.color: categoryTheme.visualFocus
+            }
+
+            contentItem: RowLayout {
+                spacing: VLCStyle.spacing_8
+
+                Widgets.IconLabel {
+                    Layout.preferredWidth: VLCStyle.dp(32, VLCStyle.scale)
+                    Layout.preferredHeight: VLCStyle.dp(32, VLCStyle.scale)
+                    text: root.pageIcon(category.entry.icon, category.current)
+                    font.pixelSize: VLCStyle.icon_normal
+                    color: category.current ? categoryTheme.accent : categoryTheme.fg.secondary
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: category.entry.title
+                    elide: Text.ElideRight
+                    color: category.current || category.hovered ? categoryTheme.fg.highlight
+                                                                : categoryTheme.fg.secondary
+                    font.pixelSize: VLCStyle.fontSize_normal
+                    font.family: VLCStyle.fontFamily
+                }
+            }
+        }
+    }
+}

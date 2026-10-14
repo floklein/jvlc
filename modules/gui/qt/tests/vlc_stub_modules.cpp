@@ -270,7 +270,7 @@ VLCTestingEnv::~VLCTestingEnv()
 }
 
 static const char * test_defaults_args[] = {
-    "-v", "--vout=vdummy", "--aout=adummy", "--text-renderer=tdummy", "--media-library"
+    "-v", "--ignore-config", "--vout=vdummy", "--aout=adummy", "--text-renderer=tdummy", "--media-library"
 };
 
 static const int test_defaults_nargs = ARRAY_SIZE(test_defaults_args);

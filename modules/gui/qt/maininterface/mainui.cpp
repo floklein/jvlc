@@ -63,6 +63,7 @@
 #include "dialogs/help/aboutmodel.hpp"
 #include "dialogs/dialogs_provider.hpp"
 #include "dialogs/dialogs/dialogmodel.hpp"
+#include "dialogs/settings/settings_pages.hpp"
 #include "dialogs/capture/open_capture_model.hpp"
 #include "dialogs/capture/capture_preview.hpp"
 #include "util/module_options_model.hpp"
@@ -288,6 +289,8 @@ void MainUI::registerQMLTypes()
         qmlRegisterSingletonInstance<DialogsProvider>(uri, versionMajor, versionMinor, "DialogsProvider", DialogsProvider::getInstance());
         assert(DialogErrorModel::getInstance<false>());
         qmlRegisterSingletonInstance<DialogErrorModel>(uri, versionMajor, versionMinor, "DialogErrorModel", DialogErrorModel::getInstance<false>());
+        qmlRegisterType<AppSettingsModel>(uri, versionMajor, versionMinor, "SettingsModel");
+        qmlRegisterType<SettingsFilterModel>(uri, versionMajor, versionMinor, "SettingsFilterModel");
         qmlRegisterSingletonType<OpenCaptureModel>(uri, versionMajor, versionMinor, "OpenCaptureModel",
                                                    [intf = m_intf](QQmlEngine*, QJSEngine*) -> QObject* {
                                                        return new OpenCaptureModel(intf);

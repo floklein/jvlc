@@ -145,10 +145,6 @@ static void ShowDialog   ( intf_thread_t *, int, int, intf_dialog_args_t * );
 /*****************************************************************************
  * Module descriptor
  *****************************************************************************/
-#define INITIAL_PREFS_VIEW_TEXT N_( "Select the initial preferences view" )
-#define INITIAL_PREFS_VIEW_LONGTEXT N_( "Select which preferences view to show upon "\
-                                        "opening the preferences dialog." )
-
 #define SYSTRAY_TEXT N_( "Systray icon" )
 #define SYSTRAY_LONGTEXT N_( "Show an icon in the systray " \
                              "allowing you to control VLC media player " \
@@ -300,9 +296,9 @@ static void ShowDialog   ( intf_thread_t *, int, int, intf_dialog_args_t * );
 #define ACCENT_COLOR_TEXT N_( "Accent color" )
 #define ACCENT_COLOR_LONGTEXT N_( "Adjusts the accent color, special values are 'default' and 'system' (requires Qt 6.6) ." )
 
-static const int initial_prefs_view_list[] = { 0, 1, 2 };
-static const char *const initial_prefs_view_list_texts[] =
-    { N_("Simple"), N_("Advanced"), N_("Expert") };
+#define REDUCE_MOTION_TEXT N_( "Reduce motion" )
+#define REDUCE_MOTION_LONGTEXT N_( "Use fades instead of sliding animations. " \
+    "Motion is also reduced when the operating system asks for it." )
 
 static const int i_notification_list[] =
     { NOTIFICATION_NEVER, NOTIFICATION_MINIMIZED, NOTIFICATION_ALWAYS };
@@ -434,9 +430,7 @@ vlc_module_begin ()
 
 
     add_obsolete_bool( "qt-advanced-pref" ) /* since 4.0.0 */
-    add_integer( "qt-initial-prefs-view", 0, INITIAL_PREFS_VIEW_TEXT, INITIAL_PREFS_VIEW_LONGTEXT )
-        change_integer_range( 0, 2 )
-        change_integer_list( initial_prefs_view_list, initial_prefs_view_list_texts )
+    add_obsolete_integer( "qt-initial-prefs-view" ) /* since the Settings window */
     add_bool( "qt-error-dialogs", true, ERROR_TEXT,
               nullptr )
 
@@ -483,6 +477,8 @@ vlc_module_begin ()
     add_float_with_range( "qt-safe-area", 0, 0, 100.0, SAFE_AREA_TEXT, SAFE_AREA_LONGTEXT )
 
     add_string( "qt-accent-color", "default", ACCENT_COLOR_TEXT, ACCENT_COLOR_LONGTEXT )
+
+    add_bool( "qt-reduce-motion", false, REDUCE_MOTION_TEXT, REDUCE_MOTION_LONGTEXT )
 
     cannot_unload_broken_library()
 

@@ -58,7 +58,6 @@ libqt_plugin_la_CPPFLAGS = $(AM_CPPFLAGS) $(CPPFLAGS_qt) \
 	-I$(builddir)/dialogs/extended \
 	-I$(builddir)/dialogs/firstrun \
 	-I$(builddir)/dialogs/open \
-	-I$(builddir)/dialogs/preferences \
 	-I$(builddir)/dialogs/sout
 
 libqt_plugin_la_CXXFLAGS = $(AM_CXXFLAGS) $(QT_CFLAGS) $(CXXFLAGS_qt) -fPIC
@@ -114,22 +113,16 @@ libqt_plugin_la_SOURCES = \
 	dialogs/open/open.cpp dialogs/open/open.hpp \
 	dialogs/open/open_panels.cpp dialogs/open/open_panels.hpp \
 	dialogs/plugins/plugins.cpp dialogs/plugins/plugins.hpp \
-	dialogs/preferences/complete_preferences.cpp \
-	dialogs/preferences/complete_preferences.hpp \
-	dialogs/preferences/expert_model.cpp \
-	dialogs/preferences/expert_model.hpp \
-	dialogs/preferences/expert_view.cpp \
-	dialogs/preferences/expert_view.hpp \
-	dialogs/preferences/preferences.cpp \
-	dialogs/preferences/preferences.hpp \
 	dialogs/preferences/preferences_widgets.cpp \
 	dialogs/preferences/preferences_widgets.hpp \
-	dialogs/preferences/simple_preferences.cpp \
-	dialogs/preferences/simple_preferences.hpp \
 	dialogs/convert/conversion_manager.cpp \
 	dialogs/convert/conversion_manager.hpp \
 	dialogs/convert/conversion_profile_model.cpp \
 	dialogs/convert/conversion_profile_model.hpp \
+	dialogs/settings/settings_model.cpp \
+	dialogs/settings/settings_model.hpp \
+	dialogs/settings/settings_pages.cpp \
+	dialogs/settings/settings_pages.hpp \
 	dialogs/sout/profile_selector.cpp \
 	dialogs/sout/profile_selector.hpp \
 	dialogs/sout/profiles.hpp \
@@ -405,14 +398,11 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/open/open.moc.cpp \
 	dialogs/open/open_panels.moc.cpp \
 	dialogs/plugins/plugins.moc.cpp \
-	dialogs/preferences/complete_preferences.moc.cpp \
-	dialogs/preferences/expert_model.moc.cpp \
-	dialogs/preferences/expert_view.moc.cpp \
-	dialogs/preferences/preferences.moc.cpp \
 	dialogs/preferences/preferences_widgets.moc.cpp \
-	dialogs/preferences/simple_preferences.moc.cpp \
 	dialogs/convert/conversion_manager.moc.cpp \
 	dialogs/convert/conversion_profile_model.moc.cpp \
+	dialogs/settings/settings_model.moc.cpp \
+	dialogs/settings/settings_pages.moc.cpp \
 	dialogs/sout/profile_selector.moc.cpp \
 	dialogs/sout/sout.moc.cpp \
 	dialogs/sout/sout_widgets.moc.cpp \
@@ -529,12 +519,6 @@ nodist_libqt_plugin_la_SOURCES += \
 	dialogs/open/ui_open_disk.h \
 	dialogs/open/ui_open_file.h \
 	dialogs/open/ui_open_net.h \
-	dialogs/preferences/ui_sprefs_audio.h \
-	dialogs/preferences/ui_sprefs_input.h \
-	dialogs/preferences/ui_sprefs_interface.h \
-	dialogs/preferences/ui_sprefs_medialibrary.h \
-	dialogs/preferences/ui_sprefs_subtitles.h \
-	dialogs/preferences/ui_sprefs_video.h \
 	dialogs/sout/ui_profiles.h \
 	dialogs/sout/ui_sout.h
 
@@ -740,12 +724,6 @@ libqt_plugin_la_UI = \
 	dialogs/open/open_disk.ui \
 	dialogs/open/open_file.ui \
 	dialogs/open/open_net.ui \
-	dialogs/preferences/sprefs_audio.ui \
-	dialogs/preferences/sprefs_input.ui \
-	dialogs/preferences/sprefs_interface.ui \
-	dialogs/preferences/sprefs_medialibrary.ui \
-	dialogs/preferences/sprefs_subtitles.ui \
-	dialogs/preferences/sprefs_video.ui \
 	dialogs/sout/profiles.ui \
 	dialogs/sout/sout.ui
 EXTRA_DIST += $(libqt_plugin_la_UI)
@@ -1027,6 +1005,11 @@ libqml_module_dialogs_a_QML = \
 	dialogs/dialogs/qml/ModalDialog.qml \
 	dialogs/dialogs/qml/ProgramGuideWindow.qml \
 	dialogs/dialogs/qml/WindowDialog.qml \
+	dialogs/settings/qml/SettingsDialog.qml \
+	dialogs/settings/qml/SettingsRow.qml \
+	dialogs/settings/qml/SettingsSegmented.qml \
+	dialogs/settings/qml/SettingsSlider.qml \
+	dialogs/settings/qml/SettingsToggle.qml \
 	dialogs/mediainfo/qml/MediaPropertiesDialog.qml \
 	dialogs/open/qml/OpenDiscDialog.qml \
 	dialogs/toolbar/qml/EditorDNDDelegate.qml \
@@ -2034,6 +2017,26 @@ test_program_guide_model_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_program_guide_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_program_guide_model
 TESTS += test_program_guide_model
+
+# test_settings_model
+
+test_settings_model_SOURCES = \
+	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
+	tests/test_settings_model.cpp \
+	dialogs/settings/settings_model.cpp dialogs/settings/settings_model.hpp
+
+nodist_test_settings_model_SOURCES = \
+	tests/test_settings_model.moc \
+	dialogs/settings/settings_model.moc.cpp
+
+BUILT_SOURCES += tests/test_settings_model.moc
+CLEANFILES += tests/test_settings_model.moc
+test_settings_model_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_settings_model_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_settings_model_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_settings_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_settings_model
+TESTS += test_settings_model
 
 # test_media_properties_model
 

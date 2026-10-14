@@ -231,32 +231,38 @@ SystemPalette::SystemPalette(QObject* parent)
 
 }
 
+void SystemPalette::loadAccentColor()
+{
+    assert(m_ctx);
+    const QString accentColor = m_ctx->accentColor();
+
+    if (accentColor == QLatin1String("default"))
+    {
+        // Use default
+        m_accent = QColor();
+    }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
+    else if (accentColor == QLatin1String("system"))
+    {
+        assert(qApp);
+        m_accent = qApp->palette().color(QPalette::Normal, QPalette::Accent);
+    }
+#endif
+    else
+    {
+        m_accent = QColor(accentColor);
+    }
+}
+
 void SystemPalette::componentComplete()
 {
-    {
-        assert(m_ctx);
-        char* accentColor = var_InheritString(m_ctx->getIntf(), "qt-accent-color");
-        assert(accentColor);
+    loadAccentColor();
 
-        if (!strcmp(accentColor, "default"))
-        {
-            // Use default
-            m_accent = QColor();
-        }
-#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
-        else if (!strcmp(accentColor, "system"))
-        {
-            assert(qApp);
-            m_accent = qApp->palette().color(QPalette::Normal, QPalette::Accent);
-        }
-#endif
-        else
-        {
-            m_accent = QColor(accentColor);
-        }
-
-        free(accentColor);
-    }
+    // the Accent color can change in Settings
+    connect(m_ctx, &MainCtx::accentColorChanged, this, [this]() {
+        loadAccentColor();
+        updatePalette();
+    });
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     // follow the operating system's light/dark setting when no theme provider does
@@ -634,8 +640,10 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         C::ColorSet CS = C::Switch;
         // off
         setColor(CS, C::Bg, C::Primary, C::Normal, t.bgB2);
+        setColor(CS, C::Bg, C::Highlight, C::Normal, t.bgA4);   // unselected segment, off side
         setColor(CS, C::Fg, C::Primary, C::Normal, t.fgA3);
         setColor(CS, C::Decoration, C::Border, C::Normal, t.dividerBright);
+        setColor(CS, C::Decoration, C::Indicator, C::Normal, t.fgA4); // off knob
         // on
         setColor(CS, C::Bg, C::Secondary, C::Normal, t.bgAccentBright);
         setColor(CS, C::Fg, C::Secondary, C::Normal, t.accentDim);

@@ -82,7 +82,6 @@ class FirstRunWizard;
 class ExtendedDialog;
 class PlaylistsDialog;
 class PluginDialog;
-class PrefsDialog;
 
 class DialogsProvider : public QObject, public Singleton<DialogsProvider>
 {
@@ -154,7 +153,8 @@ private:
     std::unique_ptr<QMenu> audioPopupMenu;
     std::unique_ptr<QMenu> miscPopupMenu;
 
-    QPointer<PrefsDialog> m_prefsDialog;
+    // the Settings window is a QML window, see Dialogs.qml
+    bool m_settingsDialogVisible = false;
 
     std::unique_ptr<OpenDialog> m_openDialog;
     std::unique_ptr<FirstRunWizard> m_firstRunDialog;
@@ -188,7 +188,12 @@ public slots:
                                               const QMessageBox::StandardButtons buttons = QMessageBox::NoButton,
                                               const QMessageBox::StandardButton defaultButton = QMessageBox::NoButton,
                                               const QMessageBox::Icon icon = QMessageBox::NoIcon);
+    // shows or hides the Settings window
     void prefsDialog();
+    // opens Settings at a page ("general", "interface"...), Advanced
+    // Options expanded if asked
+    void showSettings(const QString& page = {}, bool advanced = false);
+    void setSettingsDialogVisible(bool visible);
     void firstRunDialog();
     void extendedDialog();
     void synchroDialog();
@@ -247,6 +252,8 @@ public:
 signals:
     void releaseMouseEvents();
     void showToolbarEditorDialog();
+    void showSettingsDialog(const QString& page, bool advanced);
+    void hideSettingsDialog();
     void showOpenCaptureDialog();
     /* opens Convert with these media, if any */
     void showConvertDialog(const QStringList& mrls);

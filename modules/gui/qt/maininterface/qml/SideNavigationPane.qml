@@ -274,7 +274,7 @@ T.Pane {
                 rightInset: root.safeAreaRightMargin + implicitRightInset
 
                 iconTxt: VLCIcons.settings
-                text: qsTr("Preferences")
+                text: qsTr("Settings")
 
                 checked: DialogsProvider.prefsDialogVisible
 

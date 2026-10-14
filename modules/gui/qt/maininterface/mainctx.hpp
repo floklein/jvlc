@@ -126,6 +126,8 @@ class MainCtx : public QObject
     Q_PROPERTY(VideoSurfaceProvider* videoSurfaceProvider READ getVideoSurfaceProvider WRITE setVideoSurfaceProvider NOTIFY hasEmbededVideoChanged FINAL)
     Q_PROPERTY(VideoBlurProvider* videoBlurProvider READ videoBlurProvider NOTIFY videoBlurProviderChanged FINAL)
     Q_PROPERTY(int mouseHideTimeout READ mouseHideTimeout NOTIFY mouseHideTimeoutChanged FINAL)
+    Q_PROPERTY(QString accentColor READ accentColor NOTIFY accentColorChanged FINAL)
+    Q_PROPERTY(bool reduceMotion READ reduceMotion NOTIFY reduceMotionChanged FINAL)
     Q_PROPERTY(bool albumSections READ albumSections WRITE setAlbumSections NOTIFY albumSectionsChanged FINAL)
     Q_PROPERTY(bool lyricsMode READ lyricsMode WRITE setLyricsMode NOTIFY lyricsModeChanged FINAL)
     Q_PROPERTY(bool usingTouch READ usingTouch NOTIFY usingTouchChanged FINAL)
@@ -276,6 +278,12 @@ public:
     void setVideoBlurProvider(VideoBlurProvider* videoBlurProvider);
 
     int mouseHideTimeout() const { return m_mouseHideTimeout; }
+
+    // the qt-accent-color option: "default", "system" or a color
+    inline QString accentColor() const { return m_accentColor; }
+
+    // fades only, no slides: the Settings toggle or the system setting
+    inline bool reduceMotion() const { return m_reduceMotionOption || m_systemReducedMotion; }
 
     bool usingTouch() const { return m_usingTouch; }
 
@@ -486,6 +494,11 @@ protected:
 
     int m_mouseHideTimeout = 1000;
 
+    QString m_accentColor = QStringLiteral("default");
+
+    bool m_reduceMotionOption = false;
+    bool m_systemReducedMotion = false;
+
     bool m_albumSections = true;
 
     bool m_lyricsMode = true;
@@ -603,6 +616,10 @@ signals:
     void safeAreaChanged();
 
     void mouseHideTimeoutChanged();
+
+    void accentColorChanged();
+
+    void reduceMotionChanged();
 
     void navBoxToggled();
 

@@ -69,7 +69,11 @@ InterfaceWindowHandler::InterfaceWindowHandler(qt_intf_t *_p_intf, MainCtx* main
     m_window->setIcon( QApplication::windowIcon() );
     m_window->setOpacity( var_InheritFloat( p_intf, "qt-opacity" ) );
 
-    QVLCTools::restoreWindowPosition( getSettings(), m_window, QSize(600, 420) );
+    /* Settings > Interface > "Remember window size and position" */
+    if (getSettings()->value("MainWindow/remember-geometry", true).toBool())
+        QVLCTools::restoreWindowPosition( getSettings(), m_window, QSize(600, 420) );
+    else
+        m_window->resize(QSize(600, 420));
 
     // this needs to be called asynchronously
     // otherwise QQuickWidget won't initialize properly

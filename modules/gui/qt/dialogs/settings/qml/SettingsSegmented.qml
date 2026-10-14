@@ -1,0 +1,140 @@
+/*****************************************************************************
+ * Copyright (C) 2026 VLC authors and VideoLAN
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * ( at your option ) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
+ *****************************************************************************/
+import QtQuick
+import QtQuick.Templates as T
+import QtQuick.Layouts
+
+import VLC.MainInterface
+import VLC.Style
+
+// a few choices side by side: text segments, or color swatches when the
+// choices have a "color"
+FocusScope {
+    id: root
+
+    property var choices: []
+    property var value
+    property string accessibleName
+
+    readonly property bool swatches: choices.length > 0 && choices[0].color !== undefined
+
+    signal activated(var value)
+
+    implicitWidth: VLCStyle.dp(320, VLCStyle.scale)
+    implicitHeight: VLCStyle.dp(36, VLCStyle.scale)
+
+    Accessible.role: Accessible.PageTabList
+    Accessible.name: accessibleName
+
+    readonly property ColorContext colorContext: ColorContext {
+        id: theme
+        colorSet: ColorContext.Switch
+    }
+
+    readonly property ColorContext textContext: ColorContext {
+        id: textTheme
+        colorSet: ColorContext.View
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        radius: VLCStyle.radius_normal
+        color: theme.bg.primary
+    }
+
+    RowLayout {
+        anchors.fill: parent
+        anchors.margins: VLCStyle.dp(2, VLCStyle.scale)
+        spacing: root.swatches ? VLCStyle.spacing_4 : VLCStyle.dp(2, VLCStyle.scale)
+
+        Repeater {
+            model: root.choices
+
+            delegate: T.AbstractButton {
+                id: segment
+
+                required property var modelData
+                required property int index
+
+                readonly property bool selected: modelData.value === root.value
+
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                focus: selected
+                focusPolicy: Qt.StrongFocus
+                checkable: false
+                checked: selected
+
+                text: modelData.label
+
+                Accessible.role: Accessible.PageTab
+                Accessible.name: modelData.label
+                Accessible.checkable: true
+                Accessible.checked: selected
+                Accessible.onPressAction: root.activated(modelData.value)
+
+                T.ToolTip.visible: root.swatches && (hovered || visualFocus)
+                T.ToolTip.delay: VLCStyle.delayToolTipAppear
+                T.ToolTip.text: modelData.label
+
+                Keys.onLeftPressed: (event) => {
+                    if (index > 0)
+                        root.activated(root.choices[index - 1].value)
+                }
+                Keys.onRightPressed: (event) => {
+                    if (index < root.choices.length - 1)
+                        root.activated(root.choices[index + 1].value)
+                }
+                Keys.priority: Keys.AfterItem
+                Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
+
+                onClicked: root.activated(modelData.value)
+
+                background: Rectangle {
+                    radius: VLCStyle.radius_small
+                    color: segment.selected ? theme.bg.secondary
+                                            : (root.swatches ? "transparent" : theme.bg.highlight)
+                    border.width: segment.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : 0
+                    border.color: textTheme.accent
+                }
+
+                contentItem: Item {
+                    Text {
+                        visible: !root.swatches
+                        anchors.centerIn: parent
+                        text: segment.text
+                        font.pixelSize: VLCStyle.fontSize_normal
+                        font.family: VLCStyle.fontFamily
+                        color: segment.selected ? textTheme.accent
+                                                : (segment.hovered ? textTheme.fg.highlight : textTheme.fg.secondary)
+                    }
+
+                    Rectangle {
+                        visible: root.swatches
+                        anchors.fill: parent
+                        anchors.margins: VLCStyle.spacing_6
+                        radius: VLCStyle.dp(1, VLCStyle.scale)
+                        color: root.swatches ? segment.modelData.color : "transparent"
+                        opacity: segment.selected || segment.hovered ? 1.0 : 0.7
+                    }
+                }
+            }
+        }
+    }
+}

@@ -83,6 +83,50 @@ static char *FromSystem(const void *str)
 
 extern void vlc_enable_override (void);
 
+/**
+ * Applies the interface language chosen in the Settings window.
+ *
+ * The Qt interface writes it to $XDG_CONFIG_HOME/vlc/language. gettext reads
+ * LANGUAGE when the locale is not "C", so the choice takes effect at the next
+ * start, as with the registry value on Windows.
+ */
+static void set_interface_language (void)
+{
+    const char *home = getenv ("HOME");
+    const char *config = getenv ("XDG_CONFIG_HOME");
+    char *path;
+
+    if (config != NULL && config[0] == '/')
+    {
+        if (asprintf (&path, "%s/vlc/language", config) == -1)
+            return;
+    }
+    else if (home != NULL)
+    {
+        if (asprintf (&path, "%s/.config/vlc/language", home) == -1)
+            return;
+    }
+    else
+        return;
+
+    FILE *stream = fopen (path, "re");
+    free (path);
+    if (stream == NULL)
+        return;
+
+    char lang[32];
+    if (fgets (lang, sizeof (lang), stream) != NULL)
+    {
+        lang[strcspn (lang, "\r\n")] = '\0';
+        /* a language code such as "fr" or "pt_BR", nothing else */
+        if (lang[0] != '\0'
+         && strspn (lang, "abcdefghijklmnopqrstuvwxyz"
+                          "ABCDEFGHIJKLMNOPQRSTUVWXYZ_@") == strlen (lang))
+            setenv ("LANGUAGE", lang, 1);
+    }
+    fclose (stream);
+}
+
 static bool signal_ignored (int signum)
 {
     struct sigaction sa;
@@ -162,6 +206,7 @@ int main(int argc, const char *argv[])
     }
 #endif
 
+    set_interface_language ();
     setlocale (LC_ALL, "");
 
     if (isatty (STDERR_FILENO))

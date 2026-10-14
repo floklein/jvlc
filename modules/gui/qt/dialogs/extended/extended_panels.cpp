@@ -45,7 +45,6 @@
 #include <QScreen>
 
 #include "extended_panels.hpp"
-#include "dialogs/preferences/preferences.hpp"
 #include "qt.hpp"
 #include "maininterface/mainctx.hpp"
 #include "player/player_controller.hpp"

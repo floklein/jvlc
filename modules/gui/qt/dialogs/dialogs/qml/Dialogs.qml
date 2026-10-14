@@ -525,4 +525,26 @@ Item {
             }
         }
     }
+
+    // created on first use, then kept: it knows which changes need a restart
+    Loader {
+        id: settingsDialogLoader
+        active: false
+        source: "qrc:///qt/qml/VLC/Dialogs/SettingsDialog.qml"
+
+        Connections {
+            target: DialogsProvider
+
+            function onShowSettingsDialog(page, advanced) {
+                settingsDialogLoader.active = true
+                settingsDialogLoader.item.openPage(page, advanced)
+            }
+
+            function onHideSettingsDialog() {
+                if (settingsDialogLoader.item)
+                    settingsDialogLoader.item.close()
+            }
+        }
+    }
 }
+

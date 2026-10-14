@@ -135,6 +135,7 @@ signals:
 
 private:
     void updatePalette();
+    void loadAccentColor();
 
     void makeThemePalette(const ThemeTokens& t);
     bool isSystemThemeDark() const;

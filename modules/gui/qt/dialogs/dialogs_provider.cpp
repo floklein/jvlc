@@ -41,7 +41,6 @@
 #include "medialibrary/medialib.hpp"
 
 /* The dialogs */
-#include "dialogs/preferences/preferences.hpp"
 #include "dialogs/messages/messagesmodel.hpp"
 #include "dialogs/dialogs/dialogmodel.hpp"
 #include "dialogs/extended/extended.hpp"
@@ -67,7 +66,6 @@
                                            N_("Open Folder") )
 
 #define ALL_DIALOG(X) \
-    X(prefsDialog) \
     X(openDialog) \
     X(firstRunDialog) \
     X(extendedDialog) \
@@ -264,17 +262,28 @@ const QEvent::Type DialogEvent::DialogEvent_Type =
 
 void DialogsProvider::prefsDialog()
 {
-    if (Q_LIKELY(!m_prefsDialog))
-    {
-        m_prefsDialog = new PrefsDialog( nullptr, p_intf );
-        m_prefsDialog->setAttribute(Qt::WA_DeleteOnClose);
-        m_prefsDialog->installEventFilter(this);
-        m_prefsDialog->open();
-    }
+    if (m_settingsDialogVisible)
+        emit hideSettingsDialog();
     else
-    {
-        m_prefsDialog->reject();
-    }
+        emit showSettingsDialog(QString(), false);
+}
+
+void DialogsProvider::showSettings(const QString& page, bool advanced)
+{
+    emit showSettingsDialog(page, advanced);
+}
+
+void DialogsProvider::setSettingsDialogVisible(bool visible)
+{
+    if (m_settingsDialogVisible == visible)
+        return;
+    m_settingsDialogVisible = visible;
+    emit prefsDialogVisibleChanged();
+}
+
+bool DialogsProvider::prefsDialogVisible() const
+{
+    return m_settingsDialogVisible;
 }
 
 void DialogsProvider::firstRunDialog()
