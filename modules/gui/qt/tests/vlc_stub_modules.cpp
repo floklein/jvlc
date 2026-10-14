@@ -136,6 +136,8 @@ struct StubMediaLibrary
     // external media: id -> mrl
     std::map<int64_t, std::string> external;
     int64_t nextExternalId = 1000;
+    std::vector<VLCTestingEnv::HistoryEntry> history;
+    int historyClears = 0;
 };
 
 StubMediaLibrary stubML;
@@ -187,6 +189,8 @@ void sendEvent(int type, int64_t id, const VLCTestingEnv::Playlist* created = nu
         fillPlaylist(&playlist, *created);
         ev.creation.p_playlist = &playlist;
     }
+    else if (type == VLC_ML_EVENT_HISTORY_CHANGED)
+        ev.history_changed.history_type = VLC_ML_HISTORY_TYPE_GLOBAL;
     else if (type == VLC_ML_EVENT_PLAYLIST_DELETED)
         ev.deletion.i_entity_id = id;
     else
@@ -456,6 +460,25 @@ static int MLList( vlc_medialibrary_module_t*, int query,
             *va_arg(args, vlc_ml_media_list_t**) = newMediaList(playlist->media, params);
         return VLC_SUCCESS;
     }
+    case VLC_ML_LIST_HISTORY:
+    case VLC_ML_COUNT_HISTORY:
+    {
+        (void) va_arg(args, int); /* history type: the stub has one history */
+        if (query == VLC_ML_COUNT_HISTORY)
+        {
+            *va_arg(args, size_t*) = stubML.history.size();
+            return VLC_SUCCESS;
+        }
+        std::vector<int64_t> ids;
+        for (const auto& entry : stubML.history)
+            ids.push_back(entry.id);
+        vlc_ml_media_list_t* list = newMediaList(ids, params);
+        const size_t offset = params ? std::min<size_t>(params->i_offset, ids.size()) : 0;
+        for (size_t i = 0; i < list->i_nb_items; ++i)
+            list->p_items[i].i_last_played_date = stubML.history[offset + i].lastPlayed;
+        *va_arg(args, vlc_ml_media_list_t**) = list;
+        return VLC_SUCCESS;
+    }
     case VLC_ML_LIST_ENTRY_POINTS:
     case VLC_ML_COUNT_ENTRY_POINTS:
     {
@@ -619,6 +642,14 @@ static int MLControl( vlc_medialibrary_module_t*, int query, va_list args )
         stubML.external[id] = mrl;
         *out = static_cast<vlc_ml_media_t*>(malloc(sizeof(vlc_ml_media_t)));
         fillMedia(*out, id);
+        return VLC_SUCCESS;
+    }
+    case VLC_ML_CLEAR_HISTORY:
+    {
+        stubML.history.clear();
+        stubML.historyClears++;
+        guard.unlock();
+        sendEvent(VLC_ML_EVENT_HISTORY_CHANGED, 0);
         return VLC_SUCCESS;
     }
     default:
@@ -882,6 +913,23 @@ void VLCTestingEnv::clearMediaLibrary()
     stubML.playlists.clear();
     stubML.external.clear();
     stubML.nextExternalId = 1000;
+    stubML.history.clear();
+    stubML.historyClears = 0;
+}
+
+void VLCTestingEnv::setHistory(const std::vector<HistoryEntry>& history)
+{
+    {
+        std::lock_guard<std::mutex> guard(stubML.lock);
+        stubML.history = history;
+    }
+    sendEvent(VLC_ML_EVENT_HISTORY_CHANGED, 0);
+}
+
+int VLCTestingEnv::historyClears() const
+{
+    std::lock_guard<std::mutex> guard(stubML.lock);
+    return stubML.historyClears;
 }
 
 std::vector<VLCTestingEnv::Playlist> VLCTestingEnv::playlists() const

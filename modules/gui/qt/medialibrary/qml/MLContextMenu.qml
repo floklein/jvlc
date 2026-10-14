@@ -96,6 +96,10 @@ NativeMenu {
             "action": markUnseen,
             "visible": _showUnseen
         }, {
+            "text": qsTr("Remove from Recent"),
+            "action": removeFromRecent,
+            "visible": root.model instanceof MLRecentMediaModel
+        }, {
             "text": qsTr("Open Containing Folder"),
             "action": openContainingFolder,
             "visible": _openContainingFolder
@@ -194,6 +198,11 @@ NativeMenu {
 
     function markUnseen(dataList, options, indexes) {
         model.setItemPlayed(indexes[0], false)
+    }
+
+    // hides them from Recent, their watched state and progress stay
+    function removeFromRecent(dataList, options, indexes) {
+        model.removeFromRecent(indexes)
     }
 
     function openContainingFolder(dataList, options, indexes) {

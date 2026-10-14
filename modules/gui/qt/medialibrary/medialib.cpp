@@ -19,6 +19,7 @@
 #include "medialib.hpp"
 #include "mlhelper.hpp"
 #include "mlplaylistmanager.hpp"
+#include "mlrecenthidelist.hpp"
 #include "playlist/playlist_controller.hpp"
 #include "util/shared_input_item.hpp"
 
@@ -41,6 +42,7 @@ MediaLib::MediaLib(qt_intf_t *_intf, vlc::playlist::PlaylistController* playlist
                                                       this ) );
     m_runner = new ThreadRunner();
     m_playlistManager = new MLPlaylistManager(this, playlistController, _intf->mainSettings);
+    m_recentHideList = new MLRecentHideList(_intf->mainSettings, this);
 }
 
 MediaLib::~MediaLib()

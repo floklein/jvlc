@@ -32,6 +32,7 @@ class Media;
 
 struct vlc_medialibrary_t;
 class MLPlaylistManager;
+class MLRecentHideList;
 
 class MediaLib : public QObject
 {
@@ -71,6 +72,9 @@ public:
 
     // New Playlist, Add to Playlist and Export
     MLPlaylistManager* playlistManager() const { return m_playlistManager; }
+
+    // What Recent hides (Remove from Recent, Clear Recent)
+    MLRecentHideList* recentHideList() const { return m_recentHideList; }
 
     inline bool idle() const { return m_idle; }
     inline int discoveryPending() const { return m_discoveryPending; }
@@ -199,6 +203,7 @@ private:
     std::unique_ptr<vlc_ml_event_callback_t, std::function<void(vlc_ml_event_callback_t*)>> m_event_cb;
     ThreadRunner* m_runner = nullptr;
     MLPlaylistManager* m_playlistManager = nullptr;
+    MLRecentHideList* m_recentHideList = nullptr;
 
     QMap<QVector<MLItemId>, QVector<QJSValue>> m_inputItemQuery;
 };

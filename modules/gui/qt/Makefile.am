@@ -198,6 +198,8 @@ libqt_plugin_la_SOURCES = \
 	medialibrary/mlqueryparams.hpp \
 	medialibrary/mlrecentaudiomodel.cpp \
 	medialibrary/mlrecentaudiomodel.hpp \
+	medialibrary/mlrecenthidelist.cpp \
+	medialibrary/mlrecenthidelist.hpp \
 	medialibrary/mlrecentmediamodel.cpp \
 	medialibrary/mlrecentmediamodel.hpp \
 	medialibrary/mlrecentvideomodel.cpp \
@@ -440,6 +442,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	medialibrary/mlthreadpool.moc.cpp \
 	medialibrary/mlqmltypes.moc.cpp \
 	medialibrary/mlrecentaudiomodel.moc.cpp \
+	medialibrary/mlrecenthidelist.moc.cpp \
 	medialibrary/mlrecentmediamodel.moc.cpp \
 	medialibrary/mlrecentvideomodel.moc.cpp \
 	medialibrary/mlurlmodel.moc.cpp \
@@ -1837,6 +1840,7 @@ test_ml_model_SOURCES = \
 	medialibrary/mlplaycountrank.hpp medialibrary/mlplaycountrank.cpp \
 	medialibrary/medialib.hpp medialibrary/medialib.cpp \
 	medialibrary/mlplaylistmanager.hpp medialibrary/mlplaylistmanager.cpp \
+	medialibrary/mlrecenthidelist.hpp medialibrary/mlrecenthidelist.cpp \
 	medialibrary/mlthreadpool.hpp medialibrary/mlthreadpool.cpp \
 	medialibrary/mlfoldertreemodel.hpp medialibrary/mlfoldertreemodel.cpp \
 	medialibrary/mlvideomodel.hpp medialibrary/mlvideomodel.cpp \
@@ -1868,6 +1872,7 @@ nodist_test_ml_model_SOURCES = \
 	medialibrary/thumbnailcollector.moc.cpp \
 	medialibrary/medialib.moc.cpp \
 	medialibrary/mlplaylistmanager.moc.cpp \
+	medialibrary/mlrecenthidelist.moc.cpp \
 	medialibrary/mlthreadpool.moc.cpp \
 	playlist/playlist_controller.moc.cpp \
 	playlist/playlist_item.moc.cpp
@@ -1903,6 +1908,7 @@ test_ml_playlists_SOURCES = \
 	medialibrary/mlplaylistmedia.hpp medialibrary/mlplaylistmedia.cpp \
 	medialibrary/mlplaylistmodel.hpp medialibrary/mlplaylistmodel.cpp \
 	medialibrary/mlqmltypes.hpp \
+	medialibrary/mlrecenthidelist.hpp medialibrary/mlrecenthidelist.cpp \
 	medialibrary/mlthreadpool.hpp medialibrary/mlthreadpool.cpp \
 	medialibrary/mlvideo.hpp medialibrary/mlvideo.cpp \
 	medialibrary/thumbnailcollector.hpp medialibrary/thumbnailcollector.cpp \
@@ -1922,6 +1928,7 @@ nodist_test_ml_playlists_SOURCES = \
 	medialibrary/mlplaylistmanager.moc.cpp \
 	medialibrary/mlplaylistmodel.moc.cpp \
 	medialibrary/mlqmltypes.moc.cpp \
+	medialibrary/mlrecenthidelist.moc.cpp \
 	medialibrary/mlthreadpool.moc.cpp \
 	medialibrary/mlvideo.moc.cpp \
 	medialibrary/thumbnailcollector.moc.cpp \
@@ -1936,6 +1943,64 @@ test_ml_playlists_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_ml_playlists_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_ml_playlists
 TESTS += test_ml_playlists
+
+# test_ml_recent
+
+test_ml_recent_SOURCES = \
+	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
+	tests/test_ml_recent.cpp \
+	util/asynctask.hpp \
+	util/base_model.hpp util/base_model_p.hpp util/base_model.cpp \
+	util/covergenerator.hpp util/covergenerator.cpp \
+	util/listcache.hpp \
+	util/vlctick.cpp util/vlctick.hpp \
+	util/locallistcacheloader.hpp \
+	medialibrary/medialib.hpp medialibrary/medialib.cpp \
+	medialibrary/mlaudio.hpp medialibrary/mlaudio.cpp \
+	medialibrary/mlbasemodel.hpp medialibrary/mlbasemodel.cpp \
+	medialibrary/mlcustomcover.hpp medialibrary/mlcustomcover.cpp \
+	medialibrary/mlhelper.hpp medialibrary/mlhelper.cpp \
+	medialibrary/mlmediamodel.hpp medialibrary/mlmediamodel.cpp \
+	medialibrary/mlplaycountrank.hpp medialibrary/mlplaycountrank.cpp \
+	medialibrary/mlplaylist.hpp medialibrary/mlplaylist.cpp \
+	medialibrary/mlplaylistmanager.hpp medialibrary/mlplaylistmanager.cpp \
+	medialibrary/mlqmltypes.hpp \
+	medialibrary/mlrecenthidelist.hpp medialibrary/mlrecenthidelist.cpp \
+	medialibrary/mlrecentmediamodel.hpp medialibrary/mlrecentmediamodel.cpp \
+	medialibrary/mlthreadpool.hpp medialibrary/mlthreadpool.cpp \
+	medialibrary/mlvideo.hpp medialibrary/mlvideo.cpp \
+	medialibrary/thumbnailcollector.hpp medialibrary/thumbnailcollector.cpp \
+	playlist/playlist_controller.hpp playlist/playlist_controller.cpp \
+	playlist/playlist_item.hpp playlist/playlist_item.cpp
+
+nodist_test_ml_recent_SOURCES = \
+	tests/test_ml_recent.moc \
+	util/asynctask.moc.cpp \
+	util/base_model.moc.cpp \
+	util/listcache.moc.cpp \
+	util/locallistcacheloader.moc.cpp \
+	util/vlctick.moc.cpp \
+	medialibrary/medialib.moc.cpp \
+	medialibrary/mlbasemodel.moc.cpp \
+	medialibrary/mlmediamodel.moc.cpp \
+	medialibrary/mlplaylistmanager.moc.cpp \
+	medialibrary/mlqmltypes.moc.cpp \
+	medialibrary/mlrecenthidelist.moc.cpp \
+	medialibrary/mlrecentmediamodel.moc.cpp \
+	medialibrary/mlthreadpool.moc.cpp \
+	medialibrary/mlvideo.moc.cpp \
+	medialibrary/thumbnailcollector.moc.cpp \
+	playlist/playlist_controller.moc.cpp \
+	playlist/playlist_item.moc.cpp
+
+BUILT_SOURCES += tests/test_ml_recent.moc
+CLEANFILES += tests/test_ml_recent.moc
+test_ml_recent_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_ml_recent_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_ml_recent_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_ml_recent_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_ml_recent
+TESTS += test_ml_recent
 
 # test_renderer_manager_model
 

@@ -95,6 +95,21 @@ struct VLCTestingEnv
     // create a Playlist directly in the store (sends the ADDED event)
     int64_t addPlaylist(const std::string& name, const std::vector<int64_t>& media);
 
+    /*
+     * The play history of the stub media library, newest first: media <id>
+     * last played at <lastPlayed> (seconds since the epoch)
+     */
+    struct HistoryEntry
+    {
+        int64_t id;
+        int64_t lastPlayed;
+    };
+
+    // replace the history (sends HISTORY_CHANGED)
+    void setHistory(const std::vector<HistoryEntry>& history);
+    // how many times the media library history was cleared
+    int historyClears() const;
+
     //meta writer: what the last input_item_WriteMeta() received
     int metaWriterCalls = 0;
     QString metaWriterFile;

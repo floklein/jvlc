@@ -24,7 +24,10 @@
 #endif
 
 #include "mlmediamodel.hpp"
+#include "mlrecenthidelist.hpp"
 
+// The play history as Recent shows it: newest first, without the media that
+// were removed from Recent or cleared (see MLRecentHideList)
 class MLRecentMediaModel : public MLMediaModel
 {
     Q_OBJECT
@@ -37,6 +40,8 @@ public:
     enum Roles
     {
         RECENT_MEDIA_URL = MLMediaModel::MEDIA_ROLES_COUNT,
+        // when it was last played: Today, Yesterday, This week or Earlier
+        RECENT_GROUP,
     };
 
     enum HistoryType
@@ -50,7 +55,11 @@ public:
     explicit MLRecentMediaModel( QObject* parent = nullptr );
     virtual ~MLRecentMediaModel() = default;
 
-    Q_INVOKABLE void clearHistory();
+    // Remove from Recent: hide these rows until they are played again
+    Q_INVOKABLE void removeFromRecent(const QModelIndexList &indexes);
+
+    // Clear Recent: hide everything played so far
+    Q_INVOKABLE void clearRecent();
 
     HistoryType historyType() const { return m_historyType; }
     void setHistoryType( HistoryType type );
@@ -68,20 +77,31 @@ protected:
 private:
     void onVlcMlEvent( const MLEvent &event ) override;
 
+    void onMlChanged();
+
     struct Loader : public MLListCacheLoader::MLOp
     {
-        Loader(const MLRecentMediaModel& model)
-            : MLOp(model)
-            , m_historyType(static_cast<vlc_ml_history_type_t>(model.m_historyType))
-        {}
+        Loader(const MLRecentMediaModel& model);
         size_t count(vlc_medialibrary_t* ml, const vlc_ml_query_params_t* queryParams) const override;
         std::vector<std::unique_ptr<MLItem>> load(vlc_medialibrary_t* ml, const vlc_ml_query_params_t* queryParams) const override;
         std::unique_ptr<MLItem> loadItemById(vlc_medialibrary_t* ml, MLItemId itemId) const override;
 
+        // the query, newest first whatever the sort of the view
+        static vlc_ml_query_params_t newestFirst(const vlc_ml_query_params_t* queryParams);
+        // the whole history, ignoring the paging
+        ml_unique_ptr<vlc_ml_media_list_t> listAll(vlc_medialibrary_t* ml, const vlc_ml_query_params_t* queryParams) const;
+        // a page of the history without the hidden media
+        std::vector<std::unique_ptr<MLItem>> loadVisible(vlc_medialibrary_t* ml, const vlc_ml_query_params_t* queryParams,
+                                                         const MLRecentHideList::Filter& filter) const;
+        MLRecentHideList::Filter filter() const;
+
         vlc_ml_history_type_t m_historyType;
+        // read on each load: the cache keeps its loader when the hide list changes
+        std::shared_ptr<const MLRecentHideList::Source> m_hideList;
     };
 
     HistoryType m_historyType = GLOBAL;
+    QMetaObject::Connection m_hideListConnection;
 };
 
 #endif // ML_RECENT_MEDIA_MODEL_H

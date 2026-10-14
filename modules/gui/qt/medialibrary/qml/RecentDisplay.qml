@@ -23,8 +23,11 @@ import VLC.MediaLibrary
 import VLC.MainInterface
 import VLC.Widgets as Widgets
 import VLC.Util
+import VLC.Style
 
-// The Recent section: the media played most recently, newest first
+// The Recent section: the media played most recently, newest first, grouped
+// by Today, Yesterday, This week and Earlier. Removing media from Recent or
+// clearing it never changes their watched state or progress.
 Widgets.PageExt {
     id: root
 
@@ -36,15 +39,43 @@ Widgets.PageExt {
     Accessible.name: qsTr("Recent view")
     AccessibleCompat.id: "recentDisplay"
 
+    headerActions: Component {
+        Widgets.IconToolButton {
+            font.pixelSize: VLCStyle.icon_banner
+            width: VLCStyle.bannerButton_width
+            height: VLCStyle.bannerButton_height
+
+            text: VLCIcons.more
+            description: qsTr("Recent menu")
+
+            checked: pageMenu.visible
+
+            onClicked: pageMenu.popup([], mapToGlobal(0, height))
+        }
+    }
+
     MediaView {
         focus: true
 
         anchors.fill: parent
 
-        model: MLRecentMediaModel {
-            ml: MediaLib
+        model: recentModel
 
-            searchPattern: root.search.pattern
+        // a list grouped by day, newest first
+        grid: null
+        currentComponent: list
+        sortModel: []
+        listSectionProperty: "recent_group"
+
+        emptyLabel: Component {
+            Widgets.EmptyLabel {
+                focus: true
+
+                cover: VLCStyle.noArtAlbumCover
+
+                text: root.search.pattern === "" ? qsTr("Nothing played recently")
+                                                 : qsTr("No media found")
+            }
         }
 
         displayMarginBeginning: root.displayMarginBeginning
@@ -52,5 +83,26 @@ Widgets.PageExt {
 
         enableBeginningFade: root.enableBeginningFade
         enableEndFade: root.enableEndFade
+    }
+
+    MLRecentMediaModel {
+        id: recentModel
+
+        ml: MediaLib
+
+        searchPattern: root.search.pattern
+    }
+
+    // the page "…" menu
+    NativeMenu {
+        id: pageMenu
+
+        actions: [{
+            "text": qsTr("Clear Recent"),
+            "action": () => recentModel.clearRecent(),
+            "visible": () => recentModel.count > 0
+        }]
+
+        onRequestData: (requestID) => setData(requestID, [])
     }
 }

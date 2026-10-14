@@ -304,7 +304,12 @@ RecentMenu::RecentMenu(MLRecentMediaModel* model, MediaLib* ml,  QWidget* parent
         m_ml->addAndPlay(id);
     });
 
-    addAction( qtr("&Clear"), model, &MLRecentMediaModel::clearHistory );
+    // hides the media from Recent, their watched state and progress stay
+    QAction* clear = addAction( qtr("&Clear Recent"), model, &MLRecentMediaModel::clearRecent );
+    clear->setEnabled( model->getCount() > 0 );
+    connect( model, &MLRecentMediaModel::countChanged, clear, [clear, model]() {
+        clear->setEnabled( model->getCount() > 0 );
+    });
 }
 
 // BookmarkMenu
