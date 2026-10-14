@@ -1086,6 +1086,7 @@ libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/MusicAlbumSectionDelegate.qml \
 	medialibrary/qml/MLGlobalShortcuts.qml \
 	medialibrary/qml/Bookmarks.qml \
+	medialibrary/qml/BookmarksPane.qml \
 	medialibrary/qml/MLContextMenu.qml \
 	medialibrary/qml/MLDragItem.qml \
 	medialibrary/qml/MLTableColumns.qml \
@@ -1234,7 +1235,8 @@ libqml_module_playlist_a_QML = \
 	playlist/qml/PlaylistDelegate.qml \
 	playlist/qml/PlaylistPane.qml \
 	playlist/qml/PlaylistDetachedWindow.qml \
-	playlist/qml/QueueReplacedNotice.qml
+	playlist/qml/QueueReplacedNotice.qml \
+	playlist/qml/QueuePanel.qml
 libqml_module_playlist_a_Singleton_QML =
 libqml_module_playlist_a_SOURCES = $(QML_MODULE_playlist_SRC)
 nodist_libqml_module_playlist_a_SOURCES = playlist/qmlassets.cpp $(QML_MODULE_playlist_NODIST_EXTRA)
@@ -1786,6 +1788,32 @@ test_track_models_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_track_models_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_track_models
 TESTS += test_track_models
+
+# test_queue_panel
+
+test_queue_panel_SOURCES = \
+	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
+	tests/test_queue_panel.cpp \
+	util/vlctick.cpp util/vlctick.hpp \
+	playlist/playlist_controller.hpp playlist/playlist_controller.cpp \
+	playlist/playlist_item.hpp playlist/playlist_item.cpp \
+	playlist/playlist_model.hpp playlist/playlist_model.cpp
+
+nodist_test_queue_panel_SOURCES = \
+	tests/test_queue_panel.moc \
+	util/vlctick.moc.cpp \
+	playlist/playlist_controller.moc.cpp \
+	playlist/playlist_item.moc.cpp \
+	playlist/playlist_model.moc.cpp
+
+BUILT_SOURCES += tests/test_queue_panel.moc
+CLEANFILES += tests/test_queue_panel.moc
+test_queue_panel_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_queue_panel_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_queue_panel_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_queue_panel_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_queue_panel
+TESTS += test_queue_panel
 
 # test_ml_model
 

@@ -121,6 +121,7 @@ on_playlist_items_updated(vlc_playlist_t *playlist, size_t index,
         for (int i = 0; i < count; ++i)
             that->m_items[index + i] = updated[i]; /* sync metadata */
         that->notifyItemsChanged(index, count);
+        that->updateRemaining();
     });
 }
 
@@ -132,13 +133,7 @@ on_playlist_current_item_changed(vlc_playlist_t *playlist, ssize_t index,
     that->callAsync([=](){
         if (that->m_playlist != playlist)
             return;
-        ssize_t oldCurrent = that->m_current;
-        that->m_current = index;
-        if (oldCurrent != -1)
-            that->notifyItemsChanged(oldCurrent, 1, {PlaylistListModel::IsCurrentRole});
-        if (index != -1)
-            that->notifyItemsChanged(index, 1, {PlaylistListModel::IsCurrentRole});
-        emit that->q_func()->currentIndexChanged(index);
+        that->onCurrentIndexChanged(index);
     });
 }
 
@@ -188,6 +183,7 @@ void PlaylistListModelPrivate::onItemsReset(const QVector<PlaylistItem>&& newCon
     }
 
     emit q->countChanged(m_items.size());
+    updateRemaining();
 }
 
 void PlaylistListModelPrivate::onItemsAdded(const QVector<PlaylistItem>&& added, size_t index)
@@ -205,6 +201,7 @@ void PlaylistListModelPrivate::onItemsAdded(const QVector<PlaylistItem>&& added,
     }
 
     emit q->countChanged(m_items.size());
+    updateRemaining();
 }
 
 void PlaylistListModelPrivate::onItemsMoved(size_t index, size_t count, size_t target)
@@ -227,6 +224,8 @@ void PlaylistListModelPrivate::onItemsMoved(size_t index, size_t count, size_t t
                     m_items.begin() + index,
                     m_items.begin() + index + count);
     q->endMoveRows();
+
+    updateRemaining();
 }
 
 void PlaylistListModelPrivate::onItemsRemoved(size_t index, size_t count)
@@ -251,6 +250,7 @@ void PlaylistListModelPrivate::onItemsRemoved(size_t index, size_t count)
     }
 
     emit q->countChanged(m_items.size());
+    updateRemaining();
 }
 
 
@@ -261,6 +261,36 @@ PlaylistListModelPrivate::notifyItemsChanged(int idx, int count, const QVector<i
     QModelIndex first = q->index(idx, 0);
     QModelIndex last = q->index(idx + count - 1);
     emit q->dataChanged(first, last, roles);
+}
+
+void PlaylistListModelPrivate::onCurrentIndexChanged(ssize_t index)
+{
+    Q_Q(PlaylistListModel);
+    ssize_t oldCurrent = m_current;
+    m_current = index;
+    if (oldCurrent != -1)
+        notifyItemsChanged(oldCurrent, 1, {PlaylistListModel::IsCurrentRole});
+    if (index != -1)
+        notifyItemsChanged(index, 1, {PlaylistListModel::IsCurrentRole});
+    /* moves can change which rows come before the current one, so refresh
+     * them all */
+    if (!m_items.isEmpty())
+        notifyItemsChanged(0, m_items.size(), {PlaylistListModel::IsPlayedRole});
+
+    if (oldCurrent != index)
+        m_currentTime = VLCTime{};
+    updateRemaining();
+
+    emit q->currentIndexChanged(index);
+}
+
+void PlaylistListModelPrivate::updateRemaining()
+{
+    Q_Q(PlaylistListModel);
+    m_remainingItemsDuration = VLCDuration{};
+    for (qsizetype i = std::max<qsizetype>(m_current, 0); i < m_items.size(); ++i)
+        m_remainingItemsDuration += m_items.at(i).getDuration();
+    emit q->remainingChanged();
 }
 
 // public API
@@ -294,7 +324,8 @@ PlaylistListModel::roleNames() const
         { ArtistRole , QByteArrayLiteral("artist") },
         { AlbumRole  , QByteArrayLiteral("album") },
         { ArtworkRole, QByteArrayLiteral("artwork") },
-        { UrlRole, QByteArrayLiteral("url") }
+        { UrlRole, QByteArrayLiteral("url") },
+        { IsPlayedRole, QByteArrayLiteral("isPlayed") }
     };
 }
 
@@ -406,10 +437,82 @@ PlaylistListModel::moveItemsPost(const QVector<int> &sortedIndexes,
     return moveItems(sortedIndexes, postTarget, false);
 }
 
+void
+PlaylistListModel::shiftItems(const QVector<int> &sortedIndexes, int offset)
+{
+    Q_D(PlaylistListModel);
+    if (sortedIndexes.isEmpty() || offset == 0)
+        return;
+
+    const int count = d->m_items.size();
+    const int last = count - sortedIndexes.size();
+    if (last < 0)
+        return;
+    const int target = std::clamp(sortedIndexes.first() + offset, 0, last);
+
+    /* already there, and together */
+    if (target == sortedIndexes.first()
+        && sortedIndexes.last() - sortedIndexes.first() == sortedIndexes.size() - 1)
+        return;
+
+    moveItems(sortedIndexes, target, false);
+}
+
+void
+PlaylistListModel::moveItemsAfterCurrent(const QVector<int> &sortedIndexes)
+{
+    Q_D(PlaylistListModel);
+    QVector<int> indexes = sortedIndexes;
+    /* the current item stays where it is */
+    indexes.removeAll(d->m_current);
+    if (indexes.isEmpty())
+        return;
+
+    const int preTarget = (d->m_current >= 0) ? d->m_current + 1 : 0;
+    moveItems(indexes, preTarget, true);
+}
+
 int PlaylistListModel::getCurrentIndex() const
 {
     Q_D(const PlaylistListModel);
     return d->m_current;
+}
+
+int PlaylistListModel::getRemainingCount() const
+{
+    Q_D(const PlaylistListModel);
+    return d->m_items.size() - std::max<qsizetype>(d->m_current, 0);
+}
+
+VLCDuration PlaylistListModel::getRemainingDuration() const
+{
+    Q_D(const PlaylistListModel);
+    if (d->m_current < 0 || d->m_current >= d->m_items.size()
+        || !d->m_currentTime.valid())
+        return d->m_remainingItemsDuration;
+
+    const VLCDuration currentDuration = d->m_items.at(d->m_current).getDuration();
+    if (!currentDuration.valid())
+        return d->m_remainingItemsDuration;
+
+    const vlc_tick_t played = std::clamp<vlc_tick_t>(d->m_currentTime.toVLCTick(),
+                                                     0, currentDuration.toVLCTick());
+    return VLCDuration(d->m_remainingItemsDuration.toVLCTick() - played);
+}
+
+VLCTime PlaylistListModel::getCurrentTime() const
+{
+    Q_D(const PlaylistListModel);
+    return d->m_currentTime;
+}
+
+void PlaylistListModel::setCurrentTime(VLCTime time)
+{
+    Q_D(PlaylistListModel);
+    if (time.toVLCTick() == d->m_currentTime.toVLCTick())
+        return;
+    d->m_currentTime = time;
+    emit remainingChanged();
 }
 
 /* Q_INVOKABLE */
@@ -495,6 +598,8 @@ PlaylistListModel::data(const QModelIndex &index, int role) const
         return d->m_items[row].getTitle();
     case IsCurrentRole:
         return row == d->m_current;
+    case IsPlayedRole:
+        return d->m_current >= 0 && row < d->m_current;
     case DurationRole:
         return QVariant::fromValue<VLCDuration>(d->m_items[row].getDuration());
     case ArtistRole:

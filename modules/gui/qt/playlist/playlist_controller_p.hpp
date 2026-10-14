@@ -100,19 +100,9 @@ private:
             sortKeyTitleList.push_back(map);
         };
 
-        filler(PlaylistController::SORT_KEY_TITLE, qtr("Title"));
+        filler(PlaylistController::SORT_KEY_TITLE, qtr("Name"));
         filler(PlaylistController::SORT_KEY_DURATION, qtr("Duration"));
-        filler(PlaylistController::SORT_KEY_ARTIST, qtr("Artist"));
-        filler(PlaylistController::SORT_KEY_ALBUM, qtr("Album"));
-        filler(PlaylistController::SORT_KEY_ALBUM_ARTIST, qtr( "Album Artist"));
-        filler(PlaylistController::SORT_KEY_GENRE, qtr("Genre"));
-        filler(PlaylistController::SORT_KEY_DATE, qtr("Date"));
-        filler(PlaylistController::SORT_KEY_TRACK_NUMBER, qtr( "Track Number"));
-        filler(PlaylistController::SORT_KEY_DISC_NUMBER, qtr( "Disc Number"));
-        filler(PlaylistController::SORT_KEY_URL, qtr("URL"));
-        filler(PlaylistController::SORT_KEY_RATING, qtr("Rating"));
-        filler(PlaylistController::SORT_KEY_FILE_SIZE, qtr("File size"));
-        filler(PlaylistController::SORT_KEY_FILE_MODIFIED, qtr("File modified"));
+        filler(PlaylistController::SORT_KEY_DATE_ADDED, qtr("Date added"));
     }
 };
 

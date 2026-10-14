@@ -72,7 +72,9 @@ public:
         SORT_KEY_RATING = VLC_PLAYLIST_SORT_KEY_RATING,
         SORT_KEY_FILE_SIZE = VLC_PLAYLIST_SORT_KEY_FILE_SIZE,
         SORT_KEY_FILE_MODIFIED = VLC_PLAYLIST_SORT_KEY_FILE_MODIFIED,
-        SORT_KEY_NONE
+        SORT_KEY_NONE,
+        /* the order the items were added to the Queue in */
+        SORT_KEY_DATE_ADDED
     };
     Q_ENUM(SortKey)
 

@@ -82,6 +82,7 @@ public:
     /// the media library if it is not there yet; added() confirms it
     Q_INVOKABLE void add();
     void remove( const QModelIndexList& indexes );
+    Q_INVOKABLE void removeBookmarks( const QVector<int>& rows );
     void clear();
     Q_INVOKABLE void select( const QModelIndex& index );
 

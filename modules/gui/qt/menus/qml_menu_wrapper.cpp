@@ -852,200 +852,79 @@ void PlaylistContextMenu::popup(int selectedIndex, QPoint pos )
     m_menu = std::make_unique<VLCMenu>(m_ctx->getIntf());
     QAction* action;
 
-    QList<QUrl> selectedUrlList;
-    for (const int modelIndex : m_selectionModel->selectedIndexesFlat())
-        selectedUrlList.push_back(m_model->itemAt(modelIndex).getUrl());
+    MediaLib * ml = m_ctx->getMediaLibrary();
 
     PlaylistItem selectedItem;
-    if (selectedIndex >= 0)
+    if (selectedIndex >= 0 && selectedIndex < m_model->rowCount())
         selectedItem = m_model->itemAt(selectedIndex);
 
     if (selectedItem)
     {
+        // Right-click on a row: the selection, or else the row
+        QVector<int> rows = m_selectionModel->selectedIndexesFlat();
+        if (!rows.contains(selectedIndex))
+            rows = { selectedIndex };
+        std::sort(rows.begin(), rows.end());
+
         action = m_menu->addAction( qtr("Play") );
         connect(action, &QAction::triggered, [this, selectedIndex]( ) {
             m_controler->goTo(selectedIndex, true);
         });
 
-        m_menu->addSeparator();
-    }
-
-    if (m_controler->currentIndex() != -1)
-    {
-        action = m_menu->addAction( qtr("Jump to current playing"));
-        connect(action, &QAction::triggered, this, &PlaylistContextMenu::jumpToCurrentPlaying);
-    }
-
-    if (m_selectionModel->hasSelection()) {
-        action = m_menu->addAction( qtr("Stream && Cast...") );
-        connect(action, &QAction::triggered, []( ) {
-            DialogsProvider::getInstance()->streamAndCastDialog(DialogsProvider::STREAM_TAB);
+        action = m_menu->addAction( qtr("Play next") );
+        action->setEnabled(rows != QVector<int>{ m_model->getCurrentIndex() });
+        connect(action, &QAction::triggered, [this, rows]( ) {
+            m_model->moveItemsAfterCurrent(rows);
         });
 
-        action = m_menu->addAction( qtr("Convert...") );
-        connect(action, &QAction::triggered, [selectedUrlList]( ) {
-            DialogsProvider::getInstance()->streamingDialog(selectedUrlList, true);
-        });
-
-        m_menu->addSeparator();
-    }
-
-    if (selectedItem) {
-        action = m_menu->addAction( qtr("Information") );
-        action->setIcon(QIcon(":/menu/info.svg"));
-        connect(action, &QAction::triggered, [selectedItem]( ) {
-            DialogsProvider::getInstance()->mediaInfoDialog(selectedItem);
+        action = m_menu->addAction( qtr("Remove") );
+        action->setShortcut(QKeySequence::Delete);
+        connect(action, &QAction::triggered, [this, rows]( ) {
+            m_model->removeItems(rows);
         });
 
         m_menu->addSeparator();
 
-        action = m_menu->addAction( qtr("Show Containing Directory...") );
-        action->setIcon(QIcon(":/menu/folder.svg"));
+        if (ml)
+        {
+            QVariantList rowItems;
+            for (const int row : rows)
+                rowItems.push_back(m_model->itemAt(row).getUrl());
+            ml->playlistManager()->addToPlaylistMenu(m_menu.get(), rowItems);
+
+            m_menu->addSeparator();
+        }
+
+#ifdef _WIN32
+        action = m_menu->addAction( qtr("Show in File Explorer") );
+#else
+        action = m_menu->addAction( qtr("Show in File Manager") );
+#endif
         connect(action, &QAction::triggered, [this, selectedItem]( ) {
             m_controler->explore(selectedItem);
         });
 
-        m_menu->addSeparator();
-    }
-
-    action = m_menu->addAction( qtr("Add File...") );
-
-    action->setIcon(ColorizedSvgIcon::colorizedIconForWidget(":/menu/add.svg", m_menu.get()));
-    connect(action, &QAction::triggered, []( ) {
-        DialogsProvider::getInstance()->simpleOpenDialog(false);
-    });
-
-    action = m_menu->addAction( qtr("Add Directory...") );
-    action->setIcon(ColorizedSvgIcon::colorizedIconForWidget(":/menu/add.svg", m_menu.get()));
-    connect(action, &QAction::triggered, []( ) {
-        DialogsProvider::getInstance()->PLAppendDir();
-    });
-
-    m_menu->addSeparator();
-
-    MediaLib * ml = m_ctx->getMediaLibrary();
-
-    if (ml && m_selectionModel->hasSelection())
-    {
-        QVariantList selectedItems;
-        for (const QUrl & url : selectedUrlList)
-            selectedItems.push_back(url);
-        ml->playlistManager()->addToPlaylistMenu(m_menu.get(), selectedItems);
-    }
-
-    if (ml && m_model->rowCount() > 0)
-    {
-        action = m_menu->addAction( qtr("Save Queue as Playlist...") );
-        connect(action, &QAction::triggered, [ml]( ) {
-            ml->playlistManager()->saveQueueAsPlaylist();
+        action = m_menu->addAction( qtr("Properties") );
+        connect(action, &QAction::triggered, [selectedItem]( ) {
+            DialogsProvider::getInstance()->mediaInfoDialog(selectedItem);
         });
     }
-
-    if (m_selectionModel->hasSelection())
+    else
     {
-        action = m_menu->addAction( qtr("Save Play Queue to File...") );
-        connect(action, &QAction::triggered, []( ) {
-            DialogsProvider::getInstance()->savePlayingToPlaylist();
-        });
-
-        m_menu->addSeparator();
-
-        action = m_menu->addAction( qtr("Remove Selected") );
-        action->setIcon(QIcon(":/menu/remove.svg"));
-        connect(action, &QAction::triggered, [this]( ) {
-            m_model->removeItems(m_selectionModel->selectedIndexesFlat());
-        });
-    }
-
-
-    if (m_model->rowCount() > 0)
-    {
-        action = m_menu->addAction( qtr("Clear the play queue") );
-        action->setIcon(QIcon(":/menu/clear.svg"));
+        // Right-click on empty space
+        action = m_menu->addAction( qtr("Clear Queue") );
+        action->setEnabled(m_model->rowCount() > 0);
         connect(action, &QAction::triggered, [this]( ) {
             m_controler->clear();
         });
 
-        m_menu->addSeparator();
-
-        using namespace vlc::playlist;
-        PlaylistController::SortKey currentKey = m_controler->getSortKey();
-        PlaylistController::SortOrder currentOrder = m_controler->getSortOrder();
-
-        QMenu* sortMenu = m_menu->addMenu(qtr("Sort by"));
-        QActionGroup * group = new QActionGroup(sortMenu);
-
-        auto addSortAction = [&](const QString& label, PlaylistController::SortKey key, PlaylistController::SortOrder order) {
-            QAction* action = sortMenu->addAction(label);
-            connect(action, &QAction::triggered, this, [this, key, order]( ) {
-                m_controler->sort(key, order);
+        if (ml)
+        {
+            action = m_menu->addAction( qtr("Save Queue as Playlist...") );
+            action->setEnabled(m_model->rowCount() > 0);
+            connect(action, &QAction::triggered, [ml]( ) {
+                ml->playlistManager()->saveQueueAsPlaylist();
             });
-            action->setCheckable(true);
-            action->setActionGroup(group);
-            if (key == currentKey && currentOrder == order)
-                action->setChecked(true);
-        };
-
-        for (const QVariant& it: m_controler->getSortKeyTitleList())
-        {
-            const QVariantMap varmap = it.toMap();
-
-            auto key = static_cast<PlaylistController::SortKey>(varmap.value("key").toInt());
-            QString label = varmap.value("text").toString();
-
-            addSortAction(qtr("%1 Ascending").arg(label), key, PlaylistController::SORT_ORDER_ASC);
-            addSortAction(qtr("%1 Descending").arg(label), key, PlaylistController::SORT_ORDER_DESC);
-        }
-
-        action = m_menu->addAction( qtr("Shuffle the play queue") );
-        action->setIcon(ColorizedSvgIcon::colorizedIconForWidget(":/menu/ic_fluent_arrow_shuffle.svg", m_menu.get()));
-        connect(action, &QAction::triggered, this, [this]( ) {
-            m_controler->shuffle();
-        });
-
-        if (m_proxyModel)
-        {
-            if (m_proxyModel->rowCount() != m_model->rowCount())
-            {
-                m_menu->addSeparator();
-
-                // Actions that are available when the view uses a proxy model:
-
-                action = m_menu->addAction( qtr("Discard the filtered out items"));
-                connect(action, &QAction::triggered, [this]( ) {
-                    bool proceed = true;
-
-                    if (const auto dp = DialogsProvider::getInstance())
-                    {
-                        proceed = dp->questionDialog(QStringLiteral("Discard the filtered out items"),
-                                                     QStringLiteral("Do you really want to discard the items that are not displayed at the moment?"));
-                    }
-
-                    const auto count = m_model->rowCount() - m_proxyModel->rowCount();
-
-                    if (proceed && (count > 0))
-                    {
-                        QList<int> items;
-                        items.reserve(count);
-
-                        for (int i = 0; i < m_model->rowCount(); ++i)
-                        {
-                            const auto mappedIndex = m_proxyModel->mapFromSource(m_model->index(i, 0));
-
-                            if (!mappedIndex.isValid() || !(m_proxyModel->checkIndex(mappedIndex, QAbstractItemModel::CheckIndexOption::IndexIsValid)))
-                            {
-                                items.push_back(i);
-                            }
-                        }
-
-                        if (items.count() > 0)
-                        {
-                            m_model->removeItems(items);
-                            emit discardedFilteredOutItems();
-                        }
-                    }
-                });
-            }
         }
     }
 

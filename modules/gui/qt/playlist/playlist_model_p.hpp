@@ -58,6 +58,9 @@ public:
 
     void notifyItemsChanged(int index, int count,
                             const QVector<int> &roles = {});
+    void onCurrentIndexChanged(ssize_t index);
+    /* recompute the duration of the current item and the next ones */
+    void updateRemaining();
 
     vlc_playlist_t* m_playlist = nullptr;
     vlc_playlist_listener_id *m_listener = nullptr;
@@ -67,6 +70,8 @@ public:
     ssize_t m_current = -1;
 
     VLCDuration m_duration = VLCDuration{};
+    VLCDuration m_remainingItemsDuration = VLCDuration{};
+    VLCTime m_currentTime = VLCTime{};
 };
 
 } //namespace playlist

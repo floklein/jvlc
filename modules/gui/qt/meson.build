@@ -670,6 +670,7 @@ qml_modules += {
         'medialibrary/qml/MusicAlbumSectionDelegate.qml',
         'medialibrary/qml/MLGlobalShortcuts.qml',
         'medialibrary/qml/Bookmarks.qml',
+        'medialibrary/qml/BookmarksPane.qml',
         'medialibrary/qml/MLContextMenu.qml',
         'medialibrary/qml/MLDragItem.qml',
         'medialibrary/qml/MLTableColumns.qml',
@@ -810,6 +811,7 @@ qml_modules += {
         'playlist/qml/PlaylistPane.qml',
         'playlist/qml/PlaylistDetachedWindow.qml',
         'playlist/qml/QueueReplacedNotice.qml',
+        'playlist/qml/QueuePanel.qml',
     ),
 }
 
@@ -1401,6 +1403,33 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_queue_panel',
+            'sources': files(
+                'tests/test_queue_panel.cpp',
+                'tests/vlc_stub_modules.cpp',
+                'util/vlctick.cpp',
+                'playlist/playlist_controller.cpp',
+                'playlist/playlist_item.cpp',
+                'playlist/playlist_model.cpp',
+            ),
+            'moc_sources': files(
+                'tests/test_queue_panel.cpp'
+            ),
+            'moc_headers': files(
+                'tests/vlc_stub_modules.cpp',
+                'util/vlctick.hpp',
+                'playlist/playlist_controller.hpp',
+                'playlist/playlist_item.hpp',
+                'playlist/playlist_model.hpp',
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
         }

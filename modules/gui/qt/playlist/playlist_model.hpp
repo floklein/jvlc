@@ -40,6 +40,12 @@ class PlaylistListModel : public QAbstractListModel
     Q_PROPERTY(int currentIndex READ getCurrentIndex NOTIFY currentIndexChanged FINAL)
     Q_PROPERTY(int count READ rowCount NOTIFY countChanged FINAL)
     Q_PROPERTY(VLCDuration duration READ getDuration NOTIFY countChanged FINAL)
+    /* What is left: the current item and the ones after it */
+    Q_PROPERTY(int remainingCount READ getRemainingCount NOTIFY remainingChanged FINAL)
+    /* The time left: what remains of the current item, then the next ones */
+    Q_PROPERTY(VLCDuration remainingDuration READ getRemainingDuration NOTIFY remainingChanged FINAL)
+    /* The time reached in the current item */
+    Q_PROPERTY(VLCTime currentTime READ getCurrentTime WRITE setCurrentTime NOTIFY remainingChanged FINAL)
 
 public:
     enum Roles
@@ -52,7 +58,9 @@ public:
         AlbumRole,
         ArtworkRole,
         UrlRole,
-        PreparsedRole
+        PreparsedRole,
+        /* the item comes before the current one */
+        IsPlayedRole
     };
     Q_ENUM(Roles);
 
@@ -72,8 +80,17 @@ public:
     Q_INVOKABLE virtual void removeItems(const QVector<int> &indexes);
     Q_INVOKABLE virtual void moveItemsPre(const QVector<int> &indexes, int preTarget);
     Q_INVOKABLE virtual void moveItemsPost(const QVector<int> &indexes, int postTarget);
+    /* Move the items, kept together, @a offset rows up (< 0) or down (> 0),
+     * stopping at the ends of the Queue */
+    Q_INVOKABLE void shiftItems(const QVector<int> &sortedIndexes, int offset);
+    /* Move the items right after the current one ("Play next") */
+    Q_INVOKABLE void moveItemsAfterCurrent(const QVector<int> &sortedIndexes);
 
     int getCurrentIndex() const;
+    int getRemainingCount() const;
+    VLCDuration getRemainingDuration() const;
+    VLCTime getCurrentTime() const;
+    void setCurrentTime(VLCTime time);
 
     Q_INVOKABLE QVariantList getItemsForIndexes(const QVector<int> & indexes) const;
 
@@ -86,6 +103,7 @@ signals:
     void playlistChanged(const Playlist&);
     void currentIndexChanged( int );
     void countChanged(int);
+    void remainingChanged();
 
 private:
     Q_DECLARE_PRIVATE(PlaylistListModel)

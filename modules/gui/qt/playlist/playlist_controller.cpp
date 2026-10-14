@@ -26,6 +26,8 @@
 #include <vlc_url.h>
 #include "util/shared_input_item.hpp"
 #include <algorithm>
+#include <cassert>
+#include <vector>
 #include <QVariant>
 #include <QDesktopServices>
 
@@ -750,6 +752,34 @@ void PlaylistController::sort(void)
 
     if (d->m_sortKey == SortKey::SORT_KEY_NONE)
         return;
+
+    if (d->m_sortKey == SortKey::SORT_KEY_DATE_ADDED)
+    {
+        /* The core has no such key, but item ids grow as items are added */
+        vlc_playlist_locker locker(d->m_playlist);
+        const size_t count = vlc_playlist_Count(d->m_playlist);
+        std::vector<vlc_playlist_item_t *> sorted;
+        sorted.reserve(count);
+        for (size_t i = 0; i < count; ++i)
+            sorted.push_back(vlc_playlist_Get(d->m_playlist, i));
+
+        const bool desc = d->m_sortOrder == SortOrder::SORT_ORDER_DESC;
+        std::stable_sort(sorted.begin(), sorted.end(),
+                         [desc](vlc_playlist_item_t *a, vlc_playlist_item_t *b) {
+            const uint64_t idA = vlc_playlist_item_GetId(a);
+            const uint64_t idB = vlc_playlist_item_GetId(b);
+            return desc ? idA > idB : idA < idB;
+        });
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            const ssize_t from = vlc_playlist_IndexOf(d->m_playlist, sorted[i]);
+            assert(from >= 0);
+            if (static_cast<size_t>(from) != i)
+                vlc_playlist_Move(d->m_playlist, from, 1, i);
+        }
+        return;
+    }
 
     vlc_playlist_sort_criterion crit = {
         static_cast<vlc_playlist_sort_key>(d->m_sortKey),

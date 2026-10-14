@@ -20,6 +20,7 @@ import QtQuick
 
 import VLC.MainInterface
 import VLC.Widgets as Widgets
+import VLC.Playlist
 import VLC.Style
 import VLC.Util
 
@@ -50,4 +51,35 @@ Widgets.IconToolButton {
     Accessible.checked: checked
 
     AccessibleCompat.id: "playqueueButton"
+
+    // drop files from the library or the file manager to add them to the
+    // Queue, even when the panel is closed
+    DropArea {
+        anchors.fill: parent
+
+        onEntered: (drag) => {
+            if (Helpers.isValidInstanceOf(drag.source, Widgets.DragItem))
+                // not the Queue's own rows
+                drag.accepted = !(drag.source.view?.model instanceof PlaylistListModel)
+            else
+                drag.accepted = drag.hasUrls
+        }
+
+        onDropped: (drop) => {
+            if (Helpers.isValidInstanceOf(drop.source, Widgets.DragItem)) {
+                drop.source.getSelectedInputItem().then((inputItems) => {
+                    if (Helpers.isArray(inputItems) && inputItems.length > 0)
+                        MainPlaylistController.append(inputItems, false)
+                })
+            } else if (drop.hasUrls) {
+                const urlList = []
+                for (let url in drop.urls)
+                    urlList.push(drop.urls[url])
+                MainPlaylistController.append(urlList, false)
+            }
+
+            // keep the window from playing the drop as well
+            drop.accept(Qt.IgnoreAction)
+        }
+    }
 }

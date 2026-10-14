@@ -123,6 +123,12 @@ FocusScope {
         History.previous()
     }
 
+    // The right-hand panel slides over the video in fullscreen and Hide UI,
+    // and is docked beside it in a window
+    readonly property bool _rightPanelOverlaid: (MainCtx.intfMainWindow.visibility === Window.FullScreen)
+                                                || MainCtx.minimalView
+    readonly property bool _rightPanelDocked: !_rightPanelOverlaid && playlistpopup.visible
+
     // Whether the bars sit over the video on a Tint
     readonly property bool _panelsOverVideo: MainCtx.hasEmbededVideo
                                              && !MainCtx.pinVideoControls
@@ -201,7 +207,9 @@ FocusScope {
 
         anchors {
             left: parent.left
-            right: parent.right
+            // a docked right-hand panel shrinks the video
+            right: rootPlayer._rightPanelDocked ? playlistpopup.left : parent.right
+            rightMargin: rootPlayer._rightPanelDocked ? VLCStyle.spacing_20 : 0
             top: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? topBar.bottom : parent.top
             bottom: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? controlBar.top : parent.bottom
         }
@@ -1079,19 +1087,20 @@ FocusScope {
         }
     }
 
+    // The right-hand panel: the Queue panel (Figma 491:1781), 400 px, from
+    // under the Top bar to above the Control bar
     Loader {
         id: playlistpopup
 
         anchors {
-            // NOTE: When the controls are pinned we display the playqueue under the topBar.
-            top: (rootPlayer._controlsUnderVideo) ? topBar.bottom
-                                                  : parent.top
-
+            top: topBar.bottom
             right: parent.right
             bottom: parent.bottom
 
-            bottomMargin: parent.height - rootPlayer.positionSliderY
+            bottomMargin: parent.height - rootPlayer.positionSliderY + VLCStyle.spacing_20
         }
+
+        width: VLCStyle.sidePanel_width
 
         focus: false
 
@@ -1107,24 +1116,31 @@ FocusScope {
             Qt.callLater(() => { playlistTransition.enabled = true; })
         }
 
+        // the Queue button opens the panel on the Queue tab
+        onStateChanged: {
+            if (state === "expanded" && item)
+                item.currentTab = QueuePanel.Tab.Queue
+        }
+
         states: [
             State {
                 name: "expanded"
                 PropertyChanges {
                     target: playlistpopup
-                    width: playlistpopup.implicitWidth
+                    anchors.rightMargin: VLCStyle.spacing_20
                     visible: true
                 }
            }, State {
                 name: "retracted"
                 PropertyChanges {
                     target: playlistpopup
-                    width: 0
+                    anchors.rightMargin: - (playlistpopup.width + VLCStyle.spacing_20)
                     visible: false
                 }
            }
         ]
 
+        // slides in and out, 150 ms
         transitions: Transition {
             id: playlistTransition
             enabled: false
@@ -1136,43 +1152,29 @@ FocusScope {
                 PropertyAction { property: "visible" }
 
                 NumberAnimation {
-                    property: "width"
-                    duration: VLCStyle.duration_short
-                    easing.type: Easing.InOutSine
+                    property: "anchors.rightMargin"
+                    duration: VLCStyle.duration_short * 1.5
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
                 }
             }
         }
 
-        sourceComponent: PlaylistPane {
-            id: playlistView
+        sourceComponent: QueuePanel {
+            id: queuePanel
 
-            property real maximumWidth: (rootPlayer.width + playlistView.rightPadding) / 2
-
-            implicitWidth: Helpers.clamp(MainCtx.playqueuePanel.width
-                                 , playlistView.minimumWidth
-                                 , playlistView.maximumWidth)
             height: playlistpopup.height
+            width: playlistpopup.width
 
-            useAcrylic: false
             focus: true
 
             wheelEnabled: true
 
-            rightPadding: VLCStyle.applicationHorizontalMargin
-            topPadding:  {
-                if (rootPlayer._controlsUnderVideo)
-                    return VLCStyle.margin_normal
-                else
-                    // NOTE: We increase the padding accordingly to avoid overlapping the TopBar.
-                    return topBar.reservedHeight
-            }
-            bottomPadding: 0
-
+            // the Tint over the video, the view background when docked
             background: Rectangle {
-                color: MainCtx.hasEmbededVideo ? windowTheme.tint : windowTheme.bg.primary
+                radius: VLCStyle.radius_large
+                color: rootPlayer._rightPanelOverlaid ? windowTheme.tint : queuePanel.colorContext.bg.primary
             }
-
-            view.fadingEdge.pixelAlignedForDPR: !controlBar.visible
 
             Navigation.parentItem: rootPlayer
             Navigation.upItem: topBar
@@ -1186,51 +1188,6 @@ FocusScope {
                     audioControls.forceActiveFocus()
                 else
                     controlBar.forceActiveFocus()
-            }
-
-
-            Widgets.HorizontalResizeHandle {
-                id: resizeHandle
-
-                property bool _inhibitMainCtxUpdate: false
-
-                parent: playlistView
-
-                anchors {
-                    top: parent.top
-                    bottom: parent.bottom
-                    left: parent.left
-                }
-
-                atRight: false
-                currentWidth: playlistpopup.width
-
-                maximumWidth: playlistView.maximumWidth
-                minimumWidth: playlistView.minimumWidth
-
-                onRequestedWidthChanged: {
-                    if (!_inhibitMainCtxUpdate)
-                        MainCtx.playqueuePanel.width = requestedWidth
-                }
-
-                Component.onCompleted:  _updateFromMainCtx()
-
-                function _updateFromMainCtx() {
-                    if (requestedWidth === MainCtx.playqueuePanel.width)
-                        return
-
-                    _inhibitMainCtxUpdate = true
-                    requestedWidth = MainCtx.playqueuePanel.width
-                    _inhibitMainCtxUpdate = false
-                }
-
-                Connections {
-                    target: MainCtx.playqueuePanel
-
-                    function onWidthChanged() {
-                        resizeHandle._updateFromMainCtx()
-                    }
-                }
             }
         }
     }

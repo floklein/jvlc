@@ -303,6 +303,14 @@ void MLBookmarkModel::add()
     });
 }
 
+void MLBookmarkModel::removeBookmarks( const QVector<int>& rows )
+{
+    QModelIndexList indexes;
+    for ( int row : rows )
+        indexes.push_back( index( row, 0 ) );
+    remove( indexes );
+}
+
 void MLBookmarkModel::remove( const QModelIndexList &indexes )
 {
     if (m_currentMediaId == 0)
@@ -448,10 +456,11 @@ void MLBookmarkModel::updateMediaId(uint64_t revision, const QString &mediaUri)
         }
         if (valid)
         {
+            // the bookmarks were just listed: no need to refresh them, and
+            // a refresh would reset the model inside this reset
             beginResetModel();
             m_bookmarks = std::move(ctx.newBookmarks);
             m_currentMediaId = ctx.newMLid;
-            refresh(MLBOOKMARKMODEL_REFRESH);
             endResetModel();
         }
     });
@@ -599,6 +608,24 @@ void MLBookmarkModel::onVlcMlEvent(const MLEvent &event){
     switch (event.i_type)
     {
         case VLC_ML_EVENT_BOOKMARKS_ADDED:
+            if (m_currentMediaId == 0)
+            {
+                // another model may have added the current media to the
+                // library to bookmark it: look it up again
+                uint64_t revision;
+                QString mediaUri;
+                {
+                    vlc::threads::mutex_locker lock{ m_mutex };
+                    revision = m_revision;
+                    if (m_currentItem && m_currentItem->psz_uri)
+                        mediaUri = qfu(m_currentItem->psz_uri);
+                }
+                if (!mediaUri.isEmpty())
+                    updateMediaId(revision, mediaUri);
+                break;
+            }
+            refresh(MLBOOKMARKMODEL_REFRESH);
+        break;
         case VLC_ML_EVENT_BOOKMARKS_DELETED:
         case VLC_ML_EVENT_BOOKMARKS_UPDATED:
             refresh(MLBOOKMARKMODEL_REFRESH);

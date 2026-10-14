@@ -86,6 +86,9 @@ QtObject {
 
     readonly property real resizeHandleWidth: (scrollBarInteractingSize / 2)
 
+    // the player's right-hand panel (Queue panel, Adjustments sidebar)
+    readonly property int sidePanel_width: MainCtx.dp(400, scale)
+
     readonly property real touchHandlerMargin: margin_large
 
     // Borders
