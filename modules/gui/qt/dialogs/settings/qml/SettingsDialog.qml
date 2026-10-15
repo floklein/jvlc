@@ -345,6 +345,7 @@ Window {
                 delegate: SettingsRow {
                     width: rowsView.width - rowsView.leftMargin - rowsView.rightMargin
                     settingsModel: appSettings
+                    textDialog: nameDialog
                     path: root.searching ? root.rowPath(model) : ""
                 }
 
@@ -398,6 +399,11 @@ Window {
                 }
             }
         }
+    }
+
+    // names and links asked by the lists (Profiles, Presets, podcasts)
+    TextInputDialog {
+        id: nameDialog
     }
 
     Component {

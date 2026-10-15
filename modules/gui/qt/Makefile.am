@@ -123,6 +123,10 @@ libqt_plugin_la_SOURCES = \
 	dialogs/onboarding/app_onboarding_model.hpp \
 	dialogs/onboarding/onboarding_model.cpp \
 	dialogs/onboarding/onboarding_model.hpp \
+	dialogs/settings/plugins_list_model.cpp \
+	dialogs/settings/plugins_list_model.hpp \
+	dialogs/settings/settings_basic_rows.cpp \
+	dialogs/settings/settings_basic_rows.hpp \
 	dialogs/settings/settings_model.cpp \
 	dialogs/settings/settings_model.hpp \
 	dialogs/settings/settings_pages.cpp \
@@ -454,6 +458,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/settings/profiles_model.moc.cpp \
 	dialogs/onboarding/app_onboarding_model.moc.cpp \
 	dialogs/onboarding/onboarding_model.moc.cpp \
+	dialogs/settings/plugins_list_model.moc.cpp \
 	dialogs/settings/settings_model.moc.cpp \
 	dialogs/settings/settings_pages.moc.cpp \
 	dialogs/shortcuts/app_shortcuts_model.moc.cpp \
@@ -1063,6 +1068,7 @@ libqml_module_dialogs_a_QML = \
 	dialogs/dialogs/qml/TextInputDialog.qml \
 	dialogs/dialogs/qml/WindowDialog.qml \
 	dialogs/settings/qml/SettingsDialog.qml \
+	dialogs/settings/qml/SettingsPanel.qml \
 	dialogs/settings/qml/SettingsRow.qml \
 	dialogs/settings/qml/SettingsSegmented.qml \
 	dialogs/settings/qml/SettingsSlider.qml \
@@ -2723,7 +2729,8 @@ test_settings_model_SOURCES = \
 	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
 	tests/test_settings_model.cpp \
 	dialogs/settings/settings_model.cpp dialogs/settings/settings_model.hpp \
-	dialogs/settings/settings_registry.cpp dialogs/settings/settings_registry.hpp
+	dialogs/settings/settings_registry.cpp dialogs/settings/settings_registry.hpp \
+	dialogs/settings/settings_basic_rows.cpp dialogs/settings/settings_basic_rows.hpp
 
 nodist_test_settings_model_SOURCES = \
 	tests/test_settings_model.moc \
@@ -2758,6 +2765,26 @@ test_profiles_model_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_profiles_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_profiles_model
 TESTS += test_profiles_model
+
+# test_plugins_list_model
+
+test_plugins_list_model_SOURCES = \
+	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
+	tests/test_plugins_list_model.cpp \
+	dialogs/settings/plugins_list_model.cpp dialogs/settings/plugins_list_model.hpp
+
+nodist_test_plugins_list_model_SOURCES = \
+	tests/test_plugins_list_model.moc \
+	dialogs/settings/plugins_list_model.moc.cpp
+
+BUILT_SOURCES += tests/test_plugins_list_model.moc
+CLEANFILES += tests/test_plugins_list_model.moc
+test_plugins_list_model_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_plugins_list_model_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_plugins_list_model_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_plugins_list_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_plugins_list_model
+TESTS += test_plugins_list_model
 
 # test_media_properties_model
 

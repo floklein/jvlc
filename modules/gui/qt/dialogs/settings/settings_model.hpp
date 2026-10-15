@@ -84,6 +84,11 @@ public:
         ExpandedRole,
         ButtonTextRole,
         ConfirmTextRole,
+        // the choices known without asking a plugin, for search
+        KnownChoicesRole,
+        PanelRole,
+        // changed since the window opened, for a row that doesn't apply at once
+        PendingRole,
     };
     Q_ENUM(Roles)
 
@@ -113,6 +118,7 @@ public:
         Color,      // #rrggbb
         Shortcut,   // the keys of a shortcut action
         Action,     // a button
+        Panel,      // a list managed in place, see Row::panel
     };
     Q_ENUM(Control)
 
@@ -156,6 +162,10 @@ public:
         // { value, label } maps, see choice()
         QVariantList choices;
         std::function<QVariantList()> choicesProvider;
+        /* choices a plugin may list, asked when the row is first shown
+         * rather than by search; without any, the row shows this control */
+        bool lazyChoices = false;
+        Control unlistedControl = Text;
 
         // sliders; the value is multiplied by scale for display in unit
         double minimum = 0.;
@@ -179,12 +189,21 @@ public:
         QString buttonText;
         // asks for confirmation first, with this text on the button
         QString confirmText;
+
+        /* Panel rows: what the panel lists ("profiles", "presets",
+         * "library-folders", "service-sources", "addons", "plugins") */
+        QString panel;
+
+        // a filter toggle: "<chain>:<filter>", see bindFilter()
+        QString filterToggle;
     };
 
     explicit SettingsModel(qt_intf_t* intf = nullptr, QObject* parent = nullptr);
     ~SettingsModel() override;
 
     static QVariantMap choice(const QVariant& value, const QString& label);
+    // the choices VLC declares for an option, empty if it has none
+    static QVariantList configChoices(const QString& option);
 
     // store the row in VLC options; the first existing option gives the
     // value, writes go to every existing option
@@ -231,6 +250,21 @@ public:
     // the values changed elsewhere, such as by a switch of Profile
     void refresh();
 
+    /* Filters changed in Settings also apply to the playing file, when the
+     * player can change them live. Set before addAdvancedRows(). */
+    struct LiveFilters
+    {
+        // adds a filter to, or removes it from, a chain ("video-filter"...)
+        std::function<void(const QString& chain, const QString& filter, bool enabled)> toggle;
+        // an option of a running video or subtitle filter
+        std::function<void(const QString& chain, const QString& option, const QVariant& value)> option;
+    };
+    void setLiveFilters(LiveFilters live);
+
+    /* the choices a plugin lists for one of its options (audio devices...),
+     * replaceable by tests */
+    void setChoicesLookup(std::function<QVariantList(const QString& option)> lookup);
+
     // saving the configuration file, replaceable by tests
     void setSaveFunction(std::function<void()> save);
     void setSaveDelay(int ms);
@@ -276,6 +310,8 @@ private:
     QString m_profileName;
     QTimer m_saveTimer;
     std::function<void()> m_save;
+    std::function<QVariantList(const QString&)> m_choicesLookup;
+    LiveFilters m_liveFilters;
 
     QSettings* m_stateSettings = nullptr;
     QSet<QString> m_expandedPages;

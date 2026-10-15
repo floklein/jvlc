@@ -351,6 +351,52 @@ bool ProfilesModel::activate(const QString& id)
     return true;
 }
 
+bool ProfilesModel::rename(const QString& id, const QString& name)
+{
+    const int row = indexOf(id);
+    if (row < 0 || id == DEFAULT_ID)
+        return false;
+
+    // the Profile's own name, in another case, is available
+    const QString trimmed = name.trimmed();
+    if (trimmed.compare(m_profiles.at(row).name, Qt::CaseInsensitive) != 0 && !isNameAvailable(trimmed))
+        return false;
+    if (trimmed.isEmpty())
+        return false;
+    if (trimmed == m_profiles.at(row).name)
+        return true;
+
+    m_profiles[row].name = trimmed;
+    saveList();
+    emit dataChanged(index(row), index(row), { NameRole, Qt::DisplayRole });
+    if (id == m_activeId)
+        emit activeChanged();
+    return true;
+}
+
+bool ProfilesModel::canRemove(const QString& id) const
+{
+    return id != DEFAULT_ID && indexOf(id) >= 0;
+}
+
+bool ProfilesModel::remove(const QString& id)
+{
+    if (!canRemove(id))
+        return false;
+
+    if (id == m_activeId && !activate(DEFAULT_ID))
+        return false;
+
+    const int row = indexOf(id);
+    beginRemoveRows({}, row, row);
+    m_profiles.removeAt(row);
+    endRemoveRows();
+
+    m_settings->remove(dataGroup(id));
+    saveList();
+    return true;
+}
+
 QStringList ProfilesModel::optionNames() const
 {
     if (!m_optionNames.isEmpty())

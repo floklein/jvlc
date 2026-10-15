@@ -28,6 +28,7 @@
 
 #include "dialogs/settings/settings_model.hpp"
 #include "dialogs/settings/settings_registry.hpp"
+#include "dialogs/settings/settings_basic_rows.hpp"
 
 /*
  * The rows are bound to core options, which exist whatever plugins are
@@ -267,6 +268,27 @@ private slots:
         QCOMPARE(restartSpy.count(), 2);
     }
 
+    // "Applies to the next file" shows once the row was changed
+    void testNextFileRowsTellOnceChanged()
+    {
+        Row row = configRow("top", "video", {"video-on-top"});
+        row.effect = SettingsModel::NextFile;
+        m_model->addRow(row);
+        m_model->addRow(configRow("hide", "interface", {"mouse-hide-timeout"}));
+
+        QCOMPARE(role("top", SettingsModel::PendingRole).toBool(), false);
+        QVERIFY(m_model->setValue("top", true));
+        QCOMPARE(role("top", SettingsModel::PendingRole).toBool(), true);
+        // not a restart
+        QVERIFY(!m_model->restartRequired());
+        QVERIFY(m_model->setValue("top", false));
+        QCOMPARE(role("top", SettingsModel::PendingRole).toBool(), false);
+
+        // immediate rows have nothing pending
+        QVERIFY(m_model->setValue("hide", 3000));
+        QCOMPARE(role("hide", SettingsModel::PendingRole).toBool(), false);
+    }
+
     // a switch of Profile changes the options behind the rows
     void testRefreshShowsTheOtherProfile()
     {
@@ -485,6 +507,50 @@ private slots:
         QVERIFY(m_model->setValue("filter:wave", true));
         QCOMPARE(configString("video-filter"), QStringLiteral("wave"));
         config_PutPsz("video-filter", nullptr);
+    }
+
+    void testFiltersApplyToThePlayingFile()
+    {
+        config_PutPsz("video-filter", nullptr);
+        config_PutPsz("audio-filter", nullptr);
+
+        QStringList calls;
+        SettingsModel::LiveFilters live;
+        live.toggle = [&calls](const QString& chain, const QString& filter, bool enabled) {
+            calls << QStringLiteral("%1 %2 %3").arg(chain, filter, enabled ? "on" : "off");
+        };
+        live.option = [&calls](const QString& chain, const QString& name, const QVariant& value) {
+            calls << QStringLiteral("%1 %2=%3").arg(chain, name, value.toString());
+        };
+        m_model->setLiveFilters(live);
+
+        // core options stand for the plugins', which the tests don't load
+        SettingsOption grayscale = option("grayscale", "adjust", "Image properties filter", SUBCAT_VIDEO_VFILTER);
+        grayscale.filterChain = "video-filter";
+        SettingsOption level = option("captions", "compressor", "Dynamic range compressor",
+                                      SUBCAT_AUDIO_AFILTER, CONFIG_ITEM_INTEGER);
+        level.filterChain = "audio-filter";
+        m_model->addAdvancedRows({ grayscale, level });
+
+        // the filter toggles and the video filters' options apply at once
+        QCOMPARE(role("filter:adjust", SettingsModel::EffectRole).toInt(), int(SettingsModel::Immediate));
+        QCOMPARE(role("filter:compressor", SettingsModel::EffectRole).toInt(), int(SettingsModel::Immediate));
+        QCOMPARE(role("grayscale", SettingsModel::EffectRole).toInt(), int(SettingsModel::Immediate));
+        // an audio filter reads its options when it starts
+        QCOMPARE(role("captions", SettingsModel::EffectRole).toInt(), int(SettingsModel::NextFile));
+
+        QVERIFY(m_model->setValue("filter:adjust", true));
+        QVERIFY(m_model->setValue("grayscale", true));
+        QVERIFY(m_model->setValue("filter:compressor", true));
+        QVERIFY(m_model->setValue("filter:adjust", false));
+        QCOMPARE(calls, (QStringList { "video-filter adjust on", "video-filter grayscale=true",
+                                       "audio-filter compressor on", "video-filter adjust off" }));
+        // and they are kept for the next files
+        QCOMPARE(configString("audio-filter"), QStringLiteral("compressor"));
+        QCOMPARE(config_GetInt("grayscale"), 1);
+
+        config_PutPsz("audio-filter", nullptr);
+        config_PutInt("grayscale", 0);
     }
 
     /* Reset all settings in this Profile */
@@ -711,6 +777,26 @@ private slots:
         QCOMPARE(effect(option("mouse-hide-timeout", "core", 0, SUBCAT_VIDEO_GENERAL,
                                CONFIG_ITEM_INTEGER)), EffectImmediate);
 
+        // options read when used, whatever their subcategory
+        QCOMPARE(effect(option("short-jump-size", "core", 0, SUBCAT_INTERFACE_HOTKEYS,
+                               CONFIG_ITEM_INTEGER)), EffectImmediate);
+        QCOMPARE(effect(option("volume-step", "core", 0, SUBCAT_AUDIO_GENERAL,
+                               CONFIG_ITEM_FLOAT)), EffectImmediate);
+        QCOMPARE(effect(option("snapshot-path", "core", 0, SUBCAT_VIDEO_GENERAL,
+                               CONFIG_ITEM_DIRECTORY)), EffectImmediate);
+        QCOMPARE(effect(option("input-record-path", "core", 0, SUBCAT_INPUT_GENERAL,
+                               CONFIG_ITEM_DIRECTORY)), EffectImmediate);
+        // options read once when VLC starts its Queue or the process
+        QCOMPARE(effect(option("one-instance", "core", 0, SUBCAT_PLAYLIST_GENERAL)), EffectRestart);
+        QCOMPARE(effect(option("playlist-enqueue", "core", 0, SUBCAT_PLAYLIST_GENERAL)), EffectRestart);
+        QCOMPARE(effect(option("play-and-exit", "core", 0, SUBCAT_PLAYLIST_GENERAL)), EffectRestart);
+        QCOMPARE(effect(option("playlist-cork", "core", 0, SUBCAT_PLAYLIST_GENERAL)), EffectRestart);
+        QCOMPARE(effect(option("http-port", "core", 0, SUBCAT_ADVANCED_NETWORK,
+                               CONFIG_ITEM_INTEGER)), EffectRestart);
+        // and the others when a file opens
+        QCOMPARE(effect(option("audio-language", "core", 0, SUBCAT_INPUT_GENERAL,
+                               CONFIG_ITEM_STRING)), EffectNextFile);
+
         // the core key map is reloaded, the global hotkeys module reads its
         // keys once
         QCOMPARE(effect(option("key-play-pause", "core", 0, SUBCAT_INTERFACE_HOTKEYS, CONFIG_ITEM_KEY)), EffectImmediate);
@@ -802,6 +888,54 @@ private slots:
         QCOMPARE(config_GetInt("mouse-hide-timeout"), 2000);
     }
 
+    void testChoicesListedByAPluginShowAsADropDown()
+    {
+        QStringList asked;
+        m_model->setChoicesLookup([&asked](const QString& name) -> QVariantList {
+            asked << name;
+            if (name == QLatin1String("audio-language"))
+                return { SettingsModel::choice("fr", "French"), SettingsModel::choice("de", "German") };
+            return {};
+        });
+
+        // plugin options without a static list: the plugin may list them
+        m_model->addAdvancedRows({
+            option("audio-language", "mmdevice", "Windows Multimedia Device output",
+                   SUBCAT_AUDIO_AOUT, CONFIG_ITEM_STRING),
+            option("menu-language", "mmdevice", "Windows Multimedia Device output",
+                   SUBCAT_AUDIO_AOUT, CONFIG_ITEM_STRING),
+            option("mouse-hide-timeout", "mmdevice", "Windows Multimedia Device output",
+                   SUBCAT_AUDIO_AOUT, CONFIG_ITEM_INTEGER),
+            // the core has no such lists
+            option("sub-language", "core", 0, SUBCAT_INPUT_GENERAL, CONFIG_ITEM_STRING),
+        });
+
+        // a search doesn't ask every plugin
+        SettingsFilterModel filter;
+        filter.setSourceModel(m_model.get());
+        filter.setSearchPattern("label");
+        QCOMPARE(filter.rowCount(), 4);
+        QVERIFY(asked.isEmpty());
+
+        QCOMPARE(role("audio-language", SettingsModel::ControlRole).toInt(), int(SettingsModel::Choice));
+        const QVariantList choices = role("audio-language", SettingsModel::ChoicesRole).toList();
+        QCOMPARE(choices.count(), 2);
+        QCOMPARE(choices.at(1).toMap().value("label").toString(), QStringLiteral("German"));
+
+        // nothing listed: typed in
+        QCOMPARE(role("menu-language", SettingsModel::ControlRole).toInt(), int(SettingsModel::Text));
+        QCOMPARE(role("mouse-hide-timeout", SettingsModel::ControlRole).toInt(), int(SettingsModel::Number));
+        QCOMPARE(role("sub-language", SettingsModel::ControlRole).toInt(), int(SettingsModel::Text));
+        QVERIFY(!asked.contains("sub-language"));
+
+        // asked once
+        QCOMPARE(asked.count("audio-language"), 1);
+
+        // once listed, search finds the choices
+        filter.setSearchPattern("german");
+        QCOMPARE(ids(filter), QStringList { "audio-language" });
+    }
+
     /* Search */
 
     void testSearchCoversAdvancedOptions()
@@ -865,6 +999,249 @@ private slots:
 
         filter.setSearchPattern(fullscreen.data(SettingsModel::LabelRole).toString());
         QVERIFY(ids(filter).contains("key-toggle-fullscreen"));
+    }
+
+    /* The basic rows of the pages */
+
+    void testBasicRowsGiveTheListsAHome()
+    {
+        SettingsBasicRows::add(*m_model, hooks(true));
+
+        const auto panel = [this](const char* id, const char* page, const char* panel) {
+            const QModelIndex index = indexOf(id);
+            QVERIFY2(index.isValid(), id);
+            QCOMPARE(index.data(SettingsModel::PageRole).toString(), QString::fromLatin1(page));
+            QCOMPARE(index.data(SettingsModel::ControlRole).toInt(), int(SettingsModel::Panel));
+            QCOMPARE(index.data(SettingsModel::PanelRole).toString(), QString::fromLatin1(panel));
+            QCOMPARE(index.data(SettingsModel::AvailableRole).toBool(), true);
+        };
+        panel("profiles", "general", "profiles");
+        panel("presets", "playback", "presets");
+        panel("library-folders", "library", "library-folders");
+        panel("service-sources", "extensions", "service-sources");
+        panel("addons", "extensions", "addons");
+        panel("plugins", "extensions", "plugins");
+
+        // shared by every Profile
+        QCOMPARE(role("presets", SettingsModel::AllProfilesRole).toBool(), true);
+        QCOMPARE(role("library-folders", SettingsModel::AllProfilesRole).toBool(), true);
+        // the built-in plugins are listed under Advanced Options
+        QCOMPARE(role("plugins", SettingsModel::AdvancedRole).toBool(), true);
+        QCOMPARE(role("profiles", SettingsModel::AdvancedRole).toBool(), false);
+
+        // a search finds them
+        SettingsFilterModel filter;
+        filter.setSourceModel(m_model.get());
+        filter.setSearchPattern("library folders");
+        QVERIFY(ids(filter).contains("library-folders"));
+    }
+
+    void testLibraryRowsNeedTheMediaLibrary()
+    {
+        SettingsBasicRows::add(*m_model, hooks(false));
+        QCOMPARE(role("library-folders", SettingsModel::AvailableRole).toBool(), false);
+        QCOMPARE(role("clear-recent", SettingsModel::AvailableRole).toBool(), false);
+        // the other Library rows stay
+        QCOMPARE(role("fetch-metadata", SettingsModel::AvailableRole).toBool(), true);
+
+        m_model = std::make_unique<SettingsModel>(m_env->intf);
+        int cleared = 0;
+        SettingsBasicRows::Hooks withLibrary = hooks(true);
+        withLibrary.clearRecent = [&cleared]() { ++cleared; };
+        SettingsBasicRows::add(*m_model, withLibrary);
+        QCOMPARE(role("clear-recent", SettingsModel::AvailableRole).toBool(), true);
+        m_model->trigger("clear-recent");
+        QCOMPARE(cleared, 1);
+    }
+
+    void testFigmaDuplicatesHaveOneHome()
+    {
+        SettingsBasicRows::add(*m_model, hooks(true));
+        m_model->addAdvancedRows(SettingsRegistry::options());
+
+        // each option is in one row, basic or advanced
+        QMap<QString, int> uses;
+        for (int i = 0; i < m_model->rowCount(); ++i)
+            for (const QString& name : m_model->index(i).data(SettingsModel::OptionsRole).toStringList())
+                ++uses[name];
+        for (auto it = uses.cbegin(); it != uses.cend(); ++it)
+            QVERIFY2(it.value() == 1, qPrintable(it.key()));
+
+        const auto pageOf = [this](const char* option) -> QString {
+            for (int i = 0; i < m_model->rowCount(); ++i)
+            {
+                const QModelIndex index = m_model->index(i);
+                if (index.data(SettingsModel::OptionsRole).toStringList().contains(option))
+                    return index.data(SettingsModel::PageRole).toString()
+                        + (index.data(SettingsModel::AdvancedRole).toBool() ? "/advanced" : "");
+            }
+            return {};
+        };
+        // Privacy and Playback both drew the playback position
+        QCOMPARE(pageOf("restore-playback-pos"), QStringLiteral("playback"));
+        QCOMPARE(pageOf("restore-playback-states"), QStringLiteral("playback"));
+        // Privacy and Library both drew the online titles and artwork
+        QCOMPARE(pageOf("metadata-network-access"), QStringLiteral("library"));
+        // Playback and Video both drew the time-shift buffer
+        QCOMPARE(pageOf("input-timeshift-path"), QStringLiteral("performance"));
+        QCOMPARE(pageOf("input-timeshift-granularity"), QStringLiteral("performance"));
+        QCOMPARE(pageOf("save-recentplay"), QStringLiteral("privacy"));
+        QCOMPARE(pageOf("sub-language"), QStringLiteral("subtitles"));
+        QCOMPARE(pageOf("audio-language"), QStringLiteral("playback"));
+        QCOMPARE(pageOf("network-caching"), QStringLiteral("network"));
+        QCOMPARE(pageOf("short-jump-size"), QStringLiteral("controls"));
+        QCOMPARE(pageOf("snapshot-path"), QStringLiteral("video"));
+        QCOMPARE(pageOf("input-record-path"), QStringLiteral("recording"));
+    }
+
+    void testDroppedRowsAreGone()
+    {
+        using namespace SettingsRegistry;
+        // the skin, the update check and the playlist tree
+        QVERIFY(place(option("skins2-last", "skins2", "Skinnable Interface", SUBCAT_INTERFACE_MAIN,
+                             CONFIG_ITEM_LOADFILE)).page.isEmpty());
+        QVERIFY(place(option("qt-updates-notif", "qt", "Qt interface", SUBCAT_INTERFACE_MAIN)).page.isEmpty());
+        QVERIFY(place(option("qt-updates-days", "qt", "Qt interface", SUBCAT_INTERFACE_MAIN,
+                             CONFIG_ITEM_INTEGER)).page.isEmpty());
+        QVERIFY(place(option("playlist-tree", "core", 0, SUBCAT_PLAYLIST_GENERAL)).page.isEmpty());
+    }
+
+    void testQueueRowsApplyToTheRunningQueue()
+    {
+        int applied = 0;
+        SettingsBasicRows::Hooks withQueue = hooks(true);
+        withQueue.applyQueueOptions = [&applied]() { ++applied; };
+        SettingsBasicRows::add(*m_model, withQueue);
+
+        QCOMPARE(role("repeat", SettingsModel::EffectRole).toInt(), int(SettingsModel::Immediate));
+        QCOMPARE(m_model->value("repeat").toString(), QStringLiteral("off"));
+
+        QVERIFY(m_model->setValue("repeat", "all"));
+        QCOMPARE(config_GetInt("loop"), 1);
+        QCOMPARE(config_GetInt("repeat"), 0);
+        QVERIFY(m_model->setValue("repeat", "one"));
+        QCOMPARE(config_GetInt("loop"), 0);
+        QCOMPARE(config_GetInt("repeat"), 1);
+        QCOMPARE(m_model->value("repeat").toString(), QStringLiteral("one"));
+        QCOMPARE(applied, 2);
+
+        QVERIFY(m_model->setValue("after-each-file", "stop"));
+        QCOMPARE(config_GetInt("play-and-stop"), 1);
+        QVERIFY(m_model->setValue("after-each-file", "pause"));
+        QCOMPARE(config_GetInt("play-and-stop"), 0);
+        QCOMPARE(config_GetInt("play-and-pause"), 1);
+        QCOMPARE(m_model->value("after-each-file").toString(), QStringLiteral("pause"));
+
+        // asked as a positive: start playing as soon as a file opens
+        QCOMPARE(m_model->value("start-playing").toBool(), true);
+        QVERIFY(m_model->setValue("start-playing", false));
+        QCOMPARE(config_GetInt("start-paused"), 1);
+        QCOMPARE(applied, 5);
+
+        m_model->reset("repeat");
+        m_model->reset("after-each-file");
+        m_model->reset("start-playing");
+        QCOMPARE(config_GetInt("repeat"), 0);
+        QCOMPARE(config_GetInt("play-and-pause"), 0);
+        QCOMPARE(config_GetInt("start-paused"), 0);
+    }
+
+    void testSubtitleLookAppliesToThePlayingFile()
+    {
+        int applied = 0;
+        SettingsBasicRows::Hooks withPlayer = hooks(true);
+        withPlayer.applySubtitleLook = [&applied]() { ++applied; };
+        SettingsBasicRows::add(*m_model, withPlayer);
+
+        QCOMPARE(role("sub-text-scale", SettingsModel::EffectRole).toInt(), int(SettingsModel::Immediate));
+        QCOMPARE(role("sub-margin", SettingsModel::EffectRole).toInt(), int(SettingsModel::Immediate));
+        QVERIFY(m_model->setValue("sub-text-scale", 150));
+        QCOMPARE(config_GetInt("sub-text-scale"), 150);
+        QCOMPARE(applied, 1);
+        m_model->reset("sub-text-scale");
+        QCOMPARE(applied, 2);
+
+        // without a player, from the next file
+        m_model = std::make_unique<SettingsModel>(m_env->intf);
+        SettingsBasicRows::add(*m_model, hooks(true));
+        QCOMPARE(role("sub-text-scale", SettingsModel::EffectRole).toInt(), int(SettingsModel::NextFile));
+    }
+
+    void testSubtitleFilesLoadAutomaticallyAsNamedChoices()
+    {
+        SettingsBasicRows::add(*m_model, hooks(true));
+
+        // "Video name plus extra characters" by default
+        QCOMPARE(m_model->value("subtitle-autodetect").toInt(), 3);
+        QCOMPARE(role("subtitle-autodetect", SettingsModel::IsDefaultRole).toBool(), true);
+        const QVariantList choices = role("subtitle-autodetect", SettingsModel::ChoicesRole).toList();
+        QCOMPARE(choices.count(), 5);
+        QCOMPARE(choices.at(0).toMap().value("label").toString(), QStringLiteral("Off"));
+
+        QVERIFY(m_model->setValue("subtitle-autodetect", 0));
+        QCOMPARE(config_GetInt("sub-autodetect-file"), 0);
+        QCOMPARE(m_model->value("subtitle-autodetect").toInt(), 0);
+
+        QVERIFY(m_model->setValue("subtitle-autodetect", 4));
+        QCOMPARE(config_GetInt("sub-autodetect-file"), 1);
+        QCOMPARE(config_GetInt("sub-autodetect-fuzzy"), 4);
+
+        m_model->reset("subtitle-autodetect");
+        QCOMPARE(config_GetInt("sub-autodetect-fuzzy"), 3);
+    }
+
+    void testBufferingPresetWritesEveryCaching()
+    {
+        SettingsBasicRows::add(*m_model, hooks(true));
+
+        // VLC's own values match no preset
+        QCOMPARE(m_model->value("buffering").toInt(), -1);
+        QCOMPARE(role("buffering", SettingsModel::IsDefaultRole).toBool(), true);
+
+        QVERIFY(m_model->setValue("buffering", 300));
+        QCOMPARE(config_GetInt("file-caching"), 300);
+        QCOMPARE(config_GetInt("disc-caching"), 300);
+        QCOMPARE(config_GetInt("live-caching"), 300);
+        // network streams get three times more
+        QCOMPARE(config_GetInt("network-caching"), 900);
+        QCOMPARE(m_model->value("buffering").toInt(), 300);
+
+        // one value changed by hand: Custom
+        QVERIFY(m_model->setValue("network-caching", 2000));
+        QCOMPARE(m_model->value("buffering").toInt(), 0);
+
+        // Reset puts VLC's values back
+        m_model->reset("buffering");
+        QCOMPARE(config_GetInt("network-caching"), 1000);
+        QCOMPARE(config_GetInt("file-caching"), 1000);
+        QCOMPARE(m_model->value("buffering").toInt(), -1);
+    }
+
+    void testBasicFilterRowsKeepOneToggle()
+    {
+        config_PutPsz("audio-filter", nullptr);
+        SettingsBasicRows::add(*m_model, hooks(true));
+
+        SettingsOption normvol = option("", "normvol", "Volume normalizer", SUBCAT_AUDIO_AFILTER, 0);
+        normvol.filterChain = "audio-filter";
+        m_model->addAdvancedRows({ normvol });
+
+        // the group stays, its toggle is the basic row
+        QVERIFY(indexOf("group:audio:normvol").isValid());
+        QVERIFY(!indexOf("filter:normvol").isValid());
+        QVERIFY(m_model->setValue("normalize-volume", true));
+        QCOMPARE(configString("audio-filter"), QStringLiteral("normvol"));
+        config_PutPsz("audio-filter", nullptr);
+    }
+
+private:
+    static SettingsBasicRows::Hooks hooks(bool mediaLibrary)
+    {
+        SettingsBasicRows::Hooks hooks;
+        hooks.hasMediaLibrary = [mediaLibrary]() { return mediaLibrary; };
+        hooks.applyQueueOptions = []() {};
+        hooks.clearRecent = []() {};
+        return hooks;
     }
 };
 

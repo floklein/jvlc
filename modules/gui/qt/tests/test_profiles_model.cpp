@@ -187,6 +187,69 @@ private slots:
         QCOMPARE(m_model->rowCount(), 2);
     }
 
+    void testRenameKeepsTheProfile()
+    {
+        const QString work = m_model->create("Work");
+        QVERIFY(!m_model->create("Movies").isEmpty());
+
+        QVERIFY(m_model->rename(work, " Office "));
+        QCOMPARE(column(*m_model, ProfilesModel::NameRole), (QStringList { "Default", "Office", "Movies" }));
+
+        // the same rules as a new name, the Profile's own name aside
+        QVERIFY(m_model->rename(work, "OFFICE"));
+        QVERIFY(!m_model->rename(work, "movies"));
+        QVERIFY(!m_model->rename(work, ""));
+        QVERIFY(!m_model->rename("gone", "Gone"));
+        QCOMPARE(column(*m_model, ProfilesModel::NameRole), (QStringList { "Default", "OFFICE", "Movies" }));
+
+        // the active Profile is renamed too, and Default can't be
+        QSignalSpy activeSpy(m_model.get(), &ProfilesModel::activeChanged);
+        QVERIFY(m_model->rename(m_model->activeId(), "Cinema"));
+        QCOMPARE(m_model->activeName(), QStringLiteral("Cinema"));
+        QCOMPARE(activeSpy.count(), 1);
+        QVERIFY(!m_model->rename(ProfilesModel::DEFAULT_ID, "Main"));
+
+        // kept
+        m_model.reset();
+        m_model = makeModel();
+        QCOMPARE(column(*m_model, ProfilesModel::NameRole), (QStringList { "Default", "OFFICE", "Cinema" }));
+    }
+
+    void testDeleteForgetsTheProfile()
+    {
+        QAbstractItemModelTester tester(m_model.get(), QAbstractItemModelTester::FailureReportingMode::QtTest);
+
+        // Default can't be deleted
+        QVERIFY(!m_model->canRemove(ProfilesModel::DEFAULT_ID));
+        QVERIFY(!m_model->remove(ProfilesModel::DEFAULT_ID));
+
+        const QString work = m_model->create("Work");
+        config_PutInt("mouse-hide-timeout", 2500);
+        const QString movies = m_model->create("Movies");
+        QVERIFY(m_model->canRemove(work));
+
+        // another Profile: its snapshot goes, the active one stays
+        QVERIFY(m_model->remove(work));
+        QCOMPARE(column(*m_model, ProfilesModel::NameRole), (QStringList { "Default", "Movies" }));
+        QCOMPARE(m_model->activeId(), movies);
+        QVERIFY(!m_settings->contains(QStringLiteral("Profiles/Data/%1/Options/mouse-hide-timeout").arg(work)));
+        QVERIFY(!m_model->remove(work));
+        QVERIFY(m_model->isNameAvailable("Work"));
+
+        // the active Profile: Default takes its place first
+        QSignalSpy switchedSpy(m_model.get(), &ProfilesModel::switched);
+        QVERIFY(m_model->remove(movies));
+        QCOMPARE(m_model->activeId(), ProfilesModel::DEFAULT_ID);
+        QCOMPARE(switchedSpy.count(), 1);
+        QCOMPARE(config_GetInt("mouse-hide-timeout"), 1000);
+        QCOMPARE(column(*m_model, ProfilesModel::NameRole), QStringList { "Default" });
+
+        m_model.reset();
+        m_model = makeModel();
+        QCOMPARE(m_model->rowCount(), 1);
+        QVERIFY(!m_settings->contains(QStringLiteral("Profiles/Data/%1/Options/mouse-hide-timeout").arg(movies)));
+    }
+
     void testSwitchAppliesTheProfileOptions()
     {
         const QString defaultKey = configString("key-play-pause");

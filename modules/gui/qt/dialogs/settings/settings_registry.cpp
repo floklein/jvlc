@@ -58,9 +58,18 @@ bool isCommandLineOnly(const QString& name)
             "run-time", "input-list", "input-slave", "bookmarks", "open",
             "sub-file", "video-title", "video-x", "video-y", "width", "height",
             "daemon", "pidfile", "started-from-file",
+            // the vlc and winvlc programs always pass --media-library
+            "media-library",
         })
         || name.startsWith(QLatin1String("meta-"))
         || name.startsWith(QLatin1String("bookmark"));
+}
+
+/* Rows the redesign drops: the update check (no updater in this build),
+ * the playlist tree (the Queue is flat) */
+bool isDropped(const QString& name)
+{
+    return isOneOf(name, { "qt-updates-notif", "qt-updates-days", "playlist-tree" });
 }
 
 /* The capture devices: their options live in Open Capture Device. And the
@@ -223,6 +232,30 @@ bool appliesLive(const QString& name)
                            "video-on-top", "mouse-hide-timeout" });
 }
 
+/* Core options the core reads each time it uses them: a jump, a volume
+ * step, a snapshot, a recording, an on-screen message. */
+bool readWhenUsed(const QString& name)
+{
+    return isOneOf(name, { "extrashort-jump-size", "short-jump-size", "medium-jump-size",
+                           "long-jump-size", "volume-step", "input-record-path",
+                           "input-record-native", "osd" })
+        || name.startsWith(QLatin1String("snapshot-"));
+}
+
+/* Core options read once: by the process (one instance, the HTTP server,
+ * the media library), or when VLC sets up its Queue (libvlc.c). */
+bool readAtStartup(const QString& name)
+{
+    return isOneOf(name, { "one-instance", "one-instance-when-started-from-file",
+                           "playlist-enqueue", "started-from-file", "media-library",
+                           "random", "loop", "repeat", "play-and-exit", "play-and-stop",
+                           "play-and-pause", "start-paused", "playlist-cork",
+                           "http-host", "http-port", "https-port", "http-cert", "http-key",
+                           "http-ca", "http-crl", "rtsp-host", "rtsp-port", "services-discovery",
+                           "extraintf", "control", "intf", "high-priority", "keystore",
+                           "dbus", "inhibit" });
+}
+
 bool isDeveloperOption(const QString& name)
 {
     return isOneOf(name, { "qt-qmljsdebugger", "qt-verbose", "ml-verbose", "tracer",
@@ -252,7 +285,7 @@ Placement place(const SettingsOption& option)
     Placement placement;
 
     if (option.subcategory == SUBCAT_HIDDEN || isHiddenModule(option.module)
-        || isCommandLineOnly(option.name))
+        || isCommandLineOnly(option.name) || isDropped(option.name))
         return placement;
 
     if (option.type == CONFIG_ITEM_KEY)
@@ -295,8 +328,11 @@ Placement place(const SettingsOption& option)
     /* The interfaces and the core's own options are read when VLC starts,
      * the others when a file opens its decoders, outputs and filters. */
     const QString modulePage = pageOfModule(option.module);
-    if (appliesLive(option.name))
+    const bool core = option.module == QLatin1String("core");
+    if (appliesLive(option.name) || (core && readWhenUsed(option.name)))
         placement.effect = EffectImmediate;
+    else if (core && readAtStartup(option.name))
+        placement.effect = EffectRestart;
     else if (option.module == QLatin1String("qt") || option.module == QLatin1String("lua")
         || modulePage == QLatin1String("general") || modulePage == QLatin1String("controls")
         || (option.subcategory >= SUBCAT_INTERFACE_GENERAL && option.subcategory <= SUBCAT_INTERFACE_HOTKEYS)

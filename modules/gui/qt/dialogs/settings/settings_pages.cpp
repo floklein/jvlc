@@ -25,23 +25,34 @@
 #include "maininterface/mainctx.hpp"
 #include "dialogs/dialogs_provider.hpp"
 #include "dialogs/settings/profiles_model.hpp"
+#include "dialogs/settings/settings_basic_rows.hpp"
 #include "dialogs/subtitles/opensubtitles.hpp"
 #include "dialogs/shortcuts/app_shortcuts_model.hpp"
+#include "medialibrary/medialib.hpp"
+#include "medialibrary/mlrecenthidelist.hpp"
+#include "player/player_controller.hpp"
+#include "player/player_video_outputs.hpp"
+#include "player/preset_controller.hpp"
+#include "player/subtitle_appearance.hpp"
 #include "style/accent_colors.hpp"
 #include "util/color_scheme_model.hpp"
 #include "util/vlchotkeyconverter.hpp"
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QPointer>
+#include <QRegularExpression>
 #include <QGuiApplication>
 #include <QScreen>
 #include <QSettings>
 
 #include <vlc_actions.h>
 #include <vlc_configuration.h>
+#include <vlc_player.h>
+#include <vlc_playlist.h>
 
 #ifdef _WIN32
 # include "util/registry.hpp"
@@ -219,9 +230,33 @@ void AppSettingsModel::setCtx(MainCtx* ctx)
     m_ctx = ctx;
     setIntf(ctx->getIntf());
 
+    // filters changed here also apply to the playing file
+    setLiveFilters(liveFilters());
+
     addGeneralRows();
     addInterfaceRows();
     addControlsRows();
+
+    /* the other pages, and the homes of the Profiles, Presets, library
+     * folders, service sources and add-ons */
+    SettingsBasicRows::Hooks hooks;
+    hooks.applyQueueOptions = [this]() { applyQueueOptions(); };
+    hooks.hasMediaLibrary = [ctx]() { return ctx->hasMediaLibrary(); };
+    hooks.clearRecent = [ctx]() {
+        if (MediaLib* ml = ctx->getMediaLibrary())
+            ml->recentHideList()->clear(QDateTime::currentSecsSinceEpoch());
+    };
+    hooks.applySubtitleLook = [ctx]() {
+        PlayerController* player = ctx->getIntf()->p_mainPlayerController;
+        if (!player)
+            return;
+        // as after a switch of Profile: the playing file's Preset goes over
+        player->getSubtitleAppearance()->reload();
+        if (PresetController* presets = ctx->getPresets())
+            presets->profileSwitched();
+    };
+    SettingsBasicRows::add(*this, hooks);
+
     addOpenSubtitlesRows();
 
     /* Advanced Options: every other option, then General's reset */
@@ -562,17 +597,6 @@ void AppSettingsModel::addInterfaceRows()
         bindConfig(row, { QStringLiteral("qt-notification") });
         addRow(std::move(row));
     }
-
-    /* Subtitles: the Shortcut message */
-    const QString osd = qtr("On-screen messages");
-
-    {
-        Row row = makeRow("osd-shortcut-keys", "subtitles", osd, qtr("Show shortcut keys in on-screen messages"));
-        row.help = qtr("The message shown after an action also names the key that ran it.");
-        bindConfig(row, { QStringLiteral("qt-osd-shortcut-keys") });
-        addRow(std::move(row));
-    }
-
 }
 
 void AppSettingsModel::addOpenSubtitlesRows()
@@ -763,7 +787,7 @@ void AppSettingsModel::onSettingChanged(const QString& id)
     static const char* const mirrored[] = {
         "accent-color", "video-on-top", "window-decorations",
         "auto-hide-controls", "mouse-hide-timeout", "reduce-motion",
-        "osd-shortcut-keys", "video-blur",
+        "osd-shortcut-keys", "video-blur", "max-volume", "play-adds-to-queue",
     };
     for (const char* name : mirrored)
     {
@@ -773,6 +797,78 @@ void AppSettingsModel::onSettingChanged(const QString& id)
             return;
         }
     }
+}
+
+/* The Queue reads these options once, when VLC starts (libvlc.c): give them
+ * to the running Queue and player too. */
+void AppSettingsModel::applyQueueOptions()
+{
+    vlc_playlist_t* playlist = intf()->p_playlist;
+    if (!playlist)
+        return;
+
+    const auto option = [](const char* name) {
+        return config_GetType(name) != 0 && config_GetInt(name) != 0;
+    };
+
+    vlc_playlist_Lock(playlist);
+    vlc_playlist_SetPlaybackOrder(playlist, option("random") ? VLC_PLAYLIST_PLAYBACK_ORDER_RANDOM
+                                                             : VLC_PLAYLIST_PLAYBACK_ORDER_NORMAL);
+    vlc_playlist_SetPlaybackRepeat(playlist, option("repeat") ? VLC_PLAYLIST_PLAYBACK_REPEAT_CURRENT
+                                             : option("loop") ? VLC_PLAYLIST_PLAYBACK_REPEAT_ALL
+                                                              : VLC_PLAYLIST_PLAYBACK_REPEAT_NONE);
+    vlc_playlist_SetMediaStoppedAction(playlist, option("play-and-exit") ? VLC_PLAYLIST_MEDIA_STOPPED_EXIT
+                                                 : option("play-and-stop") ? VLC_PLAYLIST_MEDIA_STOPPED_STOP
+                                                                           : VLC_PLAYLIST_MEDIA_STOPPED_CONTINUE);
+    vlc_player_t* player = vlc_playlist_GetPlayer(playlist);
+    vlc_player_SetStartPaused(player, option("start-paused"));
+    vlc_player_SetPauseOnCork(player, option("playlist-cork"));
+    vlc_player_SetPlayAndPause(player, option("play-and-pause"));
+    vlc_playlist_Unlock(playlist);
+}
+
+/* The video outputs run the video and subtitle filter chains, and follow
+ * their variables; the audio output adds and removes its filters. */
+SettingsModel::LiveFilters AppSettingsModel::liveFilters()
+{
+    LiveFilters live;
+    qt_intf_t* p_intf = intf();
+
+    live.toggle = [p_intf](const QString& chain, const QString& filter, bool enabled) {
+        PlayerController* player = p_intf->p_mainPlayerController;
+        if (!player)
+            return;
+        const QByteArray name = filter.toUtf8();
+        if (chain == QLatin1String("audio-filter"))
+        {
+            vlc_player_aout_EnableFilter(player->getPlayer(), name.constData(), enabled);
+            return;
+        }
+
+        const QByteArray variable = chain.toUtf8();
+        for (const SharedVOutThread& vout : player->getVouts())
+        {
+            if (var_Type(vout.get(), variable.constData()) == 0)
+                continue;
+            char* current = var_GetString(vout.get(), variable.constData());
+            QStringList filters = qfu(current).split(QRegularExpression(QStringLiteral("[:,]")),
+                                                     Qt::SkipEmptyParts);
+            free(current);
+            filters.removeAll(filter);
+            if (enabled)
+                filters.append(filter);
+            var_SetString(vout.get(), variable.constData(), qtu(filters.join(QLatin1Char(':'))));
+        }
+    };
+
+    live.option = [p_intf](const QString&, const QString& option, const QVariant& value) {
+        PlayerController* player = p_intf->p_mainPlayerController;
+        if (!player)
+            return;
+        PlayerVideoOutputs outputs(player);
+        outputs.setOption(qtu(option), value);
+    };
+    return live;
 }
 
 QString AppSettingsModel::browseSaveFile(const QString& title, const QString& current) const
@@ -788,6 +884,11 @@ QString AppSettingsModel::browseOpenFile(const QString& title, const QString& cu
 QString AppSettingsModel::browseDirectory(const QString& title, const QString& current) const
 {
     return QDir::toNativeSeparators(QFileDialog::getExistingDirectory(nullptr, title, current));
+}
+
+QUrl AppSettingsModel::localFileUrl(const QString& path) const
+{
+    return QUrl::fromLocalFile(QDir::fromNativeSeparators(path));
 }
 
 void AppSettingsModel::restartVLC()

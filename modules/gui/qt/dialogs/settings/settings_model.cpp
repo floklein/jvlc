@@ -173,6 +173,14 @@ QVariantList intChoices(const char* name)
     return list;
 }
 
+/* the chains the video outputs run, whose filters follow the variables of
+ * the output; audio filters read their options when they start */
+bool isLiveChain(const QString& chain)
+{
+    return chain == QLatin1String("video-filter") || chain == QLatin1String("sub-source")
+        || chain == QLatin1String("sub-filter");
+}
+
 QString groupKey(const QString& page, const QString& group)
 {
     return page + QLatin1Char('/') + group;
@@ -195,6 +203,8 @@ SettingsModel::SettingsModel(qt_intf_t* intf, QObject* parent)
         if (m_intf)
             config_SaveConfigFile(m_intf);
     };
+
+    m_choicesLookup = &SettingsModel::configChoices;
 }
 
 SettingsModel::~SettingsModel()
@@ -210,6 +220,20 @@ QVariantMap SettingsModel::choice(const QVariant& value, const QString& label)
         { QStringLiteral("value"), value },
         { QStringLiteral("label"), label },
     };
+}
+
+QVariantList SettingsModel::configChoices(const QString& option)
+{
+    const QByteArray name = option.toUtf8();
+    switch (config_GetType(name.constData()))
+    {
+    case VLC_VAR_STRING:
+        return stringChoices(name.constData());
+    case VLC_VAR_INTEGER:
+        return intChoices(name.constData());
+    default:
+        return {};
+    }
 }
 
 void SettingsModel::bindConfig(Row& row, const QStringList& options)
@@ -259,16 +283,21 @@ void SettingsModel::bindFilter(Row& row, const QString& chainOption, const QStri
     row.readDefault = [name, filter]() {
         return QVariant(splitChain(readConfigDefault(name.constData()).toString()).contains(filter));
     };
-    row.write = [name, filter](const QVariant& value) {
+    row.write = [this, name, chainOption, filter](const QVariant& value) {
         QStringList filters = splitChain(readConfig(name.constData()).toString());
         filters.removeAll(filter);
         if (value.toBool())
             filters.append(filter);
-        return writeConfig(name.constData(), filters.join(QLatin1Char(':')));
+        if (!writeConfig(name.constData(), filters.join(QLatin1Char(':'))))
+            return false;
+        if (m_liveFilters.toggle)
+            m_liveFilters.toggle(chainOption, filter, value.toBool());
+        return true;
     };
     row.savesConfig = true;
     // the chain is shared by every filter, it keeps its own row
     row.options.clear();
+    row.filterToggle = chainOption + QLatin1Char(':') + filter;
 }
 
 void SettingsModel::bindSettings(Row& row, QSettings* settings, const QString& key, const QVariant& defaultValue)
@@ -312,7 +341,7 @@ void SettingsModel::appendRows(QVector<Row>& rows)
     {
         Entry entry;
         entry.row = std::move(row);
-        if (entry.row.effect == Restart && isAvailable(entry))
+        if (entry.row.effect != Immediate && isAvailable(entry))
             entry.startValue = readValue(entry);
         m_entries.append(std::move(entry));
     }
@@ -323,9 +352,15 @@ void SettingsModel::addAdvancedRows(const QVector<SettingsOption>& options)
 {
     // the options of the rows already there
     QSet<QString> used;
+    // and the filters a row already turns on and off
+    QSet<QString> usedFilters;
     for (const Entry& entry : m_entries)
+    {
         for (const QString& name : entry.row.options)
             used.insert(name);
+        if (!entry.row.filterToggle.isEmpty())
+            usedFilters.insert(entry.row.filterToggle);
+    }
 
     QHash<QString, int> aliasOf;
     const QVector<SettingsRegistry::Alias>& aliases = SettingsRegistry::aliases();
@@ -456,6 +491,16 @@ void SettingsModel::addAdvancedRows(const QVector<SettingsOption>& options)
         row.maximum = option.maximum;
 
         const QByteArray name = option.name.toUtf8();
+        /* a plugin can list the choices of its options when asked (audio
+         * devices...): a drop-down when it does */
+        const bool pluginListed = !option.hasChoices && !placement.group.isEmpty();
+        const auto listedByPlugin = [this, &row, &option](Control unlisted) {
+            row.control = Choice;
+            row.lazyChoices = true;
+            row.unlistedControl = unlisted;
+            const QString optionName = option.name;
+            row.choicesProvider = [this, optionName]() { return m_choicesLookup(optionName); };
+        };
         switch (option.type)
         {
         case CONFIG_ITEM_BOOL:
@@ -465,6 +510,8 @@ void SettingsModel::addAdvancedRows(const QVector<SettingsOption>& options)
             row.control = option.hasChoices ? Choice : Number;
             if (option.hasChoices)
                 row.choicesProvider = [name]() { return intChoices(name.constData()); };
+            else if (pluginListed)
+                listedByPlugin(Number);
             break;
         case CONFIG_ITEM_RGB:
             row.control = Color;
@@ -497,6 +544,8 @@ void SettingsModel::addAdvancedRows(const QVector<SettingsOption>& options)
             row.control = option.hasChoices ? Choice : Text;
             if (option.hasChoices)
                 row.choicesProvider = [name]() { return stringChoices(name.constData()); };
+            else if (pluginListed)
+                listedByPlugin(Text);
             break;
         default:
             // fonts and module lists are typed in
@@ -505,6 +554,21 @@ void SettingsModel::addAdvancedRows(const QVector<SettingsOption>& options)
         }
 
         bindConfig(row, { option.name });
+
+        /* the options of a running video or subtitle filter follow the
+         * player's variables */
+        if (m_liveFilters.option && isLiveChain(option.filterChain))
+        {
+            row.effect = Immediate;
+            const QString chain = option.filterChain;
+            const QString optionName = option.name;
+            row.write = [this, write = std::move(row.write), chain, optionName](const QVariant& value) {
+                if (!write(value))
+                    return false;
+                m_liveFilters.option(chain, optionName, value);
+                return true;
+            };
+        }
 
         if (placement.shortcut)
         {
@@ -578,7 +642,8 @@ void SettingsModel::addAdvancedRows(const QVector<SettingsOption>& options)
             rows.append(std::move(groupHeader));
 
             // a filter is used once it is in its chain
-            if (!group.filterChain.isEmpty())
+            if (!group.filterChain.isEmpty()
+                && !usedFilters.contains(group.filterChain + QLatin1Char(':') + group.id))
             {
                 Row filter;
                 filter.id = QStringLiteral("filter:") + group.id;
@@ -588,7 +653,7 @@ void SettingsModel::addAdvancedRows(const QVector<SettingsOption>& options)
                 filter.advanced = true;
                 filter.group = group.id;
                 filter.groupLabel = group.label;
-                filter.effect = NextFile;
+                filter.effect = m_liveFilters.toggle ? Immediate : NextFile;
                 bindFilter(filter, group.filterChain, group.id);
                 rows.append(std::move(filter));
             }
@@ -701,6 +766,8 @@ QVariant SettingsModel::data(const QModelIndex& index, int role) const
     case HelpRole:
         return row.helpProvider ? row.helpProvider() : row.help;
     case ControlRole:
+        if (row.lazyChoices && choicesOf(entry).isEmpty())
+            return row.unlistedControl;
         return row.control;
     case ValueRole:
         return readValue(entry);
@@ -710,6 +777,15 @@ QVariant SettingsModel::data(const QModelIndex& index, int role) const
         return sameValue(readValue(entry), readDefault(entry));
     case ChoicesRole:
         return choicesOf(entry);
+    case KnownChoicesRole:
+        if (row.lazyChoices && !entry.choicesRead)
+            return QVariantList();
+        return choicesOf(entry);
+    case PanelRole:
+        return row.panel;
+    case PendingRole:
+        return row.effect != Immediate && isAvailable(entry)
+            && !sameValue(readValue(entry), entry.startValue);
     case MinimumRole:
         return row.minimum;
     case MaximumRole:
@@ -821,6 +897,9 @@ QHash<int, QByteArray> SettingsModel::roleNames() const
         { ExpandedRole, "expanded" },
         { ButtonTextRole, "buttonText" },
         { ConfirmTextRole, "confirmText" },
+        { KnownChoicesRole, "knownChoices" },
+        { PanelRole, "panel" },
+        { PendingRole, "pending" },
     };
 }
 
@@ -918,6 +997,16 @@ void SettingsModel::refresh()
     updateRestartRequired();
 }
 
+void SettingsModel::setLiveFilters(LiveFilters live)
+{
+    m_liveFilters = std::move(live);
+}
+
+void SettingsModel::setChoicesLookup(std::function<QVariantList(const QString&)> lookup)
+{
+    m_choicesLookup = std::move(lookup);
+}
+
 void SettingsModel::setSaveFunction(std::function<void()> save)
 {
     m_save = std::move(save);
@@ -947,7 +1036,9 @@ bool SettingsModel::isAvailable(const Entry& entry) const
     if (row.kind != Setting)
         return true;
     if (row.control == Action)
-        return static_cast<bool>(row.action);
+        return static_cast<bool>(row.action) && (!row.isAvailable || row.isAvailable());
+    if (row.control == Panel)
+        return !row.isAvailable || row.isAvailable();
     if (!row.read || !row.write)
         return false;
     return !row.isAvailable || row.isAvailable();
@@ -1154,7 +1245,7 @@ bool SettingsFilterModel::matchesSearch(const QModelIndex& index) const
         index.data(SettingsModel::GroupLabelRole).toString(),
     };
     texts += index.data(SettingsModel::OptionsRole).toStringList();
-    const QVariantList choices = index.data(SettingsModel::ChoicesRole).toList();
+    const QVariantList choices = index.data(SettingsModel::KnownChoicesRole).toList();
     for (const QVariant& choice : choices)
         texts.append(choice.toMap().value(QStringLiteral("label")).toString());
 

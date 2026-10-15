@@ -93,6 +93,15 @@ public:
     // make a Profile the active one; its settings apply at once
     Q_INVOKABLE bool activate(const QString& id);
 
+    // a new name, under the rules of isNameAvailable(); Default keeps its own
+    Q_INVOKABLE bool rename(const QString& id, const QString& name);
+
+    // every Profile but Default can be deleted
+    Q_INVOKABLE bool canRemove(const QString& id) const;
+    /* Deletes a Profile and its settings. Deleting the active Profile
+     * switches to Default first. */
+    Q_INVOKABLE bool remove(const QString& id);
+
     // saving the configuration file, replaceable by tests
     void setSaveFunction(std::function<void()> save);
     /* whether a VLC option is only read when VLC starts; by default, the

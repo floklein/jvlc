@@ -19,6 +19,8 @@
 #ifndef VLC_QT_SETTINGS_PAGES_HPP
 #define VLC_QT_SETTINGS_PAGES_HPP
 
+#include <QUrl>
+
 #include "settings_model.hpp"
 #include "maininterface/mainctx.hpp"
 
@@ -45,6 +47,7 @@ public:
     Q_INVOKABLE QString browseSaveFile(const QString& title, const QString& current) const;
     Q_INVOKABLE QString browseOpenFile(const QString& title, const QString& current) const;
     Q_INVOKABLE QString browseDirectory(const QString& title, const QString& current) const;
+    Q_INVOKABLE QUrl localFileUrl(const QString& path) const;
 
 signals:
     void ctxChanged();
@@ -56,6 +59,8 @@ private:
     void addOpenSubtitlesRows();
     void addResetRow();
     void onSettingChanged(const QString& id);
+    void applyQueueOptions();
+    LiveFilters liveFilters();
 
     MainCtx* m_ctx = nullptr;
 };

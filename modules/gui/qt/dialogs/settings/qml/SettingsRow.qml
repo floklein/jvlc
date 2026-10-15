@@ -33,6 +33,8 @@ FocusScope {
     property var settingsModel
     // shown above the label in search results
     property string path
+    // the window's TextInputDialog, for the lists of Panel rows
+    property var textDialog
 
     readonly property bool isSetting: model.kind === SettingsModel.Setting
     readonly property bool changed: isSetting && !model.isDefault
@@ -231,8 +233,10 @@ FocusScope {
                 Item { Layout.fillWidth: true }
             }
 
+            // a restart is told up front; the next file once changed
             Text {
-                visible: model.effect !== SettingsModel.Immediate
+                visible: model.effect === SettingsModel.Restart
+                         || (model.effect === SettingsModel.NextFile && model.pending)
                 Layout.fillWidth: true
                 text: model.effect === SettingsModel.Restart ? qsTr("Applies after restart")
                                                               : qsTr("Applies to the next file")
@@ -263,6 +267,20 @@ FocusScope {
                     font.family: VLCStyle.fontFamily
                 }
             }
+
+            // a list managed in place, under its label
+            Loader {
+                active: root.isSetting && model.control === SettingsModel.Panel
+                visible: active
+                Layout.fillWidth: true
+                Layout.topMargin: VLCStyle.spacing_8
+
+                sourceComponent: SettingsPanel {
+                    panel: root.row.panel
+                    textDialog: root.textDialog
+                    settingsModel: root.settingsModel
+                }
+            }
         }
 
         Widgets.TextToolButton {
@@ -282,8 +300,9 @@ FocusScope {
                                    ? implicitWidth : VLCStyle.dp(320, VLCStyle.scale)
             Layout.preferredHeight: implicitHeight
 
-            active: root.isSetting
-            focus: root.isSetting
+            active: root.isSetting && model.control !== SettingsModel.Panel
+            visible: active
+            focus: active
 
             sourceComponent: {
                 switch (model.control) {

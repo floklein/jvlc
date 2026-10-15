@@ -362,6 +362,9 @@ static int AllocatePluginFile (module_bank_t *bank, const char *abspath,
         if (plugin != NULL)
         {
             plugin->path = path;
+            /* vlc_plugin_Symbol() looks up the choice enumerators of the
+             * plug-in's options in it, as for a plug-in from the cache */
+            plugin->abspath = strdup(abspath);
             plugin->mtime = st->st_mtime;
             plugin->size = st->st_size;
         }
