@@ -29,7 +29,8 @@ import VLC.Util
 Widgets.IconToolButton {
     id: playlistBtn
 
-    text: VLCIcons.queue
+    // Figma "lists" (217:191), filled while the Queue shows
+    text: checked ? VLCIcons.lists_active : VLCIcons.lists
     onClicked: {
         MainCtx.playqueuePanel.visible = !MainCtx.playqueuePanel.visible
         if (MainCtx.playqueuePanel.visible && MainCtx.playqueuePanel.docked) {

@@ -33,21 +33,25 @@ Item {
     // not focusable: the Control bar gives focus to enabled items
     enabled: false
 
-    implicitWidth: VLCStyle.icon_normal
+    // the zone spacing on both sides makes the 24 px of Figma's divider
+    // (247:457), which sits right against its neighbours
+    implicitWidth: VLCStyle.dp(4, VLCStyle.scale)
     implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
 
     readonly property ColorContext colorContext: ColorContext {
         id: theme
-        colorSet: ColorContext.Window
+        colorSet: ColorContext.View
     }
 
+    // Figma "divider" (71:863): an 18 px stroke of 1.5 px, Divider/Bright
     Rectangle {
         anchors.centerIn: parent
 
-        width: VLCStyle.border
-        height: VLCStyle.dp(16, VLCStyle.scale)
+        width: 1.5 * VLCStyle.scale
+        height: VLCStyle.dp(18, VLCStyle.scale)
+        radius: width / 2
 
-        color: theme.separator
+        color: theme.border
 
         visible: root.separating || root.paintOnly
     }

@@ -42,15 +42,21 @@ T.Control {
     readonly property real windowEnd: windowStart + (length > 0 ? Math.min(timeline.span, length)
                                                                 : timeline.span)
 
+    // the room the keys over each end take (SeekBarWidget): the span is drawn
+    // between them
+    property real leftReserve: 0
+    property real rightReserve: 0
+
     readonly property real _inset: VLCStyle.dp(2, VLCStyle.scale)
-    readonly property real _trackWidth: width - _inset * 2
+    readonly property real _trackLeft: leftReserve + _inset
+    readonly property real _trackWidth: Math.max(1, width - _trackLeft - rightReserve - _inset)
 
     function _timeAt(x : real) : real {
-        return windowStart + Helpers.clamp(x - _inset, 0, _trackWidth) / _trackWidth * (windowEnd - windowStart)
+        return windowStart + Helpers.clamp(x - _trackLeft, 0, _trackWidth) / _trackWidth * (windowEnd - windowStart)
     }
 
     function _xOf(ms : real) : real {
-        return _inset + (ms - windowStart) / (windowEnd - windowStart) * _trackWidth
+        return _trackLeft + (ms - windowStart) / (windowEnd - windowStart) * _trackWidth
     }
 
     implicitHeight: barHeight
@@ -122,6 +128,10 @@ T.Control {
         acceptedButtons: Qt.LeftButton
 
         onTapped: (eventPoint) => {
+            // the keys over the ends have their own actions
+            if (eventPoint.position.x < control.leftReserve
+                    || eventPoint.position.x > control.width - control.rightReserve)
+                return
             control.forceActiveFocus(Qt.MouseFocusReason)
             if (control.length > 0)
                 Player.position = control._timeAt(eventPoint.position.x) / control.length
@@ -181,38 +191,39 @@ T.Control {
     contentItem: Item {
         clip: true
 
-        // the played part of the span
+        // the played part of the span, from the start of the strip as the
+        // seek bar's (Figma 3744:12372)
         Rectangle {
             x: control._inset
             y: control._inset
-            width: Helpers.clamp(control._xOf(control.time) - control._inset, 0, control._trackWidth)
+            width: Helpers.clamp(control._xOf(control.time) - control._inset, 0, control.width - control._inset * 2)
             height: parent.height - control._inset * 2
 
             radius: VLCStyle.radius_small
             color: theme.bg.highlight
-            opacity: 0.5
         }
 
+        // the lines: translucent, so the played ones take the played color
         SubtitleTimelineBlocks {
-            x: control._inset
-            y: VLCStyle.dp(6, VLCStyle.scale)
+            x: control._trackLeft
+            y: control._inset
             width: control._trackWidth
-            height: parent.height - y * 2
+            height: parent.height - control._inset * 2
 
             timeline: control.timeline
             from: control.windowStart
             to: control.windowEnd
             delay: Player.subtitleDelayMS
 
-            color: dragHandler.active ? theme.accent : theme.fg.secondary
-            radius: VLCStyle.radius_small
+            color: dragHandler.active ? theme.accent : Qt.alpha(theme.fg.secondary, 0.6)
+            radius: VLCStyle.dp(1, VLCStyle.scale)
         }
 
-        // the playhead
+        // the playhead: the seek bar's handle
         Rectangle {
             x: Math.round(control._xOf(control.time) - width / 2)
             y: control._inset
-            width: VLCStyle.dp(4, VLCStyle.scale)
+            width: VLCStyle.dp(8, VLCStyle.scale)
             height: parent.height - control._inset * 2
 
             radius: VLCStyle.radius_small

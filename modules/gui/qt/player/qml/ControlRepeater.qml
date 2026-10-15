@@ -78,12 +78,18 @@ Repeater {
     ///incomming signal to request all menu and popup to close
     signal forceUnlock()
 
+    // bumped when a delegate comes or goes: itemAt() does not notify, and the
+    // delegates are created one by one after `count` is set
+    property int _itemsRevision: 0
+
     // NOTE: We apply the 'navigation chain' after adding the item.
     onItemAdded: (index, item) => {
         item.applyNavigation()
+        ++_itemsRevision
     }
 
     onItemRemoved: (index, item) => {
+        ++_itemsRevision
         // NOTE: We update the 'navigation chain' after removing the item.
         item.removeNavigation()
 
@@ -171,7 +177,7 @@ Repeater {
             // a divider separates nothing once what follows it is hidden
             if (item.separating !== undefined) {
                 item.separating = Qt.binding(function() {
-                    void repeater.count
+                    void repeater._itemsRevision
                     const next = repeater.itemAt(index + 1)
                     return !!next && next.visible
                 })

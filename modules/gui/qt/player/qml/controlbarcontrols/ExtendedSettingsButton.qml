@@ -31,7 +31,8 @@ Widgets.IconToolButton {
     // folds into the VLC menu in a narrow window
     readonly property int foldStep: ControlBarFolding.TracksFolded
 
-    text: VLCIcons.settings
+    // Figma "playback settings" (2230:9222), filled while the sidebar shows
+    text: checked ? VLCIcons.playback_settings_active : VLCIcons.playback_settings
 
     description: qsTr("Adjustments")
     shortcutAction: "adjustments"

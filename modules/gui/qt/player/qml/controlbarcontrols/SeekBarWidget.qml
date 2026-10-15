@@ -44,9 +44,9 @@ FocusScope {
     readonly property real _timeWidth: VLCStyle.dp(76, VLCStyle.scale)
 
     // the subtitle timeline replaces the seek bar (Show subtitle timeline):
-    // ‹ − start [lines] end + ›
+    // start [‹ − lines + ›] end, the buttons over the ends of the strip
     readonly property bool _timeline: !paintOnly && Player.subtitleTimeline.shown
-    readonly property real _timelineButtonsWidth: _timeline ? (implicitHeight + spacing) * 4 : 0
+    readonly property real _timelineButtonsWidth: _timeline ? VLCStyle.dp(84, VLCStyle.scale) : 0
     readonly property real _minimumBarWidth: VLCStyle.dp(64, VLCStyle.scale) + _timelineButtonsWidth
 
     // how far the Control bar folds (ControlBarFolding.Level)
@@ -78,12 +78,24 @@ FocusScope {
     // ‹ › move the subtitles by 100 ms, as the subtitle delay
     readonly property int _shiftStep: 100
 
+    // a small accent key over an end of the timeline strip (Figma 3750:12502)
     component TimelineButton : Widgets.IconToolButton {
         visible: root._timeline
 
-        Layout.preferredWidth: root.implicitHeight
-        Layout.preferredHeight: root.implicitHeight
-        Layout.alignment: Qt.AlignVCenter
+        // over the strip
+        z: 1
+        y: VLCStyle.dp(2, VLCStyle.scale)
+        width: VLCStyle.dp(18, VLCStyle.scale)
+        height: root.implicitHeight - y * 2
+
+        font.pixelSize: VLCStyle.icon_normal
+
+        radius: VLCStyle.radius_small
+        // the strip's own colors
+        backgroundColor: (hovered || visualFocus) ? timelineBar.colorContext.fg.primary
+                                                  : timelineBar.colorContext.fg.highlight
+        color: timelineBar.colorContext.bg.primary
+        opacity: enabled ? 1 : 0.5
 
         Navigation.parentItem: root
     }
@@ -109,29 +121,6 @@ FocusScope {
         anchors.fill: parent
 
         spacing: root.spacing
-
-        TimelineButton {
-            id: shiftEarlierButton
-
-            text: VLCIcons.chevron_left
-            description: qsTr("Show subtitles %1 ms earlier").arg(root._shiftStep)
-            onClicked: Player.subtitleDelayMS = Player.subtitleDelayMS - root._shiftStep
-
-            Navigation.leftItem: root.Navigation.leftItem
-            Navigation.rightItem: zoomOutButton
-        }
-
-        TimelineButton {
-            id: zoomOutButton
-
-            text: VLCIcons.remove
-            description: qsTr("Zoom out")
-            enabled: Player.subtitleTimeline.canZoomOut
-            onClicked: Player.subtitleTimeline.zoomOut()
-
-            Navigation.leftItem: shiftEarlierButton
-            Navigation.rightItem: root._timeline ? timelineBar : slider
-        }
 
         T.Label {
             id: timeLabel
@@ -178,6 +167,10 @@ FocusScope {
 
             barHeight: root.implicitHeight
 
+            // the lines stay clear of the keys over both ends
+            leftReserve: zoomOutButton.x + zoomOutButton.width
+            rightReserve: timelineBar.width - zoomInButton.x
+
             focus: root._timeline
 
             Navigation.parentItem: root
@@ -186,6 +179,62 @@ FocusScope {
 
             Keys.onPressed: (event) => {
                 Navigation.defaultKeyAction(event)
+            }
+
+            TimelineButton {
+                id: shiftEarlierButton
+
+                x: VLCStyle.dp(2, VLCStyle.scale)
+
+                text: VLCIcons.chevron_left
+                description: qsTr("Show subtitles %1 ms earlier").arg(root._shiftStep)
+                onClicked: Player.subtitleDelayMS = Player.subtitleDelayMS - root._shiftStep
+
+                Navigation.leftItem: root.Navigation.leftItem
+                Navigation.rightItem: zoomOutButton
+            }
+
+            TimelineButton {
+                id: zoomOutButton
+
+                x: shiftEarlierButton.x + shiftEarlierButton.width + VLCStyle.dp(2, VLCStyle.scale)
+                width: VLCStyle.dp(22, VLCStyle.scale)
+
+                text: VLCIcons.remove
+                description: qsTr("Zoom out")
+                enabled: Player.subtitleTimeline.canZoomOut
+                onClicked: Player.subtitleTimeline.zoomOut()
+
+                Navigation.leftItem: shiftEarlierButton
+                Navigation.rightItem: timelineBar
+            }
+
+            TimelineButton {
+                id: zoomInButton
+
+                x: shiftLaterButton.x - width - VLCStyle.dp(2, VLCStyle.scale)
+                width: VLCStyle.dp(22, VLCStyle.scale)
+
+                text: VLCIcons.add
+                description: qsTr("Zoom in")
+                enabled: Player.subtitleTimeline.canZoomIn
+                onClicked: Player.subtitleTimeline.zoomIn()
+
+                Navigation.leftItem: timelineBar
+                Navigation.rightItem: shiftLaterButton
+            }
+
+            TimelineButton {
+                id: shiftLaterButton
+
+                x: timelineBar.width - width - VLCStyle.dp(2, VLCStyle.scale)
+
+                text: VLCIcons.chevron_right
+                description: qsTr("Show subtitles %1 ms later").arg(root._shiftStep)
+                onClicked: Player.subtitleDelayMS = Player.subtitleDelayMS + root._shiftStep
+
+                Navigation.leftItem: zoomInButton
+                Navigation.rightItem: root.Navigation.rightItem
             }
         }
 
@@ -326,29 +375,6 @@ FocusScope {
 
                 x: (parent.width - width) / 2
             }
-        }
-
-        TimelineButton {
-            id: zoomInButton
-
-            text: VLCIcons.add
-            description: qsTr("Zoom in")
-            enabled: Player.subtitleTimeline.canZoomIn
-            onClicked: Player.subtitleTimeline.zoomIn()
-
-            Navigation.leftItem: timelineBar
-            Navigation.rightItem: shiftLaterButton
-        }
-
-        TimelineButton {
-            id: shiftLaterButton
-
-            text: VLCIcons.chevron_right
-            description: qsTr("Show subtitles %1 ms later").arg(root._shiftStep)
-            onClicked: Player.subtitleDelayMS = Player.subtitleDelayMS + root._shiftStep
-
-            Navigation.leftItem: zoomInButton
-            Navigation.rightItem: root.Navigation.rightItem
         }
     }
 }

@@ -174,8 +174,13 @@ T.Pane {
         ListView {
             id: chapterList
 
+            // Figma "Frame 53" (6321:14067): 20 px around, 32 px rows 12 px apart
             anchors.fill: parent
-            anchors.topMargin: VLCStyle.spacing_10
+            anchors.topMargin: VLCStyle.spacing_20
+            anchors.leftMargin: VLCStyle.spacing_20
+            anchors.rightMargin: VLCStyle.spacing_20
+
+            spacing: VLCStyle.spacing_12
 
             focus: true
             clip: true
@@ -208,12 +213,11 @@ T.Pane {
 
                 width: ListView.view.width
 
-                leftPadding: VLCStyle.spacing_20
-                rightPadding: VLCStyle.spacing_20
-                topPadding: VLCStyle.spacing_10
-                bottomPadding: VLCStyle.spacing_10
+                leftPadding: VLCStyle.spacing_4
+                rightPadding: VLCStyle.spacing_4
 
-                implicitHeight: implicitContentHeight + topPadding + bottomPadding
+                implicitHeight: Math.max(VLCStyle.dp(32, VLCStyle.scale),
+                                         implicitContentHeight + topPadding + bottomPadding)
 
                 hoverEnabled: true
 
@@ -239,9 +243,9 @@ T.Pane {
                     spacing: VLCStyle.spacing_10
 
                     Widgets.ListLabel {
-                        Layout.preferredWidth: VLCStyle.dp(30, VLCStyle.scale)
+                        Layout.preferredWidth: VLCStyle.dp(34, VLCStyle.scale)
 
-                        font.weight: Font.Normal
+                        font.weight: Font.Medium
                         text: chapterDelegate.index + 1
                         color: chapterTheme.accent
                     }

@@ -208,8 +208,27 @@ T.Control {
         colorSet: ColorContext.Window
     }
 
+    // a key drawn over the picture
+    component PictureKey : Widgets.IconButton {
+        visible: root._showKeys
+
+        font.pixelSize: VLCStyle.dp(43, VLCStyle.scale)
+
+        Navigation.parentItem: root
+        Navigation.upItem: picture
+        Navigation.downItem: folderButton.visible ? folderButton : queueButton
+    }
+
+    // the hover keys over the picture (Figma 975:4333)
+    readonly property bool _showKeys: pictureHover.hovered || MainCtx.usingTouch
+                                      || playButton.hovered || playButton.visualFocus
+                                      || previousButton.hovered || previousButton.visualFocus
+                                      || nextButton.hovered || nextButton.visualFocus
+                                      || stopButton.hovered || stopButton.visualFocus
+                                      || expandButton.hovered || expandButton.visualFocus
+
     background: Rectangle {
-        radius: VLCStyle.radius_large
+        radius: VLCStyle.radius_xlarge
         color: theme.bg.primary
         border.width: VLCStyle.border
         border.color: theme.border
@@ -220,8 +239,10 @@ T.Control {
         }
     }
 
+    // Figma 970:3090: the picture and its progress 4 px apart, then 20 px down
+    // the title and the buttons, 14 px apart in an 8 x 4 px padding
     contentItem: ColumnLayout {
-        spacing: VLCStyle.spacing_8
+        spacing: VLCStyle.spacing_4
 
         // the video, or the cover; clicking it returns to the player
         Item {
@@ -257,7 +278,7 @@ T.Control {
 
                 visible: !root.showsVideo
 
-                radius: VLCStyle.radius_small
+                radius: VLCStyle.radius_normal
                 color: theme.bg.secondary
 
                 Image {
@@ -312,15 +333,37 @@ T.Control {
                 border.color: theme.accent
             }
 
+            // while hovered, the picture dims under the keys
+            Rectangle {
+                anchors.fill: parent
+
+                visible: root._showKeys
+
+                radius: VLCStyle.radius_normal
+                color: theme.shadow.alpha(0.6)
+            }
+
+            PictureKey {
+                id: previousButton
+
+                anchors.verticalCenter: playButton.verticalCenter
+                anchors.right: playButton.left
+                anchors.rightMargin: VLCStyle.dp(40, VLCStyle.scale)
+
+                description: qsTr("Previous")
+                text: VLCIcons.previous
+                enabled: MainPlaylistController.hasPrev
+
+                Navigation.rightItem: playButton
+
+                onClicked: MainPlaylistController.prev()
+            }
+
             // play and pause without leaving the library
-            Widgets.IconButton {
+            PictureKey {
                 id: playButton
 
                 anchors.centerIn: parent
-
-                visible: pictureHover.hovered || hovered || visualFocus || MainCtx.usingTouch
-
-                font.pixelSize: VLCStyle.icon_large
 
                 description: root._playing ? qsTr("Pause") : qsTr("Play")
 
@@ -328,22 +371,74 @@ T.Control {
 
                 text: root._playing ? VLCIcons.pause_filled : VLCIcons.play_filled
 
-                textStyle: Text.Outline
-
-                Navigation.parentItem: root
-                Navigation.upItem: picture
-                Navigation.downItem: folderButton.visible ? folderButton : queueButton
+                Navigation.leftItem: previousButton
+                Navigation.rightItem: nextButton
 
                 onClicked: MainPlaylistController.togglePlayPause()
             }
+
+            PictureKey {
+                id: nextButton
+
+                anchors.verticalCenter: playButton.verticalCenter
+                anchors.left: playButton.right
+                anchors.leftMargin: VLCStyle.dp(40, VLCStyle.scale)
+
+                description: qsTr("Next")
+                text: VLCIcons.next
+                enabled: MainPlaylistController.hasNext
+
+                Navigation.leftItem: playButton
+
+                onClicked: MainPlaylistController.next()
+            }
+
+            // × stops, which closes the Mini player
+            PictureKey {
+                id: stopButton
+
+                x: VLCStyle.dp(14, VLCStyle.scale)
+                y: VLCStyle.dp(14, VLCStyle.scale)
+
+                font.pixelSize: VLCStyle.icon_normal
+
+                description: qsTr("Stop")
+                text: VLCIcons.close
+
+                Navigation.rightItem: expandButton
+
+                onClicked: MainPlaylistController.stop()
+            }
+
+            // ↗ back to the player
+            PictureKey {
+                id: expandButton
+
+                x: parent.width - width - VLCStyle.dp(14, VLCStyle.scale)
+                y: VLCStyle.dp(14, VLCStyle.scale)
+
+                font.pixelSize: VLCStyle.icon_normal
+
+                description: qsTr("Back to the player")
+                text: VLCIcons.open
+
+                Navigation.leftItem: stopButton
+
+                onClicked: MainCtx.playerView = true
+            }
         }
 
-        // how far it played
+        // how far it played: the seek bar's look, 16 px high
         Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: VLCStyle.spacing_8
+            id: progress
 
-            radius: height / 2
+            Layout.fillWidth: true
+            Layout.preferredHeight: VLCStyle.dp(16, VLCStyle.scale)
+
+            readonly property real _inset: VLCStyle.dp(2, VLCStyle.scale)
+            readonly property real _played: (width - _inset * 2) * Helpers.clamp(Player.position, 0, 1)
+
+            radius: VLCStyle.radius_normal
             color: progressTheme.bg.primary
 
             ColorContext {
@@ -355,26 +450,47 @@ T.Control {
             Accessible.name: qsTr("%1 of %2").arg(Player.time.formatHMS()).arg(Player.length.formatHMS())
 
             Rectangle {
-                width: parent.width * Helpers.clamp(Player.position, 0, 1)
-                height: parent.height
+                x: progress._inset
+                y: progress._inset
+                width: progress._played
+                height: parent.height - progress._inset * 2
 
-                radius: parent.radius
+                radius: VLCStyle.radius_small
                 color: progressTheme.bg.highlight
+            }
+
+            // with the keys, the handle at its end
+            Rectangle {
+                x: progress._inset + Math.max(0, progress._played - width)
+                y: progress._inset
+                width: VLCStyle.dp(8, VLCStyle.scale)
+                height: parent.height - progress._inset * 2
+
+                visible: root._showKeys
+
+                radius: VLCStyle.radius_small
+                color: progressTheme.fg.primary
             }
         }
 
         T.Label {
             Layout.fillWidth: true
-            Layout.topMargin: VLCStyle.spacing_4
+            Layout.topMargin: VLCStyle.spacing_20 + VLCStyle.spacing_4 - parent.spacing
+            Layout.leftMargin: VLCStyle.spacing_8
+            Layout.rightMargin: VLCStyle.spacing_8
 
             text: Player.title || Player.name
             elide: Text.ElideRight
-            color: theme.fg.primary
-            font.pixelSize: VLCStyle.fontSize_normal
+            color: theme.fg.secondary
+            font.pixelSize: VLCStyle.fontSize_xlarge
         }
 
         RowLayout {
             Layout.fillWidth: true
+            Layout.topMargin: VLCStyle.spacing_14 - parent.spacing
+            Layout.leftMargin: VLCStyle.spacing_8 - folderButton.leftPadding
+            Layout.rightMargin: VLCStyle.spacing_8 - VLCStyle.spacing_4
+            Layout.bottomMargin: VLCStyle.spacing_4
 
             spacing: VLCStyle.spacing_4
 
@@ -434,7 +550,8 @@ T.Control {
             Widgets.IconToolButton {
                 id: queueButton
 
-                text: VLCIcons.queue
+                // Figma "lists" (217:191), as the Control bar's
+                text: checked ? VLCIcons.lists_active : VLCIcons.lists
                 description: qsTr("Queue")
 
                 checked: MainCtx.playqueuePanel.visible

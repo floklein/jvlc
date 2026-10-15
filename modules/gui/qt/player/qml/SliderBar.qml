@@ -605,6 +605,10 @@ T.ProgressBar {
 
             model: Player.chapters
             Item {
+                // the delegates are children of the Repeater's parent: its
+                // visibility does not hide them (the thick bar draws ticks)
+                visible: seekpointsRptr.visible
+
                 Rectangle {
                     id: seekpointsRect
                     readonly property real startPosition: model.startPosition ??  0.0

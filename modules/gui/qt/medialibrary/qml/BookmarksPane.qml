@@ -106,8 +106,13 @@ FocusScope {
         ListView {
             id: bookmarkList
 
+            // Figma 6320:13811: 20 px aside, 32 px rows 12 px apart
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.leftMargin: VLCStyle.spacing_20
+            Layout.rightMargin: VLCStyle.spacing_20
+
+            spacing: VLCStyle.spacing_12
 
             focus: true
             clip: true
@@ -142,12 +147,10 @@ FocusScope {
 
                 width: ListView.view.width
 
-                leftPadding: VLCStyle.spacing_20
-                rightPadding: VLCStyle.spacing_20
-                topPadding: VLCStyle.spacing_10
-                bottomPadding: VLCStyle.spacing_10
+                rightPadding: VLCStyle.spacing_4
 
-                implicitHeight: implicitContentHeight + topPadding + bottomPadding
+                implicitHeight: Math.max(VLCStyle.dp(32, VLCStyle.scale),
+                                         implicitContentHeight + topPadding + bottomPadding)
 
                 hoverEnabled: true
 

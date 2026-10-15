@@ -181,6 +181,8 @@ T.Pane {
 
                 color: theme.fg.secondary
                 font.pixelSize: VLCStyle.fontSize_normal
+                // Figma "4 items - 2h 3m" (463:841): Inter Regular
+                font.weight: Font.Normal
 
                 text: {
                     if (root.model.count === 0)

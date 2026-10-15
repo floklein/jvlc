@@ -1226,7 +1226,8 @@ FocusScope {
             visible: MainCtx.pinVideoControls && !MainCtx.hasEmbededVideo
         }
 
-        // docked above the video: the Theme's window background (Figma BG/A3)
+        // docked in a window, above the video or the music player's cover:
+        // the Theme's window background (Figma BG/A3, 247:447 and 4767:23728)
         Rectangle {
             z: -1
 
@@ -1235,7 +1236,7 @@ FocusScope {
             color: windowTheme.bg.primary
             opacity: topBarAcrylicBg.opacity
 
-            visible: rootPlayer._controlsUnderVideo && MainCtx.hasEmbededVideo
+            visible: rootPlayer._controlsUnderVideo
         }
 
         Widgets.TintBackground {
@@ -1782,7 +1783,9 @@ FocusScope {
                     return 1.0 // the Tint is translucent
                 } else if ((Window.visibility === Window.FullScreen) && MainCtx.hasEmbededVideo) {
                     return MainCtx.pinOpacity
-                } else if (!MainCtx.hasEmbededVideo) {
+                } else if (!MainCtx.hasEmbededVideo && !rootPlayer._controlsUnderVideo) {
+                    // docked in a window, the music player's bars are as
+                    // opaque as the video player's (Figma 4767:23726)
                     return 0.7
                 } else {
                     return 1.0
