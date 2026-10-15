@@ -305,6 +305,8 @@ libqt_plugin_la_SOURCES = \
 	player/sleep_timer.hpp \
 	player/playback_statistics.cpp \
 	player/playback_statistics.hpp \
+	player/subtitle_appearance.cpp \
+	player/subtitle_appearance.hpp \
 	player/video_adjustments.cpp \
 	player/video_adjustments.hpp \
 	player/player_video_outputs.cpp \
@@ -520,6 +522,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	player/waveform_bars.moc.cpp \
 	player/sleep_timer.moc.cpp \
 	player/playback_statistics.moc.cpp \
+	player/subtitle_appearance.moc.cpp \
 	player/video_adjustments.moc.cpp \
 	playlist/playlist_controller.moc.cpp \
 	playlist/playlist_item.moc.cpp \
@@ -1204,6 +1207,7 @@ libqml_module_player_a_QML = \
 	player/qml/AdjustmentsPlaybackTab.qml \
 	player/qml/AdjustmentsVideoTab.qml \
 	player/qml/StatisticsOverlay.qml \
+	player/qml/AdjustmentsSubtitlesTab.qml \
 	player/qml/TracksMenu.qml \
 	player/qml/TracksPage.qml \
 	player/qml/TracksPageAudio.qml \
@@ -2361,6 +2365,25 @@ test_playback_tab_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_playback_tab_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_playback_tab
 TESTS += test_playback_tab
+
+# test_subtitle_appearance
+
+test_subtitle_appearance_SOURCES = \
+	tests/test_subtitle_appearance.cpp \
+	player/subtitle_appearance.cpp player/subtitle_appearance.hpp
+
+nodist_test_subtitle_appearance_SOURCES = \
+	tests/test_subtitle_appearance.moc \
+	player/subtitle_appearance.moc.cpp
+
+BUILT_SOURCES += tests/test_subtitle_appearance.moc
+CLEANFILES += tests/test_subtitle_appearance.moc
+test_subtitle_appearance_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_subtitle_appearance_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_subtitle_appearance_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_subtitle_appearance_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_subtitle_appearance
+TESTS += test_subtitle_appearance
 
 # test_video_tab
 

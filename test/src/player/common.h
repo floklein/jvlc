@@ -35,6 +35,19 @@ static const char *state_to_string(enum vlc_player_state state)
     vlc_assert_unreachable();
 };
 
+/* What the "test_src_player_text" text renderer (modules.c) reports, through
+ * the "test-text-report" address variable. A text rendered again (laid out a
+ * second time) records the font it was rendered again with. */
+struct text_render_report
+{
+    vlc_mutex_t lock;
+    vlc_cond_t wait;
+    size_t count;
+    char *texts[256]; /* the texts rendered so far */
+    size_t text_count;
+    char *rerendered_font; /* font of the last text rendered again */
+};
+
 struct report_capabilities
 {
     int old_caps;

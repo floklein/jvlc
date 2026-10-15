@@ -391,6 +391,7 @@ spu_Render
 spu_RegisterChannel
 spu_UnregisterChannel
 spu_ClearChannel
+spu_RedrawSubtitles
 vlc_stream_directory_Attach
 vlc_stream_extractor_Attach
 vlc_stream_extractor_CreateMRL
@@ -891,6 +892,7 @@ vlc_player_GetSignal
 vlc_player_GetState
 vlc_player_GetStatistics
 vlc_player_GetStreamOutput
+vlc_player_GetSubtitleTextOption
 vlc_player_GetSubtitleTextScale
 vlc_player_GetTeletextPage
 vlc_player_GetTime
@@ -957,6 +959,7 @@ vlc_player_SetPlayAndPause
 vlc_player_SetPauseAtEnd
 vlc_player_IsEnded
 vlc_player_SetRepeatCount
+vlc_player_SetSubtitleTextOption
 vlc_player_SetSubtitleTextScale
 vlc_player_SetTeletextEnabled
 vlc_player_SetTeletextTransparency
@@ -983,6 +986,7 @@ vlc_player_vout_RemoveListener
 vlc_player_vout_SetFullscreen
 vlc_player_vout_SetWallpaperModeEnabled
 vlc_player_vout_Snapshot
+vlc_player_vout_RedrawSubtitles
 vlc_playlist_item_Hold
 vlc_playlist_item_Release
 vlc_playlist_item_GetMedia

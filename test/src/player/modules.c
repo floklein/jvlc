@@ -7,6 +7,9 @@
 
 #include "common.h"
 
+#include <vlc_subpicture.h>
+#include <vlc_text_style.h>
+
 #define MODULE_NAME test_src_player
 #undef VLC_DYNAMIC_PLUGIN
 #include <vlc_plugin.h>
@@ -143,6 +146,54 @@ static int resampler_Open(vlc_object_t *obj)
     return VLC_SUCCESS;
 }
 
+static subpicture_region_t *text_Render(filter_t *filter,
+                                        const subpicture_region_t *region_in,
+                                        const vlc_fourcc_t *chroma_list)
+{
+    (void) chroma_list;
+    struct text_render_report *report =
+        var_InheritAddress(filter, "test-text-report");
+    if (report == NULL || region_in->p_text == NULL
+     || region_in->p_text->psz_text == NULL)
+        return NULL;
+
+    /* read on every render, like the freetype renderer */
+    char *font = var_InheritString(filter, "freetype-font");
+    const char *text = region_in->p_text->psz_text;
+
+    vlc_mutex_lock(&report->lock);
+    report->count++;
+    bool seen = false;
+    for (size_t i = 0; i < report->text_count && !seen; ++i)
+        seen = strcmp(report->texts[i], text) == 0;
+    if (seen)
+    {
+        free(report->rerendered_font);
+        report->rerendered_font = font;
+        font = NULL;
+    }
+    else if (report->text_count < ARRAY_SIZE(report->texts))
+    {
+        report->texts[report->text_count] = strdup(text);
+        assert(report->texts[report->text_count] != NULL);
+        report->text_count++;
+    }
+    vlc_cond_broadcast(&report->wait);
+    vlc_mutex_unlock(&report->lock);
+
+    free(font);
+    /* nothing to draw */
+    return NULL;
+}
+
+static int text_Open(filter_t *filter)
+{
+    static const struct vlc_filter_operations filter_ops =
+        { .render = text_Render, };
+    filter->ops = &filter_ops;
+    return VLC_SUCCESS;
+}
+
 vlc_module_begin()
     /* This aout module will report audio timings perfectly, but without any
      * delay, in order to be usable for player tests. Indeed, this aout will
@@ -155,6 +206,10 @@ vlc_module_begin()
      * Insert our own resampler that keeps blocks and pts untouched. */
     set_capability ("audio resampler", 9999)
     set_callback (resampler_Open)
+    add_submodule ()
+    /* A text renderer reporting what it renders, selected by name only */
+    add_shortcut ("test_src_player_text")
+    set_callback_text_renderer (text_Open, 0)
 vlc_module_end()
 
 VLC_EXPORT const vlc_plugin_cb vlc_static_modules[] = {

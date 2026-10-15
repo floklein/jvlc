@@ -43,6 +43,7 @@ Q_MOC_INCLUDE("player/waveform.hpp")
 Q_MOC_INCLUDE("player/video_adjustments.hpp")
 Q_MOC_INCLUDE("player/sleep_timer.hpp")
 Q_MOC_INCLUDE("player/playback_statistics.hpp")
+Q_MOC_INCLUDE("player/subtitle_appearance.hpp")
 Q_MOC_INCLUDE("player/audio_adjustments.hpp")
 
 using vlc_player_locker = vlc_locker<vlc_player_t, vlc_player_Lock, vlc_player_Unlock>;
@@ -55,6 +56,7 @@ class SeekWaveform;
 class VideoAdjustments;
 class SleepTimer;
 class PlaybackStatistics;
+class SubtitleAppearance;
 class AudioAdjustments;
 class QSignalMapper;
 
@@ -181,7 +183,11 @@ public:
     Q_PROPERTY(int audioDelayMS READ getAudioDelayMS WRITE setAudioDelayMS NOTIFY audioDelayChanged FINAL)
     Q_PROPERTY(int subtitleDelayMS READ getSubtitleDelayMS WRITE setSubtitleDelayMS NOTIFY subtitleDelayChanged FINAL)
     Q_PROPERTY(int secondarySubtitleDelayMS READ getSecondarySubtitleDelayMS WRITE setSecondarySubtitleDelayMS NOTIFY secondarySubtitleDelayChanged FINAL)
+    // a second subtitle is shown, with its own delay
+    Q_PROPERTY(bool hasSecondarySubtitle READ hasSecondarySubtitle NOTIFY hasSecondarySubtitleChanged FINAL)
     Q_PROPERTY(float subtitleFPS READ getSubtitleFPS WRITE setSubtitleFPS NOTIFY subtitleFPSChanged FINAL)
+    // multiplies the duration of the subtitle lines, 0 to keep them
+    Q_PROPERTY(double subtitleDurationFactor READ getSubtitleDurationFactor WRITE setSubtitleDurationFactor NOTIFY subtitleDurationFactorChanged FINAL)
     Q_PROPERTY(TimedText currentLyric READ getCurrentLyric NOTIFY currentLyricChanged FINAL)
     Q_PROPERTY(bool hasLyrics READ hasLyrics NOTIFY hasLyricsChanged FINAL)
     Q_PROPERTY(QList<TimedText> syltLyrics READ getSyltLyrics NOTIFY syltLyricsChanged FINAL)
@@ -248,6 +254,8 @@ public:
     Q_PROPERTY(SleepTimer* sleepTimer READ getSleepTimer CONSTANT FINAL)
     Q_PROPERTY(PlaybackStatistics* statistics READ getStatistics CONSTANT FINAL)
 
+    // the Defaults and Appearance of the Subtitles tab
+    Q_PROPERTY(SubtitleAppearance* subtitleAppearance READ getSubtitleAppearance CONSTANT FINAL)
     // the default language, stereo mode and filters of the Audio tab
     Q_PROPERTY(AudioAdjustments* audioAdjustments READ getAudioAdjustments CONSTANT FINAL)
 
@@ -387,9 +395,12 @@ public slots:
     int getSubtitleDelayMS() const;
     void setSubtitleDelayMS( int );
     int getSecondarySubtitleDelayMS() const;
+    bool hasSecondarySubtitle() const;
     void setSecondarySubtitleDelayMS( int );
     float getSubtitleFPS( ) const;
     void setSubtitleFPS( float );
+    double getSubtitleDurationFactor() const;
+    void setSubtitleDurationFactor( double );
 
     //title/chapters/menu
     TitleListModel* getTitles();
@@ -475,6 +486,7 @@ public slots:
 
     SleepTimer* getSleepTimer();
     PlaybackStatistics* getStatistics();
+    SubtitleAppearance* getSubtitleAppearance();
     AudioAdjustments* getAudioAdjustments();
     /// the sleep timer follows the Queue: call when the current item, the
     /// items or the repeat mode change
@@ -507,7 +519,9 @@ signals:
     void audioDelayChanged(VLCDuration);
     void subtitleDelayChanged(VLCDuration);
     void secondarySubtitleDelayChanged(VLCDuration);
+    void hasSecondarySubtitleChanged();
     void subtitleFPSChanged(float);
+    void subtitleDurationFactorChanged();
 
     //title/chapters/menu
     void hasTitlesChanged( bool );

@@ -2439,6 +2439,34 @@ void spu_ClearChannel(spu_t *spu, size_t channel_id)
     vlc_mutex_unlock(&sys->lock);
 }
 
+void spu_RedrawSubtitles(spu_t *spu)
+{
+    spu_private_t *sys = container_of(spu, spu_private_t, spu);
+    size_t count = 0;
+
+    vlc_mutex_lock(&sys->lock);
+    for (size_t i = 0; i < sys->channels.size; i++)
+    {
+        struct spu_channel *channel = &sys->channels.data[i];
+        for (size_t j = 0; j < channel->entries.size; j++, count++)
+        {
+            subpicture_t *subpic = channel->entries.data[j].subpic;
+
+            /* The next update lays the text out again, so the text renderer
+             * renders it with its current options, even if it has already
+             * been rendered (in advance or on screen). */
+            vlc_mutex_lock(&sys->prerender.lock);
+            while (sys->prerender.p_processed == subpic)
+                vlc_cond_wait(&sys->prerender.output_cond, &sys->prerender.lock);
+            subpicture_InvalidateUpdate(subpic);
+            vlc_mutex_unlock(&sys->prerender.lock);
+        }
+    }
+    vlc_mutex_unlock(&sys->lock);
+
+    msg_Dbg(spu, "redrawing %zu subpicture(s)", count);
+}
+
 void spu_UnregisterChannel(spu_t *spu, size_t channel_id)
 {
     spu_private_t *sys = container_of(spu, spu_private_t, spu);

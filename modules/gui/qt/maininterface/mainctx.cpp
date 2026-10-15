@@ -52,6 +52,7 @@
 #include "network/saved_streams_model.hpp"
 #include "player/player_controller.hpp"
 #include "player/shortcut_message.hpp"
+#include "player/subtitle_appearance.hpp"
 #include "player/waveform.hpp"
 #include "medialibrary/medialib.hpp"
 
@@ -266,6 +267,9 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
         // the keyboard shortcuts of the Profile; global keys need a restart
         vlc_actions_reload(vlc_object_instance(p_intf));
         notifyKeyBindingsChanged();
+        // the subtitle look lives in the player too
+        if (p_intf->p_mainPlayerController)
+            p_intf->p_mainPlayerController->getSubtitleAppearance()->reload();
     });
 
     const QUrl homeUrl = QUrl::fromLocalFile(QVLCUserDir( VLC_HOME_DIR ));

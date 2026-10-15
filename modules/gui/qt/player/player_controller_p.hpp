@@ -136,6 +136,7 @@ public:
     VLCDuration  m_subtitleDelay;
     VLCDuration  m_secondarySubtitleDelay;
     float        m_subtitleFPS = 1.0;
+    double       m_subtitleDurationFactor = 0.;
 
     //timer
     vlc_player_timer_id* m_player_timer = nullptr;
@@ -203,6 +204,7 @@ public:
     SleepTimer* m_sleepTimer = nullptr;
     VideoAdjustments* m_videoAdjustments = nullptr;
     PlaybackStatistics* m_statistics = nullptr;
+    SubtitleAppearance* m_subtitleAppearance = nullptr;
     AudioAdjustments* m_audioAdjustments = nullptr;
 
     // meta

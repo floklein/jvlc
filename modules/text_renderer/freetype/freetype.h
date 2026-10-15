@@ -107,6 +107,8 @@ typedef struct
     int               i_scale;
     int               i_font_default_size;
     int               i_outline_thickness;
+    /* use the subtitles' own styles (bold, italic, colors…) */
+    bool              b_keep_styling;
 
     vlc_fourcc_t      i_forced_chroma;
 

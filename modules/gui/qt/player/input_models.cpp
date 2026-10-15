@@ -105,6 +105,8 @@ QVariant TrackListModel::data(const QModelIndex &index, int role) const
     else if (role == SecondaryRole)
         return QVariant::fromValue<bool>(m_secondary != nullptr
                                          && m_data[row].m_id.get() == m_secondary);
+    else if (role == StyledRole)
+        return QVariant::fromValue<bool>(m_data[row].m_styled);
     return QVariant{};
 }
 
@@ -284,6 +286,14 @@ void TrackListModel::setSecondary(vlc_es_id_t *trackid)
 
 void TrackListModel::updateHasSelection()
 {
+    const bool styledSelected = std::any_of(m_data.cbegin(), m_data.cend(),
+                                            [](const Data& t) { return t.m_selected && t.m_styled; });
+    if (styledSelected != m_styledSelected)
+    {
+        m_styledSelected = styledSelected;
+        emit styledSelectedChanged();
+    }
+
     const bool hasSelection = std::any_of(m_data.cbegin(), m_data.cend(),
                                           [](const Data& t) { return t.m_selected; });
     if (hasSelection == m_hasSelection)
@@ -389,6 +399,7 @@ QHash<int, QByteArray> TrackListModel::roleNames() const
     roleNames[Qt::CheckStateRole] = QByteArrayLiteral("checked");
     roleNames[ExternalRole] = QByteArrayLiteral("external");
     roleNames[SecondaryRole] = QByteArrayLiteral("secondary");
+    roleNames[StyledRole] = QByteArrayLiteral("styled");
     return roleNames;
 }
 
@@ -423,6 +434,7 @@ TrackListModel::Data::Data(const vlc_player_track *track_info)
     , m_id( track_info->es_id, true )
     , m_selected( track_info->selected )
     , m_external( isExternalTrack(track_info->es_id) )
+    , m_styled( track_info->fmt.i_codec == VLC_CODEC_SSA )
 {
 }
 
@@ -432,6 +444,7 @@ void TrackListModel::Data::update(const vlc_player_track *track_info)
     m_title = qfu(track_info->name);
     m_selected = track_info->selected;
     m_external = isExternalTrack(track_info->es_id);
+    m_styled = track_info->fmt.i_codec == VLC_CODEC_SSA;
 }
 
 

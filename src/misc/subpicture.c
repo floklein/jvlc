@@ -215,6 +215,23 @@ void subpicture_Update( subpicture_t *p_subpicture,
     p_private->display_height = display_height;
 }
 
+void subpicture_InvalidateUpdate( subpicture_t *p_subpicture )
+{
+    subpicture_private_t *p_private = p_subpicture->p_private;
+
+    if( p_private == NULL )
+        return;
+
+    /* The updaters compare the current formats with these ones and skip the
+     * update when nothing changed */
+    video_format_Clean( &p_private->src );
+    video_format_Clean( &p_private->dst );
+    video_format_Init( &p_private->src, 0 );
+    video_format_Init( &p_private->dst, 0 );
+    p_private->display_width = 0;
+    p_private->display_height = 0;
+}
+
 typedef struct subpicture_region_private_t
 {
     subpicture_region_t region;

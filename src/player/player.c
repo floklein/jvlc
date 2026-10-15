@@ -25,6 +25,7 @@
 #include <limits.h>
 
 #include <vlc_common.h>
+#include <vlc_configuration.h>
 #include "player.h"
 #include <vlc_aout.h>
 #include <vlc_renderer_discovery.h>
@@ -1982,12 +1983,42 @@ vlc_player_SetSubtitleTextScale(vlc_player_t *player, unsigned scale)
 {
     assert(scale >= 10 && scale <= 500);
     var_SetInteger(player, "sub-text-scale", scale);
+    vlc_player_vout_RedrawSubtitles(player);
 }
 
 unsigned
 vlc_player_GetSubtitleTextScale(vlc_player_t *player)
 {
     return var_GetInteger(player, "sub-text-scale");
+}
+
+/* the type of a text renderer option held by the player, or 0 */
+static int
+vlc_player_GetSubtitleTextOptionType(vlc_player_t *player, const char *option)
+{
+    if (strncmp(option, "freetype-", strlen("freetype-")) != 0)
+        return 0;
+    return var_Type(player, option) & VLC_VAR_CLASS;
+}
+
+int
+vlc_player_SetSubtitleTextOption(vlc_player_t *player, const char *option,
+                                 vlc_value_t value)
+{
+    int type = vlc_player_GetSubtitleTextOptionType(player, option);
+    if (type == 0)
+        return VLC_ENOENT;
+    return var_SetChecked(player, option, type, value);
+}
+
+int
+vlc_player_GetSubtitleTextOption(vlc_player_t *player, const char *option,
+                                 vlc_value_t *value)
+{
+    int type = vlc_player_GetSubtitleTextOptionType(player, option);
+    if (type == 0)
+        return VLC_ENOENT;
+    return var_GetChecked(player, option, type, value);
 }
 
 int
@@ -2184,6 +2215,25 @@ vlc_player_New(vlc_object_t *parent, enum vlc_player_lock_type lock_type)
     VAR_CREATE("sub-fps", VLC_VAR_FLOAT | VLC_VAR_DOINHERIT);
     VAR_CREATE("sub-text-scale", VLC_VAR_INTEGER | VLC_VAR_DOINHERIT);
     VAR_CREATE("demux-filter", VLC_VAR_STRING | VLC_VAR_DOINHERIT);
+
+    /* text renderer variables, read on every render: set them with
+     * vlc_player_SetSubtitleTextOption(), then call
+     * vlc_player_vout_RedrawSubtitles(). Only when the text renderer that
+     * declares them is there. */
+    static const char *const text_options[] = {
+        "freetype-font", "freetype-opacity", "freetype-color",
+        "freetype-background-opacity", "freetype-background-color",
+        "freetype-outline-opacity", "freetype-outline-color",
+        "freetype-outline-thickness", "freetype-shadow-opacity",
+        "freetype-shadow-color", "freetype-pixel-size",
+        "freetype-keep-styling",
+    };
+    for (size_t i = 0; i < ARRAY_SIZE(text_options); ++i)
+    {
+        int type = config_GetType(text_options[i]);
+        if (type != 0)
+            VAR_CREATE(text_options[i], type | VLC_VAR_DOINHERIT);
+    }
 
     /* aout variables */
     VAR_CREATE("audio-filter", VLC_VAR_STRING | VLC_VAR_DOINHERIT);

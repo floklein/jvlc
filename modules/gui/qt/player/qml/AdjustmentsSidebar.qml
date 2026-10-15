@@ -56,6 +56,11 @@ T.Pane {
         Player.audioAdjustments.resetAll()
         if (Player.rate !== 1)
             Player.rate = 1
+        // the subtitle synchronization; the look is a preference
+        Player.subtitleDelayMS = 0
+        if (Player.hasSecondarySubtitle)
+            Player.secondarySubtitleDelayMS = 0
+        Player.subtitleDurationFactor = 0
     }
 
     function _tabInfo(tab) {
@@ -138,7 +143,7 @@ T.Pane {
                 case RightPanelFSM.Audio:
                     return audioTab
                 default:
-                    return pendingTab
+                    return subtitlesTab
                 }
             }
 
@@ -169,52 +174,12 @@ T.Pane {
                 }
             }
 
-            // The Subtitles tab is built by a later ticket (#53): until then
-            // it opens the old dialog
             Component {
-                id: pendingTab
+                id: subtitlesTab
 
-                FocusScope {
-                    ColumnLayout {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.margins: VLCStyle.spacing_20
-
-                        spacing: VLCStyle.spacing_14
-
-                        T.Label {
-                            Layout.fillWidth: true
-
-                            text: qsTr("These adjustments are still in the Adjustments and Effects dialog.")
-                            wrapMode: Text.WordWrap
-                            color: theme.fg.secondary
-                            font.pixelSize: VLCStyle.fontSize_normal
-                            font.family: VLCStyle.fontFamily
-                        }
-
-                        Widgets.ButtonExt {
-                            id: dialogButton
-
-                            focus: true
-
-                            text: qsTr("Open Adjustments and Effects")
-
-                            Navigation.parentItem: root
-                            Navigation.upItem: tabBar.itemAt(root.fsm.tabs.indexOf(root.fsm.currentTab))
-
-                            // the dialog's tabs: 0 audio, 2 synchronization
-                            onClicked: {
-                                switch (root.fsm.currentTab) {
-                                case RightPanelFSM.Audio:
-                                    DialogsProvider.showExtendedDialogTab(0)
-                                    break
-                                default:
-                                    DialogsProvider.showExtendedDialogTab(2)
-                                }
-                            }
-                        }
-                    }
+                AdjustmentsSubtitlesTab {
+                    Navigation.parentItem: root
+                    Navigation.upItem: tabBar.itemAt(root.fsm.tabs.indexOf(root.fsm.currentTab))
                 }
             }
         }

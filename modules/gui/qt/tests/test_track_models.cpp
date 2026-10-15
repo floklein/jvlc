@@ -325,6 +325,54 @@ private slots:
         QCOMPARE(checkedDevice(), QStringLiteral("USB headset"));
     }
 
+    /* Styled ASS subtitles draw themselves: the Subtitles tab disables its
+     * Appearance while one is shown (ticket #53) */
+    void testStyledSubtitles()
+    {
+        const int count = m_subtitles->getCount();
+        const QString path = m_dir.filePath("styled.ass");
+        QFile ass(path);
+        QVERIFY(ass.open(QIODevice::WriteOnly));
+        ass.write("[Script Info]\nScriptType: v4.00+\n\n"
+                  "[V4+ Styles]\n"
+                  "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, "
+                  "OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, "
+                  "ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, "
+                  "Alignment, MarginL, MarginR, MarginV, Encoding\n"
+                  "Style: Default,Arial,20,&H00FFFFFF,&H000000FF,&H00000000,"
+                  "&H00000000,0,0,0,0,100,100,0,0,1,2,2,2,10,10,10,1\n\n"
+                  "[Events]\n"
+                  "Format: Layer, Start, End, Style, Name, MarginL, MarginR, "
+                  "MarginV, Effect, Text\n"
+                  "Dialogue: 0,0:00:00.00,0:10:00.00,Default,,0,0,0,,styled line\n");
+        ass.close();
+        const QByteArray uri = QUrl::fromLocalFile(path).toEncoded();
+        {
+            vlc_player_locker locker{ player() };
+            QCOMPARE(vlc_player_AddAssociatedMedia(player(), SPU_ES, uri.constData(),
+                                                   false, false, false), VLC_SUCCESS);
+        }
+        QTRY_COMPARE(m_subtitles->getCount(), count + 1);
+        const int styledRow = count;
+
+        QCOMPARE(m_subtitles->roleNames().value(TrackListModel::StyledRole),
+                 QByteArray("styled"));
+        QVERIFY(m_subtitles->data(m_subtitles->index(styledRow), TrackListModel::StyledRole).toBool());
+        QVERIFY(!m_subtitles->data(m_subtitles->index(0), TrackListModel::StyledRole).toBool());
+
+        m_subtitles->select(0);
+        QTRY_COMPARE(selectedNames(), name(0));
+        QVERIFY(!m_subtitles->styledSelected());
+
+        QSignalSpy spy(m_subtitles.get(), &TrackListModel::styledSelectedChanged);
+        m_subtitles->select(styledRow);
+        QTRY_VERIFY(m_subtitles->styledSelected());
+        QVERIFY(spy.count() > 0);
+
+        m_subtitles->unselectAll();
+        QTRY_VERIFY(!m_subtitles->styledSelected());
+    }
+
     void cleanupTestCase()
     {
         {

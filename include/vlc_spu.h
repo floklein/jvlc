@@ -97,6 +97,14 @@ VLC_API void spu_UnregisterChannel( spu_t *, size_t );
 VLC_API void spu_ClearChannel( spu_t *, size_t );
 
 /**
+ * It renders the queued and displayed subtitles again.
+ *
+ * Text subtitles are laid out again at their next render, with the current
+ * text renderer options, including the line already on screen.
+ */
+VLC_API void spu_RedrawSubtitles( spu_t * );
+
+/**
  * It changes the sub sources list
  */
 VLC_API void spu_ChangeSources( spu_t *, const char * );

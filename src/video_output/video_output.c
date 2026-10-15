@@ -645,6 +645,14 @@ void vout_ChangeSpuChannelMargin(vout_thread_t *vout,
         spu_ChangeChannelOrderMargin(sys->spu, order, margin);
 }
 
+void vout_RedrawSubtitles(vout_thread_t *vout)
+{
+    vout_thread_sys_t *sys = VOUT_THREAD_TO_SYS(vout);
+    assert(!sys->dummy);
+    if (likely(sys->spu != NULL))
+        spu_RedrawSubtitles(sys->spu);
+}
+
 void vout_ChangeViewpoint(vout_thread_t *vout,
                           const vlc_viewpoint_t *p_viewpoint)
 {

@@ -27,11 +27,13 @@
 #include "player/waveform.hpp"
 #include "player/sleep_timer.hpp"
 #include "player/playback_statistics.hpp"
+#include "player/subtitle_appearance.hpp"
 #include "player/video_adjustments.hpp"
 #include "player/player_video_outputs.hpp"
 #include "player/audio_adjustments.hpp"
 
 #include <vlc_actions.h>           /* ACTION_ID */
+#include <vlc_configuration.h>
 #include <vlc_url.h>            /* vlc_uri_decode */
 #include <vlc_strings.h>        /* vlc_strfplayer */
 #include <vlc_aout.h>           /* audio_output_t */
@@ -41,6 +43,8 @@
 #include <vlc_preparser.h>
 #include <vlc_media_library.h>
 #include <vlc_playlist.h>
+
+#include <algorithm>
 
 #include <QFile>
 #include <QDir>
@@ -304,6 +308,9 @@ void PlayerControllerPrivate::UpdateVouts(vout_thread_t **vouts, size_t i_vouts,
 
 void PlayerControllerPrivate::UpdateSpuOrder(vlc_es_id_t *es_id, enum vlc_vout_order order)
 {
+    Q_Q(PlayerController);
+    const bool hadSecondary = m_secondarySpuEsId.get() != NULL;
+
     switch (order)
     {
         case VLC_VOUT_ORDER_NONE:
@@ -323,6 +330,9 @@ void PlayerControllerPrivate::UpdateSpuOrder(vlc_es_id_t *es_id, enum vlc_vout_o
         default:
             break;
     }
+
+    if (hadSecondary != (m_secondarySpuEsId.get() != NULL))
+        emit q->hasSecondarySubtitleChanged();
 }
 
 int PlayerControllerPrivate::interpolateTime(vlc_tick_t system_now)
@@ -1274,10 +1284,193 @@ void PlayerControllerPrivate::removeSMPTETimer()
     m_player_timer_smpte = nullptr;
 }
 
+namespace {
+
+/* The subtitle options of the Subtitles tab: saved in the configuration (the
+ * Profile) and applied to the player, whose variables the text renderer
+ * inherits, or to the video outputs for the vertical offset */
+class PlayerSubtitleOptions : public SubtitleAppearance::Backend
+{
+public:
+    PlayerSubtitleOptions( qt_intf_t *intf, vlc_player_t *player )
+        : m_intf( intf ), m_player( player )
+    {
+        m_saveTimer.setSingleShot( true );
+        m_saveTimer.setInterval( 1000 );
+        QObject::connect( &m_saveTimer, &QTimer::timeout, [this]() {
+            config_SaveConfigFile( m_intf );
+        } );
+    }
+
+    ~PlayerSubtitleOptions() override
+    {
+        if ( m_saveTimer.isActive() )
+            config_SaveConfigFile( m_intf );
+    }
+
+    QVariant value( const char *option ) const override
+    {
+        const int type = config_GetType( option );
+
+        /* the player's value may have changed since (a hotkey…) */
+        if ( !strcmp( option, "sub-text-scale" ) )
+        {
+            vlc_player_locker lock{ m_player };
+            return vlc_player_GetSubtitleTextScale( m_player );
+        }
+        if ( !strcmp( option, "sub-language" ) )
+        {
+            vlc_player_locker lock{ m_player };
+            char *psz = vlc_player_GetCategoryLanguage( m_player, SPU_ES );
+            QString language = qfu( psz );
+            free( psz );
+            return language;
+        }
+        vlc_value_t val;
+        if ( vlc_player_GetSubtitleTextOption( m_player, option, &val ) == VLC_SUCCESS )
+        {
+            switch ( type )
+            {
+            case VLC_VAR_BOOL:
+                return val.b_bool;
+            case VLC_VAR_INTEGER:
+                return QVariant::fromValue<qlonglong>( val.i_int );
+            case VLC_VAR_STRING:
+            {
+                QString string = qfu( val.psz_string );
+                free( val.psz_string );
+                return string;
+            }
+            default:
+                return {};
+            }
+        }
+
+        switch ( type )
+        {
+        case VLC_VAR_BOOL:
+            return config_GetInt( option ) != 0;
+        case VLC_VAR_INTEGER:
+            return QVariant::fromValue<qlonglong>( config_GetInt( option ) );
+        case VLC_VAR_STRING:
+        {
+            char *psz = config_GetPsz( option );
+            QString string = qfu( psz );
+            free( psz );
+            return string;
+        }
+        default:
+            return {};
+        }
+    }
+
+    void setValue( const char *option, const QVariant &value ) override
+    {
+        const QByteArray utf8 = value.toString().toUtf8();
+        vlc_value_t val{};
+        switch ( config_GetType( option ) )
+        {
+        case VLC_VAR_BOOL:
+            val.b_bool = value.toBool();
+            config_PutInt( option, val.b_bool );
+            break;
+        case VLC_VAR_INTEGER:
+            val.i_int = value.toLongLong();
+            config_PutInt( option, val.i_int );
+            break;
+        case VLC_VAR_STRING:
+            val.psz_string = const_cast<char *>( utf8.constData() );
+            config_PutPsz( option, utf8.constData() );
+            break;
+        default:
+            return;
+        }
+        m_saveTimer.start();
+
+        if ( !strcmp( option, "sub-text-scale" ) )
+        {
+            vlc_player_locker lock{ m_player };
+            vlc_player_SetSubtitleTextScale( m_player, std::clamp<int64_t>( val.i_int, 10, 500 ) );
+        }
+        else if ( !strcmp( option, "sub-language" ) )
+        {
+            /* picks the subtitle track of the next media */
+            vlc_player_locker lock{ m_player };
+            vlc_player_SelectCategoryLanguage( m_player, SPU_ES, utf8.constData() );
+        }
+        else if ( !strncmp( option, "freetype-", strlen( "freetype-" ) ) )
+            vlc_player_SetSubtitleTextOption( m_player, option, val );
+        else if ( !strcmp( option, "sub-margin" ) )
+        {
+            size_t count;
+            vout_thread_t **vouts = vlc_player_vout_HoldAll( m_player, &count );
+            for ( size_t i = 0; vouts && i < count; ++i )
+            {
+                var_SetInteger( vouts[i], option, value.toLongLong() );
+                vout_Release( vouts[i] );
+            }
+            free( vouts );
+        }
+    }
+
+    void redraw() override
+    {
+        vlc_player_vout_RedrawSubtitles( m_player );
+    }
+
+    void reloadProfile() override
+    {
+        /* the player keeps its own copy of the options: give it the
+         * configuration values again */
+        static const char *const options[] = {
+            "sub-language", "sub-text-scale", "sub-margin",
+            "freetype-font", "freetype-opacity", "freetype-color",
+            "freetype-background-opacity", "freetype-background-color",
+            "freetype-outline-opacity", "freetype-outline-color",
+            "freetype-outline-thickness", "freetype-shadow-opacity",
+            "freetype-shadow-color", "freetype-pixel-size",
+            "freetype-keep-styling",
+        };
+        for ( const char *option : options )
+        {
+            QVariant value;
+            switch ( config_GetType( option ) )
+            {
+            case VLC_VAR_BOOL:
+                value = config_GetInt( option ) != 0;
+                break;
+            case VLC_VAR_INTEGER:
+                value = QVariant::fromValue<qlonglong>( config_GetInt( option ) );
+                break;
+            case VLC_VAR_STRING:
+            {
+                char *psz = config_GetPsz( option );
+                value = qfu( psz );
+                free( psz );
+                break;
+            }
+            default:
+                continue;
+            }
+            setValue( option, value );
+        }
+    }
+
+private:
+    qt_intf_t *m_intf;
+    vlc_player_t *m_player;
+    QTimer m_saveTimer;
+};
+
+}
+
 PlayerController::PlayerController( qt_intf_t *_p_intf )
     : QObject(NULL)
     , d_ptr( new PlayerControllerPrivate(this, _p_intf) )
 {
+    d_ptr->m_subtitleAppearance = new SubtitleAppearance(
+        std::make_unique<PlayerSubtitleOptions>( _p_intf, d_ptr->m_player ), this );
+
     connect( &d_ptr->m_position_timer, &QTimer::timeout, this, &PlayerController::updatePositionFromTimer );
     connect( &d_ptr->m_time_timer, &QTimer::timeout, this, &PlayerController::updateTimeFromTimer );
 
@@ -1628,6 +1821,12 @@ void PlayerController::setSecondarySubtitleDelay(VLCDuration delay)
                                 delay.toVLCTick(), VLC_PLAYER_WHENCE_ABSOLUTE);
 }
 
+bool PlayerController::hasSecondarySubtitle() const
+{
+    Q_D(const PlayerController);
+    return d->m_secondarySpuEsId.get() != NULL;
+}
+
 /*Q_INVOKABLE*/void PlayerController::addSecondarySubtitleDelay(VLCDuration delay)
 {
     Q_D(PlayerController);
@@ -1676,6 +1875,52 @@ void PlayerController::setSubtitleFPS(float fps)
     if( !d->isCurrentItemSynced() )
         return;
     vlc_player_SetAssociatedSubsFPS( d->m_player, fps );
+}
+
+double PlayerController::getSubtitleDurationFactor() const
+{
+    Q_D(const PlayerController);
+    return d->m_subtitleDurationFactor;
+}
+
+void PlayerController::setSubtitleDurationFactor( double factor )
+{
+    Q_D(PlayerController);
+    factor = std::clamp( factor, 0., 20. );
+    if ( qFuzzyCompare( factor + 1., d->m_subtitleDurationFactor + 1. ) )
+        return;
+    d->m_subtitleDurationFactor = factor;
+
+    /* the "subsdelay" sub filter multiplies the durations; its factor is
+     * proxied by a variable of the video output */
+    size_t count;
+    vout_thread_t **vouts = vlc_player_vout_HoldAll( d->m_player, &count );
+    for ( size_t i = 0; vouts && i < count; ++i )
+    {
+        vout_thread_t *vout = vouts[i];
+        if ( var_Type( vout, "sub-filter" ) != 0 )
+        {
+            if ( var_Type( vout, "subsdelay-factor" ) == 0 )
+                var_Create( vout, "subsdelay-factor",
+                            VLC_VAR_FLOAT | VLC_VAR_DOINHERIT | VLC_VAR_ISCOMMAND );
+            var_SetFloat( vout, "subsdelay-factor", factor );
+
+            char *psz_chain = var_GetString( vout, "sub-filter" );
+            QStringList chain = qfu( psz_chain ).split( ':', Qt::SkipEmptyParts );
+            free( psz_chain );
+            const bool present = chain.contains( QStringLiteral( "subsdelay" ) );
+            if ( factor > 0 && !present )
+                chain.append( QStringLiteral( "subsdelay" ) );
+            else if ( factor <= 0 && present )
+                chain.removeAll( QStringLiteral( "subsdelay" ) );
+            if ( present != ( factor > 0 ) )
+                var_SetString( vout, "sub-filter", qtu( chain.join( ':' ) ) );
+        }
+        vout_Release( vout );
+    }
+    free( vouts );
+
+    emit subtitleDurationFactorChanged();
 }
 
 //TITLE/CHAPTER/MENU
@@ -2407,6 +2652,12 @@ SleepTimer* PlayerController::getSleepTimer()
 {
     Q_D(PlayerController);
     return d->m_sleepTimer;
+}
+
+SubtitleAppearance* PlayerController::getSubtitleAppearance()
+{
+    Q_D(PlayerController);
+    return d->m_subtitleAppearance;
 }
 
 PlaybackStatistics* PlayerController::getStatistics()

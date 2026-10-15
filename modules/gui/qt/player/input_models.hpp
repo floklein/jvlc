@@ -42,7 +42,8 @@
  *
  * ExternalRole tells the tracks of an external file (an associated media,
  * e.g. a subtitle file) from the tracks embedded in the media, and
- * SecondaryRole marks the second subtitle.
+ * SecondaryRole marks the second subtitle, and StyledRole the styled (ASS)
+ * subtitles, which are drawn with their own look.
  *
  * this class expects to be updated by the input manager
  */
@@ -52,11 +53,14 @@ class TrackListModel : public QAbstractListModel
     Q_PROPERTY(int count READ getCount NOTIFY countChanged FINAL)
     Q_PROPERTY(bool multiSelect READ getMultiSelect WRITE setMultiSelect NOTIFY multiSelectChanged FINAL)
     Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY hasSelectionChanged FINAL)
+    // a selected track is styled
+    Q_PROPERTY(bool styledSelected READ styledSelected NOTIFY styledSelectedChanged FINAL)
 
 public:
     enum Roles {
         ExternalRole = Qt::UserRole,
         SecondaryRole,
+        StyledRole,
     };
     Q_ENUM(Roles)
 
@@ -84,6 +88,8 @@ public:
 
     inline bool hasSelection() const { return m_hasSelection; }
 
+    inline bool styledSelected() const { return m_styledSelected; }
+
     // Track menu actions
 
     // pick the track; the second subtitle stays
@@ -105,6 +111,7 @@ signals:
     void countChanged();
     void multiSelectChanged(bool multiSelect);
     void hasSelectionChanged();
+    void styledSelectedChanged();
     void externalTrackRemoved(const QString& trackId, const QString& mediaMrl,
                               const QString& sourceMrl);
 
@@ -129,10 +136,12 @@ private:
         ::vlc::vlc_shared_data_ptr<vlc_es_id_t, &vlc_es_id_Hold, &vlc_es_id_Release> m_id;
         bool m_selected = false;
         bool m_external = false;
+        bool m_styled = false;
     };
     QList<Data> m_data;
     bool m_multiSelect = false; // this only work for subtitles
     bool m_hasSelection = false;
+    bool m_styledSelected = false;
     // the second subtitle, set by selectSecondary()
     const vlc_es_id_t *m_secondary = nullptr;
     // string ids of the external tracks removed from the list

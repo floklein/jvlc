@@ -209,3 +209,21 @@ vlc_player_vout_Snapshot(vlc_player_t *player)
 {
     vlc_player_vout_TriggerOption(player, "video-snapshot");
 }
+
+void
+vlc_player_vout_RedrawSubtitles(vlc_player_t *player)
+{
+    /* not vlc_player_vout_HoldAll(): the dummy vout has no subtitles */
+    size_t count;
+    vout_thread_t **vouts;
+    input_resource_HoldVouts(player->resource, &vouts, &count);
+    if (count == 0)
+        return;
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        vout_RedrawSubtitles(vouts[i]);
+        vout_Release(vouts[i]);
+    }
+    free(vouts);
+}

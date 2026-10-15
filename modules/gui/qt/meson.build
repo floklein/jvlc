@@ -130,6 +130,7 @@ moc_headers = files(
     'player/waveform_bars.hpp',
     'player/sleep_timer.hpp',
     'player/playback_statistics.hpp',
+    'player/subtitle_appearance.hpp',
     'playlist/playlist_controller.hpp',
     'playlist/playlist_item.hpp',
     'playlist/playlist_model.hpp',
@@ -450,7 +451,9 @@ qt_plugin_sources = files(
     'player/sleep_timer.cpp',
     'player/sleep_timer.hpp',
     'player/playback_statistics.cpp',
+    'player/subtitle_appearance.cpp',
     'player/playback_statistics.hpp',
+    'player/subtitle_appearance.hpp',
     'playlist/media.hpp',
     'playlist/playlist_common.hpp',
     'playlist/playlist_controller.cpp',
@@ -792,6 +795,7 @@ qml_modules += {
        'player/qml/AdjustmentsAudioTab.qml',
        'player/qml/AdjustmentsPlaybackTab.qml',
        'player/qml/StatisticsOverlay.qml',
+       'player/qml/AdjustmentsSubtitlesTab.qml',
        'player/qml/TracksMenu.qml',
        'player/qml/TracksPage.qml',
        'player/qml/TracksPageAudio.qml',
@@ -1936,6 +1940,26 @@ if qt6_dep.found()
             'moc_headers': files(
                 'player/sleep_timer.hpp',
                 'player/playback_statistics.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_subtitle_appearance',
+            'sources': files(
+                'tests/test_subtitle_appearance.cpp',
+                'player/subtitle_appearance.cpp',
+                'player/subtitle_appearance.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_subtitle_appearance.cpp'
+            ),
+            'moc_headers': files(
+                'player/subtitle_appearance.hpp'
             ),
             'suite': ['qt'],
             'include_directories' : qt_include_dir,

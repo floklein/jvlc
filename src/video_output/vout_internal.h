@@ -167,6 +167,8 @@ void vout_ControlChangeInterlacing(vout_thread_t *, bool);
 void vout_ControlChangeSubSources(vout_thread_t *, const char *);
 void vout_ControlChangeSubFilters(vout_thread_t *, const char *);
 void vout_ChangeSpuChannelMargin(vout_thread_t *, enum vlc_vout_order order, int);
+/* lay the subtitles out again with the current text renderer options */
+void vout_RedrawSubtitles(vout_thread_t *);
 void vout_ChangeViewpoint( vout_thread_t *, const vlc_viewpoint_t *);
 void vout_ControlChangeStereo(vout_thread_t *vout, vlc_stereoscopic_mode_t);
 void vout_ChangeIccProfile(vout_thread_t *, vlc_icc_profile_t *);

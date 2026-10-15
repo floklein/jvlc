@@ -26,6 +26,7 @@ player_programs = \
 	test_src_player_programs \
 	test_src_player_seeks \
 	test_src_player_stream_output \
+	test_src_player_subtitle_appearance \
 	test_src_player_teletext \
 	test_src_player_timers \
 	test_src_player_titles \
@@ -284,6 +285,9 @@ test_src_player_outputs_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)
 test_src_player_osd_SOURCES = src/player/common.h src/player/modules.c \
 	src/player/osd.c
 test_src_player_osd_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)
+test_src_player_subtitle_appearance_SOURCES = src/player/common.h \
+	src/player/modules.c src/player/subtitle_appearance.c
+test_src_player_subtitle_appearance_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)
 test_src_player_pause_SOURCES = src/player/common.h src/player/modules.c \
 	src/player/pause.c
 test_src_player_pause_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)

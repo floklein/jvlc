@@ -1007,6 +1007,73 @@ failed:
     return 1;
 }
 
+/*
+ * The text renderer reads its options again on every render, but a line
+ * already on screen keeps its bitmap: spu_RedrawSubtitles() lays it out again
+ * so that an appearance change shows on it at once.
+ */
+static int test_spu_redraw_text(spu_t *spu, vlc_object_t *libvlc)
+{
+    video_format_t fmt;
+    video_format_Init(&fmt, VLC_CODEC_RGBA);
+    fmt.i_width = fmt.i_visible_width = 1920;
+    fmt.i_height = fmt.i_visible_height = 1080;
+    fmt.i_sar_num = fmt.i_sar_den = 1;
+
+    vlc_render_subpicture *output = NULL;
+
+    subpicture_t *subpic = create_text_subtitle(1);
+    EXPECT(subpic);
+    subpic->i_start = VLC_TICK_0;
+    subpic->i_stop = VLC_TICK_0 + vlc_tick_from_sec(1);
+    spu_PutSubpicture(spu, subpic);
+
+    output = spu_Render(spu, NULL, &fmt, &fmt, true, NULL,
+                        VLC_TICK_0, VLC_TICK_0, false);
+    EXPECT(output);
+    EXPECT(output->regions.size == 1);
+    EXPECT_EQ_INT(output->regions.data[0]->place.width, 100);
+    vlc_render_subpicture_Delete(output);
+    output = NULL;
+
+    /* the renderer would now draw the line 300 px wide */
+    var_SetInteger(libvlc, "spu-test-text-width", 300);
+
+    /* the line on screen is not laid out again by itself */
+    output = spu_Render(spu, NULL, &fmt, &fmt, true, NULL,
+                        VLC_TICK_0 + VLC_TICK_FROM_MS(10),
+                        VLC_TICK_0 + VLC_TICK_FROM_MS(10), false);
+    EXPECT(output);
+    EXPECT(output->regions.size == 1);
+    EXPECT_EQ_INT(output->regions.data[0]->place.width, 100);
+    vlc_render_subpicture_Delete(output);
+    output = NULL;
+
+    spu_RedrawSubtitles(spu);
+
+    output = spu_Render(spu, NULL, &fmt, &fmt, true, NULL,
+                        VLC_TICK_0 + VLC_TICK_FROM_MS(20),
+                        VLC_TICK_0 + VLC_TICK_FROM_MS(20), false);
+    EXPECT(output);
+    EXPECT(output->regions.size == 1);
+    EXPECT_EQ_INT(output->regions.data[0]->place.width, 300);
+    vlc_render_subpicture_Delete(output);
+    output = NULL;
+
+    /* redrawing with nothing on screen is harmless */
+    test_reset_SPU(spu);
+    spu_RedrawSubtitles(spu);
+
+    var_SetInteger(libvlc, "spu-test-text-width", 0);
+    return 0;
+
+failed:
+    if(output)
+        vlc_render_subpicture_Delete(output);
+    var_SetInteger(libvlc, "spu-test-text-width", 0);
+    return 1;
+}
+
 int main(int argc, char **argv)
 {
     test_init();
@@ -1015,6 +1082,9 @@ int main(int argc, char **argv)
 
     libvlc_instance_t *libvlc = libvlc_new(ARRAY_SIZE(libvlc_argv), libvlc_argv);
     assert(libvlc);
+
+    /* a width forced on the fake renderer's output, 0 to use the text */
+    var_Create(libvlc->p_libvlc_int, "spu-test-text-width", VLC_VAR_INTEGER);
 
     spu_t *spu = spu_Create(&libvlc->p_libvlc_int->obj, NULL);
     assert(spu);
@@ -1051,6 +1121,11 @@ int main(int argc, char **argv)
 
     ret |= test_spu_crop(spu);
 
+    /* flush SPU before running other test */
+    test_reset_SPU(spu);
+
+    ret |= test_spu_redraw_text(spu, VLC_OBJECT(libvlc->p_libvlc_int));
+
     spu_Destroy(spu);
 
     libvlc_release(libvlc);
@@ -1071,9 +1146,13 @@ static subpicture_region_t *renderer_Render( filter_t *p_filter,
                                              const subpicture_region_t *p_region_in,
                                              const vlc_fourcc_t *p_chroma_list )
 {
-    VLC_UNUSED(p_filter); VLC_UNUSED(p_chroma_list);
+    VLC_UNUSED(p_chroma_list);
     unsigned w,h;
     assert(sscanf(p_region_in->p_text->psz_text, "%ux%u", &w, &h) == 2);
+    /* read on every render, like the text renderer's live options */
+    int64_t forced_width = var_InheritInteger(p_filter, "spu-test-text-width");
+    if (forced_width > 0)
+        w = forced_width;
 
     video_format_t fmt;
     video_format_Init(&fmt, 0);

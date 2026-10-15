@@ -85,6 +85,14 @@ static void Destroy( filter_t * );
 #define SHADOW_COLOR_TEXT N_("Shadow color")
 #define SHADOW_ANGLE_TEXT N_("Shadow angle")
 #define SHADOW_DISTANCE_TEXT N_("Shadow distance")
+#define PIXEL_SIZE_TEXT N_("Text size in pixels")
+#define PIXEL_SIZE_LONGTEXT N_("An exact size for the text, in pixels. " \
+    "0 sizes the text relatively to the video, scaled by the subtitle text " \
+    "scale.")
+#define KEEP_STYLING_TEXT N_("Keep the subtitles' own styling")
+#define KEEP_STYLING_LONGTEXT N_("Use the fonts, bold, italic and colors " \
+    "set by the subtitles themselves. Otherwise every line uses the text " \
+    "renderer's look.")
 #define CACHE_SIZE_TEXT N_("Cache size")
 #define CACHE_SIZE_LONGTEXT N_("Cache size in kBytes")
 
@@ -197,6 +205,13 @@ vlc_module_begin ()
 
     add_obsolete_integer( "freetype-fontsize" ) /* since 4.0.0 */
     add_obsolete_integer( "freetype-rel-fontsize" ) /* since 4.0.0 */
+
+    add_integer_with_range( "freetype-pixel-size", 0, 0, 4096,
+                            PIXEL_SIZE_TEXT, PIXEL_SIZE_LONGTEXT )
+        change_safe()
+    add_bool( "freetype-keep-styling", true, KEEP_STYLING_TEXT,
+              KEEP_STYLING_LONGTEXT )
+        change_safe()
 
     add_bool( "freetype-yuvp", false, YUVP_TEXT,
               YUVP_LONGTEXT )
@@ -707,32 +722,59 @@ static inline void RenderAXYZ( filter_t *p_filter,
     }
 }
 
-static void UpdateDefaultLiveStyles( filter_t *p_filter )
+/* Reads the options that can change while the renderer lives (the player
+ * holds them as variables). Returns true if the default font changed. */
+static bool UpdateDefaultLiveStyles( filter_t *p_filter )
 {
     filter_sys_t *p_sys = p_filter->p_sys;
     text_style_t *p_style = p_sys->p_default_style;
+    bool b_font_changed = false;
+
+#ifdef HAVE_GET_FONT_BY_FAMILY_NAME
+    char *psz_fontname = var_InheritString( p_filter, "freetype-font" );
+#else
+    char *psz_fontname = NULL;
+#endif
+    if( !psz_fontname || !*psz_fontname )
+    {
+        free( psz_fontname );
+        psz_fontname = strdup( DEFAULT_FAMILY );
+    }
+    if( psz_fontname && ( !p_style->psz_fontname ||
+                          strcmp( psz_fontname, p_style->psz_fontname ) ) )
+    {
+        free( p_style->psz_fontname );
+        p_style->psz_fontname = psz_fontname;
+        b_font_changed = true;
+    }
+    else
+        free( psz_fontname );
 
     p_style->i_font_color = var_InheritInteger( p_filter, "freetype-color" );
+    p_style->i_font_alpha = var_InheritInteger( p_filter, "freetype-opacity" );
 
     p_style->i_background_alpha = var_InheritInteger( p_filter, "freetype-background-opacity" );
     p_style->i_background_color = var_InheritInteger( p_filter, "freetype-background-color" );
 
+    p_style->i_outline_alpha = var_InheritInteger( p_filter, "freetype-outline-opacity" );
+    p_style->i_outline_color = var_InheritInteger( p_filter, "freetype-outline-color" );
     p_sys->i_outline_thickness = var_InheritInteger( p_filter, "freetype-outline-thickness" );
+
+    p_style->i_shadow_alpha = var_InheritInteger( p_filter, "freetype-shadow-opacity" );
+    p_style->i_shadow_color = var_InheritInteger( p_filter, "freetype-shadow-color" );
+
+    /* an exact size in pixels, or 0 for a size relative to the video */
+    int i_pixel_size = var_InheritInteger( p_filter, "freetype-pixel-size" );
+    p_style->i_font_size = i_pixel_size > 0 ? i_pixel_size : 0;
+
+    p_sys->b_keep_styling = var_InheritBool( p_filter, "freetype-keep-styling" );
+
+    return b_font_changed;
 }
 
 static void FillDefaultStyles( filter_t *p_filter )
 {
     filter_sys_t *p_sys = p_filter->p_sys;
-
-#ifdef HAVE_GET_FONT_BY_FAMILY_NAME
-    p_sys->p_default_style->psz_fontname = var_InheritString( p_filter, "freetype-font" );
-#endif
-    /* Set default psz_fontname */
-    if( !p_sys->p_default_style->psz_fontname || !*p_sys->p_default_style->psz_fontname )
-    {
-        free( p_sys->p_default_style->psz_fontname );
-        p_sys->p_default_style->psz_fontname = strdup( DEFAULT_FAMILY );
-    }
 
 #ifdef HAVE_GET_FONT_BY_FAMILY_NAME
     p_sys->p_default_style->psz_monofontname = var_InheritString( p_filter, "freetype-monofont" );
@@ -746,17 +788,9 @@ static void FillDefaultStyles( filter_t *p_filter )
 
     UpdateDefaultLiveStyles( p_filter );
 
-    p_sys->p_default_style->i_font_alpha = var_InheritInteger( p_filter, "freetype-opacity" );
-
-    p_sys->p_default_style->i_outline_alpha = var_InheritInteger( p_filter, "freetype-outline-opacity" );
-    p_sys->p_default_style->i_outline_color = var_InheritInteger( p_filter, "freetype-outline-color" );
-
-    p_sys->p_default_style->i_shadow_alpha = var_InheritInteger( p_filter, "freetype-shadow-opacity" );
-    p_sys->p_default_style->i_shadow_color = var_InheritInteger( p_filter, "freetype-shadow-color" );
     p_sys->p_default_style->e_blending_mode = var_InheritInteger( p_filter, "freetype-blending-mode" );
     p_sys->p_default_style->i_features |= STYLE_HAS_BLENDING_MODE;
 
-    p_sys->p_default_style->i_font_size = 0;
     p_sys->p_default_style->i_style_flags |= STYLE_SHADOW;
     p_sys->p_default_style->i_features |= STYLE_HAS_FLAGS;
 
@@ -889,9 +923,24 @@ static size_t AddTextAndStyles( filter_sys_t *p_sys,
     if ( p_mgstyle == NULL )
         return 0;
 
-    if( p_style )
+    if( p_style && p_sys->b_keep_styling )
         /* Replace defaults with segment values */
         text_style_Merge( p_mgstyle, p_style, true );
+    else if( p_style )
+    {
+        /* Keep the layout of the segment (sizes, wrapping, widths) but not
+         * its look (fonts, bold, italic, colors…) */
+        text_style_t *p_layout = text_style_Duplicate( p_style );
+        if( p_layout )
+        {
+            FREENULL( p_layout->psz_fontname );
+            FREENULL( p_layout->psz_monofontname );
+            p_layout->i_features &= STYLE_HAS_WRAP_INFO | STYLE_HAS_BLENDING_MODE;
+            p_layout->i_style_flags &= STYLE_HALFWIDTH | STYLE_DOUBLEWIDTH;
+            text_style_Merge( p_mgstyle, p_layout, true );
+            text_style_Delete( p_layout );
+        }
+    }
 
     /* Overwrite any default or value with forced ones */
     text_style_Merge( p_mgstyle, p_sys->p_forced_style, true );
@@ -1037,14 +1086,20 @@ static subpicture_region_t *Render( filter_t *p_filter,
     filter_sys_t *p_sys = p_filter->p_sys;
     subpicture_region_t *region = NULL;
     bool b_grid = (p_region_in->text_flags & VLC_SUBPIC_TEXT_FLAG_GRID_MODE) != 0;
-    p_sys->i_scale = ( b_grid ) ? 100 : var_InheritInteger( p_filter, "sub-text-scale");
+    bool b_font_changed = UpdateDefaultLiveStyles( p_filter );
+    if( b_grid )
+        p_sys->p_default_style->i_font_size = 0;
 
-    UpdateDefaultLiveStyles( p_filter );
+    /* an exact pixel size is not scaled */
+    p_sys->i_scale = ( b_grid || p_sys->p_default_style->i_font_size > 0 )
+                   ? 100 : var_InheritInteger( p_filter, "sub-text-scale");
 
     int i_font_default_size = ConvertToLiveSize( p_filter, p_sys->p_default_style );
-    if( !p_sys->p_faceid || i_font_default_size != p_sys->i_font_default_size )
+    if( !p_sys->p_faceid || b_font_changed
+     || i_font_default_size != p_sys->i_font_default_size )
     {
-        /* Update the default face to reflect changes in video size or text scaling */
+        /* Update the default face to reflect changes in video size, text
+         * scaling or font */
         p_sys->p_faceid = SelectAndLoadFace( p_filter, p_sys->p_default_style, ' ' );
         if( !p_sys->p_faceid )
         {
@@ -1309,9 +1364,10 @@ static int Create( filter_t *p_filter )
         p_sys->i_forced_chroma = VLC_CODEC_YUVP;
 
     /*
-     * The following variables should not be cached, as they might be changed on-the-fly:
-     * freetype-rel-fontsize, freetype-background-opacity, freetype-background-color,
-     * freetype-outline-thickness, freetype-color, freetype-blending-style
+     * The following variables should not be cached, as they might be changed on-the-fly
+     * (see UpdateDefaultLiveStyles): sub-text-scale, freetype-font, freetype-color,
+     * freetype-opacity, freetype-background-*, freetype-outline-*,
+     * freetype-shadow-opacity/color, freetype-pixel-size, freetype-keep-styling
      *
      */
 

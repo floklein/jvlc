@@ -1988,6 +1988,46 @@ vlc_player_SetSubtitleTextScale(vlc_player_t *player, unsigned scale);
 VLC_API unsigned
 vlc_player_GetSubtitleTextScale(vlc_player_t *player);
 
+/**
+ * Set a text renderer option of the subtitles
+ *
+ * The player holds the options of the text renderer that can change while it
+ * runs ("freetype-font", "freetype-color", "freetype-opacity",
+ * "freetype-background-opacity", "freetype-background-color",
+ * "freetype-outline-opacity", "freetype-outline-color",
+ * "freetype-outline-thickness", "freetype-shadow-opacity",
+ * "freetype-shadow-color", "freetype-pixel-size", "freetype-keep-styling")
+ * as variables inherited by the text renderers of its video outputs. They
+ * start with the configuration values.
+ *
+ * Call vlc_player_vout_RedrawSubtitles() afterwards to show the change on the
+ * subtitles already on screen.
+ *
+ * @note The player doesn't need to be locked.
+ *
+ * @param player player instance
+ * @param option one of the options above
+ * @param value value of the option's type (a string is copied)
+ * @return VLC_SUCCESS, or VLC_ENOENT if the player has no such option
+ */
+VLC_API int
+vlc_player_SetSubtitleTextOption(vlc_player_t *player, const char *option,
+                                 vlc_value_t value);
+
+/**
+ * Get a text renderer option of the subtitles
+ *
+ * @see vlc_player_SetSubtitleTextOption()
+ *
+ * @param player player instance
+ * @param option one of the options of vlc_player_SetSubtitleTextOption()
+ * @param value the value of the option; a string must be freed
+ * @return VLC_SUCCESS, or VLC_ENOENT if the player has no such option
+ */
+VLC_API int
+vlc_player_GetSubtitleTextOption(vlc_player_t *player, const char *option,
+                                 vlc_value_t *value);
+
 /** @} vlc_player__tracks */
 
 /**
@@ -2837,6 +2877,21 @@ vlc_player_vout_ToggleWallpaperMode(vlc_player_t *player)
  */
 VLC_API void
 vlc_player_vout_Snapshot(vlc_player_t *player);
+
+/**
+ * Render the subtitles again on all vouts
+ *
+ * The text subtitles, including the line already on screen, are laid out
+ * again with the current text renderer options: call it after
+ * vlc_player_SetSubtitleTextOption() to show the change at once.
+ *
+ * @note Styled subtitles rendered by their own decoder (libass) don't use
+ * these options.
+ *
+ * @param player player instance
+ */
+VLC_API void
+vlc_player_vout_RedrawSubtitles(vlc_player_t *player);
 
 /**
  * Display an OSD message on all vouts
