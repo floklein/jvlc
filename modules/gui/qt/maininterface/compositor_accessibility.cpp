@@ -19,6 +19,7 @@
 #include <QWindow>
 #include <QGuiApplication>
 #include <QQuickItem>
+#include <QQuickWindow>
 
 #if !defined(QT_NO_ACCESSIBILITY) && defined(QT_DECLARATIVE_PRIVATE)
 
@@ -27,22 +28,9 @@
 #include <private/qquickitem_p.h>
 
 #include "compositor_accessibility.hpp"
-#include "compositor.hpp"
-
-#ifdef QT_HAS_X11_COMPOSITOR
-#  include "compositor_x11_renderwindow.hpp"
-#endif
-#ifdef _WIN32
-#  include "compositor_dcomp.hpp"
-#endif
 
 namespace vlc {
 
-/*
- * we could have use QAccessibleQuickWindow like in QAccessibleQuickWidget
- * but QAccessibleQuickWindow is not publicly exposed in the library, so we
- * mimic the behavior of QAccessibleQuickWindow directly
- */
 
 
 static void unignoredChildren(QQuickItem *item, QList<QQuickItem *> *items)
@@ -64,21 +52,36 @@ static QList<QQuickItem *> accessibleUnignoredChildren(QQuickItem *item)
     return items;
 }
 
+// the window that shows the interface drawn in an offscreen window, if any
+static QWindow* renderWindowOf(const QQuickWindow* offscreenWindow)
+{
+    if (!offscreenWindow)
+        return nullptr;
+    const QWindowList windows = QGuiApplication::allWindows();
+    for (QWindow* window : windows)
+    {
+        const auto renderWindow = dynamic_cast<AccessibleRenderWindow*>(window);
+        if (renderWindow && renderWindow->getOffscreenWindow() == offscreenWindow)
+            return window;
+    }
+    return nullptr;
+}
 
+/*
+ * Screen readers walk up from the focused item to its window, and down from
+ * the windows of the application. Qt makes the offscreen window the parent of
+ * the root items of the interface, so the offscreen window is a pane of the
+ * render window, the window the user sees: the render window has the
+ * offscreen window as its only child, and the offscreen window has the root
+ * items.
+ */
 class QAccessibleRenderWindow: public QAccessibleObject
 {
 public:
     QAccessibleRenderWindow(QWindow* window, AccessibleRenderWindow* renderWindow)
         : QAccessibleObject(window)
-        , m_window(renderWindow->getOffscreenWindow())
+        , m_renderWindow(renderWindow)
     {
-    }
-
-    bool isValid() const override
-    {
-        if (m_window.isNull())
-            return false;
-        return QAccessibleObject::isValid();
     }
 
     QAccessibleInterface* parent() const override
@@ -87,11 +90,107 @@ public:
         return QAccessible::queryAccessibleInterface(qApp);
     }
 
+    QAccessibleInterface* offscreenInterface() const
+    {
+        if (QQuickWindow* offscreenWindow = m_renderWindow->getOffscreenWindow())
+            return QAccessible::queryAccessibleInterface(offscreenWindow);
+        return nullptr;
+    }
+
+    QAccessibleInterface* child(int index) const override
+    {
+        return (index == 0) ? offscreenInterface() : nullptr;
+    }
+
+    int childCount() const override
+    {
+        return offscreenInterface() ? 1 : 0;
+    }
+
+    int indexOfChild(const QAccessibleInterface *iface) const override
+    {
+        const QAccessibleInterface* offscreen = offscreenInterface();
+        return (iface && offscreen && iface->object() == offscreen->object()) ? 0 : -1;
+    }
+
+    QAccessibleInterface *childAt(int x, int y) const override
+    {
+        if (QAccessibleInterface* offscreen = offscreenInterface())
+            return offscreen->childAt(x, y);
+        return nullptr;
+    }
+
+    QAccessibleInterface *focusChild() const override
+    {
+        if (QAccessibleInterface* offscreen = offscreenInterface())
+            return offscreen->focusChild();
+        return nullptr;
+    }
+
+    QString text(QAccessible::Text) const override
+    {
+        return window()->title();
+    }
+
+    QRect rect() const override
+    {
+        return QRect(window()->x(), window()->y(), window()->width(), window()->height());
+    }
+
+    QAccessible::Role role() const override
+    {
+        return QAccessible::Window;
+    }
+
+    QAccessible::State state() const override
+    {
+
+        QAccessible::State st;
+        // the focus window is its interface surface, a child window
+        if (window()->isActive())
+            st.active = true;
+        if (!window()->isVisible())
+            st.invisible = true;
+        return st;
+    }
+
+    QWindow* window() const override
+    {
+        return static_cast<QWindow*>(object());
+    }
+
+private:
+    AccessibleRenderWindow* m_renderWindow;
+};
+
+
+class QAccessibleOffscreenWindow: public QAccessibleObject
+{
+public:
+    QAccessibleOffscreenWindow(QQuickWindow *window)
+        : QAccessibleObject(window)
+    {
+    }
+
+    // the render window may show it after it is first queried
+    QWindow* renderWindow() const
+    {
+        return renderWindowOf(quickWindow());
+    }
+
+    QAccessibleInterface* parent() const override
+    {
+        if (QWindow* renderWindow = this->renderWindow())
+            return QAccessible::queryAccessibleInterface(renderWindow);
+        // we assume to be a top level window...
+        return QAccessible::queryAccessibleInterface(qApp);
+    }
+
     QList<QQuickItem *> rootItems() const
     {
-        if (m_window.isNull())
+        if (!renderWindow())
             return {};
-        if (QQuickItem *ci = m_window->contentItem())
+        if (QQuickItem *ci = quickWindow()->contentItem())
             return accessibleUnignoredChildren(ci);
         return {};
     }
@@ -142,105 +241,47 @@ public:
         return nullptr;
     }
 
-    QString text(QAccessible::Text) const override
-    {
-        return window()->title();
-    }
-
-    QRect rect() const override
-    {
-        return QRect(window()->x(), window()->y(), window()->width(), window()->height());
-    }
-
-    QAccessible::Role role() const override
-    {
-        return QAccessible::Window;
-    }
-
-    QAccessible::State state() const override
-    {
-
-        QAccessible::State st;
-        if (window() == QGuiApplication::focusWindow())
-            st.active = true;
-        if (!window()->isVisible())
-            st.invisible = true;
-        return st;
-    }
-
-    QWindow* window() const override
-    {
-        return static_cast<QWindow*>(object());
-    }
-
-private:
-    //use a QPointer here in case the underlying window get destroyed
-    QPointer<QQuickWindow> m_window;
-};
-
-
-/*
- * DCompOffscreenWindow is a top window, mark it as unacessible so it won't
- * be introspected by a11y, the QML scene is actually accessible though QAccessibleRenderWindow
- */
-class QAccessibleOffscreenWindow: public QAccessibleObject
-{
-public:
-    QAccessibleOffscreenWindow(QQuickWindow *window)
-        : QAccessibleObject(window)
-    {
-    }
-
-    QAccessibleInterface* parent() const override
-    {
-        // we assume to be a top level window...
-        return QAccessible::queryAccessibleInterface(qApp);
-    }
-
-    QAccessibleInterface* child(int) const override
-    {
-        return nullptr;
-    }
-
-    int childCount() const override
-    {
-        return 0;
-    }
-
-    int indexOfChild(const QAccessibleInterface *) const override
-    {
-        return -1;
-    }
-
-    QAccessibleInterface *childAt(int, int) const override
-    {
-        return nullptr;
-    }
-
     QAccessibleInterface *focusChild() const override
     {
-        return nullptr;
+        if (!renderWindow())
+            return nullptr;
+        QQuickItem* item = quickWindow()->activeFocusItem();
+        if (!item || item == quickWindow()->contentItem())
+            return nullptr;
+        return QAccessible::queryAccessibleInterface(item);
     }
 
     QString text(QAccessible::Text) const override
     {
+        // the render window bears the title
+        if (renderWindow())
+            return {};
         return window()->title();
     }
 
     QRect rect() const override
     {
-        return QRect(window()->x(), window()->y(), window()->width(), window()->height());
+        const QWindow* shown = renderWindow();
+        if (!shown)
+            shown = window();
+        return QRect(shown->x(), shown->y(), shown->width(), shown->height());
     }
 
     QAccessible::Role role() const override
     {
-        return QAccessible::Window;
+        return renderWindow() ? QAccessible::Pane : QAccessible::Window;
     }
 
     QAccessible::State state() const override
     {
 
         QAccessible::State st;
+        if (const QWindow* renderWindow = this->renderWindow())
+        {
+            if (!renderWindow->isVisible())
+                st.invisible = true;
+            return st;
+        }
         if (window() == QGuiApplication::focusWindow())
             st.active = true;
         if (!window()->isVisible())
@@ -249,6 +290,11 @@ public:
     }
 
 private:
+    QQuickWindow* quickWindow() const
+    {
+        return static_cast<QQuickWindow*>(object());
+    }
+
     QWindow* window() const override
     {
         return static_cast<QWindow*>(object());
@@ -257,20 +303,23 @@ private:
 
 QAccessibleInterface* compositionAccessibleFactory(const QString &classname, QObject *object)
 {
-#ifdef QT_HAS_X11_COMPOSITOR
-    if (classname == QLatin1String("vlc::CompositorX11RenderWindow"))
+    if (const auto window = qobject_cast<QWindow *>(object))
     {
-
-        CompositorX11RenderWindow* renderWindow =  qobject_cast<CompositorX11RenderWindow *>(object);
-        assert(renderWindow);
-        return new QAccessibleRenderWindow(renderWindow, renderWindow);
+        if (const auto renderWindow = dynamic_cast<AccessibleRenderWindow *>(window))
+            return new QAccessibleRenderWindow(window, renderWindow);
     }
-#endif
 
+    // the offscreen window may be queried before its render window shows it
     if (classname == QLatin1String("vlc::CompositorOffscreenWindow")
         || (classname == QLatin1String("vlc::DCompOffscreenWindow")) )
     {
         return new QAccessibleOffscreenWindow(qobject_cast<QQuickWindow *>(object));
+    }
+
+    if (const auto quickWindow = qobject_cast<QQuickWindow *>(object))
+    {
+        if (renderWindowOf(quickWindow))
+            return new QAccessibleOffscreenWindow(quickWindow);
     }
 
     return nullptr;

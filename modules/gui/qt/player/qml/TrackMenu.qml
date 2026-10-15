@@ -80,8 +80,21 @@ T.Popup {
         fsm.buttonClicked(tab)
     }
 
+    // the Control bar button that opens it, which gets the focus back when
+    // it closes
+    property Item invoker: null
+
+    // whether the keyboard opens it: the focus ring shows then
+    property bool _keyboardOpened: false
+
+    function setInvoker(item) {
+        invoker = item
+        _keyboardOpened = !!item && item.visualFocus
+    }
+
     // the VLC menu opens it when the audio and subtitles buttons are folded
     function openOnTab(tab) {
+        setInvoker(null)
         if (fsm.opened)
             fsm.selectTab(tab)
         else
@@ -93,8 +106,32 @@ T.Popup {
     // the devices plugged in since the last time
     onAboutToShow: Player.audioDevices.refresh()
 
+    // Screen readers read the tab the menu opens on: the popup itself reads
+    // as an unnamed dialog.
+    onOpened: {
+        const tabButton = [videoTab, audioTab, subtitlesTab][fsm.tab]
+        if (tabButton)
+            tabButton.forceActiveFocus(_keyboardOpened ? Qt.TabFocusReason : Qt.PopupFocusReason)
+    }
+
+    // The focus goes back to the button that opened the menu, unless it went
+    // to another control (a click outside the menu): once closed, the focus
+    // falls back on a container of the button.
+    function _restoreFocus() {
+        if (!invoker || !invoker.visible || !invoker.enabled)
+            return
+        const focusItem = invoker.Window.activeFocusItem
+        let fellBack = !focusItem
+        for (let item = invoker.parent; item && !fellBack; item = item.parent)
+            fellBack = (item === focusItem)
+        if (fellBack)
+            invoker.forceActiveFocus(_keyboardOpened ? Qt.TabFocusReason : Qt.OtherFocusReason)
+    }
+
     onClosed: {
         root._removeMode = false
+
+        Qt.callLater(root._restoreFocus)
 
         if (fsm.opened)
             fsm.dismiss()
@@ -158,6 +195,14 @@ T.Popup {
         Accessible.role: Accessible.Dialog
         Accessible.name: qsTr("Track menu")
 
+        // Escape closes the menu from any of its controls: the buttons of the
+        // section headers took it for their own navigation
+        Shortcut {
+            sequences: [StandardKey.Cancel]
+            enabled: root.opened
+            onActivated: root.close()
+        }
+
         // the Tab bar
         Rectangle {
             Layout.fillWidth: true
@@ -186,18 +231,21 @@ T.Popup {
                 spacing: VLCStyle.dp(1, VLCStyle.scale)
 
                 TabButton {
+                    id: videoTab
                     tab: TrackMenuFSM.Video
                     glyph: VLCIcons.video
                     text: qsTr("Video")
                 }
 
                 TabButton {
+                    id: audioTab
                     tab: TrackMenuFSM.Audio
                     glyph: VLCIcons.audio
                     text: qsTr("Audio")
                 }
 
                 TabButton {
+                    id: subtitlesTab
                     tab: TrackMenuFSM.Subtitles
                     glyph: VLCIcons.subtitles
                     text: qsTr("Subtitles")

@@ -244,6 +244,12 @@ T.Pane {
                 Navigation.downItem: (pinsView.count > 0) ? pinsView
                                                           : (addPinButton.visible ? addPinButton : preferenceButton)
 
+                // read as "Sections, list with 6 items", like the Pins below
+                Accessible.name: qsTr("Sections")
+
+                // Enter opens the focused section, like Space and a click
+                onActionAtIndex: (index) => listView.itemAtIndex(index)?.clicked()
+
                 delegate: SideNavigationDelegate {
                     id: delegate
 

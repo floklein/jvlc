@@ -24,6 +24,7 @@ import VLC.MainInterface
 import VLC.Widgets as Widgets
 import VLC.Style
 import VLC.Dialogs
+import VLC.Util
 
 // Onboarding: library folders, Theme and Accent color, Privacy, then the
 // basic shortcuts. Finish or Skip applies the choices and lands on Home.
@@ -84,6 +85,20 @@ Window {
             root.close()
             root.finished()
         }
+
+        // Next and Back keep the focus: screen readers read the new step
+        onStepChanged: Qt.callLater(root._announceStep)
+    }
+
+    // once the page of the step shows
+    function _announceStep() {
+        const title = [foldersTitle, themeTitle, privacyTitle, shortcutsTitle]
+                          .find((title) => title.visible)
+        if (!title)
+            return
+        Helpers.announce(title, qsTr("%1 Step %2 of %3").arg(title.text)
+                                                       .arg(onboarding.step + 1)
+                                                       .arg(onboarding.stepCount))
     }
 
     Shortcut {
@@ -204,6 +219,7 @@ Window {
                 }
 
                 Title {
+                    id: foldersTitle
                     text: qsTr("Welcome to jVLC!")
                 }
 
@@ -405,6 +421,7 @@ Window {
                         spacing: VLCStyle.spacing_20
 
                         Title {
+                            id: themeTitle
                             text: qsTr("Select your preferred theme and color.")
                         }
 
@@ -441,6 +458,16 @@ Window {
 
                                     onClicked: onboarding.theme = modelData.value
 
+                                    // the keyboard focus ring, around the swatch and its name:
+                                    // the selected Theme has a border of its own
+                                    background: Rectangle {
+                                        color: "transparent"
+                                        radius: VLCStyle.radius_large
+                                        border.width: VLCStyle.focus_border
+                                        border.color: theme.fg.primary
+                                        visible: themeButton.visualFocus
+                                    }
+
                                     contentItem: ColumnLayout {
                                         spacing: VLCStyle.spacing_14
 
@@ -451,9 +478,7 @@ Window {
                                             radius: VLCStyle.radius_large
                                             color: "transparent"
                                             border.width: VLCStyle.dp(3, VLCStyle.scale)
-                                            border.color: themeButton.current ? theme.accent
-                                                        : themeButton.visualFocus ? theme.visualFocus
-                                                        : "transparent"
+                                            border.color: themeButton.current ? theme.accent : "transparent"
 
                                             // illustrations of the two Themes, not of the palette in use
                                             Rectangle {
@@ -510,6 +535,8 @@ Window {
                 // Accent colors
                 RowLayout {
                     Layout.alignment: Qt.AlignHCenter
+                    // room for the focus ring, which the page would clip
+                    Layout.bottomMargin: VLCStyle.focus_border * 2
                     spacing: VLCStyle.spacing_20
 
                     Repeater {
@@ -541,9 +568,18 @@ Window {
                                 radius: width / 2
                                 color: "transparent"
                                 border.width: VLCStyle.dp(3, VLCStyle.scale)
-                                border.color: accentButton.current ? accentButton.modelData.color
-                                            : accentButton.visualFocus ? theme.visualFocus
-                                            : "transparent"
+                                border.color: accentButton.current ? accentButton.modelData.color : "transparent"
+
+                                // the keyboard focus ring, outside the ring of the selected color
+                                Rectangle {
+                                    anchors.fill: parent
+                                    anchors.margins: -VLCStyle.focus_border - VLCStyle.dp(1, VLCStyle.scale)
+                                    radius: width / 2
+                                    color: "transparent"
+                                    border.width: VLCStyle.focus_border
+                                    border.color: theme.fg.primary
+                                    visible: accentButton.visualFocus
+                                }
                             }
 
                             contentItem: Item {
@@ -579,6 +615,7 @@ Window {
                 }
 
                 Title {
+                    id: privacyTitle
                     text: qsTr("Find titles, artwork and details online.")
                 }
 
@@ -631,6 +668,7 @@ Window {
                 spacing: VLCStyle.dp(32, VLCStyle.scale)
 
                 Title {
+                    id: shortcutsTitle
                     Layout.topMargin: VLCStyle.margin_normal
                     text: qsTr("Learn the basic keyboard shortcuts.")
                 }
@@ -738,6 +776,27 @@ Window {
                 Accessible.onPressAction: DialogsProvider.keyboardShortcutsDialog()
 
                 onLinkActivated: DialogsProvider.keyboardShortcutsDialog()
+
+                // the link is reached with Tab, and opens with Enter or Space
+                activeFocusOnTab: true
+
+                Keys.onPressed: (event) => {
+                    if (KeyHelper.matchOk(event)) {
+                        event.accepted = true
+                        DialogsProvider.keyboardShortcutsDialog()
+                    }
+                }
+
+                // the keyboard focus ring (a click does not focus the text)
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: -VLCStyle.focus_border * 2
+                    radius: VLCStyle.radius_small
+                    color: "transparent"
+                    border.width: VLCStyle.focus_border
+                    border.color: theme.fg.primary
+                    visible: fullListLink.activeFocus
+                }
 
                 HoverHandler {
                     cursorShape: fullListLink.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor

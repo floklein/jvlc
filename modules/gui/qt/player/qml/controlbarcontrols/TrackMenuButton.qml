@@ -60,7 +60,10 @@ Widgets.IconToolButton {
 
     // Events
 
-    onPressed: _trackMenu.buttonPressed(tab)
+    onPressed: {
+        _trackMenu.setInvoker(root)
+        _trackMenu.buttonPressed(tab)
+    }
 
     onClicked: _trackMenu.buttonClicked(tab)
 }

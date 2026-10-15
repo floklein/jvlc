@@ -113,7 +113,8 @@ Item {
         EditorDashedBorder {
             anchors.fill: parent
 
-            color: dndView.activeFocus ? theme.visualFocus : theme.border
+            // the focus ring color: theme.visualFocus is only set on a focused context
+            color: dndView.activeFocus ? theme.accent : theme.border
             lineWidth: dndView.activeFocus ? VLCStyle.focus_border : VLCStyle.border
         }
 

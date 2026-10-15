@@ -122,6 +122,12 @@ QtObject {
         return qsTr("%1 of %2").arg(time).arg(length)
     }
 
+    // The value a slider gives screen readers: a whole number, which they
+    // read as is (Qt reads the `value` property of the slider)
+    function accessibleValue(value: real) : int {
+        return Math.round(value)
+    }
+
     // Where a key moves a seek bar at `position` (0..1): Home and End go to
     // the start and the end, Page Up and Page Down a tenth forward and back.
     // -1 for the other keys.

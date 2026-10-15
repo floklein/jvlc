@@ -361,7 +361,8 @@ T.Pane {
 
             function _syncVolumeWithPlayer() {
                 volControl._inhibitPlayerVolumeUpdate = true
-                volControl.value = _player.volume * 100
+                // screen readers read the value: a whole percentage
+                volControl.value = Helpers.accessibleValue(_player.volume * 100)
                 volControl._inhibitPlayerVolumeUpdate = false
             }
 

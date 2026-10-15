@@ -70,6 +70,22 @@ TestCase {
         compare(Helpers.seekBarName("12:34", "45:00"), "12:34 of 45:00")
     }
 
+    // Sliders read whole numbers to screen readers: the seek bar its position
+    // in percent, the volume its percentage. Orca read "14.141472777777778".
+    function test_accessibleValue_data() {
+        return [
+            { tag: "seek bar", value: 0.14141472777777778 * 100, result: 14 },
+            { tag: "rounds up", value: 14.6, result: 15 },
+            { tag: "volume", value: 0.9499999880790710 * 100, result: 95 },
+            { tag: "start", value: 0, result: 0 },
+            { tag: "end", value: 100, result: 100 },
+        ]
+    }
+
+    function test_accessibleValue(data) {
+        compare(Helpers.accessibleValue(data.value), data.result)
+    }
+
     // Home and End go to the start and the end of the seek bar, Page Up and
     // Page Down move a tenth of it; other keys are not the seek bar's
     function test_seekKeyPosition_data() {

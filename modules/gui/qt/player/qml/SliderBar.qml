@@ -78,7 +78,7 @@ T.ProgressBar {
                                            && Player.seekable
 
     function _jump(forward) {
-        _accessibleSeeking = true
+        _startAccessibleSeek()
         if (forward)
             Player.jumpFwd()
         else
@@ -90,13 +90,13 @@ T.ProgressBar {
 
     // Home and End, Page Up and Page Down
     Keys.onPressed: (event) => {
-        const position = Helpers.seekKeyPosition(event.key, control.position)
+        const position = Helpers.seekKeyPosition(event.key, control._position)
         if (position < 0)
             return
         event.accepted = true
         if (!Player.seekable)
             return
-        _accessibleSeeking = true
+        _startAccessibleSeek()
         Player.jumpToPos(position)
     }
 
@@ -108,6 +108,23 @@ T.ProgressBar {
 
     function _updateAccessibleName() {
         _accessibleName = Helpers.seekBarName(Player.time.formatHMS(0), Player.length.formatHMS(0))
+        value = Helpers.accessibleValue(Player.position * to)
+    }
+
+    // the time a seek takes: the first time update may still be the one
+    // before the seek
+    function _startAccessibleSeek() {
+        _accessibleSeeking = true
+        accessibleSeekTimer.restart()
+    }
+
+    Timer {
+        id: accessibleSeekTimer
+        interval: VLCStyle.duration_long
+        onTriggered: {
+            control._accessibleSeeking = false
+            control._updateAccessibleName()
+        }
     }
 
     onActiveFocusChanged: {
@@ -120,10 +137,8 @@ T.ProgressBar {
 
         function onTimeChanged() {
             // screen readers only read the name changes of the focused bar
-            if (control._accessibleSeeking || !control.activeFocus) {
-                control._accessibleSeeking = false
+            if (control._accessibleSeeking || !control.activeFocus)
                 control._updateAccessibleName()
-            }
         }
 
         function onLengthChanged() {
@@ -131,17 +146,21 @@ T.ProgressBar {
         }
     }
 
-    // The value screen readers read, after the name: a percentage, so the
-    // value runs from 0 to 100 and `position` is the 0..1 position. Qt reads
-    // these names; the step makes Orca read whole percents.
+    // The value screen readers read, after the name: a whole percentage, so
+    // the value runs from 0 to 100. Like the name, it does not follow the
+    // playback while the bar has the focus: Orca read every change. The bar
+    // draws `_position`, the exact 0..1 position.
     from: 0
     to: 100
     readonly property real minimumValue: from
     readonly property real maximumValue: to
     readonly property real stepSize: 1
 
+    property real _position: 0
+    readonly property real _visualPosition: mirrored ? 1 - _position : _position
+
     function _setPosition(position) {
-        value = position * to
+        _position = position
     }
 
     Accessible.role: Accessible.Slider
@@ -195,7 +214,7 @@ T.ProgressBar {
     }
 
     Widgets.PointingToolTipAttached.pos: Qt.point(hoverHandler.hovered ? Helpers.clamp(hoverHandler.point.position.x, 0, control.availableWidth)
-                                                                       : (control.visualPosition * control.width), 0)
+                                                                       : (control._visualPosition * control.width), 0)
 
     FSM {
         id: fsm
@@ -227,6 +246,7 @@ T.ProgressBar {
 
         function _seekToPosition(position, threshold, forcePrecise, scrub) {
             position = Helpers.clamp(position, 0., 1.)
+            control._startAccessibleSeek()
             control._setPosition(position)
             if (!forcePrecise) {
                 const chapter = Player.chapters.getClosestChapterFromPos(position, threshold)
@@ -249,7 +269,7 @@ T.ProgressBar {
         function _endScrub() {
             if (fsm._scrubbed) {
                 fsm._scrubbed = false
-                Player.position = control.position
+                Player.position = control._position
             }
         }
 
@@ -616,9 +636,9 @@ T.ProgressBar {
                     readonly property real endPosition: model.endPosition ?? 1.0
 
                     readonly property int _currentChapter: {
-                        if (control.visualPosition < seekpointsRect.startPosition)
+                        if (control._visualPosition < seekpointsRect.startPosition)
                             return 1
-                        else if (control.visualPosition > seekpointsRect.endPosition)
+                        else if (control._visualPosition > seekpointsRect.endPosition)
                             return -1
                         return 0
                     }
@@ -641,7 +661,7 @@ T.ProgressBar {
                         anchors.bottom: parent.bottom
                         radius: parent.radius
 
-                        width: sliderRect.width * control.visualPosition - parent.x - control._seekPointsDistance
+                        width: sliderRect.width * control._visualPosition - parent.x - control._seekPointsDistance
                         visible: parent._currentChapter === 0
                         color: theme.fg.primary
 
@@ -704,7 +724,7 @@ T.ProgressBar {
             id: progressRect
             x: control._inset
             y: control._inset
-            width: control.visualPosition * (parent.width - control._inset * 2)
+            width: control._visualPosition * (parent.width - control._inset * 2)
             visible: (control._thick || !Player.hasChapters) && !control._waveform
             color: control._thick ? theme.bg.highlight : theme.fg.primary
             height: control.barHeight - control._inset * 2
@@ -917,8 +937,8 @@ T.ProgressBar {
 
         // thick bar: an 8 px bar ending the played part, always shown
         x: control._thick ? Math.max(control._inset,
-                                     control._inset + control.visualPosition * (control.availableWidth - control._inset * 2) - width)
-                          : (control.visualPosition * control.availableWidth) - width / 2
+                                     control._inset + control._visualPosition * (control.availableWidth - control._inset * 2) - width)
+                          : (control._visualPosition * control.availableWidth) - width / 2
         y: (control.barHeight - height) / 2
 
         // the waveform's handle is a 4 px bar (Figma 4778:26192)

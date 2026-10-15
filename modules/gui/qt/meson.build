@@ -1863,6 +1863,23 @@ if qt6_dep.found()
         }
 
         vlc_tests += {
+            'name': 'test_qt_compositor_accessibility',
+            'sources': files(
+                'tests/test_compositor_accessibility.cpp',
+                'maininterface/compositor_accessibility.cpp',
+                'maininterface/compositor_accessibility.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_compositor_accessibility.cpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'cpp_args': qt_extra_flags,
+            'link_args': test_videoblur_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
             'name': 'test_qt_theme',
             'sources': files(
                 'tests/test_theme.cpp',

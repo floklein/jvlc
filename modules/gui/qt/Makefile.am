@@ -2475,6 +2475,24 @@ test_videoblur_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_videoblur
 TESTS += test_videoblur
 
+# test_compositor_accessibility
+
+test_compositor_accessibility_SOURCES = \
+	tests/test_compositor_accessibility.cpp \
+	maininterface/compositor_accessibility.cpp maininterface/compositor_accessibility.hpp
+
+nodist_test_compositor_accessibility_SOURCES = \
+	tests/test_compositor_accessibility.moc
+
+BUILT_SOURCES += tests/test_compositor_accessibility.moc
+CLEANFILES += tests/test_compositor_accessibility.moc
+test_compositor_accessibility_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_compositor_accessibility_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_compositor_accessibility_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_compositor_accessibility_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_compositor_accessibility
+TESTS += test_compositor_accessibility
+
 # test_subtitle_timeline
 
 test_subtitle_timeline_SOURCES = \
