@@ -129,6 +129,8 @@ moc_headers = files(
     'player/video_adjustments.hpp',
     'player/waveform.hpp',
     'player/waveform_bars.hpp',
+    'player/subtitle_timeline.hpp',
+    'player/subtitle_timeline_blocks.hpp',
     'player/sleep_timer.hpp',
     'player/playback_statistics.hpp',
     'player/subtitle_appearance.hpp',
@@ -451,6 +453,10 @@ qt_plugin_sources = files(
     'player/waveform.hpp',
     'player/waveform_bars.cpp',
     'player/waveform_bars.hpp',
+    'player/subtitle_timeline.cpp',
+    'player/subtitle_timeline.hpp',
+    'player/subtitle_timeline_blocks.cpp',
+    'player/subtitle_timeline_blocks.hpp',
     'player/sleep_timer.cpp',
     'player/sleep_timer.hpp',
     'player/playback_statistics.cpp',
@@ -787,6 +793,7 @@ qml_modules += {
        'player/qml/ContinueWatchingPill.qml',
        'player/qml/ShortcutMessagePill.qml',
        'player/qml/SliderBar.qml',
+       'player/qml/SubtitleTimelineBar.qml',
        'player/qml/TopBar.qml',
        'player/qml/TrackMenu.qml',
        'player/qml/AdjustmentsSidebar.qml',
@@ -1895,6 +1902,27 @@ if qt6_dep.found()
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qtest_qt6_dep],
             'module_depends': ['filesystem', 'wav', 'araw', 'packetizer_copy']
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_subtitle_timeline',
+            'sources': files(
+                'tests/test_subtitle_timeline.cpp',
+                'player/subtitle_timeline.cpp',
+                'player/subtitle_timeline.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_subtitle_timeline.cpp'
+            ),
+            'moc_headers': files(
+                'player/subtitle_timeline.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep],
+            'module_depends': ['filesystem', 'subtitle', 'webvtt']
         }
 
         vlc_tests += {

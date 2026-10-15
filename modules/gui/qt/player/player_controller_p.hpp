@@ -60,6 +60,7 @@ public:
     void UpdateVouts(vout_thread_t **vouts, size_t i_vouts, vlc_player_vout_action action);
     void UpdateTrackSelection(vlc_es_id_t *trackid, bool selected);
     void UpdateSpuOrder(vlc_es_id_t *es_id, enum vlc_vout_order spu_order);
+    void UpdateSubtitleTimelineTrack();
     int interpolateTime(vlc_tick_t system_now);
     bool isCurrentItemSynced();
 
@@ -201,6 +202,8 @@ public:
     RendererManager m_rendererManager;
 
     SeekWaveform* m_waveform = nullptr;
+    SubtitleTimeline* m_subtitleTimeline = nullptr;
+    int m_subtitleTimelineRetries = 0;
     SleepTimer* m_sleepTimer = nullptr;
     VideoAdjustments* m_videoAdjustments = nullptr;
     PlaybackStatistics* m_statistics = nullptr;

@@ -121,6 +121,25 @@ FocusScope {
         }
     }
 
+    // music plays: the sidebar has only the Playback and Audio tabs
+    readonly property bool _music: Player.isStarted && !Player.hasVideoOutput
+
+    function _timelineUsable() : bool {
+        return subtitleTimelineRow.visible && subtitleTimelineRow.enabled
+    }
+
+    function _belowStatistics() : Item {
+        if (waveformRow.visible)
+            return waveformRow
+        return _timelineUsable() ? subtitleTimelineRow : sleepCombo
+    }
+
+    function _aboveSleepTimer() : Item {
+        if (_timelineUsable())
+            return subtitleTimelineRow
+        return waveformRow.visible ? waveformRow : statisticsRow
+    }
+
     function _applySpeed(text : string) {
         const speed = Helpers.parseSpeed(text)
         if (speed > 0)
@@ -158,7 +177,7 @@ FocusScope {
                 focus: true
 
                 Navigation.parentItem: root
-                Navigation.downItem: waveformRow.visible ? waveformRow : sleepCombo
+                Navigation.downItem: root._belowStatistics()
             }
 
             // local music only (#39)
@@ -173,7 +192,42 @@ FocusScope {
 
                 Navigation.parentItem: root
                 Navigation.upItem: statisticsRow
+                Navigation.downItem: root._timelineUsable() ? subtitleTimelineRow : sleepCombo
+            }
+
+            // the subtitle timeline (#54): not for music; external text
+            // subtitles only, the toggle says why otherwise
+            ToggleRow {
+                id: subtitleTimelineRow
+
+                visible: !root._music
+
+                enabled: Player.subtitleTimeline.unsupportedReason === ""
+                opacity: enabled ? 1 : 0.5
+
+                text: qsTr("Show Subtitle Timeline on Seek Bar")
+                checked: MainCtx.showSubtitleTimeline
+                onToggled: MainCtx.showSubtitleTimeline = !MainCtx.showSubtitleTimeline
+
+                Navigation.parentItem: root
+                Navigation.upItem: waveformRow.visible ? waveformRow : statisticsRow
                 Navigation.downItem: sleepCombo
+            }
+
+            T.Label {
+                id: subtitleTimelineReason
+
+                visible: subtitleTimelineRow.visible && text !== ""
+
+                Layout.fillWidth: true
+                Layout.leftMargin: VLCStyle.spacing_20 + VLCStyle.spacing_4
+                Layout.rightMargin: VLCStyle.spacing_20
+
+                text: Player.subtitleTimeline.unsupportedReason
+                color: theme.fg.secondary
+                font.pixelSize: VLCStyle.fontSize_small
+                font.family: VLCStyle.fontFamily
+                wrapMode: Text.WordWrap
             }
 
             ChoiceRow {
@@ -198,7 +252,7 @@ FocusScope {
                     onActivated: (index) => root._pickSleep(index)
 
                     Navigation.parentItem: root
-                    Navigation.upItem: waveformRow.visible ? waveformRow : statisticsRow
+                    Navigation.upItem: root._aboveSleepTimer()
                     Navigation.downItem: customRow.visible ? customField : visualizerCombo
                 }
             }

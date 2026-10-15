@@ -38,6 +38,8 @@
 #include "player/video_adjustments.hpp"
 #include "player/waveform.hpp"
 #include "player/waveform_bars.hpp"
+#include "player/subtitle_timeline.hpp"
+#include "player/subtitle_timeline_blocks.hpp"
 #include "player/sleep_timer.hpp"
 #include "player/playback_statistics.hpp"
 #include "player/subtitle_appearance.hpp"
@@ -383,6 +385,8 @@ void MainUI::registerQMLTypes()
         qmlRegisterUncreatableType<PlaybackStatistics>(uri, versionMajor, versionMinor, "PlaybackStatistics", "the statistics of the current media");
         qmlRegisterUncreatableType<SubtitleAppearance>(uri, versionMajor, versionMinor, "SubtitleAppearance", "the subtitle look, see Player.subtitleAppearance");
         qmlRegisterType<WaveformBars>(uri, versionMajor, versionMinor, "WaveformBars");
+        qmlRegisterUncreatableType<SubtitleTimeline>(uri, versionMajor, versionMinor, "SubtitleTimeline", "the subtitle timeline, see Player.subtitleTimeline");
+        qmlRegisterType<SubtitleTimelineBlocks>(uri, versionMajor, versionMinor, "SubtitleTimelineBlocks");
         qmlRegisterUncreatableType<AudioAdjustments>(uri, versionMajor, versionMinor, "AudioAdjustments", "the Audio tab, see Player.audioAdjustments");
         qmlRegisterType<EqualizerCurve>(uri, versionMajor, versionMinor, "EqualizerCurve");
         qmlRegisterType<SeekThumbnailer>(uri, versionMajor, versionMinor, "SeekThumbnailer");

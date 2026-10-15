@@ -145,6 +145,8 @@ class MainCtx : public QObject
     Q_PROPERTY(bool showWaveform READ showWaveform WRITE setShowWaveform NOTIFY showWaveformChanged FINAL)
     // Show Statistics: the player shows the statistics overlay
     Q_PROPERTY(bool showStatistics READ showStatistics WRITE setShowStatistics NOTIFY showStatisticsChanged FINAL)
+    // Show subtitle timeline: the seek bar shows the subtitle lines as blocks
+    Q_PROPERTY(bool showSubtitleTimeline READ showSubtitleTimeline WRITE setShowSubtitleTimeline NOTIFY showSubtitleTimelineChanged FINAL)
     // the player shows the Adjustments sidebar (set by the player view)
     Q_PROPERTY(bool adjustmentsOpened MEMBER m_adjustmentsOpened NOTIFY adjustmentsOpenedChanged FINAL)
     Q_PROPERTY(bool usingTouch READ usingTouch NOTIFY usingTouchChanged FINAL)
@@ -254,6 +256,7 @@ public:
     inline bool lyricsMode() const { return m_lyricsMode; }
     inline bool showWaveform() const { return m_showWaveform; }
     inline bool showStatistics() const { return m_showStatistics; }
+    inline bool showSubtitleTimeline() const { return m_showSubtitleTimeline; }
     inline ColorSchemeModel* getColorScheme() const { return m_colorScheme; }
     inline PinsModel* getPins() const { return m_pins; }
     bool hasVLM() const;
@@ -573,6 +576,7 @@ protected:
     bool m_lyricsMode = true;
     bool m_showWaveform = true;
     bool m_showStatistics = false;
+    bool m_showSubtitleTimeline = false;
     int m_pendingAdjustments = AdjustmentsNone;
     bool m_adjustmentsOpened = false;
 
@@ -605,6 +609,7 @@ public slots:
     void setLyricsMode( bool );
     void setShowWaveform( bool );
     void setShowStatistics( bool );
+    void setShowSubtitleTimeline( bool );
     void incrementIntfUserScaleFactor( bool increment);
     void setIntfUserScaleFactor( double );
 
@@ -666,6 +671,7 @@ signals:
     void lyricsModeChanged( bool );
     void showWaveformChanged( bool );
     void showStatisticsChanged( bool );
+    void showSubtitleTimelineChanged( bool );
     /// the player view opens or closes the Adjustments sidebar
     void adjustmentsToggled();
     void adjustmentsRequested( int tab );

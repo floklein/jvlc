@@ -25,6 +25,7 @@
 #include "player_controller_p.hpp"
 #include "util/shared_input_item.hpp"
 #include "player/waveform.hpp"
+#include "player/subtitle_timeline.hpp"
 #include "player/sleep_timer.hpp"
 #include "player/playback_statistics.hpp"
 #include "player/subtitle_appearance.hpp"
@@ -50,6 +51,7 @@
 #include <QDir>
 #include <QSignalMapper>
 #include <QThreadPool>
+#include <QCryptographicHash>
 #ifndef QT_HAS_LIBATOMIC
 #include <QReadLocker>
 #include <QWriteLocker>
@@ -333,6 +335,87 @@ void PlayerControllerPrivate::UpdateSpuOrder(vlc_es_id_t *es_id, enum vlc_vout_o
 
     if (hadSecondary != (m_secondarySpuEsId.get() != NULL))
         emit q->hasSecondarySubtitleChanged();
+}
+
+/* The tracks of an external file have string ids starting with the MD5 of
+ * its MRL (see InputSourceNew), embedded tracks with their category */
+static bool isEmbeddedTrackId(const char *str_id)
+{
+    if (str_id == NULL)
+        return true;
+    const char *end = strchr(str_id, '/');
+    if (end == NULL)
+        return true;
+    const QLatin1StringView source(str_id, end - str_id);
+    for (const char *cat : { "video", "audio", "spu", "data", "unknown" })
+        if (source == QLatin1StringView(cat))
+            return true;
+    return false;
+}
+
+/* The file of an external track, empty until the input adds it to the item */
+static QString slaveMrlOfTrack(input_item_t *item, const char *str_id)
+{
+    if (item == NULL || isEmbeddedTrackId(str_id))
+        return {};
+    const char *end = strchr(str_id, '/');
+    const QLatin1StringView source(str_id, end - str_id);
+
+    vlc_mutex_locker lock{ &item->lock };
+    for (int i = 0; i < item->i_slaves; ++i)
+    {
+        const char *uri = item->pp_slaves[i]->psz_uri;
+        const QByteArray hash = QCryptographicHash::hash(QByteArray(uri),
+                                                         QCryptographicHash::Md5).toHex();
+        if (source == QLatin1StringView(hash))
+            return qfu(uri);
+    }
+    return {};
+}
+
+/* The subtitle timeline shows the main subtitle: the selected track that is
+ * not the second subtitle */
+void PlayerControllerPrivate::UpdateSubtitleTimelineTrack()
+{
+    Q_Q(PlayerController);
+    SubtitleTimeline::TrackKind kind = SubtitleTimeline::NoTrack;
+    QString mrl;
+    bool fileUnknown = false;
+    {
+        vlc_player_locker lock{ m_player };
+        const size_t count = vlc_player_GetSubtitleTrackCount(m_player);
+        for (size_t i = 0; i < count; ++i)
+        {
+            const struct vlc_player_track *track = vlc_player_GetSubtitleTrackAt(m_player, i);
+            if (!track->selected || track->es_id == m_secondarySpuEsId.get())
+                continue;
+
+            const char *str_id = vlc_es_id_GetStrId(track->es_id);
+            if (isEmbeddedTrackId(str_id))
+            {
+                kind = SubtitleTimeline::EmbeddedTrack;
+                break;
+            }
+            mrl = slaveMrlOfTrack(vlc_player_GetCurrentMedia(m_player), str_id);
+            if (mrl.isEmpty())
+                fileUnknown = true;
+            else if (SubtitleTimeline::isTextCodec(track->fmt.i_codec))
+                kind = SubtitleTimeline::ExternalTextTrack;
+            else
+                kind = SubtitleTimeline::ExternalPictureTrack;
+            break;
+        }
+    }
+    m_subtitleTimeline->setTrack(kind, mrl);
+
+    /* the input adds the file to the item just after its tracks: look again */
+    if (fileUnknown && m_subtitleTimelineRetries < 10)
+    {
+        ++m_subtitleTimelineRetries;
+        QTimer::singleShot(200, q, [this]() { UpdateSubtitleTimelineTrack(); });
+    }
+    else
+        m_subtitleTimelineRetries = 0;
 }
 
 int PlayerControllerPrivate::interpolateTime(vlc_tick_t system_now)
@@ -1492,6 +1575,17 @@ PlayerController::PlayerController( qt_intf_t *_p_intf )
     connect( this, &PlayerController::inputChanged, this, updateWaveformMedia );
     connect( &d_ptr->m_videoTracks, &TrackListModel::countChanged, this, updateWaveformMedia );
 
+    // The subtitle timeline follows the shown subtitle
+    d_ptr->m_subtitleTimeline = new SubtitleTimeline( VLC_OBJECT(_p_intf), this );
+    const auto updateSubtitleTimeline = [this]() {
+        Q_D(PlayerController);
+        d->UpdateSubtitleTimelineTrack();
+    };
+    connect( &d_ptr->m_subtitleTracks, &TrackListModel::dataChanged, this, updateSubtitleTimeline );
+    connect( &d_ptr->m_subtitleTracks, &TrackListModel::countChanged, this, updateSubtitleTimeline );
+    connect( this, &PlayerController::hasSecondarySubtitleChanged, this, updateSubtitleTimeline );
+    connect( this, &PlayerController::inputChanged, this, updateSubtitleTimeline );
+
     // The Video tab: its adjustments stay on the next video outputs
     d_ptr->m_videoAdjustments = new VideoAdjustments( std::make_unique<PlayerVideoOutputs>( this ), this );
     connect( this, &PlayerController::voutListChanged,
@@ -1559,6 +1653,7 @@ PlayerController::~PlayerController()
 {
     // waits for a running decode, which uses the interface
     delete d_ptr->m_waveform;
+    delete d_ptr->m_subtitleTimeline;
 }
 
 // PLAYBACK
@@ -2640,6 +2735,12 @@ SeekWaveform* PlayerController::getWaveform()
 {
     Q_D(PlayerController);
     return d->m_waveform;
+}
+
+SubtitleTimeline* PlayerController::getSubtitleTimeline()
+{
+    Q_D(PlayerController);
+    return d->m_subtitleTimeline;
 }
 
 VideoAdjustments* PlayerController::getVideoAdjustments()

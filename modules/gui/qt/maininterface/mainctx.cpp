@@ -55,6 +55,7 @@
 #include "player/shortcut_message.hpp"
 #include "player/subtitle_appearance.hpp"
 #include "player/waveform.hpp"
+#include "player/subtitle_timeline.hpp"
 #include "medialibrary/medialib.hpp"
 
 #include "dialogs/dialogs_provider.hpp"
@@ -324,6 +325,10 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
     THEMIM->getWaveform()->setEnabled( m_showWaveform );
     connect( this, &MainCtx::showWaveformChanged, THEMIM->getWaveform(), &SeekWaveform::setEnabled );
 
+    /* the subtitle lines are only read while the user shows the timeline */
+    THEMIM->getSubtitleTimeline()->setEnabled( m_showSubtitleTimeline );
+    connect( this, &MainCtx::showSubtitleTimelineChanged, THEMIM->getSubtitleTimeline(), &SubtitleTimeline::setEnabled );
+
     /* END CONNECTS ON IM */
 
     /* VideoWidget connects for asynchronous calls */
@@ -412,6 +417,8 @@ MainCtx::~MainCtx()
         settings->setValue( "show-waveform", m_showWaveform );
 
         settings->setValue( "show-statistics", m_showStatistics );
+
+        settings->setValue( "show-subtitle-timeline", m_showSubtitleTimeline );
 
         /* Save the stackCentralW sizes */
         settings->endGroup();
@@ -595,6 +602,8 @@ void MainCtx::loadFromSettingsImpl(const bool callSignals)
     loadFromSettings(m_showWaveform, "MainWindow/show-waveform", true, this, &MainCtx::showWaveformChanged);
 
     loadFromSettings(m_showStatistics, "MainWindow/show-statistics", false, this, &MainCtx::showStatisticsChanged);
+
+    loadFromSettings(m_showSubtitleTimeline, "MainWindow/show-subtitle-timeline", false, this, &MainCtx::showSubtitleTimelineChanged);
 
     const auto colorSchemeIndex = getSettings()->value( "MainWindow/color-scheme-index", 0 ).toInt();
     m_colorScheme->setCurrentIndex(colorSchemeIndex);
@@ -956,6 +965,15 @@ void MainCtx::setShowStatistics(bool enabled)
 
     m_showStatistics = enabled;
     emit showStatisticsChanged(enabled);
+}
+
+void MainCtx::setShowSubtitleTimeline(bool enabled)
+{
+    if (m_showSubtitleTimeline == enabled)
+        return;
+
+    m_showSubtitleTimeline = enabled;
+    emit showSubtitleTimelineChanged(enabled);
 }
 
 void MainCtx::setInterfaceAlwaysOnTop( bool on_top )

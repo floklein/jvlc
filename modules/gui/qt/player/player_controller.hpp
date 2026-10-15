@@ -40,6 +40,7 @@
 
 Q_MOC_INCLUDE("util/renderer_manager.hpp")
 Q_MOC_INCLUDE("player/waveform.hpp")
+Q_MOC_INCLUDE("player/subtitle_timeline.hpp")
 Q_MOC_INCLUDE("player/video_adjustments.hpp")
 Q_MOC_INCLUDE("player/sleep_timer.hpp")
 Q_MOC_INCLUDE("player/playback_statistics.hpp")
@@ -53,6 +54,7 @@ using SharedAOut = ::vlc::vlc_shared_data_ptr<audio_output_t, &aout_Hold, &aout_
 
 class RendererManager;
 class SeekWaveform;
+class SubtitleTimeline;
 class VideoAdjustments;
 class SleepTimer;
 class PlaybackStatistics;
@@ -246,6 +248,9 @@ public:
 
     // the waveform seek bar of the music player
     Q_PROPERTY(SeekWaveform* waveform READ getWaveform CONSTANT FINAL)
+
+    // the subtitle timeline of the seek bar
+    Q_PROPERTY(SubtitleTimeline* subtitleTimeline READ getSubtitleTimeline CONSTANT FINAL)
 
     // the Video tab of the Adjustments sidebar: flip, rotation, filters
     Q_PROPERTY(VideoAdjustments* videoAdjustments READ getVideoAdjustments CONSTANT FINAL)
@@ -482,6 +487,7 @@ public slots:
     RendererManager* getRendererManager();
 
     SeekWaveform* getWaveform();
+    SubtitleTimeline* getSubtitleTimeline();
     VideoAdjustments* getVideoAdjustments();
 
     SleepTimer* getSleepTimer();

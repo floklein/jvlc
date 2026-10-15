@@ -42,7 +42,12 @@ FocusScope {
     readonly property real spacing: VLCStyle.spacing_8
 
     readonly property real _timeWidth: VLCStyle.dp(76, VLCStyle.scale)
-    readonly property real _minimumBarWidth: VLCStyle.dp(64, VLCStyle.scale)
+
+    // the subtitle timeline replaces the seek bar (Show subtitle timeline):
+    // ‹ − start [lines] end + ›
+    readonly property bool _timeline: !paintOnly && Player.subtitleTimeline.shown
+    readonly property real _timelineButtonsWidth: _timeline ? (implicitHeight + spacing) * 4 : 0
+    readonly property real _minimumBarWidth: VLCStyle.dp(64, VLCStyle.scale) + _timelineButtonsWidth
 
     // how far the Control bar folds (ControlBarFolding.Level)
     property int foldLevel: ControlBarFolding.Full
@@ -60,6 +65,28 @@ FocusScope {
                                           && width >= (_timeWidth + spacing) * 2 + _minimumBarWidth
     readonly property bool _showTime: foldLevel < ControlBarFolding.NoTime
                                       && width >= _timeWidth + spacing + _minimumBarWidth
+
+    // "01:50", or "01:01:50", as VLCTick.formatHMS
+    function _formatMS(ms : real) : string {
+        const total = Math.floor(Math.max(ms, 0) / 1000)
+        const hours = Math.floor(total / 3600)
+        const pad = (n) => String(n).padStart(2, "0")
+        const mmss = pad(Math.floor(total / 60) % 60) + ":" + pad(total % 60)
+        return hours > 0 ? pad(hours) + ":" + mmss : mmss
+    }
+
+    // ‹ › move the subtitles by 100 ms, as the subtitle delay
+    readonly property int _shiftStep: 100
+
+    component TimelineButton : Widgets.IconToolButton {
+        visible: root._timeline
+
+        Layout.preferredWidth: root.implicitHeight
+        Layout.preferredHeight: root.implicitHeight
+        Layout.alignment: Qt.AlignVCenter
+
+        Navigation.parentItem: root
+    }
 
     readonly property ColorContext colorContext: ColorContext {
         id: theme
@@ -83,6 +110,29 @@ FocusScope {
 
         spacing: root.spacing
 
+        TimelineButton {
+            id: shiftEarlierButton
+
+            text: VLCIcons.chevron_left
+            description: qsTr("Show subtitles %1 ms earlier").arg(root._shiftStep)
+            onClicked: Player.subtitleDelayMS = Player.subtitleDelayMS - root._shiftStep
+
+            Navigation.leftItem: root.Navigation.leftItem
+            Navigation.rightItem: zoomOutButton
+        }
+
+        TimelineButton {
+            id: zoomOutButton
+
+            text: VLCIcons.remove
+            description: qsTr("Zoom out")
+            enabled: Player.subtitleTimeline.canZoomOut
+            onClicked: Player.subtitleTimeline.zoomOut()
+
+            Navigation.leftItem: shiftEarlierButton
+            Navigation.rightItem: root._timeline ? timelineBar : slider
+        }
+
         T.Label {
             id: timeLabel
 
@@ -94,6 +144,9 @@ FocusScope {
             text: {
                 if (root.paintOnly)
                     return "00:02:10"
+                // the timeline: where its span starts
+                if (root._timeline)
+                    return root._formatMS(timelineBar.windowStart)
                 const length = Player.length
                 return Player.time.formatHMS(length.isSubSecond() ? VLCTick.SubSecondFormattedAsMS : 0)
             }
@@ -115,8 +168,31 @@ FocusScope {
             }
         }
 
+        SubtitleTimelineBar {
+            id: timelineBar
+
+            visible: root._timeline
+
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
+
+            barHeight: root.implicitHeight
+
+            focus: root._timeline
+
+            Navigation.parentItem: root
+            Navigation.leftItem: zoomOutButton
+            Navigation.rightItem: zoomInButton
+
+            Keys.onPressed: (event) => {
+                Navigation.defaultKeyAction(event)
+            }
+        }
+
         SliderBar {
             id: slider
+
+            visible: !root._timeline
 
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter
@@ -126,7 +202,7 @@ FocusScope {
             // local music with Show waveform on draws the waveform seek bar
             peaks: root.paintOnly ? [] : Player.waveform.peaks
 
-            focus: true
+            focus: !root._timeline
             activeFocusOnTab: true
 
             enabled: !root.paintOnly
@@ -157,6 +233,9 @@ FocusScope {
             text: {
                 if (root.paintOnly)
                     return "00:25:40"
+                // the timeline: where its span ends
+                if (root._timeline)
+                    return root._formatMS(timelineBar.windowEnd)
                 return showRemainingTime ? "-" + Player.remainingTime.formatHMS()
                                          : Player.length.formatHMS()
             }
@@ -180,7 +259,7 @@ FocusScope {
 
             // clicking the duration shows the remaining time instead
             TapHandler {
-                enabled: !root.paintOnly
+                enabled: !root.paintOnly && !root._timeline
                 onTapped: MainCtx.showRemainingTime = !MainCtx.showRemainingTime
             }
 
@@ -209,6 +288,29 @@ FocusScope {
 
                 x: (parent.width - width) / 2
             }
+        }
+
+        TimelineButton {
+            id: zoomInButton
+
+            text: VLCIcons.add
+            description: qsTr("Zoom in")
+            enabled: Player.subtitleTimeline.canZoomIn
+            onClicked: Player.subtitleTimeline.zoomIn()
+
+            Navigation.leftItem: timelineBar
+            Navigation.rightItem: shiftLaterButton
+        }
+
+        TimelineButton {
+            id: shiftLaterButton
+
+            text: VLCIcons.chevron_right
+            description: qsTr("Show subtitles %1 ms later").arg(root._shiftStep)
+            onClicked: Player.subtitleDelayMS = Player.subtitleDelayMS + root._shiftStep
+
+            Navigation.leftItem: zoomInButton
+            Navigation.rightItem: root.Navigation.rightItem
         }
     }
 }

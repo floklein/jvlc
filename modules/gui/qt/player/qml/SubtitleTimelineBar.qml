@@ -1,0 +1,189 @@
+/*****************************************************************************
+ * Copyright (C) 2026 VLC authors and VideoLAN
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * ( at your option ) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
+ *****************************************************************************/
+import QtQuick
+import QtQuick.Templates as T
+
+import VLC.MainInterface
+import VLC.Style
+import VLC.Player
+import VLC.Util
+
+// The subtitle timeline (Figma 3744:12361): the thick seek bar shows one span
+// of the media with the subtitle lines as blocks. Clicking seeks; dragging
+// moves every line, which sets the subtitle delay.
+T.Control {
+    id: control
+
+    property real barHeight: VLCStyle.dp(28, VLCStyle.scale)
+
+    readonly property SubtitleTimeline timeline: Player.subtitleTimeline
+
+    // the media, in milliseconds; a live stream has no length
+    readonly property real length: Player.length.valid() ? Player.length.toMilliseconds() : -1
+    readonly property real time: Player.time.toMilliseconds()
+
+    // the shown span: a page that turns when playback leaves it
+    readonly property real windowStart: timeline.windowStart(time, length)
+    readonly property real windowEnd: windowStart + (length > 0 ? Math.min(timeline.span, length)
+                                                                : timeline.span)
+
+    readonly property real _inset: VLCStyle.dp(2, VLCStyle.scale)
+    readonly property real _trackWidth: width - _inset * 2
+
+    function _timeAt(x : real) : real {
+        return windowStart + Helpers.clamp(x - _inset, 0, _trackWidth) / _trackWidth * (windowEnd - windowStart)
+    }
+
+    function _xOf(ms : real) : real {
+        return _inset + (ms - windowStart) / (windowEnd - windowStart) * _trackWidth
+    }
+
+    implicitHeight: barHeight
+    height: implicitHeight
+
+    padding: 0
+    hoverEnabled: false
+    focusPolicy: Qt.StrongFocus
+
+    Keys.onRightPressed: Player.jumpFwd()
+    Keys.onLeftPressed: Player.jumpBwd()
+
+    // read as the seek bar: "12:34 of 45:00"
+    Accessible.role: Accessible.Slider
+    Accessible.name: qsTr("%1 of %2").arg(Player.time.formatHMS(0)).arg(Player.length.formatHMS(0))
+    Accessible.description: qsTr("Subtitle timeline")
+    Accessible.onIncreaseAction: Player.jumpFwd()
+    Accessible.onDecreaseAction: Player.jumpBwd()
+
+    readonly property ColorContext colorContext: ColorContext {
+        id: theme
+        colorSet: ColorContext.Slider
+
+        enabled: control.enabled
+        focused: control.visualFocus
+        hovered: hoverHandler.hovered
+    }
+
+    HoverHandler {
+        id: hoverHandler
+        cursorShape: dragHandler.active ? Qt.ClosedHandCursor : Qt.ArrowCursor
+    }
+
+    // a click seeks
+    TapHandler {
+        acceptedButtons: Qt.LeftButton
+
+        onTapped: (eventPoint) => {
+            control.forceActiveFocus(Qt.MouseFocusReason)
+            if (control.length > 0)
+                Player.position = control._timeAt(eventPoint.position.x) / control.length
+        }
+    }
+
+    // dragging shifts the whole track: the lines follow the pointer
+    DragHandler {
+        id: dragHandler
+
+        acceptedButtons: Qt.LeftButton
+        target: null
+        xAxis.enabled: true
+        yAxis.enabled: false
+
+        property int _startDelay: 0
+
+        onActiveChanged: {
+            if (active) {
+                control.forceActiveFocus(Qt.MouseFocusReason)
+                _startDelay = Player.subtitleDelayMS
+            }
+        }
+
+        onTranslationChanged: {
+            if (!active)
+                return
+            const delay = control.timeline.draggedDelay(_startDelay, translation.x, control._trackWidth)
+            if (delay !== Player.subtitleDelayMS)
+                Player.subtitleDelayMS = delay
+        }
+    }
+
+    background: Rectangle {
+        color: theme.bg.primary
+        radius: VLCStyle.radius_normal
+
+        // the track is as dark as the scrim over the video: outline it
+        border.width: VLCStyle.dp(1, VLCStyle.scale)
+        border.color: theme.border
+
+        // keyboard focus ring
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: -VLCStyle.focus_border
+
+            radius: parent.radius + VLCStyle.focus_border
+
+            color: "transparent"
+            border.width: VLCStyle.focus_border
+            border.color: theme.visualFocus
+
+            visible: control.visualFocus
+        }
+    }
+
+    contentItem: Item {
+        clip: true
+
+        // the played part of the span
+        Rectangle {
+            x: control._inset
+            y: control._inset
+            width: Helpers.clamp(control._xOf(control.time) - control._inset, 0, control._trackWidth)
+            height: parent.height - control._inset * 2
+
+            radius: VLCStyle.radius_small
+            color: theme.bg.highlight
+            opacity: 0.5
+        }
+
+        SubtitleTimelineBlocks {
+            x: control._inset
+            y: VLCStyle.dp(6, VLCStyle.scale)
+            width: control._trackWidth
+            height: parent.height - y * 2
+
+            timeline: control.timeline
+            from: control.windowStart
+            to: control.windowEnd
+            delay: Player.subtitleDelayMS
+
+            color: dragHandler.active ? theme.accent : theme.fg.secondary
+            radius: VLCStyle.radius_small
+        }
+
+        // the playhead
+        Rectangle {
+            x: Math.round(control._xOf(control.time) - width / 2)
+            y: control._inset
+            width: VLCStyle.dp(4, VLCStyle.scale)
+            height: parent.height - control._inset * 2
+
+            radius: VLCStyle.radius_small
+            color: theme.fg.primary
+        }
+    }
+}
