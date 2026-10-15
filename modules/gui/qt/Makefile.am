@@ -28,6 +28,12 @@ CLEANFILES =
 
 include ../../common.am
 
+# the OpenSubtitles consumer key and endpoint, from configure
+opensubtitles_config.h: Makefile
+	$(AM_V_GEN)printf '#define OPENSUBTITLES_API_KEY "%s"\n#define OPENSUBTITLES_API_URL "%s"\n' \
+		'$(OPENSUBTITLES_API_KEY)' '$(OPENSUBTITLES_API_URL)' > $@.tmp && mv -f $@.tmp $@
+BUILT_SOURCES += opensubtitles_config.h
+
 # Generate vlc_modules_list for Qt plugins
 include ../../modulelist.mk
 
@@ -132,6 +138,12 @@ libqt_plugin_la_SOURCES = \
 	dialogs/sout/stream_output.hpp \
 	dialogs/subtitles/add_subtitles_model.cpp \
 	dialogs/subtitles/add_subtitles_model.hpp \
+	dialogs/subtitles/http_request.cpp \
+	dialogs/subtitles/http_request.hpp \
+	dialogs/subtitles/opensubtitles.cpp \
+	dialogs/subtitles/opensubtitles.hpp \
+	dialogs/subtitles/opensubtitles_models.cpp \
+	dialogs/subtitles/opensubtitles_models.hpp \
 	dialogs/subtitles/subtitle_match_model.cpp \
 	dialogs/subtitles/subtitle_match_model.hpp \
 	dialogs/subtitles/subtitle_matching.cpp \
@@ -448,6 +460,8 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/shortcuts/shortcuts_model.moc.cpp \
 	dialogs/sout/stream_output.moc.cpp \
 	dialogs/subtitles/add_subtitles_model.moc.cpp \
+	dialogs/subtitles/opensubtitles.moc.cpp \
+	dialogs/subtitles/opensubtitles_models.moc.cpp \
 	dialogs/subtitles/subtitle_match_model.moc.cpp \
 	dialogs/subtitles/subtitle_matching.moc.cpp \
 	dialogs/systray/systray.moc.cpp \
@@ -2085,6 +2099,8 @@ test_subtitle_matches_SOURCES = \
 	tests/vlc_stub_modules.hpp \
 	dialogs/subtitles/add_subtitles_model.cpp \
 	dialogs/subtitles/add_subtitles_model.hpp \
+	dialogs/subtitles/http_request.cpp \
+	dialogs/subtitles/http_request.hpp \
 	player/input_models.cpp \
 	player/input_models.hpp \
 	util/base_model.cpp \
@@ -2132,6 +2148,69 @@ test_subtitle_matches_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_subtitle_matches_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_subtitle_matches
 TESTS += test_subtitle_matches
+
+# test_opensubtitles
+test_opensubtitles_SOURCES = \
+	tests/test_opensubtitles.cpp \
+	tests/vlc_stub_modules.cpp \
+	tests/vlc_stub_modules.hpp \
+	dialogs/subtitles/add_subtitles_model.cpp \
+	dialogs/subtitles/add_subtitles_model.hpp \
+	dialogs/subtitles/http_request.cpp \
+	dialogs/subtitles/http_request.hpp \
+	dialogs/subtitles/opensubtitles.cpp \
+	dialogs/subtitles/opensubtitles.hpp \
+	dialogs/subtitles/opensubtitles_models.cpp \
+	dialogs/subtitles/opensubtitles_models.hpp \
+	player/input_models.cpp \
+	player/input_models.hpp \
+	util/base_model.cpp \
+	util/base_model.hpp \
+	util/covergenerator.cpp \
+	util/vlctick.cpp \
+	medialibrary/medialib.cpp \
+	medialibrary/mlbasemodel.cpp \
+	medialibrary/mlcustomcover.cpp \
+	medialibrary/mlplaycountrank.cpp \
+	medialibrary/mlhelper.cpp \
+	medialibrary/mlplaylist.cpp \
+	medialibrary/mlplaylistlistmodel.cpp \
+	medialibrary/mlplaylistmanager.cpp \
+	medialibrary/mlplaylistmedia.cpp \
+	medialibrary/mlplaylistmodel.cpp \
+	medialibrary/mlrecenthidelist.cpp \
+	medialibrary/mlthreadpool.cpp \
+	medialibrary/mlvideo.cpp \
+	medialibrary/thumbnailcollector.cpp \
+	playlist/playlist_controller.cpp \
+	playlist/playlist_item.cpp
+nodist_test_opensubtitles_SOURCES = \
+	tests/test_opensubtitles.moc \
+	dialogs/subtitles/add_subtitles_model.moc.cpp \
+	dialogs/subtitles/opensubtitles.moc.cpp \
+	dialogs/subtitles/opensubtitles_models.moc.cpp \
+	player/input_models.moc.cpp \
+	util/base_model.moc.cpp \
+	util/vlctick.moc.cpp \
+	medialibrary/medialib.moc.cpp \
+	medialibrary/mlbasemodel.moc.cpp \
+	medialibrary/mlplaylistlistmodel.moc.cpp \
+	medialibrary/mlplaylistmanager.moc.cpp \
+	medialibrary/mlplaylistmodel.moc.cpp \
+	medialibrary/mlrecenthidelist.moc.cpp \
+	medialibrary/mlthreadpool.moc.cpp \
+	medialibrary/mlvideo.moc.cpp \
+	medialibrary/thumbnailcollector.moc.cpp \
+	playlist/playlist_controller.moc.cpp \
+	playlist/playlist_item.moc.cpp
+BUILT_SOURCES += tests/test_opensubtitles.moc
+CLEANFILES += tests/test_opensubtitles.moc
+test_opensubtitles_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_opensubtitles_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_opensubtitles_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_opensubtitles_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_opensubtitles
+TESTS += test_opensubtitles
 
 # test_subtitle_folder_matches
 test_subtitle_folder_matches_SOURCES = \

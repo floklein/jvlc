@@ -95,6 +95,7 @@
 #include "dialogs/open/disc_model.hpp"
 #include "dialogs/sout/stream_output.hpp"
 #include "dialogs/subtitles/add_subtitles_model.hpp"
+#include "dialogs/subtitles/opensubtitles_models.hpp"
 #include "dialogs/subtitles/subtitle_match_model.hpp"
 #include "util/renderer_manager.hpp"
 #include "util/vlchotkeyconverter.hpp"
@@ -344,6 +345,8 @@ void MainUI::registerQMLTypes()
         qmlRegisterUncreatableType<MediaPropertiesModel>( uri, versionMajor, versionMinor, "MediaPropertiesModel", "");
         qmlRegisterType<DiscModel>( uri, versionMajor, versionMinor, "DiscModel" );
         qmlRegisterUncreatableType<AddSubtitlesModel>( uri, versionMajor, versionMinor, "AddSubtitlesModel", "");
+        qmlRegisterUncreatableType<OpenSubtitlesModel>( uri, versionMajor, versionMinor, "OpenSubtitlesModel", "");
+        qmlRegisterUncreatableType<OpenSubtitlesFolderModel>( uri, versionMajor, versionMinor, "OpenSubtitlesFolderModel", "");
         qmlRegisterUncreatableType<SubtitleMatchModel>( uri, versionMajor, versionMinor, "SubtitleMatchModel", "");
 
         qmlRegisterModule(uri, versionMajor, versionMinor);

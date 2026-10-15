@@ -53,8 +53,6 @@ public:
     inline bool isUnloading() { return b_unloading; }
     void menu( QMenu *current );
 
-    void openVLsub();
-
     /** Get the extensions_manager_t if it is loaded */
     extensions_manager_t* getManager()
     {

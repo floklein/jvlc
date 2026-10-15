@@ -60,6 +60,9 @@ class SubtitleMatchModel : public QAbstractListModel
     Q_PROPERTY(int languageIndex READ languageIndex WRITE setLanguageIndex NOTIFY languageIndexChanged FINAL)
     Q_PROPERTY(int count READ count NOTIFY countChanged FINAL)
     Q_PROPERTY(int matchedCount READ matchedCount NOTIFY matchedCountChanged FINAL)
+    // From OpenSubtitles for the same episodes (an OpenSubtitlesFolderModel),
+    // null when not offered
+    Q_PROPERTY(QObject* openSubtitles READ openSubtitles CONSTANT FINAL)
 
 public:
     enum Roles {
@@ -91,6 +94,9 @@ public:
     void setLanguageIndex(int index);
     int count() const { return m_rows.size(); }
     int matchedCount() const;
+    QObject *openSubtitles() const { return m_openSubtitles; }
+    // owned by the caller (usually a child)
+    void setOpenSubtitles(QObject *model) { m_openSubtitles = model; }
 
     // To This Folder: the episodes of the folder (an MRL or a path), matched
     // from the source the Show remembers, or from the folder itself
@@ -140,6 +146,7 @@ private:
     qt_intf_t *m_intf;
     MediaLib *m_ml;
     QString m_target;
+    QObject *m_openSubtitles = nullptr;
     bool m_playlist = false;
     // the folder of the Show, empty for a Playlist
     QString m_show;

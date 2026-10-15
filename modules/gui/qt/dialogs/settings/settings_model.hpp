@@ -132,6 +132,10 @@ public:
         QString section;
         QString label;
         QString help;
+        // a label or help that changes, such as a sign-in state; read when
+        // shown, refresh() updates them
+        std::function<QString()> labelProvider;
+        std::function<QString()> helpProvider;
 
         Kind kind = Setting;
         // under Advanced Options, in the group of a plugin or not

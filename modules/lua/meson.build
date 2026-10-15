@@ -79,7 +79,6 @@ if lua_dep.found() and get_option('lua').allowed()
   luac = find_program('luac', required: true)
 
   lua_modules = files(
-    '../../share/lua/extensions/VLSub.lua',
     '../../share/lua/intf/cli.lua',
     '../../share/lua/intf/dummy.lua',
     '../../share/lua/intf/dumpmeta.lua',

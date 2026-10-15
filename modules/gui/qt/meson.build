@@ -11,6 +11,14 @@ qt_extra_flags = ['-DQT_STRICT_ITERATORS','-DQT_USE_QSTRINGBUILDER','-DQT_NO_CAS
 qt_cppargs = []
 qt_link_args = [gc_sections_linkargs]
 
+# the OpenSubtitles consumer key and endpoint, in their own header so that
+# changing them rebuilds one file
+opensubtitles_conf = configuration_data()
+opensubtitles_conf.set_quoted('OPENSUBTITLES_API_KEY', get_option('opensubtitles_api_key'))
+opensubtitles_conf.set_quoted('OPENSUBTITLES_API_URL', get_option('opensubtitles_api_url'))
+opensubtitles_config_h = configure_file(output: 'opensubtitles_config.h',
+                                        configuration: opensubtitles_conf)
+
 qt6_dep = dependency('qt6',
     # Note that Qt < 6.2.5 does not provide pc files!
     version: '>=6.2',
@@ -54,6 +62,8 @@ moc_headers = files(
     'dialogs/shortcuts/shortcuts_model.hpp',
     'dialogs/sout/stream_output.hpp',
     'dialogs/subtitles/add_subtitles_model.hpp',
+    'dialogs/subtitles/opensubtitles.hpp',
+    'dialogs/subtitles/opensubtitles_models.hpp',
     'dialogs/subtitles/subtitle_match_model.hpp',
     'dialogs/subtitles/subtitle_matching.hpp',
     'dialogs/systray/systray.hpp',
@@ -262,6 +272,12 @@ qt_plugin_sources = files(
     'dialogs/shortcuts/shortcuts_model.hpp',
     'dialogs/subtitles/add_subtitles_model.cpp',
     'dialogs/subtitles/add_subtitles_model.hpp',
+    'dialogs/subtitles/http_request.cpp',
+    'dialogs/subtitles/http_request.hpp',
+    'dialogs/subtitles/opensubtitles.cpp',
+    'dialogs/subtitles/opensubtitles.hpp',
+    'dialogs/subtitles/opensubtitles_models.cpp',
+    'dialogs/subtitles/opensubtitles_models.hpp',
     'dialogs/subtitles/subtitle_match_model.cpp',
     'dialogs/subtitles/subtitle_match_model.hpp',
     'dialogs/subtitles/subtitle_matching.cpp',
@@ -2293,6 +2309,7 @@ if qt6_dep.found()
                 'tests/test_subtitle_matches.cpp',
                 'tests/vlc_stub_modules.cpp',
                 'dialogs/subtitles/add_subtitles_model.cpp',
+                'dialogs/subtitles/http_request.cpp',
                 'player/input_models.cpp',
                 'util/base_model.cpp',
                 'util/covergenerator.cpp',
@@ -2319,6 +2336,69 @@ if qt6_dep.found()
             ),
             'moc_headers': files(
                 'dialogs/subtitles/add_subtitles_model.hpp',
+                'player/input_models.hpp',
+                'util/asynctask.hpp',
+                'util/base_model.hpp',
+                'util/listcache.hpp',
+                'util/locallistcacheloader.hpp',
+                'util/vlctick.hpp',
+                'medialibrary/medialib.hpp',
+                'medialibrary/mlbasemodel.hpp',
+                'medialibrary/mlplaylistlistmodel.hpp',
+                'medialibrary/mlplaylistmanager.hpp',
+                'medialibrary/mlplaylistmodel.hpp',
+                'medialibrary/mlqmltypes.hpp',
+                'medialibrary/mlrecenthidelist.hpp',
+                'medialibrary/mlthreadpool.hpp',
+                'medialibrary/mlvideo.hpp',
+                'medialibrary/thumbnailcollector.hpp',
+                'playlist/playlist_controller.hpp',
+                'playlist/playlist_item.hpp',
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_opensubtitles',
+            'sources': files(
+                'tests/test_opensubtitles.cpp',
+                'tests/vlc_stub_modules.cpp',
+                'dialogs/subtitles/add_subtitles_model.cpp',
+                'dialogs/subtitles/http_request.cpp',
+                'dialogs/subtitles/opensubtitles.cpp',
+                'dialogs/subtitles/opensubtitles_models.cpp',
+                'player/input_models.cpp',
+                'util/base_model.cpp',
+                'util/covergenerator.cpp',
+                'util/vlctick.cpp',
+                'medialibrary/medialib.cpp',
+                'medialibrary/mlbasemodel.cpp',
+                'medialibrary/mlcustomcover.cpp',
+                'medialibrary/mlplaycountrank.cpp',
+                'medialibrary/mlhelper.cpp',
+                'medialibrary/mlplaylist.cpp',
+                'medialibrary/mlplaylistlistmodel.cpp',
+                'medialibrary/mlplaylistmanager.cpp',
+                'medialibrary/mlplaylistmedia.cpp',
+                'medialibrary/mlplaylistmodel.cpp',
+                'medialibrary/mlrecenthidelist.cpp',
+                'medialibrary/mlthreadpool.cpp',
+                'medialibrary/mlvideo.cpp',
+                'medialibrary/thumbnailcollector.cpp',
+                'playlist/playlist_controller.cpp',
+                'playlist/playlist_item.cpp',
+            ),
+            'moc_sources': files(
+                'tests/test_opensubtitles.cpp'
+            ),
+            'moc_headers': files(
+                'dialogs/subtitles/add_subtitles_model.hpp',
+                'dialogs/subtitles/opensubtitles.hpp',
+                'dialogs/subtitles/opensubtitles_models.hpp',
                 'player/input_models.hpp',
                 'util/asynctask.hpp',
                 'util/base_model.hpp',

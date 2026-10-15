@@ -569,6 +569,40 @@ private slots:
         QCOMPARE(role("edit-shortcuts", SettingsModel::IsDefaultRole).toBool(), true);
     }
 
+    // a sign-in row tells its state in its label and help
+    void testLabelAndHelpProvidersFollowTheState()
+    {
+        QString user;
+        Row row;
+        row.id = "account";
+        row.page = "subtitles";
+        row.control = SettingsModel::Action;
+        row.label = "unused";
+        row.help = "unused";
+        row.labelProvider = [&user]() {
+            return user.isEmpty() ? QString("Not signed in") : "Signed in as " + user;
+        };
+        row.helpProvider = [&user]() {
+            return user.isEmpty() ? QString("Type your username.") : QString("Sign out to forget it.");
+        };
+        row.action = [&user]() { user.clear(); };
+        m_model->addRow(row);
+
+        QCOMPARE(role("account", SettingsModel::LabelRole).toString(), QString("Not signed in"));
+        QCOMPARE(role("account", SettingsModel::HelpRole).toString(), QString("Type your username."));
+
+        QSignalSpy changed(m_model.get(), &QAbstractItemModel::dataChanged);
+        user = "jane";
+        m_model->refresh();
+        QVERIFY(changed.count() >= 1);
+        QCOMPARE(role("account", SettingsModel::LabelRole).toString(), QString("Signed in as jane"));
+        QCOMPARE(role("account", SettingsModel::HelpRole).toString(), QString("Sign out to forget it."));
+
+        m_model->trigger("account");
+        m_model->refresh();
+        QCOMPARE(role("account", SettingsModel::LabelRole).toString(), QString("Not signed in"));
+    }
+
     /* Advanced Options */
 
     void testAdvancedOptionsAreCollapsedByDefault()

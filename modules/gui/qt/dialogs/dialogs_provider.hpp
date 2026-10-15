@@ -81,6 +81,7 @@ class VLCMenuBar;
 class PluginDialog;
 class AddSubtitlesModel;
 class SubtitleMatchModel;
+namespace opensubtitles { class Client; }
 
 class DialogsProvider : public QObject, public Singleton<DialogsProvider>
 {
@@ -138,6 +139,11 @@ public:
 
     Q_INVOKABLE QUrl getArtworkFileUrl();
 
+    /* the OpenSubtitles session, created on first use */
+    opensubtitles::Client *openSubtitles();
+    /* gives the matching of a folder or Playlist its From OpenSubtitles */
+    void addOpenSubtitlesToMatches( SubtitleMatchModel *matches );
+
 protected:
     void customEvent( QEvent *) override;
 
@@ -164,6 +170,8 @@ private:
     QPointer<AddSubtitlesModel> m_addSubtitlesModel;
     /* the model of Add Subtitles, To This Folder or Playlist */
     QPointer<SubtitleMatchModel> m_subtitleMatchModel;
+    /* the OpenSubtitles session, shared by Add Subtitles and Settings */
+    QPointer<opensubtitles::Client> m_openSubtitles;
     std::unique_ptr<PluginDialog> m_pluginDialog;
     std::unique_ptr<input_item_parser_id_t,
                     decltype(&input_item_parser_id_Release)> m_parser;

@@ -4261,6 +4261,13 @@ AM_CONDITIONAL([HAVE_KF6WINDOWSYSTEM], [test "${have_kf6windowsystem}" = "yes"])
 dnl
 dnl QT
 dnl
+AC_ARG_VAR([OPENSUBTITLES_API_KEY],
+  [OpenSubtitles consumer API key bundled with the Qt interface (empty: OpenSubtitles is unavailable)])
+AC_ARG_VAR([OPENSUBTITLES_API_URL],
+  [OpenSubtitles REST API endpoint used by the Qt interface])
+AS_IF([test -z "${OPENSUBTITLES_API_URL}"], [
+  OPENSUBTITLES_API_URL="https://api.opensubtitles.com/api/v1"
+])
 AC_ARG_ENABLE([qt],
   AS_HELP_STRING([--disable-qt], [Qt UI support (default enabled)]),, [
   AS_IF([test "${enable_vlc}" != "no"], [enable_qt="yes"])

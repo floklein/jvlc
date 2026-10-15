@@ -46,6 +46,8 @@
 #include "dialogs/dialogs/dialogmodel.hpp"
 #include "dialogs/plugins/plugins.hpp"
 #include "dialogs/subtitles/add_subtitles_model.hpp"
+#include "dialogs/subtitles/opensubtitles.hpp"
+#include "dialogs/subtitles/opensubtitles_models.hpp"
 #include "dialogs/subtitles/subtitle_match_model.hpp"
 
 #include <vlc_url.h>
@@ -962,7 +964,42 @@ void DialogsProvider::addSubtitlesDialog( const QString& mediaMrl )
         m_addSubtitlesModel->deleteLater();
     MediaLib *ml = p_intf->p_mi ? p_intf->p_mi->getMediaLibrary() : nullptr;
     m_addSubtitlesModel = new AddSubtitlesModel( p_intf, ml, mrl, this );
+
+    /* From OpenSubtitles */
+    m_addSubtitlesModel->setOpenSubtitles(
+        new OpenSubtitlesModel( p_intf, ml, openSubtitles(), mrl, m_addSubtitlesModel ) );
+
     emit showAddSubtitles( m_addSubtitlesModel );
+}
+
+opensubtitles::Client *DialogsProvider::openSubtitles()
+{
+    if( !m_openSubtitles )
+    {
+        m_openSubtitles = new opensubtitles::Client( VLC_OBJECT( p_intf ), this );
+        m_openSubtitles->setQuotaStore( getSettings() );
+    }
+    return m_openSubtitles;
+}
+
+void DialogsProvider::addOpenSubtitlesToMatches( SubtitleMatchModel *matches )
+{
+    /* From OpenSubtitles, for the same episodes */
+    MediaLib *ml = p_intf->p_mi ? p_intf->p_mi->getMediaLibrary() : nullptr;
+    auto *online = new OpenSubtitlesFolderModel( p_intf, ml, openSubtitles(), matches );
+    auto update = [matches, online]() {
+        QStringList names, mrls;
+        for( int i = 0; i < matches->rowCount(); ++i )
+        {
+            const QModelIndex index = matches->index( i );
+            names.push_back( index.data( SubtitleMatchModel::PathRole ).toString() );
+            mrls.push_back( index.data( SubtitleMatchModel::UrlRole ).toString() );
+        }
+        online->setEpisodes( matches->target(), names, mrls );
+    };
+    connect( matches, &SubtitleMatchModel::countChanged, online, update );
+    update();
+    matches->setOpenSubtitles( online );
 }
 
 void DialogsProvider::addFolderSubtitlesDialog( const QString& folder )
@@ -972,6 +1009,7 @@ void DialogsProvider::addFolderSubtitlesDialog( const QString& folder )
     MediaLib *ml = p_intf->p_mi ? p_intf->p_mi->getMediaLibrary() : nullptr;
     m_subtitleMatchModel = new SubtitleMatchModel( p_intf, ml, this );
     m_subtitleMatchModel->setFolder( folder );
+    addOpenSubtitlesToMatches( m_subtitleMatchModel );
     emit showSubtitleMatches( m_subtitleMatchModel );
 }
 
@@ -984,6 +1022,7 @@ void DialogsProvider::addPlaylistSubtitlesDialog( const QVariant& playlistId, co
         m_subtitleMatchModel->deleteLater();
     m_subtitleMatchModel = new SubtitleMatchModel( p_intf, ml, this );
     m_subtitleMatchModel->loadPlaylist( playlistId.value<MLItemId>(), name );
+    addOpenSubtitlesToMatches( m_subtitleMatchModel );
     emit showSubtitleMatches( m_subtitleMatchModel );
 }
 

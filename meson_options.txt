@@ -160,6 +160,16 @@ option('qt_qml_debug',
     value: false,
     description: 'Enable/disable Qt QML debugger')
 
+option('opensubtitles_api_key',
+    type: 'string',
+    value: '',
+    description: 'OpenSubtitles consumer API key bundled with the Qt interface (empty: OpenSubtitles is unavailable)')
+
+option('opensubtitles_api_url',
+    type: 'string',
+    value: 'https://api.opensubtitles.com/api/v1',
+    description: 'OpenSubtitles REST API endpoint used by the Qt interface')
+
 option('skins2',
     type : 'feature',
     value : 'auto',

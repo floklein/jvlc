@@ -25,6 +25,7 @@
 #include "maininterface/mainctx.hpp"
 #include "dialogs/dialogs_provider.hpp"
 #include "dialogs/settings/profiles_model.hpp"
+#include "dialogs/subtitles/opensubtitles.hpp"
 #include "dialogs/shortcuts/app_shortcuts_model.hpp"
 #include "style/accent_colors.hpp"
 #include "util/color_scheme_model.hpp"
@@ -34,6 +35,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QPointer>
 #include <QGuiApplication>
 #include <QScreen>
 #include <QSettings>
@@ -220,6 +222,7 @@ void AppSettingsModel::setCtx(MainCtx* ctx)
     addGeneralRows();
     addInterfaceRows();
     addControlsRows();
+    addOpenSubtitlesRows();
 
     /* Advanced Options: every other option, then General's reset */
     qt_intf_t* p_intf = intf();
@@ -570,6 +573,125 @@ void AppSettingsModel::addInterfaceRows()
         addRow(std::move(row));
     }
 
+}
+
+void AppSettingsModel::addOpenSubtitlesRows()
+{
+    /* the optional OpenSubtitles sign-in: the credentials go to VLC's
+     * keystore through the client, never to the settings */
+    QPointer<opensubtitles::Client> client = THEDP->openSubtitles();
+    connect(client, &opensubtitles::Client::storedUserChanged, this, &SettingsModel::refresh);
+    connect(client, &opensubtitles::Client::quotaChanged, this, &SettingsModel::refresh);
+
+    struct State
+    {
+        // the username typed, until the password comes
+        QString user;
+        bool typed = false;
+        QString error;
+        bool signingIn = false;
+    };
+    auto state = std::make_shared<State>();
+    QPointer<AppSettingsModel> self(this);
+    auto available = [client]() { return client && client->available(); };
+    auto currentUser = [client, state]() {
+        return state->typed ? state->user : (client ? client->storedUser() : QString());
+    };
+
+    const QString section = QStringLiteral("OpenSubtitles");
+
+    {
+        Row row = makeRow("opensubtitles-user", "subtitles", section, qtr("OpenSubtitles username"), Text);
+        row.allProfiles = true;
+        row.help = qtr("Optional. Signing in to OpenSubtitles raises your daily downloads: "
+                       "type your username, then your password.");
+        row.read = [currentUser]() { return QVariant(currentUser()); };
+        row.readDefault = []() { return QVariant(QString()); };
+        row.write = [self, client, state, available](const QVariant& value) {
+            if (!available())
+                return false;
+            state->user = value.toString().trimmed();
+            state->typed = true;
+            state->error.clear();
+            /* an empty username signs out */
+            if (state->user.isEmpty() && !client->storedUser().isEmpty())
+                client->signOut([self, state](const QString&) {
+                    state->typed = false;
+                    if (self)
+                        self->refresh();
+                });
+            return true;
+        };
+        addRow(std::move(row));
+    }
+
+    {
+        Row row = makeRow("opensubtitles-password", "subtitles", section, qtr("OpenSubtitles password"), Password);
+        row.allProfiles = true;
+        row.help = qtr("Kept in your system's keystore, not in VLC's settings.");
+        row.read = []() { return QVariant(QString()); };
+        row.readDefault = []() { return QVariant(QString()); };
+        row.write = [self, client, state, available, currentUser](const QVariant& value) {
+            const QString password = value.toString();
+            const QString user = currentUser();
+            if (!available() || password.isEmpty() || user.isEmpty())
+                return false;
+            state->signingIn = true;
+            state->error.clear();
+            if (self)
+                QMetaObject::invokeMethod(self, &SettingsModel::refresh, Qt::QueuedConnection);
+            client->signIn(user, password, [self, state](const QString& error) {
+                state->signingIn = false;
+                state->error = error;
+                if (error.isEmpty())
+                    state->typed = false;
+                if (self)
+                    self->refresh();
+            });
+            return true;
+        };
+        addRow(std::move(row));
+    }
+
+    {
+        /* the state of the sign-in, and Sign Out */
+        Row row = makeRow("opensubtitles-account", "subtitles", section, qtr("OpenSubtitles account"), Action);
+        row.allProfiles = true;
+        row.labelProvider = [client, state, available]() -> QString {
+            if (!available())
+                return qtr("OpenSubtitles isn't available in this build");
+            if (state->signingIn)
+                return qtr("Signing in…");
+            if (!state->error.isEmpty())
+                return qtr("Sign-in failed: %1").arg(state->error);
+            const opensubtitles::Quota quota = client->quota();
+            if (quota.signedIn)
+                return qtr("Signed in as %1: %2").arg(quota.user, opensubtitles::quotaText(quota));
+            if (!client->storedUser().isEmpty())
+                return qtr("Signs in as %1 when you add subtitles").arg(client->storedUser());
+            return qtr("Not signed in");
+        };
+        row.helpProvider = [client, available]() -> QString {
+            if (!available())
+                return qtr("This build of VLC has no OpenSubtitles API key.");
+            if (client->storedUser().isEmpty())
+                return qtr("Without an account, OpenSubtitles allows a few downloads a day.");
+            return qtr("Sign Out forgets the sign-in of %1 on this computer.").arg(client->storedUser());
+        };
+        row.buttonText = qtr("Sign Out");
+        row.confirmText = qtr("Sign out");
+        row.action = [self, client, state]() {
+            if (!client)
+                return;
+            state->typed = false;
+            state->error.clear();
+            client->signOut([self](const QString&) {
+                if (self)
+                    self->refresh();
+            });
+        };
+        addRow(std::move(row));
+    }
 }
 
 void AppSettingsModel::addControlsRows()

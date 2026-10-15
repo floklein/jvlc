@@ -697,9 +697,9 @@ QVariant SettingsModel::data(const QModelIndex& index, int role) const
         return row.section;
     case Qt::DisplayRole:
     case LabelRole:
-        return row.label;
+        return row.labelProvider ? row.labelProvider() : row.label;
     case HelpRole:
-        return row.help;
+        return row.helpProvider ? row.helpProvider() : row.help;
     case ControlRole:
         return row.control;
     case ValueRole:

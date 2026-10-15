@@ -377,7 +377,6 @@ public slots:
     bool canRestorePlayback() const;
     float restorePlaybackPosition() const;
     void restorePlaybackPos();
-    void openVLsub();
     void acknowledgeRestoreCallback();
     QUrl getUrl() const;
 
