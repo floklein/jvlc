@@ -106,6 +106,11 @@ T.ComboBox {
         width: control.width
         padding: 1
 
+        // stay in the window: a list taller than the window scrolls
+        topMargin: VLCStyle.margin_xsmall
+        bottomMargin: VLCStyle.margin_xsmall
+        height: Math.min(implicitHeight, control.Window.height - topMargin - bottomMargin)
+
         contentItem: ListView {
             clip: true
             implicitHeight: contentHeight

@@ -151,6 +151,13 @@ QtObject {
         return { x: x, width: spanWidth }
     }
 
+    // Whether a control placed at `x` fits in a zone `available` wide. The
+    // layout puts the controls on whole pixels, while a zone may be a fraction
+    // of a pixel wide: a control ending in that last partial pixel fits.
+    function controlFits(x: real, width: real, available: real) : bool {
+        return x + width <= Math.ceil(available)
+    }
+
     function pointInRadius(x: real, y: real, radius: real) : bool {
          return (x * x + y * y < radius * radius)
     }

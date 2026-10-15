@@ -135,7 +135,7 @@ Repeater {
             when: condition
             value: {
                 if (condition)
-                    return (loader.x + loader.Layout.minimumWidth <= repeater.availableWidth)
+                    return Helpers.controlFits(loader.x, loader.Layout.minimumWidth, repeater.availableWidth)
                 else
                     return true;
             }

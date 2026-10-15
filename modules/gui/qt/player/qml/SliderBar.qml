@@ -601,9 +601,10 @@ T.ProgressBar {
             anchors.left: parent.left
             anchors.right: parent.right
             height: control.barHeight
-            visible: !control._thick && Player.hasChapters
 
-            model: Player.chapters
+            // the delegates are parented to the background, not to the
+            // repeater: hiding the repeater would not hide them
+            model: control._thick ? null : Player.chapters
             Item {
                 // the delegates are children of the Repeater's parent: its
                 // visibility does not hide them (the thick bar draws ticks)

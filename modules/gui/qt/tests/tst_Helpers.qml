@@ -110,6 +110,23 @@ TestCase {
         compare(span.width, data.spanWidth)
     }
 
+    // A control of a bar zone shows while it fits in the zone. The layout puts
+    // the controls on whole pixels, and a zone may be a fraction of a pixel
+    // wide (the Top bar's right zone, beside the centered title)
+    function test_controlFits_data() {
+        return [
+            { tag: "inside", x: 100, width: 24, available: 389.5, fits: true },
+            { tag: "ends at the edge", x: 366, width: 24, available: 390, fits: true },
+            { tag: "rounded past a half pixel", x: 366, width: 24, available: 389.5, fits: true },
+            { tag: "a pixel past", x: 367, width: 24, available: 390, fits: false },
+            { tag: "far past", x: 380, width: 24, available: 389.5, fits: false },
+        ]
+    }
+
+    function test_controlFits(data) {
+        compare(Helpers.controlFits(data.x, data.width, data.available), data.fits)
+    }
+
     // The Mini player goes to the corner nearest to where it is dropped
     function test_nearestCorner_data() {
         // a 400x300 Mini player in a 1920x1040 library
