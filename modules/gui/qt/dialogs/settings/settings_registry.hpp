@@ -28,6 +28,8 @@
  */
 struct SettingsOption
 {
+    // empty for a filter plugin without options, which still gets a group
+    // with its filter toggle
     QString name;
     // the plugin ("core" for the core), and its name for people
     QString module;

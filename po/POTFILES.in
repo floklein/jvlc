@@ -667,10 +667,6 @@ modules/gui/qt/dialogs/open/qml/OpenNetworkDialog.qml
 modules/gui/qt/dialogs/dialogs_provider.cpp
 modules/gui/qt/dialogs/dialogs_provider.hpp
 modules/gui/qt/dialogs/epg/programguidemodel.cpp
-modules/gui/qt/dialogs/extended/extended.cpp
-modules/gui/qt/dialogs/extended/extended.hpp
-modules/gui/qt/dialogs/extended/extended_panels.cpp
-modules/gui/qt/dialogs/extended/extended_panels.hpp
 modules/gui/qt/dialogs/extensions/extensions.cpp
 modules/gui/qt/dialogs/extensions/extensions.hpp
 modules/gui/qt/dialogs/extensions/extensions_manager.cpp
@@ -801,10 +797,6 @@ modules/gui/qt/player/qml/PlaybackSpeed.qml
 modules/gui/qt/player/qml/Player.qml
 modules/gui/qt/player/qml/ResumeDialog.qml
 modules/gui/qt/player/qml/TopBar.qml
-modules/gui/qt/player/qml/TracksMenu.qml
-modules/gui/qt/player/qml/TracksPageAudio.qml
-modules/gui/qt/player/qml/TracksPageSubtitle.qml
-modules/gui/qt/player/qml/TracksListPage.qml
 modules/gui/qt/player/qml/controlbarcontrols/ArtworkInfoWidget.qml
 modules/gui/qt/player/qml/controlbarcontrols/AspectRatioWidget.qml
 modules/gui/qt/player/qml/controlbarcontrols/AtoBButton.qml
@@ -821,7 +813,6 @@ modules/gui/qt/player/qml/controlbarcontrols/FrameNextButton.qml
 modules/gui/qt/player/qml/controlbarcontrols/FramePrevButton.qml
 modules/gui/qt/player/qml/controlbarcontrols/FullscreenButton.qml
 modules/gui/qt/player/qml/controlbarcontrols/InfoButton.qml
-modules/gui/qt/player/qml/controlbarcontrols/LangButton.qml
 modules/gui/qt/player/qml/controlbarcontrols/LoopButton.qml
 modules/gui/qt/player/qml/controlbarcontrols/MenuButton.qml
 modules/gui/qt/player/qml/controlbarcontrols/NavigationBoxButton.qml
@@ -1364,5 +1355,3 @@ share/org.videolan.vlc.appdata.xml.in.in
 # qt .ui files
 # uncomment (and prepend $builddir} if you want to generate a proper vlc.pot
 
-#modules/gui/qt/dialogs/extended/ui_equalizer.h
-#modules/gui/qt/dialogs/extended/ui_video_effects.h

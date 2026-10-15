@@ -78,7 +78,6 @@ class QEvent;
 class QSignalMapper;
 class VLCMenuBar;
 
-class ExtendedDialog;
 class PluginDialog;
 class AddSubtitlesModel;
 class SubtitleMatchModel;
@@ -105,7 +104,6 @@ public:
     };
     Q_ENUM(StreamAndCastTab)
 
-    Q_PROPERTY(bool extendedDialogVisible READ extendedDialogVisible NOTIFY extendedDialogVisibleChanged FINAL)
     Q_PROPERTY(bool pluginDialogVisible READ pluginDialogVisible NOTIFY pluginDialogVisibleChanged FINAL)
     Q_PROPERTY(bool prefsDialogVisible READ prefsDialogVisible NOTIFY prefsDialogVisibleChanged FINAL)
 
@@ -161,7 +159,6 @@ private:
     // the Settings window is a QML window, see Dialogs.qml
     bool m_settingsDialogVisible = false;
 
-    std::unique_ptr<ExtendedDialog> m_extendedDialog;
     QPointer<MediaPropertiesModel> m_playerMediaProperties;
     /* the model of the Add Subtitles dialog */
     QPointer<AddSubtitlesModel> m_addSubtitlesModel;
@@ -204,11 +201,6 @@ public slots:
     void keyboardShortcutsDialog(const QString& action = {});
     /* Onboarding, on a step (0 for the first one) */
     void onboarding(int step = 0);
-    void extendedDialog();
-    void synchroDialog();
-    /// Shows the Adjustments and Effects dialog on a tab (0 audio, 1 video,
-    /// 2 synchronization), for the Adjustments sidebar tabs not built yet
-    void showExtendedDialogTab( int tab );
     /// Opens Messages, showing only the errors if page is 1
     void messagesDialog( int page = 0 );
     /// Asks for a file and saves the visible Messages lines to it
@@ -265,7 +257,6 @@ public slots:
     void restartVLC();
 
 public:
-    bool extendedDialogVisible() const;
     bool pluginDialogVisible() const;
     bool prefsDialogVisible() const;
 
@@ -300,7 +291,6 @@ signals:
     void showJumpToTime();
 
     //visiblity signal
-    void extendedDialogVisibleChanged();
     void pluginDialogVisibleChanged();
     void prefsDialogVisibleChanged();
 };

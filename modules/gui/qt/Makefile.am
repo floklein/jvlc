@@ -55,7 +55,6 @@ libqt_plugin_la_CPPFLAGS = $(AM_CPPFLAGS) $(CPPFLAGS_qt) \
 	-DQT_NO_CAST_TO_ASCII \
 	-DQT_NO_CAST_FROM_BYTEARRAY \
 	-I$(srcdir) -I$(builddir) \
-	-I$(builddir)/dialogs/extended \
 	-I$(builddir)/dialogs/open \
 	-I$(builddir)/dialogs/sout
 
@@ -96,9 +95,6 @@ libqt_plugin_la_SOURCES = \
 	dialogs/dialogs/dialogmodel.cpp \
 	dialogs/dialogs/dialogmodel.hpp \
 	dialogs/dialogs_provider.cpp dialogs/dialogs_provider.hpp \
-	dialogs/extended/extended.cpp dialogs/extended/extended.hpp \
-	dialogs/extended/extended_panels.cpp \
-	dialogs/extended/extended_panels.hpp \
 	dialogs/extensions/extensions.cpp dialogs/extensions/extensions.hpp \
 	dialogs/extensions/extensions_manager.cpp dialogs/extensions/extensions_manager.hpp \
 	dialogs/fingerprint/chromaprint.cpp \
@@ -431,8 +427,6 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/capture/open_capture_model.moc.cpp \
 	dialogs/dialogs/dialogmodel.moc.cpp \
 	dialogs/dialogs_provider.moc.cpp \
-	dialogs/extended/extended.moc.cpp \
-	dialogs/extended/extended_panels.moc.cpp \
 	dialogs/extensions/extensions.moc.cpp \
 	dialogs/extensions/extensions_manager.moc.cpp \
 	dialogs/fingerprint/chromaprint.moc.cpp \
@@ -578,10 +572,6 @@ nodist_libqt_plugin_la_SOURCES = \
 	widgets/native/mlfolderseditor.moc.cpp \
 	widgets/native/searchlineedit.moc.cpp \
 	widgets/native/viewblockingrectangle.moc.cpp
-
-nodist_libqt_plugin_la_SOURCES += \
-	dialogs/extended/ui_equalizer.h \
-	dialogs/extended/ui_video_effects.h
 
 
 # windows compositor
@@ -776,9 +766,7 @@ if HAVE_WIN32
 MOC_CPPFLAGS += -D_WIN32
 endif
 
-libqt_plugin_la_UI = \
-	dialogs/extended/equalizer.ui \
-	dialogs/extended/video_effects.ui
+libqt_plugin_la_UI =
 EXTRA_DIST += $(libqt_plugin_la_UI)
 
 ui_%.h: %.ui
@@ -1217,12 +1205,6 @@ libqml_module_player_a_QML = \
 	player/qml/AdjustmentsVideoTab.qml \
 	player/qml/StatisticsOverlay.qml \
 	player/qml/AdjustmentsSubtitlesTab.qml \
-	player/qml/TracksMenu.qml \
-	player/qml/TracksPage.qml \
-	player/qml/TracksPageAudio.qml \
-	player/qml/TracksPageSpeed.qml \
-	player/qml/TracksPageSubtitle.qml \
-	player/qml/TracksListPage.qml \
 	player/qml/ControlLayout.qml \
 	player/qml/ControlRepeater.qml \
 	player/qml/NavigationBox.qml
@@ -1264,7 +1246,6 @@ libqml_module_playercontrols_a_QML = \
 	player/qml/controlbarcontrols/FullscreenButton.qml \
 	player/qml/controlbarcontrols/PictureInPictureButton.qml \
 	player/qml/controlbarcontrols/InfoButton.qml \
-	player/qml/controlbarcontrols/LangButton.qml \
 	player/qml/controlbarcontrols/LoopButton.qml \
 	player/qml/controlbarcontrols/MenuButton.qml \
 	player/qml/controlbarcontrols/NavigationBoxButton.qml \

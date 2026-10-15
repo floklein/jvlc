@@ -1,5 +1,3 @@
-extended/ui_equalizer.h
-extended/ui_video_effects.h
 help/ui_about.h
 help/ui_update.h
 open/ui_open.h

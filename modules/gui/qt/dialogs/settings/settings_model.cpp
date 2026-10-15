@@ -347,6 +347,17 @@ void SettingsModel::addAdvancedRows(const QVector<SettingsOption>& options)
 
     for (const SettingsOption& option : options)
     {
+        // a filter plugin without options: its group, for the filter toggle
+        if (option.name.isEmpty())
+        {
+            if (option.filterChain.isEmpty())
+                continue;
+            SettingsRegistry::Placement placement = SettingsRegistry::place(option);
+            if (!placement.page.isEmpty() && !placement.group.isEmpty())
+                pending.append({ &option, std::move(placement), {} });
+            continue;
+        }
+
         if (used.contains(option.name))
             continue;
 
@@ -396,10 +407,29 @@ void SettingsModel::addAdvancedRows(const QVector<SettingsOption>& options)
     QHash<QString, Page> pages;
     QVector<Row> shortcuts;
 
+    // the group of a plugin on its page, added the first time
+    const auto groupOf = [&pages](const SettingsRegistry::Placement& placement,
+                                  const QString& filterChain) -> Group& {
+        QVector<Group>& groups = pages[placement.page].groups;
+        auto group = std::find_if(groups.begin(), groups.end(), [&placement](const Group& g) {
+            return g.id == placement.group;
+        });
+        if (group != groups.end())
+            return *group;
+        groups.append({ placement.group, placement.groupLabel, filterChain, {} });
+        return groups.last();
+    };
+
     for (const Pending& entry : pending)
     {
         const SettingsOption& option = *entry.option;
         const SettingsRegistry::Placement& placement = entry.placement;
+
+        if (option.name.isEmpty())
+        {
+            groupOf(placement, option.filterChain);
+            continue;
+        }
 
         Row row;
         row.id = option.name;
@@ -482,22 +512,13 @@ void SettingsModel::addAdvancedRows(const QVector<SettingsOption>& options)
             continue;
         }
 
-        Page& page = pages[placement.page];
         if (placement.group.isEmpty())
         {
-            page.rows.append(std::move(row));
+            pages[placement.page].rows.append(std::move(row));
             continue;
         }
 
-        auto group = std::find_if(page.groups.begin(), page.groups.end(), [&placement](const Group& g) {
-            return g.id == placement.group;
-        });
-        if (group == page.groups.end())
-        {
-            page.groups.append({ placement.group, placement.groupLabel, option.filterChain, {} });
-            group = page.groups.end() - 1;
-        }
-        group->rows.append(std::move(row));
+        groupOf(placement, option.filterChain).rows.append(std::move(row));
     }
 
     // one row for the options known under several names

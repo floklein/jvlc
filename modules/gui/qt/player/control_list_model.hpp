@@ -58,7 +58,7 @@ public:
         RANDOM_BUTTON,
         LOOP_BUTTON,
         INFO_BUTTON,
-        LANG_BUTTON,
+        LANG_BUTTON, // deprecated: the Audio and Subtitles buttons replace it
         MENU_BUTTON, // deprecated
         BACK_BUTTON, // deprecated
         CHAPTER_PREVIOUS_BUTTON,

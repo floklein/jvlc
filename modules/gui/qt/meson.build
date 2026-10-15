@@ -33,8 +33,6 @@ moc_headers = files(
     'dialogs/capture/open_capture_model.hpp',
     'dialogs/dialogs/dialogmodel.hpp',
     'dialogs/dialogs_provider.hpp',
-    'dialogs/extended/extended.hpp',
-    'dialogs/extended/extended_panels.hpp',
     'dialogs/extensions/extensions.hpp',
     'dialogs/extensions/extensions_manager.hpp',
     'dialogs/fingerprint/chromaprint.hpp',
@@ -221,10 +219,6 @@ qt_plugin_sources = files(
     'dialogs/dialogs/dialogmodel.hpp',
     'dialogs/dialogs_provider.cpp',
     'dialogs/dialogs_provider.hpp',
-    'dialogs/extended/extended.cpp',
-    'dialogs/extended/extended.hpp',
-    'dialogs/extended/extended_panels.cpp',
-    'dialogs/extended/extended_panels.hpp',
     'dialogs/extensions/extensions.cpp',
     'dialogs/extensions/extensions.hpp',
     'dialogs/extensions/extensions_manager.cpp',
@@ -625,11 +619,6 @@ if host_system == 'windows'
   qrc_files += files('windows.qrc')
 endif
 
-ui_sources = files(
-    'dialogs/extended/equalizer.ui',
-    'dialogs/extended/video_effects.ui',
-)
-
 qml_modules = []
 
 qml_modules += {
@@ -806,12 +795,6 @@ qml_modules += {
        'player/qml/AdjustmentsPlaybackTab.qml',
        'player/qml/StatisticsOverlay.qml',
        'player/qml/AdjustmentsSubtitlesTab.qml',
-       'player/qml/TracksMenu.qml',
-       'player/qml/TracksPage.qml',
-       'player/qml/TracksPageAudio.qml',
-       'player/qml/TracksPageSpeed.qml',
-       'player/qml/TracksPageSubtitle.qml',
-       'player/qml/TracksListPage.qml',
        'player/qml/ControlLayout.qml',
        'player/qml/ControlRepeater.qml',
        'player/qml/NavigationBox.qml',
@@ -852,7 +835,6 @@ qml_modules += {
        'player/qml/controlbarcontrols/FullscreenButton.qml',
        'player/qml/controlbarcontrols/PictureInPictureButton.qml',
        'player/qml/controlbarcontrols/InfoButton.qml',
-       'player/qml/controlbarcontrols/LangButton.qml',
        'player/qml/controlbarcontrols/LoopButton.qml',
        'player/qml/controlbarcontrols/MenuButton.qml',
        'player/qml/controlbarcontrols/NavigationBoxButton.qml',
@@ -1328,8 +1310,7 @@ if qt6_dep.found()
         'enabled': xcb_dep.found() and xcb_render_dep.found() and xcb_xfixes_dep.found(),
     }
 
-    qt6pre_files = qt6.preprocess(ui_files: ui_sources,
-        moc_headers: moc_headers,
+    qt6pre_files = qt6.preprocess(moc_headers: moc_headers,
         moc_extra_arguments: qt_extra_flags,
         include_directories: qt_include_dir,
         dependencies: qt6_dep,

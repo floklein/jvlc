@@ -351,6 +351,7 @@ QVector<SettingsOption> options()
         /* module_config_get() leaves out the private and obsolete options */
         int subcategory = SUBCAT_UNKNOWN;
         QString section;
+        bool hasOptions = false;
         for (unsigned j = 0; j < size; ++j)
         {
             const module_config_t& item = config[j];
@@ -390,6 +391,19 @@ QVector<SettingsOption> options()
                 option.minimum = static_cast<double>(item.min.i);
                 option.maximum = static_cast<double>(item.max.i);
             }
+            result.append(std::move(option));
+            hasOptions = true;
+        }
+
+        /* a filter without options (Psychedelic, Wave...) still gets its
+         * filter toggle */
+        if (!hasOptions && !filterChain.isEmpty())
+        {
+            SettingsOption option;
+            option.module = object;
+            option.moduleLabel = label;
+            option.subcategory = subcategory;
+            option.filterChain = filterChain;
             result.append(std::move(option));
         }
 

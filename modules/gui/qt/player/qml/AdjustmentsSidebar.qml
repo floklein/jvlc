@@ -22,7 +22,6 @@ import QtQuick.Layouts
 import VLC.MainInterface
 import VLC.Widgets as Widgets
 import VLC.Player
-import VLC.Dialogs
 import VLC.Style
 import VLC.Util
 

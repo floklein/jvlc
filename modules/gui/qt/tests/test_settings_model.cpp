@@ -461,6 +461,32 @@ private slots:
         config_PutPsz("video-filter", nullptr);
     }
 
+    void testFilterPluginWithoutOptionsStillGetsItsChainToggle()
+    {
+        config_PutPsz("video-filter", nullptr);
+        // the old Adjustments and Effects dialog had filters without any
+        // option, such as Psychedelic: Advanced Options is their home now
+        SettingsOption psychedelic = option("", "psychedelic", "Psychedelic video filter", SUBCAT_VIDEO_VFILTER, 0);
+        psychedelic.filterChain = "video-filter";
+        SettingsOption wave = option("", "wave", "Wave video filter", SUBCAT_VIDEO_VFILTER, 0);
+        wave.filterChain = "video-filter";
+        m_model->addAdvancedRows({ psychedelic, wave });
+
+        SettingsFilterModel filter;
+        filter.setSourceModel(m_model.get());
+        filter.setPage("video");
+        m_model->setAdvancedExpanded("video", true);
+        m_model->setGroupExpanded("video", "psychedelic", true);
+        m_model->setGroupExpanded("video", "wave", true);
+        QCOMPARE(ids(filter), (QStringList { "advanced:video",
+                                             "group:video:psychedelic", "filter:psychedelic",
+                                             "group:video:wave", "filter:wave" }));
+
+        QVERIFY(m_model->setValue("filter:wave", true));
+        QCOMPARE(configString("video-filter"), QStringLiteral("wave"));
+        config_PutPsz("video-filter", nullptr);
+    }
+
     /* Reset all settings in this Profile */
 
     void testResetAllResetsTheProfile()

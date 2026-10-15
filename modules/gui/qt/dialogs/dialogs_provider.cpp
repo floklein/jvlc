@@ -44,7 +44,6 @@
 /* The dialogs */
 #include "dialogs/messages/messagesmodel.hpp"
 #include "dialogs/dialogs/dialogmodel.hpp"
-#include "dialogs/extended/extended.hpp"
 #include "dialogs/plugins/plugins.hpp"
 #include "dialogs/subtitles/add_subtitles_model.hpp"
 #include "dialogs/subtitles/subtitle_match_model.hpp"
@@ -67,7 +66,6 @@
                                            N_("Open Folder") )
 
 #define ALL_DIALOG(X) \
-    X(extendedDialog) \
     X(pluginDialog)
 
 DialogsProvider::DialogsProvider( qt_intf_t *_p_intf )
@@ -189,7 +187,11 @@ void DialogsProvider::customEvent( QEvent *event )
            /* The Bookmarks dialog is gone: bookmarks are in the player */
            break;
         case INTF_DIALOG_EXTENDED:
-           extendedDialog(); break;
+           /* The Adjustments and Effects dialog is gone: the Adjustments
+            * sidebar of the player replaces it */
+           if( p_intf->p_mi && !p_intf->b_isDialogProvider )
+               p_intf->p_mi->toggleAdjustments();
+           break;
         case INTF_DIALOG_SENDKEY:
            sendKey( de->i_arg ); break;
         case INTF_DIALOG_VLM:
@@ -312,32 +314,6 @@ void DialogsProvider::keyboardShortcutsDialog(const QString& action)
 void DialogsProvider::onboarding(int step)
 {
     emit showOnboarding(step);
-}
-
-void DialogsProvider::extendedDialog()
-{
-    ensureDialog(m_extendedDialog);
-    if( !m_extendedDialog->isVisible() || /* Hidden */
-        m_extendedDialog->currentTab() != 0 )  /* wrong tab */
-        m_extendedDialog->showTab( 0 );
-    else
-        m_extendedDialog->hide();
-}
-
-void DialogsProvider::synchroDialog()
-{
-    ensureDialog(m_extendedDialog);
-    if( !m_extendedDialog->isVisible() || /* Hidden */
-        m_extendedDialog->currentTab() != 2 )  /* wrong tab */
-        m_extendedDialog->showTab( 2 );
-    else
-        m_extendedDialog->hide();
-}
-
-void DialogsProvider::showExtendedDialogTab( int tab )
-{
-    ensureDialog(m_extendedDialog);
-    m_extendedDialog->showTab( tab );
 }
 
 void DialogsProvider::messagesDialog(int page)
