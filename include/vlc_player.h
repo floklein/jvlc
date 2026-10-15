@@ -1005,6 +1005,37 @@ VLC_API void
 vlc_player_RestorePlaybackPos(vlc_player_t *player);
 
 /**
+ * Per-file memory: what the current media kept of its last playback in the
+ * media library, given back when it was opened
+ */
+struct vlc_player_media_memory
+{
+    /** Position the viewer is asked to resume from (see
+     * vlc_player_cbs.on_playback_restore_queried), or a negative value */
+    float position;
+    /** Tracks picked by the viewer were selected again, by category */
+    bool tracks[DATA_ES];
+    /** Delays set again, by category */
+    bool has_delays[DATA_ES];
+    vlc_tick_t delays[DATA_ES];
+};
+
+/**
+ * Get what the current media remembers of its last playback
+ *
+ * The tracks and delays are restored only when "restore-playback-states" is
+ * enabled; they win over the preferences of the viewer.
+ *
+ * @param player locked player instance
+ * @param memory filled with the memory of the current media, empty without a
+ * media library
+ * @return VLC_SUCCESS or VLC_EGENERIC without a current media
+ */
+VLC_API int
+vlc_player_GetMediaMemory(vlc_player_t *player,
+                          struct vlc_player_media_memory *memory);
+
+/**
  * Get the V4L2 object used to do controls
  *
  * @param player locked player instance

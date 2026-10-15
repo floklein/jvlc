@@ -249,6 +249,31 @@ QVariantMap PlayerPresetTarget::profileValues() const
     return values;
 }
 
+QVariantMap PlayerPresetTarget::fileValues() const
+{
+    vlc_player_t* player = m_player->getPlayer();
+    vlc_player_locker lock{ player };
+    vlc_player_media_memory memory;
+    if (vlc_player_GetMediaMemory(player, &memory) != VLC_SUCCESS)
+        return {};
+
+    QVariantMap values;
+    if (memory.has_delays[AUDIO_ES])
+        values.insert("audio-delay", int(MS_FROM_VLC_TICK(memory.delays[AUDIO_ES])));
+    if (memory.has_delays[SPU_ES])
+        values.insert("sub-delay", int(MS_FROM_VLC_TICK(memory.delays[SPU_ES])));
+    return values;
+}
+
+bool PlayerPresetTarget::fileHasTracks(int category) const
+{
+    vlc_player_t* player = m_player->getPlayer();
+    vlc_player_locker lock{ player };
+    vlc_player_media_memory memory;
+    return vlc_player_GetMediaMemory(player, &memory) == VLC_SUCCESS
+        && memory.tracks[category];
+}
+
 void PlayerPresetTarget::setProfileWrites(bool enabled)
 {
     m_profileWrites = enabled;
@@ -276,8 +301,10 @@ void PlayerPresetTarget::apply(const QVariantMap& values)
         if (key == QLatin1String("audio-language"))
         {
             audio->setLanguage(value.toString());
-            // this file too, once its tracks are known
-            m_pickAudio = value.toString();
+            // this file too, once its tracks are known, unless it remembers
+            // the viewer's own
+            if (!fileHasTracks(AUDIO_ES))
+                m_pickAudio = value.toString();
         }
         else if (key == QLatin1String("stereo-mode"))
             audio->setStereoMode(value.toInt());
@@ -302,7 +329,8 @@ void PlayerPresetTarget::apply(const QVariantMap& values)
         else if (key == QLatin1String("sub-language"))
         {
             sub->setDefaultLanguage(value.toString());
-            m_pickSub = value.toString();
+            if (!fileHasTracks(SPU_ES))
+                m_pickSub = value.toString();
         }
         else if (key == QLatin1String("sub-keep-styling"))
             sub->setKeepFileStyling(value.toBool());

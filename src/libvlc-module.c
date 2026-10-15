@@ -779,7 +779,8 @@ static const char* const ppsz_restore_playback_desc[] = {
 
 #define RESTORE_PLAYBACK_STATE_TEXT N_("Resume last playback states")
 #define RESTORE_PLAYBACK_STATE_LONGTEXT N_("This will resume the last playback " \
-    "state, such as the selected tracks, rate, aspect-ratio, ..." )
+    "states of each video and song, such as the selected tracks, the " \
+    "subtitle and audio delays, the aspect-ratio, ..." )
 
 #define INPUT_RECORD_PATH_TEXT N_("Record directory")
 #define INPUT_RECORD_PATH_LONGTEXT N_( \
@@ -1929,7 +1930,7 @@ vlc_module_begin ()
                  RESTORE_PLAYBACK_POS_TEXT, RESTORE_PLAYBACK_POS_LONGTEXT )
         change_integer_list( pi_restore_playback_values, ppsz_restore_playback_desc )
 
-    add_bool( "restore-playback-states", false,
+    add_bool( "restore-playback-states", true,
                  RESTORE_PLAYBACK_STATE_TEXT, RESTORE_PLAYBACK_STATE_LONGTEXT )
 
     set_section( N_( "Default devices") , NULL )

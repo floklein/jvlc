@@ -1086,19 +1086,13 @@ static void on_player_playback_restore_queried(vlc_player_t *player, void *data)
     PlayerControllerPrivate* that = static_cast<PlayerControllerPrivate*>(data);
     msg_Dbg( that->p_intf, "on_playback_restore_queried");
 
-    // the saved position, for the continue-watching pill
+    // the saved position, for the continue-watching pill: the player read
+    // it from the media library when it opened the media
     float position = 0.f;
-    vlc_medialibrary_t* ml = vlc_ml_instance_get( that->p_intf );
-    input_item_t* item = vlc_player_GetCurrentMedia( player );
-    if ( ml && item && item->psz_uri )
-    {
-        vlc_ml_media_t* media = vlc_ml_get_media_by_mrl( ml, item->psz_uri );
-        if ( media )
-        {
-            position = media->f_progress;
-            vlc_ml_release( media );
-        }
-    }
+    vlc_player_media_memory memory;
+    if ( vlc_player_GetMediaMemory( player, &memory ) == VLC_SUCCESS
+         && memory.position > 0.f )
+        position = memory.position;
 
     that->callAsync([that, position](){
         that->m_canRestorePlayback = true;

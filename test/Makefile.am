@@ -19,6 +19,7 @@ player_programs = \
 	test_src_player_lifecycle \
 	test_src_player_loudness \
 	test_src_player_media \
+	test_src_player_media_memory \
 	test_src_player_next_prev \
 	test_src_player_osd \
 	test_src_player_outputs \
@@ -288,6 +289,9 @@ test_src_player_osd_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)
 test_src_player_subtitle_appearance_SOURCES = src/player/common.h \
 	src/player/modules.c src/player/subtitle_appearance.c
 test_src_player_subtitle_appearance_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)
+test_src_player_media_memory_SOURCES = src/player/common.h \
+	src/player/modules.c src/player/media_memory.c
+test_src_player_media_memory_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)
 test_src_player_pause_SOURCES = src/player/common.h src/player/modules.c \
 	src/player/pause.c
 test_src_player_pause_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)

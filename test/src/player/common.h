@@ -249,6 +249,8 @@ struct media_params
 #define DISABLE_AUDIO        (1 << 3)
 #define AUDIO_INSTANT_DRAIN  (1 << 4)
 #define CLOCK_MASTER_MONOTONIC (1 << 5)
+/* With the in-memory media library of modules.c */
+#define MEDIA_LIBRARY        (1 << 6)
 
 struct ctx
 {
@@ -1300,7 +1302,7 @@ ctx_init(struct ctx *ctx, int flags)
         "-v",
         "--ignore-config",
         "-Idummy",
-        "--no-media-library",
+        (flags & MEDIA_LIBRARY) ? "--media-library" : "--no-media-library",
         "--no-drop-late-frames",
         /* Avoid leaks from various dlopen... */
         "--codec=araw,rawvideo,subsdec,"TELETEXT_DECODER"none",

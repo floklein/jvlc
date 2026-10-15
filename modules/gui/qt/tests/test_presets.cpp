@@ -388,6 +388,45 @@ private slots:
         QCOMPARE(m_target->live.value("sub-delay").toInt(), 500);
     }
 
+    void testAnEpisodeKeepsTheDelaysItRemembers()
+    {
+        const QString anime = m_model->create("Anime", { { "sub-delay", 300 }, { "audio-delay", 50 } });
+        m_model->attach("/shows/The Wand", anime);
+        startController();
+
+        // the player gave back this episode's delays, a zero one too
+        m_target->file = { { "sub-delay", 120 }, { "audio-delay", 0 } };
+        m_target->live.insert("sub-delay", 120);
+        m_controller->setMedia(episode("/shows/The Wand/e01.mkv"));
+        QCOMPARE(m_target->live.value("sub-delay").toInt(), 120);
+        QCOMPARE(m_target->live.value("audio-delay").toInt(), 0);
+
+        // the next one remembers nothing: the Preset's
+        m_target->file.clear();
+        m_target->newFile();
+        m_controller->setMedia(episode("/shows/The Wand/e02.mkv"));
+        QCOMPARE(m_target->live.value("sub-delay").toInt(), 300);
+        QCOMPARE(m_target->live.value("audio-delay").toInt(), 50);
+
+        // a Profile switch keeps the file's over the Preset
+        m_target->file = { { "sub-delay", -80 } };
+        m_target->live.insert("sub-delay", -80);
+        m_controller->profileSwitched();
+        QCOMPARE(m_target->live.value("sub-delay").toInt(), -80);
+    }
+
+    void testWithoutAPresetTheRememberedDelaysStay()
+    {
+        startController();
+        m_target->file = { { "sub-delay", 120 } };
+        m_target->live.insert("sub-delay", 120);
+
+        m_controller->setMedia(episode("/movies/Heat.mkv"));
+
+        QCOMPARE(m_target->live.value("sub-delay").toInt(), 120);
+        QVERIFY(m_target->profileWrites);
+    }
+
     void testChoosingAPresetAttachesItToThePlayingFilesFolder()
     {
         const QString anime = m_model->create("Anime", { { "rate", 1.25 } });

@@ -710,6 +710,11 @@ typedef struct vlc_ml_playback_states_all
     char* crop;
     char* deinterlace;
     char* video_filter;
+    /* In microseconds, when the has_ flag is set */
+    bool has_audio_delay;
+    bool has_subtitle_delay;
+    int64_t audio_delay;
+    int64_t subtitle_delay;
 } vlc_ml_playback_states_all;
 
 enum vlc_ml_event_type

@@ -36,6 +36,12 @@ class TrackListModel;
  *
  * A new file is opened with the preferred languages the player had: when a
  * Show brings other ones, the matching tracks are picked once listed.
+ *
+ * Per-file memory: the player gives each file back the delays and the tracks
+ * the viewer picked the last time it played (the media library's playback
+ * states). They win over the Preset: the delays are the file's values, and
+ * a file with its own tracks of a category keeps them instead of the
+ * preferred language.
  */
 class PlayerPresetTarget : public PresetTarget
 {
@@ -46,6 +52,7 @@ public:
 
     QVariantMap values() const override;
     QVariantMap profileValues() const override;
+    QVariantMap fileValues() const override;
     void apply(const QVariantMap& values) override;
     void setProfileWrites(bool enabled) override;
 
@@ -55,6 +62,8 @@ public:
 private:
     void reportChanges(const QStringList& prefixes);
     void pickLanguages();
+    /// the playing file has tracks the viewer picked for this category
+    bool fileHasTracks(int category) const;
 
     PlayerController* m_player;
     bool m_profileWrites = true;

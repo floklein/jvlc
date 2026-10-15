@@ -1830,6 +1830,8 @@ int MediaLibrary::getMeta( const medialibrary::IMedia& media,
         res->current_subtitle_track = nullptr;
     res->aspect_ratio = res->crop = res->deinterlace =
         res->video_filter = nullptr;
+    res->has_audio_delay = res->has_subtitle_delay = false;
+    res->audio_delay = res->subtitle_delay = 0;
     for ( const auto& meta : metas )
     {
 #define COPY_META( field ) res->field = strdup( meta.second.c_str() ); \
@@ -1866,6 +1868,14 @@ int MediaLibrary::getMeta( const medialibrary::IMedia& media,
                 break;
             case medialibrary::IMedia::MetadataType::SubtitleTrack:
                 COPY_META( current_subtitle_track );
+                break;
+            case medialibrary::IMedia::MetadataType::AudioDelay:
+                res->has_audio_delay = true;
+                res->audio_delay = strtoll( meta.second.c_str(), nullptr, 10 );
+                break;
+            case medialibrary::IMedia::MetadataType::SubtitleDelay:
+                res->has_subtitle_delay = true;
+                res->subtitle_delay = strtoll( meta.second.c_str(), nullptr, 10 );
                 break;
             default:
                 break;
@@ -1912,6 +1922,10 @@ int MediaLibrary::setMeta( medialibrary::IMedia& media,
         metas[MT::AudioTrack] = values->current_audio_track;
     if ( values->current_subtitle_track != nullptr )
         metas[MT::SubtitleTrack] = values->current_subtitle_track;
+    if ( values->has_audio_delay )
+        metas[MT::AudioDelay] = std::to_string( values->audio_delay );
+    if ( values->has_subtitle_delay )
+        metas[MT::SubtitleDelay] = std::to_string( values->subtitle_delay );
 
     if ( media.setMetadata( std::move( metas ) ) == false )
         return VLC_EGENERIC;

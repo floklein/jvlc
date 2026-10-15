@@ -123,6 +123,8 @@ struct vlc_player_input
             VLC_RESTOREPOINT_NONE,
         } restore;
         float pos;
+        /* The delays the media opened with, to save only the changed ones */
+        vlc_tick_t opened_delays[DATA_ES];
         bool restore_states;
         bool delay_restore;
         /* Keep a trace of tracks as they appear since they won't be available
@@ -130,6 +132,8 @@ struct vlc_player_input
          */
         bool has_video_tracks;
         bool has_audio_tracks;
+        /* The string ids of the tracks picked by the viewer, by category */
+        char *picked_tracks[DATA_ES];
     } ml;
 
     unsigned repeat;
@@ -612,6 +616,11 @@ vlc_player_osd_Program(vlc_player_t *player, const char *name);
 
 void
 vlc_player_input_RestoreMlStates(struct vlc_player_input* input, bool force_pos);
+
+/* Replaces the initial delays by the ones the media remembers */
+void
+vlc_player_input_GetMlDelays(struct vlc_player_input *input,
+                             vlc_tick_t delays[DATA_ES]);
 
 void
 vlc_player_UpdateMLStates(vlc_player_t *player, struct vlc_player_input* input);

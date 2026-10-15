@@ -615,6 +615,20 @@ vlc_player_input_HandleTeletextMenu(struct vlc_player_input *input,
     }
 }
 
+/* Keep the tracks picked by the viewer for the media library: they are gone
+ * by the time the stopped input saves its playback states */
+static void
+vlc_player_input_UpdatePickedTracks(struct vlc_player_input *input,
+                                    enum es_format_category_e cat)
+{
+    if (input->state == VLC_PLAYER_STATE_STOPPING
+     || input->state == VLC_PLAYER_STATE_STOPPED)
+        return;
+    free(input->ml.picked_tracks[cat]);
+    input->ml.picked_tracks[cat] =
+        vlc_player_input_GetSelectedTrackStringIds(input, cat);
+}
+
 static void
 vlc_player_input_HandleEsEvent(struct vlc_player_input *input,
                                const struct vlc_input_event_es *ev)
@@ -679,6 +693,7 @@ vlc_player_input_HandleEsEvent(struct vlc_player_input *input,
                 trackpriv->t.selected = true;
                 trackpriv->selected_by_user = ev->forced;
                 trackpriv->vout_order = ev->vout_order;
+                vlc_player_input_UpdatePickedTracks(input, ev->fmt->i_cat);
                 vlc_player_SendEvent(player, on_track_selection_changed,
                                      NULL, trackpriv->t.es_id);
                 vlc_player_input_HandleTeletextMenu(input, ev, trackpriv);
@@ -691,6 +706,7 @@ vlc_player_input_HandleEsEvent(struct vlc_player_input *input,
                 vlc_player_RemoveTimerSource(player, ev->id);
                 trackpriv->t.selected = false;
                 trackpriv->selected_by_user = false;
+                vlc_player_input_UpdatePickedTracks(input, ev->fmt->i_cat);
                 vlc_player_SendEvent(player, on_track_selection_changed,
                                      trackpriv->t.es_id, NULL);
                 vlc_player_input_HandleTeletextMenu(input, ev, trackpriv);
@@ -1310,6 +1326,8 @@ vlc_player_input_New(vlc_player_t *player, input_item_t *item)
     input->ml.delay_restore = false;
     input->ml.pos = -1.f;
     input->ml.has_audio_tracks = input->ml.has_video_tracks = false;
+    for (enum es_format_category_e i = UNKNOWN_ES; i < DATA_ES; ++i)
+        input->ml.picked_tracks[i] = NULL;
 
     static const struct vlc_input_thread_callbacks cbs = {
         .on_event = input_thread_Events,
@@ -1346,17 +1364,18 @@ vlc_player_input_New(vlc_player_t *player, input_item_t *item)
         vlc_player_input_SelectTracksByStringIds(input, SPU_ES,
                                                  player->sub_string_ids);
 
-    /* Initial sub/audio delay */
-    const vlc_tick_t cat_delays[DATA_ES] = {
+    /* Initial sub/audio delay: the media's own, else the preferences */
+    vlc_tick_t cat_delays[DATA_ES] = {
         [AUDIO_ES] =
             VLC_TICK_FROM_MS(var_InheritInteger(player, "audio-desync")),
         [SPU_ES] =
             vlc_tick_from_samples(var_InheritInteger(player, "sub-delay"), 10),
     };
+    vlc_player_input_GetMlDelays(input, cat_delays);
 
     for (enum es_format_category_e i = UNKNOWN_ES; i < DATA_ES; ++i)
     {
-        input->cat_delays[i] = cat_delays[i];
+        input->cat_delays[i] = input->ml.opened_delays[i] = cat_delays[i];
         if (cat_delays[i] != 0)
         {
             int ret = input_SetEsCatDelay(input->thread, i, cat_delays[i]);
@@ -1382,6 +1401,9 @@ vlc_player_input_Delete(struct vlc_player_input *input)
     vlc_vector_destroy(&input->video_track_vector);
     vlc_vector_destroy(&input->audio_track_vector);
     vlc_vector_destroy(&input->spu_track_vector);
+
+    for (enum es_format_category_e i = UNKNOWN_ES; i < DATA_ES; ++i)
+        free(input->ml.picked_tracks[i]);
 
     input_Close(input->thread);
     free(input);

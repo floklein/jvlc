@@ -880,6 +880,7 @@ vlc_player_GetEsIdDelay
 vlc_player_GetEsIdFromVout
 vlc_player_GetEsIdVout
 vlc_player_GetLength
+vlc_player_GetMediaMemory
 vlc_player_GetPosition
 vlc_player_GetProgram
 vlc_player_GetProgramAt

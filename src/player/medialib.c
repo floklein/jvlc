@@ -91,8 +91,20 @@ vlc_player_input_RestoreMlStates(struct vlc_player_input* input, bool force_pos)
     if (!media)
         return;
     vlc_player_input_AttachMlSubtitles(input, media);
-    if (media->i_type != VLC_ML_MEDIA_TYPE_VIDEO ||
-        vlc_ml_media_get_all_playback_pref(ml, media->i_id,
+    /* Video and music remember their playback, other media don't */
+    const bool video = media->i_type == VLC_ML_MEDIA_TYPE_VIDEO;
+    if (!video && media->i_type != VLC_ML_MEDIA_TYPE_AUDIO)
+    {
+        vlc_ml_release(media);
+        return;
+    }
+    /* Asked again by vlc_player_RestorePlaybackPos() */
+    vlc_ml_release(&input->ml.states);
+    input->ml.states.current_video_track = input->ml.states.current_audio_track =
+        input->ml.states.current_subtitle_track = NULL;
+    input->ml.states.aspect_ratio = input->ml.states.crop =
+        input->ml.states.deinterlace = input->ml.states.video_filter = NULL;
+    if (vlc_ml_media_get_all_playback_pref(ml, media->i_id,
                                            &input->ml.states) != VLC_SUCCESS)
     {
         vlc_ml_release(media);
@@ -119,11 +131,11 @@ vlc_player_input_RestoreMlStates(struct vlc_player_input* input, bool force_pos)
 
     vlc_ml_release(media);
 
+    /* The speed is the viewer's, for every media: it is not restored. The
+     * delays are set with the initial ones, see
+     * vlc_player_input_GetMlDelays() */
     if (!restore_states)
         return;
-    if (input->ml.states.rate != .0f)
-        vlc_player_ChangeRate(player, input->ml.states.rate);
-
 
     const char *video_track_ids = input->ml.states.current_video_track;
     const char *audio_track_ids = input->ml.states.current_audio_track;
@@ -139,7 +151,9 @@ vlc_player_input_RestoreMlStates(struct vlc_player_input* input, bool force_pos)
         vlc_player_input_SelectTracksByStringIds(input, SPU_ES,
                                                  subtitle_track_ids);
 
-    vout_thread_t* vout = vlc_player_vout_Hold(player);
+    /* The video filters belong to the interface (its adjustments and
+     * presets): they are neither restored nor reset here */
+    vout_thread_t* vout = video ? vlc_player_vout_Hold(player) : NULL;
     if (vout != NULL)
     {
         if (input->ml.states.zoom >= .0f)
@@ -157,15 +171,27 @@ vlc_player_input_RestoreMlStates(struct vlc_player_input* input, bool force_pos)
         }
         else
         {
-            var_SetString(vout, "deinterlace-mode", NULL);
-            var_SetInteger(vout, "deinterlace", 0);
+            /* back to the preferences */
+            char *mode = var_InheritString(player, "deinterlace-mode");
+            var_SetString(vout, "deinterlace-mode", mode);
+            free(mode);
+            var_SetInteger(vout, "deinterlace",
+                           var_InheritInteger(player, "deinterlace"));
         }
-        if (input->ml.states.video_filter)
-            var_SetString(vout, "video-filter", input->ml.states.video_filter);
-        else
-            var_SetString(vout, "video-filter", NULL);
         vout_Release(vout);
     }
+}
+
+void
+vlc_player_input_GetMlDelays(struct vlc_player_input *input,
+                             vlc_tick_t delays[DATA_ES])
+{
+    if (!input->ml.restore_states)
+        return;
+    if (input->ml.states.has_audio_delay)
+        delays[AUDIO_ES] = VLC_TICK_FROM_US(input->ml.states.audio_delay);
+    if (input->ml.states.has_subtitle_delay)
+        delays[SPU_ES] = VLC_TICK_FROM_US(input->ml.states.subtitle_delay);
 }
 
 static bool
@@ -261,14 +287,21 @@ vlc_player_UpdateMLStates(vlc_player_t *player, struct vlc_player_input* input)
     else
         input->ml.states.current_title = -1;
 
-    /* We use .0f to signal an unsaved rate. We want to save it to the ml if it
-     * changed, and if it's not the player's default value when the value was
-     * never saved in the ML */
-    if (input->rate != input->ml.states.rate &&
-            (input->rate != 1.f || input->ml.states.rate != .0f))
-        input->ml.states.rate = input->rate;
-    else
-        input->ml.states.rate = -1.f;
+    /* The speed is the viewer's, for every media: .0f leaves it unsaved */
+    input->ml.states.rate = .0f;
+
+    /* The delays the media played with, when they changed during the
+     * playback, a delay put back to zero too */
+    input->ml.states.has_audio_delay =
+        input->cat_delays[AUDIO_ES] != input->ml.opened_delays[AUDIO_ES];
+    input->ml.states.audio_delay = US_FROM_VLC_TICK(input->cat_delays[AUDIO_ES]);
+    input->ml.states.has_subtitle_delay =
+        input->cat_delays[SPU_ES] != input->ml.opened_delays[SPU_ES];
+    input->ml.states.subtitle_delay = US_FROM_VLC_TICK(input->cat_delays[SPU_ES]);
+
+    /* The video filters belong to the interface */
+    free(input->ml.states.video_filter);
+    input->ml.states.video_filter = NULL;
 
     struct vlc_player_track_priv* t;
     vout_thread_t* vout = NULL;
@@ -288,14 +321,11 @@ vlc_player_UpdateMLStates(vlc_player_t *player, struct vlc_player_input* input)
         char* aspect_ratio = var_GetNonEmptyString(vout, "aspect-ratio");
         char* crop = var_GetNonEmptyString(vout, "crop");
         char* deinterlace = var_GetNonEmptyString(vout, "deinterlace-mode");
-        char* video_filter = var_GetNonEmptyString(vout, "video-filter");
 
         vlc_player_CompareAssignState(&input->ml.states.aspect_ratio, &aspect_ratio);
         vlc_player_CompareAssignState(&input->ml.states.crop, &crop);
         vlc_player_CompareAssignState(&input->ml.states.deinterlace, &deinterlace);
-        vlc_player_CompareAssignState(&input->ml.states.video_filter, &video_filter);
 
-        free(video_filter);
         free(deinterlace);
         free(crop);
         free(aspect_ratio);
@@ -315,12 +345,12 @@ vlc_player_UpdateMLStates(vlc_player_t *player, struct vlc_player_input* input)
             input->ml.states.zoom = -1.f;
     }
 
-    char *video_track_ids =
-        vlc_player_input_GetSelectedTrackStringIds(input, VIDEO_ES);
-    char *audio_track_ids =
-        vlc_player_input_GetSelectedTrackStringIds(input, AUDIO_ES);
-    char *subtitle_track_ids =
-        vlc_player_input_GetSelectedTrackStringIds(input, SPU_ES);
+    /* The tracks are gone: the ones picked are kept as they are selected */
+    char *video_track_ids = input->ml.picked_tracks[VIDEO_ES];
+    char *audio_track_ids = input->ml.picked_tracks[AUDIO_ES];
+    char *subtitle_track_ids = input->ml.picked_tracks[SPU_ES];
+    input->ml.picked_tracks[VIDEO_ES] = input->ml.picked_tracks[AUDIO_ES] =
+        input->ml.picked_tracks[SPU_ES] = NULL;
 
     vlc_player_CompareAssignState(&input->ml.states.current_video_track, &video_track_ids);
     vlc_player_CompareAssignState(&input->ml.states.current_audio_track, &audio_track_ids);
@@ -340,4 +370,33 @@ void
 vlc_player_RestorePlaybackPos(vlc_player_t *player)
 {
     vlc_player_input_RestoreMlStates(player->input, true);
+}
+
+int
+vlc_player_GetMediaMemory(vlc_player_t *player,
+                          struct vlc_player_media_memory *memory)
+{
+    vlc_player_assert_locked(player);
+    memset(memory, 0, sizeof(*memory));
+    memory->position = -1.f;
+
+    struct vlc_player_input *input = player->input;
+    if (input == NULL)
+        return VLC_EGENERIC;
+
+    memory->position = input->ml.pos;
+    if (!input->ml.restore_states)
+        return VLC_SUCCESS;
+
+    const vlc_ml_playback_states_all *states = &input->ml.states;
+    memory->tracks[VIDEO_ES] = states->current_video_track != NULL;
+    memory->tracks[AUDIO_ES] = states->current_audio_track != NULL;
+    memory->tracks[SPU_ES] = states->current_subtitle_track != NULL;
+    memory->has_delays[AUDIO_ES] = states->has_audio_delay;
+    if (states->has_audio_delay)
+        memory->delays[AUDIO_ES] = VLC_TICK_FROM_US(states->audio_delay);
+    memory->has_delays[SPU_ES] = states->has_subtitle_delay;
+    if (states->has_subtitle_delay)
+        memory->delays[SPU_ES] = VLC_TICK_FROM_US(states->subtitle_delay);
+    return VLC_SUCCESS;
 }
