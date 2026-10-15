@@ -132,6 +132,7 @@ const struct
     { "stream",               ShortcutsModel::Interface, N_("Stream & Cast…") },
     { "library-search",       ShortcutsModel::Interface, N_("Search the library") },
     { "hide-ui",              ShortcutsModel::Interface, N_("Hide UI") },
+    { "picture-in-picture",   ShortcutsModel::Interface, N_("Picture in Picture") },
     { "interface-fullscreen", ShortcutsModel::Interface, N_("Fullscreen interface") },
     { "leave-fullscreen",     ShortcutsModel::Interface, N_("Leave fullscreen") },
     { "intf-show",            ShortcutsModel::Interface, N_("Show the controls in fullscreen") },

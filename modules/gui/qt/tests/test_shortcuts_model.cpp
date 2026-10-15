@@ -190,6 +190,7 @@ private slots:
         QCOMPARE(group("aspect-ratio"), int(ShortcutsModel::Video));
         QCOMPARE(group("subdelay-up"), int(ShortcutsModel::Subtitles));
         QCOMPARE(group("open-file"), int(ShortcutsModel::Interface));
+        QCOMPARE(group("picture-in-picture"), int(ShortcutsModel::Interface));
     }
 
     // labels are rewritten in plain words

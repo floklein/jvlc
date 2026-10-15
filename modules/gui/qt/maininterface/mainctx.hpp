@@ -85,6 +85,7 @@ public:
     enum Source {
         INTERFACE = 1,
         VIDEO = 2,
+        PICTURE_IN_PICTURE = 4,
     };
 
     static bool holdFullscreen( QWindow* window, Source source, bool hold );
@@ -133,6 +134,10 @@ class MainCtx : public QObject
     Q_PROPERTY(QString accentColor READ accentColor NOTIFY accentColorChanged FINAL)
     Q_PROPERTY(bool reduceMotion READ reduceMotion NOTIFY reduceMotionChanged FINAL)
     Q_PROPERTY(bool hideUI READ hideUI WRITE setHideUI NOTIFY hideUIChanged FINAL)
+    // the window shrunk into a small always-on-top video (minimal view)
+    Q_PROPERTY(bool pictureInPicture READ pictureInPicture WRITE setPictureInPicture NOTIFY pictureInPictureChanged FINAL)
+    // the desktop puts the window buttons on the left of title bars (Linux)
+    Q_PROPERTY(bool windowButtonsOnLeft READ windowButtonsOnLeft CONSTANT FINAL)
     Q_PROPERTY(bool albumSections READ albumSections WRITE setAlbumSections NOTIFY albumSectionsChanged FINAL)
     Q_PROPERTY(bool lyricsMode READ lyricsMode WRITE setLyricsMode NOTIFY lyricsModeChanged FINAL)
     // Show waveform: the music player draws its seek bar as a waveform
@@ -304,6 +309,13 @@ public:
 
     // the bars stay hidden until the pointer nears an edge, as in fullscreen
     bool hideUI() const { return m_hideUI; }
+
+    bool pictureInPicture() const { return m_pictureInPicture; }
+    bool windowButtonsOnLeft() const { return m_windowButtonsOnLeft; }
+
+    // the size of the last video the video output asked for, in pixels
+    QSize videoSize() const { return m_videoSize; }
+    void setVideoSize(const QSize& size) { m_videoSize = size; }
 
     bool usingTouch() const { return m_usingTouch; }
 
@@ -549,6 +561,9 @@ protected:
     bool m_videoBlurOption = true;
 
     bool m_hideUI = false;
+    bool m_pictureInPicture = false;
+    bool m_windowButtonsOnLeft = false;
+    QSize m_videoSize;
 
     bool m_albumSections = true;
 
@@ -594,6 +609,7 @@ public slots:
     void setPinOpacity( float );
 
     void setHideUI( bool );
+    void setPictureInPicture( bool );
 
     void setbgCone(bool);
     void updateIntfScaleFactor();
@@ -688,6 +704,7 @@ signals:
     void reduceMotionChanged();
 
     void hideUIChanged(bool hideUI);
+    void pictureInPictureChanged(bool pictureInPicture);
 
     void navBoxToggled();
 

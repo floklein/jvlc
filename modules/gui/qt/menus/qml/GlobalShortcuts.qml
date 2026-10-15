@@ -19,6 +19,7 @@ import QtQuick
 
 import VLC.MainInterface
 import VLC.Dialogs
+import VLC.Player
 
 // The shortcuts of the interface's own actions. Their keys come from
 // MainCtx.actionSequence(), as the keys shown in the menus do; the player
@@ -55,6 +56,11 @@ Item {
     ShortcutExt{ sequence:"F1"; onActivated: Qt.openUrlExternally("https://docs.videolan.me/vlc-user/") }
     ShortcutExt{ sequence: root.sequence("interface-fullscreen"); onActivated: MainCtx.toggleInterfaceFullScreen() }
     ShortcutExt{ sequence: root.sequence("hide-ui"); onActivated: MainCtx.hideUI = !MainCtx.hideUI; }
+    // in while something plays, out at any time
+    ShortcutExt{
+        sequence: root.sequence("picture-in-picture")
+        onActivated: MainCtx.pictureInPicture = !MainCtx.pictureInPicture && Player.isStarted
+    }
 
     ShortcutExt{
         context: Qt.WindowShortcut

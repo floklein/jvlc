@@ -32,6 +32,9 @@ Row {
 
     width: implicitWidth
 
+    // on the left, the order is mirrored: close first (Linux desktops)
+    layoutDirection: MainCtx.windowButtonsOnLeft ? Qt.RightToLeft : Qt.LeftToRight
+
     property color color: theme.fg.primary
     property color hoverColor: theme.bg.primary.alpha(0.5)
 
@@ -71,6 +74,8 @@ Row {
                                                || fullscreenButton.hovered
 
             height: windowButtonGroup.height
+
+            layoutDirection: windowButtonGroup.layoutDirection
 
             // the fullscreen button sits between maximize and close
             CSDWindowButton {

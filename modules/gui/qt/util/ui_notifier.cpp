@@ -40,13 +40,6 @@ void UINotifier::setupNotifications()
                               , qtr("Scale: %1%").arg(scale));
     });
 
-    connect(m_ctx, &MainCtx::mainInterfaceModesChanged, this, [this]()
-    {
-        if (m_ctx->isMinimalView())
-            emit showNotification(MinimalView
-                                  , qtr("Minimal View"));
-    });
-
     connect(m_ctx, &MainCtx::clipboardHasNothingToOpen, this, [this]()
     {
         emit showNotification(NothingToOpen

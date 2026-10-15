@@ -221,9 +221,9 @@ bool CompositorX11::makeMainInterface(MainCtx* mainCtx, std::function<void (QQui
     m_qmlView->setFlag(Qt::WindowType::WindowTransparentForInput);
     m_qmlView->setParent(m_renderWindow.get());
     m_qmlView->create();
+    // no HAS_EXTENDED_FRAME: VLC draws no window shadow of its own, so the
+    // window has no transparent margins, whatever the compositor provides
     CompositorVideo::Flags flags = CompositorVideo::CAN_SHOW_PIP | HAS_ACRYLIC;
-    if (m_renderWindow->supportExtendedFrame())
-        flags |= CompositorVideo::HAS_EXTENDED_FRAME;
     assert(m_qmlView->getOffscreenWindow());
     m_qmlView->getOffscreenWindow()->create();
     if (!commonGUICreate(m_renderWindow.get(), m_qmlView.get(), flags))

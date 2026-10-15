@@ -462,8 +462,12 @@ void VLCMenuBar::VideoMenu( qt_intf_t *p_intf, QMenu *current )
     addCheckableEntry( p_intf, current, qtr( "&Fullscreen" ), "toggle-fullscreen",
                        THEMIM, "fullscreen" );
     if( mi )
+    {
+        addCheckableEntry( p_intf, current, qtr( "Picture in Pict&ure" ), "picture-in-picture",
+                           mi, "pictureInPicture" );
         addCheckableEntry( p_intf, current, qtr( "Always on &Top" ), nullptr,
                            mi, "interfaceAlwaysOnTop" );
+    }
     QAction *action = addCheckableEntry( p_intf, current, qtr( "Fit &Window to Video" ),
                                          "toggle-autoscale", THEMIM, "autoscale" );
     action->setEnabled( THEMIM->hasVideoOutput() );

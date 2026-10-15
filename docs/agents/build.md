@@ -117,7 +117,7 @@ Every worktree has the same layout under `/opt/jvlc/w/<key>/` (`src` next to `bu
 - `run -Platform x11` sets `QT_QPA_PLATFORM=xcb` with `DISPLAY=:0`. `run -Platform wayland` sets `QT_QPA_PLATFORM=wayland` with the WSLg Wayland socket and no `DISPLAY`. Both run `bin/vlc-static -I qt` from the build dir, on the GPU through Mesa's d3d12 driver.
 - The config lives in `/opt/jvlc/w/<key>/home` (`XDG_*` dirs), not in `~/.config/vlc`.
 - WSLg's XWayland is older than 21.1. VLC therefore falls back from its X11 compositor to the dummy one (log: `running a broken XWayland version`), and WSLg shows nothing of what an X11 window draws until the window is resized. `run` and `shot` resize the X11 window by one pixel and back (`x11-nudge.sh`) before the screenshot. This is a WSLg quirk, not a VLC bug: do not "fix" it in VLC.
-- WSLg shows Linux windows on the Windows desktop through `msrdc.exe`, titled `VLC media player (jvlc-linux)`. `run` picks the window that appeared after the launch. `shot -Platform x11|wayland` picks the first such window, so it is ambiguous while other agents run Linux VLC: prefer `run -Shot`.
+- WSLg shows Linux windows on the Windows desktop through `msrdc.exe`, titled `VLC (jvlc-linux)` (or `<media> · VLC (jvlc-linux)`). `run` picks the window that appeared after the launch. `shot -Platform x11|wayland` picks the first such window, so it is ambiguous while other agents run Linux VLC: prefer `run -Shot`.
 
 ### Screenshots
 

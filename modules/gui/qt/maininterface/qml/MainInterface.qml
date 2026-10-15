@@ -121,10 +121,10 @@ Item {
             onActiveChanged: {
                 if (!active) {
                     if (historyDragHandler.accumulatedDelta >= threshold) {
-                        if (MainCtx.playerView)
+                        if (MainCtx.pictureInPicture)
+                            MainCtx.pictureInPicture = false
+                        else if (MainCtx.playerView)
                             MainCtx.playerView = false
-                        else if (MainCtx.minimalView)
-                            MainCtx.minimalView = false
                         else
                             History.previous()
                     }
@@ -358,6 +358,8 @@ Item {
             target: Player
             function onPlayingStateChanged() {
                 if (Player.playingState === Player.PLAYING_STATE_STOPPED) {
+                    // nothing left to watch: the full window comes back
+                    MainCtx.pictureInPicture = false
                     MainCtx.playerView = false
                 }
             }
@@ -431,7 +433,7 @@ Item {
 
                 switch (MainCtx.effectiveMainInterfaceMode) {
                 case MainCtx.MAININTERFACE_MODE_MINIMAL:
-                    return "qrc:///qt/qml/VLC/Player/MinimalView.qml"
+                    return "qrc:///qt/qml/VLC/Player/PictureInPictureView.qml"
                 case  MainCtx.MAININTERFACE_MODE_PLAYER:
                     return "qrc:///qt/qml/VLC/Player/Player.qml"
                 default:

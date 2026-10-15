@@ -111,6 +111,7 @@ private slots:
         QCOMPARE(int(C::SEEK_BAR), 0x2B);
         QCOMPARE(int(C::AUDIO_BUTTON), 0x2C);
         QCOMPARE(int(C::SUBTITLES_BUTTON), 0x2D);
+        QCOMPARE(int(C::PICTURE_IN_PICTURE_BUTTON), 0x33);
         QCOMPARE(int(C::VOLUME), 0x21);
         QCOMPARE(int(C::WIDGET_SPACER), 0x40);
     }

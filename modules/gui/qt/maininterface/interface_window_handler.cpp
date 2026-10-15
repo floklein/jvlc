@@ -18,6 +18,7 @@
 #include "interface_window_handler.hpp"
 #include "mainctx.hpp"
 #include "compositor.hpp"
+#include "window_chrome.hpp"
 #include <player/player_controller.hpp>
 #include <playlist/playlist_controller.hpp>
 #include "util/keyhelper.hpp"
@@ -86,11 +87,14 @@ InterfaceWindowHandler::InterfaceWindowHandler(qt_intf_t *_p_intf, MainCtx* main
             m_window->hide();
     }, Qt::QueuedConnection);
 
-    m_window->setTitle("");
+    /* the taskbar and window switcher title: "Title · VLC" while playing */
+    m_window->setTitle( WindowChrome::windowTitle( {} ) );
 
     if( var_InheritBool( p_intf, "qt-name-in-title" ) )
     {
-        connect( THEMIM, &PlayerController::nameChanged, m_window, &QWindow::setTitle );
+        connect( THEMIM, &PlayerController::nameChanged, m_window, [this]( const QString &name ) {
+            m_window->setTitle( WindowChrome::windowTitle( name ) );
+        } );
     }
 
     connect( m_window, &QWindow::screenChanged, m_mainCtx, &MainCtx::updateIntfScaleFactor );
@@ -130,6 +134,19 @@ InterfaceWindowHandler::InterfaceWindowHandler(qt_intf_t *_p_intf, MainCtx* main
 
     connect( m_mainCtx, &MainCtx::interfaceAlwaysOnTopChanged,
              this, &InterfaceWindowHandler::setInterfaceAlwaysOnTop);
+
+    connect( m_mainCtx, &MainCtx::pictureInPictureChanged,
+             this, &InterfaceWindowHandler::setPictureInPicture);
+
+    /* test hook for screenshots: Picture-in-picture once playback starts */
+    if (qEnvironmentVariableIsSet("VLC_QT_TEST_PICTURE_IN_PICTURE"))
+    {
+        connect( THEMIM, &PlayerController::playingStateChanged, this,
+                 [this]( PlayerController::PlayingState state ) {
+            if (state == PlayerController::PLAYING_STATE_PLAYING)
+                m_mainCtx->setPictureInPicture(true);
+        });
+    }
 
     connect( m_mainCtx, &MainCtx::setInterfaceFullScreen,
              this, &InterfaceWindowHandler::setInterfaceFullScreen);
@@ -179,7 +196,13 @@ InterfaceWindowHandler::InterfaceWindowHandler(qt_intf_t *_p_intf, MainCtx* main
 InterfaceWindowHandler::~InterfaceWindowHandler()
 {
     m_window->removeEventFilter(this);
-    /* Save this size */
+    /* Save this size, the full window's one in Picture-in-picture */
+    if (m_mainCtx->pictureInPicture())
+    {
+        getSettings()->setValue("MainWindow/pip-geometry", m_window->geometry());
+        if (m_pipRestoreGeometry.isValid())
+            m_window->setGeometry(m_pipRestoreGeometry);
+    }
     QVLCTools::saveWindowPosition(getSettings(), m_window);
     assert(qApp);
     if (!qApp->property("isDying").toBool())
@@ -224,6 +247,11 @@ bool InterfaceWindowHandler::eventFilter(QObject*, QEvent* event)
             setInterfaceMaximized();
             return false;
         }
+
+        /* Picture-in-picture waits for the window to be normal again */
+        if( m_pipGeometryPending )
+            QMetaObject::invokeMethod(this, &InterfaceWindowHandler::applyPictureInPictureGeometry,
+                                      Qt::QueuedConnection);
 
         if( newState & Qt::WindowMinimized )
         {
@@ -502,6 +530,78 @@ void InterfaceWindowHandler::requestActivate()
 void InterfaceWindowHandler::setInterfaceAlwaysOnTop( bool on_top )
 {
     WindowStateHolder::holdOnTop(m_window, WindowStateHolder::INTERFACE, on_top);
+}
+
+/* Picture-in-picture: the window itself shrinks into a small always-on-top
+ * video, then gets its size, position and state back */
+void InterfaceWindowHandler::setPictureInPicture( bool enable )
+{
+    if (enable)
+        enterPictureInPicture();
+    else
+        leavePictureInPicture();
+}
+
+void InterfaceWindowHandler::enterPictureInPicture()
+{
+    const Qt::WindowStates states = m_window->windowStates();
+    const bool normal = !(states & (Qt::WindowMaximized | Qt::WindowFullScreen | Qt::WindowMinimized));
+
+    m_pipRestoreMaximized = (states & Qt::WindowMaximized)
+                            || ((states & Qt::WindowFullScreen) && m_maximizedView);
+    m_pipRestoreGeometry = normal ? m_window->geometry() : QRect();
+
+    // leaving fullscreen must not maximize the window again
+    m_maximizedView = false;
+    THEMIM->setFullscreen(false);
+    if (states & Qt::WindowFullScreen)
+        setInterfaceFullScreen(false);
+    if (!normal)
+        m_window->showNormal();
+
+    WindowStateHolder::holdOnTop(m_window, WindowStateHolder::PICTURE_IN_PICTURE, true);
+
+    // once the window is back to its normal state (the video output may
+    // leave fullscreen later)
+    m_pipGeometryPending = true;
+    QMetaObject::invokeMethod(this, &InterfaceWindowHandler::applyPictureInPictureGeometry,
+                              Qt::QueuedConnection);
+}
+
+void InterfaceWindowHandler::applyPictureInPictureGeometry()
+{
+    if (!m_pipGeometryPending || !m_mainCtx->pictureInPicture())
+        return;
+    if (m_window->windowStates() & (Qt::WindowMaximized | Qt::WindowFullScreen | Qt::WindowMinimized))
+        return;
+    m_pipGeometryPending = false;
+
+    if (!m_pipRestoreGeometry.isValid())
+        m_pipRestoreGeometry = m_window->geometry();
+
+    const QSize videoSize = m_mainCtx->hasEmbededVideo() ? m_mainCtx->videoSize() : QSize();
+    const QRect saved = getSettings()->value("MainWindow/pip-geometry").toRect();
+
+    m_window->setGeometry(WindowChrome::pictureInPictureGeometry(
+                              m_window->screen()->availableGeometry(), videoSize, saved));
+}
+
+void InterfaceWindowHandler::leavePictureInPicture()
+{
+    m_pipGeometryPending = false;
+
+    if (!(m_window->windowStates() & (Qt::WindowMaximized | Qt::WindowFullScreen | Qt::WindowMinimized)))
+        getSettings()->setValue("MainWindow/pip-geometry", m_window->geometry());
+
+    WindowStateHolder::holdOnTop(m_window, WindowStateHolder::PICTURE_IN_PICTURE, false);
+
+    if (m_pipRestoreGeometry.isValid())
+        m_window->setGeometry(m_pipRestoreGeometry);
+    if (m_pipRestoreMaximized)
+        setInterfaceMaximized();
+
+    m_pipRestoreGeometry = QRect();
+    m_pipRestoreMaximized = false;
 }
 
 // Functions private

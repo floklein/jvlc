@@ -65,6 +65,9 @@ FocusScope {
 
     readonly property bool _fullscreen: MainCtx.intfMainWindow.visibility === Window.FullScreen
 
+    // the desktop puts the window buttons on the left (Linux)
+    readonly property bool _buttonsOnLeft: MainCtx.windowButtonsOnLeft && root.showCSD
+
     // Signals
 
     signal requestLockUnlockAutoHide(bool lock)
@@ -128,8 +131,8 @@ FocusScope {
         T.Button {
             id: cone
 
-            anchors.left: parent.left
-            anchors.leftMargin: root._padding
+            anchors.left: root._buttonsOnLeft ? windowButtons.right : parent.left
+            anchors.leftMargin: root._buttonsOnLeft ? VLCStyle.margin_small : root._padding
             anchors.verticalCenter: parent.verticalCenter
 
             width: VLCStyle.dp(38, VLCStyle.scale)
@@ -224,17 +227,16 @@ FocusScope {
             Component.onCompleted: root.forceUnlock.connect(zones.forceUnlock)
         }
 
-        // Right: window buttons, with fullscreen next to maximize
+        // Right: the background Conversions, while there are some
         Row {
             id: rightGroup
 
-            anchors.right: parent.right
-            anchors.rightMargin: root._padding
+            anchors.right: root._buttonsOnLeft ? parent.right : windowButtons.left
+            anchors.rightMargin: root._buttonsOnLeft ? root._padding : 0
             anchors.verticalCenter: parent.verticalCenter
 
             height: VLCStyle.dp(24, VLCStyle.scale)
 
-            // the background Conversions, while there are some
             ConversionsIndicator {
                 height: parent.height
                 width: VLCStyle.dp(36, VLCStyle.scale)
@@ -245,6 +247,20 @@ FocusScope {
                 onRequestLockUnlockAutoHide: (lock) => root.requestLockUnlockAutoHide(lock)
                 onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
             }
+        }
+
+        // The window buttons, with fullscreen next to maximize. On the right,
+        // or on the left when the desktop puts them there (Linux).
+        Row {
+            id: windowButtons
+
+            anchors.left: root._buttonsOnLeft ? parent.left : undefined
+            anchors.leftMargin: root._padding
+            anchors.right: root._buttonsOnLeft ? undefined : parent.right
+            anchors.rightMargin: root._padding
+            anchors.verticalCenter: parent.verticalCenter
+
+            height: VLCStyle.dp(24, VLCStyle.scale)
 
             // without our window buttons (fullscreen, system decorations),
             // fullscreen stands alone

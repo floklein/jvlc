@@ -46,6 +46,12 @@ T.ToolBar {
     property bool _showCSD: MainCtx.clientSideDecoration
         && !(MainCtx.intfMainWindow.visibility === Window.FullScreen)
 
+    // the desktop puts the window buttons on the left (Linux)
+    readonly property bool _csdOnLeft: _showCSD && MainCtx.windowButtonsOnLeft
+
+    // the library location, centered on the window
+    property string title: ""
+
     //whether the navigation pannel is actually visible or not
     property alias navigationVisible: navigationVisibilty.checked
     property alias playqueueVisible: playlistBtn.checked
@@ -88,6 +94,9 @@ T.ToolBar {
                 top: parent.top
                 bottom: parent.bottom
                 leftMargin: VLCStyle.margin_xsmall
+                    + ((root._csdOnLeft && root.topPadding < csdButtons.height)
+                        ? Math.max(csdButtons.width - root.leftPadding, 0)
+                        : 0)
             }
 
             Navigation.parentItem: root
@@ -144,7 +153,7 @@ T.ToolBar {
                 bottom: parent.bottom
                 //put the buttons below the CSD if we have enough space
                 rightMargin: VLCStyle.margin_xsmall
-                    + ((root._showCSD && root.topPadding < csdButtons.height)
+                    + ((root._showCSD && !root._csdOnLeft && root.topPadding < csdButtons.height)
                         ? Math.max(csdButtons.width - root.rightPadding, 0)
                         : 0)
             }
@@ -197,6 +206,33 @@ T.ToolBar {
             }
         }
 
+        // the library location, centered on the window, as long as it
+        // doesn't overlap the buttons
+        T.Label {
+            id: titleText
+
+            readonly property real _leftLimit: navigationButtons.x + navigationButtons.width + VLCStyle.margin_normal
+            readonly property real _rightLimit: playqueueButtonsTop.x - VLCStyle.margin_normal
+            // the content item starts at the left padding of the bar
+            readonly property real _center: (root.width / 2) - root.leftPadding
+
+            x: Helpers.clamp(_center - width / 2, _leftLimit, Math.max(_leftLimit, _rightLimit - width))
+            anchors.verticalCenter: parent.verticalCenter
+
+            width: Math.max(0, Math.min(implicitWidth, _rightLimit - _leftLimit))
+
+            visible: text !== ""
+
+            text: root.title
+            color: theme.fg.secondary
+            font.pixelSize: VLCStyle.fontSize_normal
+            elide: Text.ElideRight
+            verticalAlignment: Text.AlignVCenter
+
+            Accessible.role: Accessible.TitleBar
+            Accessible.name: text
+        }
+
         Loader {
             z: -1
 
@@ -213,7 +249,8 @@ T.ToolBar {
         //csd button are
         parent:  root
         anchors {
-            right: parent.right
+            left: root._csdOnLeft ? parent.left : undefined
+            right: root._csdOnLeft ? undefined : parent.right
             top: parent.top
         }
 

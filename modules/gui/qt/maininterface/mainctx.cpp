@@ -37,6 +37,7 @@
 #include "medialibrary/mlbookmarkmodel.hpp"
 
 #include "compositor.hpp"
+#include "window_chrome.hpp"
 #include "util/renderer_manager.hpp"
 #include "util/csdbuttonmodel.hpp"
 
@@ -176,6 +177,8 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
 
     settings = getSettings();
     m_colorScheme = new ColorSchemeModel(this);
+
+    m_windowButtonsOnLeft = (WindowChrome::desktopButtonsSide() == WindowChrome::ButtonsSide::Left);
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
     connect(m_colorScheme, &ColorSchemeModel::currentChanged, qGuiApp, [colorScheme = m_colorScheme]() {
@@ -473,13 +476,14 @@ void MainCtx::loadPrefs(const bool callSignals)
             signal(this);
     };
 
-    /* Are we in the enhanced always-video mode or not ? Only read at start:
-     * the option says how VLC starts, changing it must not leave the mode. */
+    /* "Start in Hide UI". Only read at start: the option says how VLC starts,
+     * changing it must not leave the mode. The minimal view is now
+     * Picture-in-picture, which never starts by itself. */
     if (!callSignals)
     {
-        bool minimalMode = false;
-        loadFromVLCOption(minimalMode, "qt-minimal-view", nullptr);
-        setMinimalView(minimalMode);
+        bool hideUIMode = false;
+        loadFromVLCOption(hideUIMode, "qt-minimal-view", nullptr);
+        setHideUI(hideUIMode);
     }
 
     loadFromVLCOption(m_bgCone, "qt-bgcone", &MainCtx::bgConeToggled);
@@ -712,6 +716,17 @@ void MainCtx::setHideUI(bool hideUI)
 
     m_hideUI = hideUI;
     emit hideUIChanged(m_hideUI);
+}
+
+void MainCtx::setPictureInPicture(bool pictureInPicture)
+{
+    if (m_pictureInPicture == pictureInPicture)
+        return;
+
+    m_pictureInPicture = pictureInPicture;
+    // the window handler resizes the window, the minimal view draws it
+    emit pictureInPictureChanged(m_pictureInPicture);
+    setMinimalView(m_pictureInPicture);
 }
 
 void MainCtx::setPinOpacity(float pinOpacity)
@@ -1327,7 +1342,7 @@ bool WindowStateHolder::holdOnTop(QWindow *window, Source source, bool hold)
 #ifdef _WIN32
         // Qt::WindowStaysOnTopHint is broken on Windows: QTBUG-133034, QTBUG-132522.
         // Reported to be fixed by Qt 6.9, but needs additional checking if the solution does not interfere with `CSDWin32EventHandler`.
-        SetWindowPos(reinterpret_cast<HWND>(window->winId()), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+        SetWindowPos(reinterpret_cast<HWND>(window->winId()), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 #else
         window->setFlag(Qt::WindowStaysOnTopHint, true);
 #endif
@@ -1337,7 +1352,7 @@ bool WindowStateHolder::holdOnTop(QWindow *window, Source source, bool hold)
 #ifdef _WIN32
         // Qt::WindowStaysOnTopHint is broken on Windows: QTBUG-133034, QTBUG-132522.
         // Reported to be fixed by Qt 6.9, but needs additional checking if the solution does not interfere with `CSDWin32EventHandler`.
-        SetWindowPos(reinterpret_cast<HWND>(window->winId()), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+        SetWindowPos(reinterpret_cast<HWND>(window->winId()), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 #else
         window->setFlag(Qt::WindowStaysOnTopHint, false);
 #endif

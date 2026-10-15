@@ -215,7 +215,7 @@ static void ShowDialog   ( intf_thread_t *, int, int, intf_dialog_args_t * );
 #define QT_AUTOLOAD_EXTENSIONS_LONGTEXT N_( "Automatically load the "\
                                             "extensions module on startup." )
 
-#define QT_MINIMAL_MODE_TEXT N_("Start in minimal view (without menus)" )
+#define QT_MINIMAL_MODE_TEXT N_("Start in Hide UI" )
 
 #define QT_BGCONE_TEXT N_( "Display background cone or art" )
 #define QT_BGCONE_LONGTEXT N_( "Display background cone or current album art " \
@@ -245,9 +245,9 @@ static void ShowDialog   ( intf_thread_t *, int, int, intf_dialog_args_t * );
 #define AUTORAISE_ON_PLAYBACK_LONGTEXT N_( "This option allows the interface to be shown and raised automatically " \
     "when a video/audio playback starts, or never." )
 
-#define QT_CLIENT_SIDE_DECORATION_TEXT N_( "Enable window titlebar" )
-#define QT_CLIENT_SIDE_DECORATION_LONGTEXT N_( "This option enables the title bar. Disabling it will remove " \
-    "the titlebar and move window buttons within the interface (Client Side Decoration)" )
+#define QT_CLIENT_SIDE_DECORATION_TEXT N_( "Show window decorations" )
+#define QT_CLIENT_SIDE_DECORATION_LONGTEXT N_( "Use the system's title bar and borders instead of " \
+    "VLC's: the Top bar then stops being the title bar of the window." )
 
 
 #define QT_PIN_CONTROLS_TEXT N_("Pin video controls")
@@ -415,12 +415,9 @@ vlc_module_begin ()
               QT_DISABLE_VOLUME_KEYS_LONGTEXT      /* longtext */)
 #endif
 
-    add_bool( "qt-titlebar",
-#ifdef _WIN32
-              false                              /* use CSD by default on windows */,
-#else
-              true                               /* but not on linux */,
-#endif
+    /* the Top bar is the title bar by default, "Show window decorations"
+     * switches to the system frame */
+    add_bool( "qt-titlebar", false,
               QT_CLIENT_SIDE_DECORATION_TEXT, QT_CLIENT_SIDE_DECORATION_LONGTEXT )
 
     /* the VLC menu and the right-click menu replace the menu bar */
@@ -1308,7 +1305,9 @@ static void *Thread( void *obj )
     }
 #endif
 
-    app.setApplicationDisplayName( qtr("VLC media player") );
+    /* Qt appends it to window titles that don't already end with it: the main
+     * window is "Title · VLC" (WindowChrome::windowTitle), dialogs "Name - VLC" */
+    app.setApplicationDisplayName( QStringLiteral("VLC") );
     app.setApplicationVersion( QString::fromUtf8(VERSION_MESSAGE) );
 
     if( QDate::currentDate().dayOfYear() >= QT_XMAS_JOKE_DAY && var_InheritBool( p_intf, "qt-icon-change" ) )

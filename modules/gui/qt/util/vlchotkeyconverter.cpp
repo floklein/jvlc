@@ -466,6 +466,7 @@ const AppAction appActions[] = {
     { "open-file",            "Ctrl+O" },
     { "open-folder",          "Ctrl+Shift+O" },
     { "open-network",         "Ctrl+N" },
+    { "picture-in-picture",   "Ctrl+Shift+P" },
     { "save-queue",           "Ctrl+Y" },
     { "settings",             "Ctrl+P" },
     { "show-queue",           "Ctrl+L" },

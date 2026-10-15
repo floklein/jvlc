@@ -40,6 +40,7 @@ protected slots:
     virtual void setFullScreen( bool fs );
     virtual void setInterfaceFullScreen( bool fs );
     virtual void setInterfaceAlwaysOnTop( bool on_top );
+    void setPictureInPicture( bool enable );
     virtual void toggleWindowVisibility(bool requestActivate = false);
     virtual void setInterfaceVisible(bool, bool requestActivate = false);
     virtual void setInterfaceHiden();
@@ -65,6 +66,9 @@ signals:
 
 private:
     bool applyKeyEvent(QKeyEvent * event) const;
+    void enterPictureInPicture();
+    void leavePictureInPicture();
+    void applyPictureInPictureGeometry();
 
 protected:
     virtual void updateCSDWindowSettings();
@@ -86,6 +90,11 @@ protected:
     bool m_hasResizeCursor = false;
 
     QRect m_interfaceGeometry;
+
+    // the window before Picture-in-picture, restored when leaving it
+    QRect m_pipRestoreGeometry;
+    bool m_pipRestoreMaximized = false;
+    bool m_pipGeometryPending = false;
 
     WheelToVLCConverter m_wheelAccumulator;
 

@@ -125,7 +125,8 @@ bool CompositorWayland::makeMainInterface(MainCtx* mainCtx, std::function<void(Q
         waylandWindow->setCustomMargins(margins);
     });
 
-    flags |= CompositorVideo::HAS_EXTENDED_FRAME;
+    // no HAS_EXTENDED_FRAME: VLC draws no window shadow of its own, so the
+    // window has no transparent margins, whatever the compositor provides
 #endif
 
     const bool ret = commonGUICreate(m_qmlView.get(), m_qmlView.get(), flags);

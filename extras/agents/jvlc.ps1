@@ -353,12 +353,12 @@ function Find-VlcWindow([string]$platform, [int]$timeoutSec, [IntPtr[]]$skip = @
             $t -like '*VLC*' -and (Get-Process -Id $p -ErrorAction SilentlyContinue).Path -eq $exe } $timeoutSec
     }
     Wait-Window { param($h, $p, $t)
-        $t -like '*VLC media player*(jvlc-linux)' -and $skip -notcontains $h -and
+        $t -like '*VLC*(jvlc-linux)' -and $skip -notcontains $h -and
         (Get-Process -Id $p -ErrorAction SilentlyContinue).ProcessName -eq 'msrdc' } $timeoutSec
 }
 
 function Get-LinuxVlcWindows {
-    @([JvlcWin]::Find([Func[IntPtr, uint32, string, bool]] { param($h, $p, $t) $t -like '*VLC media player*(jvlc-linux)' }))
+    @([JvlcWin]::Find([Func[IntPtr, uint32, string, bool]] { param($h, $p, $t) $t -like '*VLC*(jvlc-linux)' }))
 }
 
 # WSLg does not show what an X11 window draws until it is resized

@@ -287,6 +287,8 @@ qt_plugin_sources = files(
     'maininterface/mainctx.hpp',
     'maininterface/mainctx_submodels.cpp',
     'maininterface/mainctx_submodels.hpp',
+    'maininterface/window_chrome.cpp',
+    'maininterface/window_chrome.hpp',
     'maininterface/mainui.cpp',
     'maininterface/mainui.hpp',
     'maininterface/navigationmodel.cpp',
@@ -779,7 +781,7 @@ qml_modules += {
        'player/qml/Player.qml',
        'player/qml/PlayerControlLayout.qml',
        'player/qml/PlayerPlaylistVisibilityFSM.qml',
-       'player/qml/MinimalView.qml',
+       'player/qml/PictureInPictureView.qml',
        'player/qml/ContinueWatchingPill.qml',
        'player/qml/ShortcutMessagePill.qml',
        'player/qml/SliderBar.qml',
@@ -834,6 +836,7 @@ qml_modules += {
        'player/qml/controlbarcontrols/FrameNextButton.qml',
        'player/qml/controlbarcontrols/FramePrevButton.qml',
        'player/qml/controlbarcontrols/FullscreenButton.qml',
+       'player/qml/controlbarcontrols/PictureInPictureButton.qml',
        'player/qml/controlbarcontrols/InfoButton.qml',
        'player/qml/controlbarcontrols/LangButton.qml',
        'player/qml/controlbarcontrols/LoopButton.qml',
@@ -1898,6 +1901,22 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_window_chrome',
+            'sources': files(
+                'tests/test_window_chrome.cpp',
+                'maininterface/window_chrome.cpp',
+                'maininterface/window_chrome.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_window_chrome.cpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qtest_qt6_dep]
         }

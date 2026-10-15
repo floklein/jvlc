@@ -477,6 +477,14 @@ private:
 
         updateClientFrame();
 
+        // Windows 11 draws the system rounded corners and shadow around our
+        // own title bar too (ignored by Windows 10, whose corners are square)
+        // DWMWA_WINDOW_CORNER_PREFERENCE and DWMWCP_ROUND, Windows 11 only
+        const DWORD windowCornerPreference = 33;
+        const DWORD cornerPreference = 2;
+        DwmSetWindowAttribute(winId, windowCornerPreference,
+                              &cornerPreference, sizeof(cornerPreference));
+
         // trigger window update, this applies changes done in updateClientFrame
         SetWindowPos(winId, NULL, 0, 0, 0, 0,
             SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOCOPYBITS |

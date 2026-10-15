@@ -157,6 +157,7 @@ libqt_plugin_la_SOURCES = \
 	maininterface/mainctx.cpp \
 	maininterface/mainctx.hpp \
 	maininterface/mainctx_submodels.cpp maininterface/mainctx_submodels.hpp \
+	maininterface/window_chrome.cpp maininterface/window_chrome.hpp \
 	maininterface/mainui.cpp \
 	maininterface/mainui.hpp \
 	maininterface/navigationmodel.cpp maininterface/navigationmodel.hpp \
@@ -1192,7 +1193,7 @@ libqml_module_player_a_QML = \
 	player/qml/Player.qml \
 	player/qml/PlayerControlLayout.qml \
 	player/qml/PlayerPlaylistVisibilityFSM.qml \
-	player/qml/MinimalView.qml \
+	player/qml/PictureInPictureView.qml \
 	player/qml/ContinueWatchingPill.qml \
 	player/qml/ShortcutMessagePill.qml \
 	player/qml/SliderBar.qml \
@@ -1248,6 +1249,7 @@ libqml_module_playercontrols_a_QML = \
 	player/qml/controlbarcontrols/FrameNextButton.qml \
 	player/qml/controlbarcontrols/FramePrevButton.qml \
 	player/qml/controlbarcontrols/FullscreenButton.qml \
+	player/qml/controlbarcontrols/PictureInPictureButton.qml \
 	player/qml/controlbarcontrols/InfoButton.qml \
 	player/qml/controlbarcontrols/LangButton.qml \
 	player/qml/controlbarcontrols/LoopButton.qml \

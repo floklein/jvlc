@@ -230,6 +230,20 @@ FocusScope {
         navigationVisible: pannelVisiblity.showNavigation
         playqueueVisible: pannelVisiblity.showPlayqueue
 
+        // the library location: "Home", "Videos · The Wand · S01"
+        title: {
+            let location = ""
+            // the innermost page with a title or a trail of folders
+            for (let item = stackView.currentItem; item; item = item.currentItem ?? null) {
+                const crumbs = item.breadcrumb
+                if (Helpers.isArray(crumbs) && crumbs.length > 0)
+                    location = crumbs.join(" · ")
+                else if (typeof item.title === "string" && item.title !== "")
+                    location = item.title
+            }
+            return location
+        }
+
         Navigation.parentItem: g_mainDisplay
         Navigation.downItem: mainRow
 

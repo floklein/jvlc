@@ -90,6 +90,16 @@ void VideoWindowHandler::setVideoSize(unsigned int w, unsigned int h, Qt::Window
         return;
     Qt::WindowStates states = m_window->windowStates();
 
+    // Picture-in-picture takes the video's aspect ratio
+    MainCtx* mainCtx = m_intf->p_mi;
+    if (mainCtx)
+    {
+        mainCtx->setVideoSize(QSize(w, h));
+        // the Picture-in-picture window keeps its size
+        if (mainCtx->pictureInPicture())
+            return;
+    }
+
     // This slot is queued, so by the time it is called
     // the window states reflect the final states.
     // `qt-video-autoresize` should not apply during state

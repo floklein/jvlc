@@ -90,7 +90,7 @@ public:
         FOLDER_BUTTON, // the folder of the playing media (its Show)
         TITLE_WIDGET, // the media title
         DIVIDER, // a thin vertical line, which can repeat
-        RESERVED_0X33,
+        PICTURE_IN_PICTURE_BUTTON, // shrinks the window into Picture-in-picture
         RESERVED_0X34,
         RESERVED_0X35,
         RESERVED_0X36,
@@ -113,7 +113,7 @@ public:
     static_assert(RESERVED_0X1F == 0x1F, "missaligned");
     static_assert(SEEK_BAR == 0x2B, "missaligned");
     static_assert(VLC_MENU_BUTTON == 0x2E, "missaligned");
-    static_assert(RESERVED_0X33 == 0x33, "missaligned");
+    static_assert(PICTURE_IN_PICTURE_BUTTON == 0x33, "missaligned");
     static_assert(RESERVED_0X3F == 0x3F, "missaligned");
 
     // Basic functionality:

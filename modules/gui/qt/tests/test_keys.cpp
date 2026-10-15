@@ -140,6 +140,14 @@ private slots:
         QCOMPARE(actionKeyText(obj(), "about"), QStringLiteral("Shift+F1"));
     }
 
+    // Picture-in-picture is an interface action, no core hotkey takes its key
+    void testPictureInPictureKey()
+    {
+        QCOMPARE(actionKeyText(obj(), "picture-in-picture"), QStringLiteral("Ctrl+Shift+P"));
+        QCOMPARE(appActionSequence(obj(), "picture-in-picture"), QStringLiteral("Ctrl+Shift+P"));
+        QCOMPARE(actionForKey("Ctrl+Shift+p"), 0);
+    }
+
     void testUnknownActionHasNoKey()
     {
         QCOMPARE(actionKeyText(obj(), "no-such-action"), QString());
