@@ -201,6 +201,7 @@ public:
 
     SeekWaveform* m_waveform = nullptr;
     SleepTimer* m_sleepTimer = nullptr;
+    VideoAdjustments* m_videoAdjustments = nullptr;
     PlaybackStatistics* m_statistics = nullptr;
 
     // meta

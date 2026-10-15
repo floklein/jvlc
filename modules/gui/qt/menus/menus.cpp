@@ -490,6 +490,18 @@ void VLCMenuBar::VideoMenu( qt_intf_t *p_intf, QMenu *current )
     current->addSeparator();
     addEntry( p_intf, current, qtr( "Take &Snapshot" ), "snapshot",
               [p_intf]() { THEMIM->snapshot(); } );
+
+    /* the Video tab of the Adjustments sidebar (flip, rotation, filters) */
+    if( mi && !p_intf->b_isDialogProvider )
+    {
+        /* RightPanelFSM.Video */
+        static const int ADJUSTMENTS_VIDEO_TAB = 1;
+        addEntry( p_intf, current, qtr( "Video &Adjustments..." ), nullptr,
+                  [mi = QPointer<MainCtx>( mi )]() {
+                      if( mi )
+                          mi->openAdjustments( ADJUSTMENTS_VIDEO_TAB );
+                  } );
+    }
 }
 
 /**

@@ -123,6 +123,7 @@ moc_headers = files(
     'player/player_controlbar_model.hpp',
     'player/control_list_model.hpp',
     'player/control_list_filter.hpp',
+    'player/video_adjustments.hpp',
     'player/waveform.hpp',
     'player/waveform_bars.hpp',
     'player/sleep_timer.hpp',
@@ -430,6 +431,10 @@ qt_plugin_sources = files(
     'player/control_list_model.hpp',
     'player/control_list_filter.cpp',
     'player/control_list_filter.hpp',
+    'player/video_adjustments.cpp',
+    'player/video_adjustments.hpp',
+    'player/player_video_outputs.cpp',
+    'player/player_video_outputs.hpp',
     'player/waveform.cpp',
     'player/waveform.hpp',
     'player/waveform_bars.cpp',
@@ -775,6 +780,7 @@ qml_modules += {
        'player/qml/TopBar.qml',
        'player/qml/TrackMenu.qml',
        'player/qml/AdjustmentsSidebar.qml',
+       'player/qml/AdjustmentsVideoTab.qml',
        'player/qml/AdjustmentsPlaybackTab.qml',
        'player/qml/StatisticsOverlay.qml',
        'player/qml/TracksMenu.qml',
@@ -890,6 +896,7 @@ qml_modules += {
         'util/qml/TrackMenuFSM.qml',
         'util/qml/ControlBarFolding.qml',
         'util/qml/RightPanelFSM.qml',
+        'util/qml/ChoicePreview.qml',
         'util/qml/GridSizeHelper.qml',
         'util/qml/NativeMenu.qml',
         'util/qml/FadeControllerStateGroup.qml',
@@ -1013,6 +1020,7 @@ qml_tests = {
     'tst_BarRevealFSM': files('tests/tst_BarRevealFSM.qml'),
     'tst_ControlBarFolding': files('tests/tst_ControlBarFolding.qml'),
     'tst_RightPanelFSM': files('tests/tst_RightPanelFSM.qml'),
+    'tst_ChoicePreview': files('tests/tst_ChoicePreview.qml'),
 }
 
 qmllibs = []
@@ -1901,6 +1909,26 @@ if qt6_dep.found()
             'moc_headers': files(
                 'player/sleep_timer.hpp',
                 'player/playback_statistics.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_video_tab',
+            'sources': files(
+                'tests/test_video_tab.cpp',
+                'player/video_adjustments.cpp',
+                'player/video_adjustments.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_video_tab.cpp'
+            ),
+            'moc_headers': files(
+                'player/video_adjustments.hpp'
             ),
             'suite': ['qt'],
             'include_directories' : qt_include_dir,

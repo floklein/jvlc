@@ -121,8 +121,16 @@ T.Pane {
 
             focus: true
 
-            sourceComponent: root.fsm.currentTab === RightPanelFSM.Playback ? playbackTab
-                                                                             : pendingTab
+            sourceComponent: {
+                switch (root.fsm.currentTab) {
+                case RightPanelFSM.Playback:
+                    return playbackTab
+                case RightPanelFSM.Video:
+                    return videoTab
+                default:
+                    return pendingTab
+                }
+            }
 
             Component {
                 id: playbackTab
@@ -133,8 +141,17 @@ T.Pane {
                 }
             }
 
-            // The Video, Audio and Subtitles tabs are built by later tickets
-            // (#51, #52, #53): until then they open the old dialog
+            Component {
+                id: videoTab
+
+                AdjustmentsVideoTab {
+                    Navigation.parentItem: root
+                    Navigation.upItem: tabBar.itemAt(root.fsm.tabs.indexOf(root.fsm.currentTab))
+                }
+            }
+
+            // The Audio and Subtitles tabs are built by later tickets (#51,
+            // #53): until then they open the old dialog
             Component {
                 id: pendingTab
 
@@ -167,12 +184,9 @@ T.Pane {
                             Navigation.parentItem: root
                             Navigation.upItem: tabBar.itemAt(root.fsm.tabs.indexOf(root.fsm.currentTab))
 
-                            // the dialog's tabs: 0 audio, 1 video, 2 synchronization
+                            // the dialog's tabs: 0 audio, 2 synchronization
                             onClicked: {
                                 switch (root.fsm.currentTab) {
-                                case RightPanelFSM.Video:
-                                    DialogsProvider.showExtendedDialogTab(1)
-                                    break
                                 case RightPanelFSM.Audio:
                                     DialogsProvider.showExtendedDialogTab(0)
                                     break

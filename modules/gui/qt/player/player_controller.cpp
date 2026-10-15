@@ -27,6 +27,8 @@
 #include "player/waveform.hpp"
 #include "player/sleep_timer.hpp"
 #include "player/playback_statistics.hpp"
+#include "player/video_adjustments.hpp"
+#include "player/player_video_outputs.hpp"
 
 #include <vlc_actions.h>           /* ACTION_ID */
 #include <vlc_url.h>            /* vlc_uri_decode */
@@ -1296,6 +1298,30 @@ PlayerController::PlayerController( qt_intf_t *_p_intf )
     connect( this, &PlayerController::inputChanged, this, updateWaveformMedia );
     connect( &d_ptr->m_videoTracks, &TrackListModel::countChanged, this, updateWaveformMedia );
 
+    // The Video tab: its adjustments stay on the next video outputs
+    d_ptr->m_videoAdjustments = new VideoAdjustments( std::make_unique<PlayerVideoOutputs>( this ), this );
+    connect( this, &PlayerController::voutListChanged,
+             d_ptr->m_videoAdjustments, &VideoAdjustments::outputsChanged );
+    /* test hook for screenshots without input: "hue=120;negate=1" is set on
+     * the first video output */
+    if ( qEnvironmentVariableIsSet( "VLC_QT_TEST_VIDEO_ADJUSTMENTS" ) )
+    {
+        connect( this, &PlayerController::hasVideoOutputChanged, this, [this]( bool has ) {
+            static bool applied = false;
+            if ( !has || std::exchange( applied, true ) )
+                return;
+            const QString values = qEnvironmentVariable( "VLC_QT_TEST_VIDEO_ADJUSTMENTS" );
+            for ( const QString& pair : values.split( ';', Qt::SkipEmptyParts ) )
+            {
+                const QString key = pair.section( '=', 0, 0 );
+                const QString value = pair.section( '=', 1 );
+                bool number;
+                const double asNumber = value.toDouble( &number );
+                d_ptr->m_videoAdjustments->setValue( key, number ? QVariant( asNumber ) : QVariant( value ) );
+            }
+        } );
+    }
+
     // The statistics overlay
     d_ptr->m_statistics = new PlaybackStatistics( this );
     connect( this, &PlayerController::statisticsUpdated,
@@ -2365,6 +2391,12 @@ SeekWaveform* PlayerController::getWaveform()
 {
     Q_D(PlayerController);
     return d->m_waveform;
+}
+
+VideoAdjustments* PlayerController::getVideoAdjustments()
+{
+    Q_D(PlayerController);
+    return d->m_videoAdjustments;
 }
 
 SleepTimer* PlayerController::getSleepTimer()

@@ -954,15 +954,24 @@ static void ChangeFilters(vout_thread_sys_t *vout)
         vlc_array_clear(array);
     }
 
-    if (!es_format_IsSimilar(p_fmt_current, &fmt_target)) {
+    /* A filter changing the orientation (transform) is applied by the display;
+     * the display also goes back when the filter is removed. */
+    const bool display_orientation_changed =
+        sys->display != NULL &&
+        sys->display->source->orientation != p_fmt_current->video.orientation;
+
+    if (!es_format_IsSimilar(p_fmt_current, &fmt_target) ||
+        display_orientation_changed) {
         es_format_LogDifferences(vlc_object_logger(&vout->obj),
                 "current", p_fmt_current, "new", &fmt_target);
 
         /* Shallow local copy */
         es_format_t tmp = *p_fmt_current;
-        /* Assign the same chroma to compare everything except the chroma */
+        /* Assign the same chroma and orientation to compare everything
+         * except them */
         tmp.i_codec = fmt_target.i_codec;
         tmp.video.i_chroma = fmt_target.video.i_chroma;
+        tmp.video.orientation = fmt_target.video.orientation;
 
         int ret = VLC_EGENERIC;
 

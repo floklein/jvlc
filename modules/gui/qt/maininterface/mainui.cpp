@@ -34,6 +34,7 @@
 #include "player/control_list_model.hpp"
 #include "player/control_list_filter.hpp"
 #include "player/delay_estimator.hpp"
+#include "player/video_adjustments.hpp"
 #include "player/waveform.hpp"
 #include "player/waveform_bars.hpp"
 #include "player/sleep_timer.hpp"
@@ -375,6 +376,7 @@ void MainUI::registerQMLTypes()
         qmlRegisterUncreatableType<PlaybackStatistics>(uri, versionMajor, versionMinor, "PlaybackStatistics", "the statistics of the current media");
         qmlRegisterType<WaveformBars>(uri, versionMajor, versionMinor, "WaveformBars");
         qmlRegisterType<SeekThumbnailer>(uri, versionMajor, versionMinor, "SeekThumbnailer");
+        qmlRegisterUncreatableType<VideoAdjustments>(uri, versionMajor, versionMinor, "VideoAdjustments", "the Video tab of the Adjustments sidebar, see Player.videoAdjustments");
         qmlRegisterSingletonInstance<ShortcutMessage>(uri, versionMajor, versionMinor, "ShortcutMessage", m_mainCtx->shortcutMessage());
         qmlRegisterUncreatableMetaObject(VLCTickForeign::staticMetaObject, uri, versionMajor, versionMinor, "VLCTick", "Not Instantiable" );
         qmlRegisterTypesAndRevisions<VLCDuration>(uri, versionMajor);

@@ -56,6 +56,12 @@ static picture_t *Filter(filter_t *filter, picture_t *src)
     return src;
 }
 
+static void Close(filter_t *filter)
+{
+    if (filter->vctx_out)
+        vlc_video_context_Release(filter->vctx_out);
+}
+
 static int Open(filter_t *filter)
 {
     const video_format_t *src = &filter->fmt_in.video;
@@ -98,8 +104,13 @@ static int Open(filter_t *filter)
     static const struct vlc_filter_operations filter_ops =
     {
         .filter_video = Filter,
+        .close = Close,
     };
     filter->ops = &filter_ops;
+
+    /* The pictures go through untouched, GPU ones included */
+    if (filter->vctx_in)
+        filter->vctx_out = vlc_video_context_Hold(filter->vctx_in);
     return VLC_SUCCESS;
 }
 

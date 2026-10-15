@@ -302,6 +302,10 @@ libqt_plugin_la_SOURCES = \
 	player/sleep_timer.hpp \
 	player/playback_statistics.cpp \
 	player/playback_statistics.hpp \
+	player/video_adjustments.cpp \
+	player/video_adjustments.hpp \
+	player/player_video_outputs.cpp \
+	player/player_video_outputs.hpp \
 	playlist/media.hpp \
 	playlist/playlist_common.hpp \
 	playlist/playlist_controller.cpp \
@@ -511,6 +515,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	player/waveform_bars.moc.cpp \
 	player/sleep_timer.moc.cpp \
 	player/playback_statistics.moc.cpp \
+	player/video_adjustments.moc.cpp \
 	playlist/playlist_controller.moc.cpp \
 	playlist/playlist_item.moc.cpp \
 	playlist/playlist_model.moc.cpp \
@@ -1191,6 +1196,7 @@ libqml_module_player_a_QML = \
 	player/qml/TrackMenu.qml \
 	player/qml/AdjustmentsSidebar.qml \
 	player/qml/AdjustmentsPlaybackTab.qml \
+	player/qml/AdjustmentsVideoTab.qml \
 	player/qml/StatisticsOverlay.qml \
 	player/qml/TracksMenu.qml \
 	player/qml/TracksPage.qml \
@@ -1312,6 +1318,7 @@ libqml_module_util_a_QML = \
 	util/qml/TrackMenuFSM.qml \
 	util/qml/ControlBarFolding.qml \
 	util/qml/RightPanelFSM.qml \
+	util/qml/ChoicePreview.qml \
 	util/qml/NativeMenu.qml \
 	util/qml/FadeControllerStateGroup.qml \
 	util/qml/BarRevealFSM.qml \
@@ -2347,6 +2354,25 @@ test_playback_tab_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_playback_tab
 TESTS += test_playback_tab
 
+# test_video_tab
+
+test_video_tab_SOURCES = \
+	tests/test_video_tab.cpp \
+	player/video_adjustments.cpp player/video_adjustments.hpp
+
+nodist_test_video_tab_SOURCES = \
+	tests/test_video_tab.moc \
+	player/video_adjustments.moc.cpp
+
+BUILT_SOURCES += tests/test_video_tab.moc
+CLEANFILES += tests/test_video_tab.moc
+test_video_tab_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_video_tab_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_video_tab_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_video_tab_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_video_tab
+TESTS += test_video_tab
+
 # test_shortcut_message
 
 test_shortcut_message_SOURCES = \
@@ -2726,5 +2752,7 @@ EXTRA_DIST += tests/tst_ControlBarFolding.qml
 TESTS += tests/tst_ControlBarFolding.qml
 EXTRA_DIST += tests/tst_RightPanelFSM.qml
 TESTS += tests/tst_RightPanelFSM.qml
+EXTRA_DIST += tests/tst_ChoicePreview.qml
+TESTS += tests/tst_ChoicePreview.qml
 endif
 endif
