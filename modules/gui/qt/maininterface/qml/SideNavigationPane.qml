@@ -26,6 +26,8 @@ import VLC.Widgets as Widgets
 import VLC.MainInterface
 import VLC.Dialogs
 import VLC.Util
+import VLC.Network
+import VLC.Playlist
 
 T.Pane {
     id: root
@@ -88,6 +90,84 @@ T.Pane {
         }
     }
 
+    // Pins
+
+    function pinIcon(type) {
+        switch (type) {
+        case Pins.FOLDER:
+            return VLCIcons.folder
+        case Pins.PLAYLIST:
+            return VLCIcons.playlist
+        default:
+            return VLCIcons.stream
+        }
+    }
+
+    // the page a pin opens; a Saved stream plays
+    function pinPath(type) {
+        switch (type) {
+        case Pins.FOLDER:
+            return ["video", "folders"]
+        case Pins.PLAYLIST:
+            return ["playlists", "list"]
+        default:
+            return ["network", "playlist"]
+        }
+    }
+
+    function openPin(row, focusReason) {
+        const index = Pins.index(row, 0)
+        const type = Pins.data(index, Pins.TYPE)
+        const mlId = Pins.data(index, Pins.ML_ID)
+
+        if (type === Pins.FOLDER && mlId) {
+            History.push(pinPath(type), { parentId: mlId }, focusReason)
+        } else if (type === Pins.PLAYLIST && mlId) {
+            History.push(pinPath(type), { parentId: mlId, title: Pins.data(index, Pins.LABEL) }, focusReason)
+        } else if (type === Pins.STREAM) {
+            const stream = SavedStreams.get(Pins.data(index, Pins.KEY))
+            if (!stream.id)
+                return
+            if (stream.isPlaylist)
+                History.push(pinPath(type), { playlistId: stream.id }, focusReason)
+            else
+                MainPlaylistController.playMedia(stream.urls)
+        }
+    }
+
+    function isPinShown(type, key) {
+        if (!History.exactMatch(History.viewPath, pinPath(type)))
+            return false
+        if (type === Pins.STREAM)
+            return History.viewProp.playlistId === key
+        return (History.viewProp.parentId?.toString() ?? "") === key
+    }
+
+    NativeMenu {
+        id: pinMenu
+
+        actions: [{
+                "text": qsTr("Open"),
+                "action": (dataList) => root.openPin(dataList[0].row, Qt.OtherFocusReason)
+            }, {
+                "text": qsTr("Move Up"),
+                "action": (dataList) => Pins.move(dataList[0].row, dataList[0].row - 1),
+                "visible": (dataList) => dataList[0].row > 0
+            }, {
+                "text": qsTr("Move Down"),
+                "action": (dataList) => Pins.move(dataList[0].row, dataList[0].row + 1),
+                "visible": (dataList) => dataList[0].row < Pins.count - 1
+            }, {
+                "text": qsTr("Unpin from Sidebar"),
+                "action": (dataList) => Pins.remove(dataList[0].row)
+            }
+        ]
+
+        onRequestData: (requestID, indexes) => {
+            setData(requestID, indexes.map((row) => ({ "row": row })))
+        }
+    }
+
     background: Widgets.AcrylicBackground {
         enabled: root.useAcrylic
         tintColor: theme.bg.primary
@@ -106,7 +186,10 @@ T.Pane {
                 id: listView
 
                 Layout.fillWidth: true
-                Layout.fillHeight: true
+                // the Pins follow the last section; on a short window the sections
+                // keep at least half of the height and scroll
+                Layout.preferredHeight: contentHeight
+                Layout.minimumHeight: Math.min(contentHeight, contentItemId.height / 2)
 
                 clip: !fadingEdge.implicitClipping && (height < contentHeight)
                 focus: true
@@ -155,7 +238,8 @@ T.Pane {
                 }
 
                 Navigation.parentItem: root
-                Navigation.downItem: preferenceButton
+                Navigation.downItem: (pinsView.count > 0) ? pinsView
+                                                          : (addPinButton.visible ? addPinButton : preferenceButton)
 
                 delegate: SideNavigationDelegate {
                     id: delegate
@@ -235,6 +319,165 @@ T.Pane {
                 }
             }
 
+            // the Pins: drag or Alt+Up / Alt+Down reorder them
+            Widgets.ListViewExt {
+                id: pinsView
+
+                Layout.fillWidth: true
+                Layout.preferredHeight: contentHeight
+
+                visible: count > 0
+
+                clip: !fadingEdge.implicitClipping && (height < contentHeight)
+
+                // dragging a pin reorders it: flick only a list taller than its place
+                interactive: height < contentHeight
+
+                model: Pins
+
+                Accessible.name: qsTr("Pins")
+
+                colorContext.colorSet: ColorContext.Window
+
+                fadingEdge.backgroundColor: listView.fadingEdge.backgroundColor
+
+                Binding {
+                    target: pinsView.T.ScrollBar.vertical
+                    property: "policy"
+                    when: pinsView.T.ScrollBar.vertical?.size > (1.0 - Number.EPSILON)
+                    value: T.ScrollBar.AlwaysOff
+                }
+
+                Navigation.parentItem: root
+                Navigation.upItem: listView
+                Navigation.downItem: addPinButton.visible ? addPinButton : preferenceButton
+
+                onActionAtIndex: (index) => root.openPin(index, Qt.TabFocusReason)
+
+                // a right click on a pin, or the Menu key on the current one
+                onShowContextMenu: (globalPos) => {
+                    const pos = contentItem.mapFromGlobal(globalPos.x, globalPos.y)
+                    const row = indexAt(pos.x, pos.y)
+                    if (row !== -1)
+                        currentIndex = row
+                    if (currentIndex >= 0)
+                        pinMenu.popup([currentIndex], globalPos)
+                }
+
+                delegate: SideNavigationDelegate {
+                    id: pinDelegate
+
+                    required property int index
+                    required property int type
+                    required property string key
+                    required property string label
+
+                    AccessibleCompat.id: "pinNavBar"
+
+                    width: ListView.view.contentWidth
+                    height: VLCStyle.buttonHeightNavigationPane
+
+                    leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_xsmall
+                    rightPadding: root.safeAreaRightMargin
+
+                    leftInset: root.safeAreaLeftMargin + implicitLeftInset
+                    rightInset: root.safeAreaRightMargin + implicitRightInset
+
+                    iconTxt: root.pinIcon(type)
+                    text: label
+
+                    showText: root.delegateShowText
+
+                    // a pin of a media library item can't open without the library
+                    enabled: (type === Pins.STREAM) || MainCtx.mediaLibraryAvailable
+
+                    checked: root.isPinShown(type, key)
+
+                    Accessible.description: qsTr("Pinned")
+
+                    onClicked: {
+                        pinsView.currentIndex = index
+                        pinsView.forceActiveFocus(focusReason)
+                        root.openPin(index, focusReason)
+                    }
+
+                    // drag a pin to its new place
+                    DragHandler {
+                        target: null
+                        xAxis.enabled: false
+
+                        // the list doesn't flick away a pin being dragged
+                        grabPermissions: PointerHandler.CanTakeOverFromAnything
+
+                        onCentroidChanged: {
+                            if (!active)
+                                return
+                            // the delegate moves with its row: map from the scene
+                            const pos = pinsView.contentItem.mapFromItem(null, centroid.scenePosition.x, centroid.scenePosition.y)
+                            const to = pinsView.indexAt(pinsView.contentItem.width / 2, pos.y)
+                            if (to !== -1 && to !== pinDelegate.index)
+                                Pins.move(pinDelegate.index, to)
+                        }
+                    }
+
+                    Keys.priority: Keys.BeforeItem
+                    Keys.onPressed: (event) => {
+                        if (event.modifiers !== Qt.AltModifier)
+                            return
+                        let to = -1
+                        if (event.key === Qt.Key_Up)
+                            to = index - 1
+                        else if (event.key === Qt.Key_Down)
+                            to = index + 1
+                        else
+                            return
+                        event.accepted = true
+                        if (Pins.move(index, to))
+                            pinsView.currentIndex = to
+                    }
+                }
+            }
+
+            // "+ Add item": the picker of folders, Playlists and streams to Pin
+            SideNavigationDelegate {
+                id: addPinButton
+
+                AccessibleCompat.id: "addPinButton"
+
+                Layout.fillWidth: true
+                Layout.preferredHeight: VLCStyle.buttonHeightNavigationPane
+
+                visible: MainCtx.mediaLibraryAvailable
+
+                leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_xsmall
+                rightPadding: root.safeAreaRightMargin
+
+                leftInset: root.safeAreaLeftMargin + implicitLeftInset
+                rightInset: root.safeAreaRightMargin + implicitRightInset
+
+                iconTxt: VLCIcons.add
+                text: qsTr("Add item")
+
+                showText: root.delegateShowText
+
+                onClicked: Pins.requestPicker()
+
+                //SideNavigationDelegate is an ItemDelegate and has NoFocus by default
+                focusPolicy: Qt.StrongFocus
+
+                Navigation.parentItem: root
+                Navigation.upItem: (pinsView.count > 0) ? pinsView : listView
+                Navigation.downItem: preferenceButton
+
+                Keys.priority: Keys.AfterItem
+                Keys.onPressed: (e) => Navigation.defaultKeyAction(e)
+                Keys.onReleased: (e) => Navigation.defaultKeyReleaseAction(e)
+            }
+
+            Item {
+                Layout.fillHeight: true
+            }
+
             Loader {
                 id: loaderProgress
 
@@ -286,7 +529,8 @@ T.Pane {
                 focusPolicy: Qt.StrongFocus
 
                 Navigation.parentItem: root
-                Navigation.upItem: listView
+                Navigation.upItem: addPinButton.visible ? addPinButton
+                                                        : ((pinsView.count > 0) ? pinsView : listView)
 
                 Keys.priority: Keys.AfterItem
                 Keys.onPressed: (e) => Navigation.defaultKeyAction(e)

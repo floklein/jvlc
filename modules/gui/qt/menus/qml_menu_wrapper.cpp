@@ -30,6 +30,7 @@
 #include "dialogs/dialogs_provider.hpp"
 #include "util/colorizedsvgicon.hpp"
 #include "maininterface/navigationmodel.hpp"
+#include "maininterface/pinsmodel.hpp"
 
 // Qt includes
 #include <QPainter>
@@ -570,6 +571,19 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
         ml->addAndPlay(ids);
     });
 
+    if (ids.count() == 1)
+    {
+        const QPersistentModelIndex index = selected.first();
+        const bool isFavorite = m_model->data(index, MLPlaylistListModel::PLAYLIST_IS_FAVORITE).toBool();
+
+        action = menu->addAction(isFavorite ? qtr("Remove from Favorites") : qtr("Favorite"));
+
+        connect(action, &QAction::triggered, [model = m_model, index, isFavorite]() {
+            if (index.isValid())
+                model->setPlaylistIsFavorite(index, !isFavorite);
+        });
+    }
+
     action = menu->addAction(qtr("Shuffle"));
 
     connect(action, &QAction::triggered, [ml, ids]() {
@@ -594,6 +608,31 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
         ml->addToPlaylist(ids);
     });
 
+    PinsModel * pins = m_ctx->getPins();
+
+    if (ids.count() == 1 && pins)
+    {
+        const QString key = ids.first().value<MLItemId>().toString();
+        const QString name = m_model->data(selected.first(), MLPlaylistListModel::PLAYLIST_NAME).toString();
+
+        if (pins->isPinned(PinsModel::PLAYLIST, key))
+        {
+            action = menu->addAction(qtr("Unpin from Sidebar"));
+
+            connect(action, &QAction::triggered, pins, [pins, key]() {
+                pins->unpin(PinsModel::PLAYLIST, key);
+            });
+        }
+        else
+        {
+            action = menu->addAction(qtr("Pin to Sidebar"));
+
+            connect(action, &QAction::triggered, pins, [pins, key, name]() {
+                pins->pin(PinsModel::PLAYLIST, key, name);
+            });
+        }
+    }
+
     if (ids.count() == 1)
     {
         menu->addSeparator();
@@ -602,8 +641,13 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
 
         QModelIndex index = selected.first();
 
-        connect(action, &QAction::triggered, [this, index]() {
-            m_model->showDialogRename(index);
+        connect(action, &QAction::triggered, [this, index, pins]() {
+            if (!m_model->showDialogRename(index) || !pins)
+                return;
+            // the Pin of the Playlist shows its new name
+            const QString key = m_model->data(index, MLPlaylistListModel::PLAYLIST_ID).value<MLItemId>().toString();
+            pins->rename(PinsModel::PLAYLIST, key,
+                         m_model->data(index, MLPlaylistListModel::PLAYLIST_NAME).toString());
         });
     }
 

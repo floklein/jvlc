@@ -68,6 +68,7 @@ moc_headers = files(
     'maininterface/mainctx_submodels.hpp',
     'maininterface/mainui.hpp',
     'maininterface/navigationmodel.hpp',
+    'maininterface/pinsmodel.hpp',
     'maininterface/videosurface.hpp',
     'maininterface/videoblur.hpp',
     'maininterface/video_window_handler.hpp',
@@ -294,6 +295,8 @@ qt_plugin_sources = files(
     'maininterface/mainui.hpp',
     'maininterface/navigationmodel.cpp',
     'maininterface/navigationmodel.hpp',
+    'maininterface/pinsmodel.cpp',
+    'maininterface/pinsmodel.hpp',
     'maininterface/videosurface.cpp',
     'maininterface/videoblur.cpp',
     'maininterface/videosurface.hpp',
@@ -723,6 +726,7 @@ qml_modules += {
         'medialibrary/qml/NewPlaylistDialog.qml',
         'medialibrary/qml/PlaylistPicker.qml',
         'medialibrary/qml/PlaylistDialogs.qml',
+        'medialibrary/qml/AddPinDialog.qml',
         'medialibrary/qml/PlaylistMedia.qml',
         'medialibrary/qml/PlaylistMediaDisplay.qml',
         'medialibrary/qml/PlaylistsDisplay.qml',
@@ -1619,6 +1623,26 @@ if qt6_dep.found()
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_pins_model',
+            'sources': files(
+                'tests/test_pins_model.cpp',
+                'maininterface/pinsmodel.cpp',
+            ),
+            'moc_sources': files(
+                'tests/test_pins_model.cpp'
+            ),
+            'moc_headers': files(
+                'maininterface/pinsmodel.hpp',
+                'medialibrary/mlqmltypes.hpp',
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep]
         }

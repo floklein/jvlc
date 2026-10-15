@@ -161,6 +161,7 @@ libqt_plugin_la_SOURCES = \
 	maininterface/mainui.cpp \
 	maininterface/mainui.hpp \
 	maininterface/navigationmodel.cpp maininterface/navigationmodel.hpp \
+	maininterface/pinsmodel.cpp maininterface/pinsmodel.hpp \
 	maininterface/videosurface.cpp \
 	maininterface/videosurface.hpp \
 	maininterface/videoblur.cpp \
@@ -461,6 +462,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	maininterface/mainctx_submodels.moc.cpp \
 	maininterface/mainui.moc.cpp \
 	maininterface/navigationmodel.moc.cpp \
+	maininterface/pinsmodel.moc.cpp \
 	maininterface/videosurface.moc.cpp \
 	maininterface/videoblur.moc.cpp \
 	maininterface/video_window_handler.moc.cpp \
@@ -1129,6 +1131,7 @@ libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/NewPlaylistDialog.qml \
 	medialibrary/qml/PlaylistPicker.qml \
 	medialibrary/qml/PlaylistDialogs.qml \
+	medialibrary/qml/AddPinDialog.qml \
 	medialibrary/qml/PlaylistMedia.qml \
 	medialibrary/qml/PlaylistMediaDisplay.qml \
 	medialibrary/qml/PlaylistsDisplay.qml \
@@ -2751,6 +2754,26 @@ test_qt_navigation_model_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_qt_navigation_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_qt_navigation_model
 TESTS += test_qt_navigation_model
+
+test_qt_pins_model_SOURCES = \
+	tests/test_pins_model.cpp \
+	maininterface/pinsmodel.hpp \
+	maininterface/pinsmodel.cpp \
+	medialibrary/mlqmltypes.hpp
+
+nodist_test_qt_pins_model_SOURCES = \
+	tests/test_pins_model.moc \
+	maininterface/pinsmodel.moc.cpp \
+	medialibrary/mlqmltypes.moc.cpp
+
+BUILT_SOURCES += tests/test_pins_model.moc
+CLEANFILES += tests/test_pins_model.moc
+test_qt_pins_model_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_qt_pins_model_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_qt_pins_model_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_qt_pins_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_qt_pins_model
+TESTS += test_qt_pins_model
 
 test_qt_navigation_history_SOURCES = \
 	tests/test_navigation_history.cpp \

@@ -57,7 +57,7 @@ Widgets.PageExt {
     signal artistRequested(var id, int reason)
 
     readonly property var _rows: [continueWatchingRow, listenAgainRow, foldersRow, playlistsRow,
-                                  artistsRow, streamsRow, favoritesRow]
+                                  artistsRow, streamsRow, favoritePlaylistsRow, favoritesRow]
 
     // A single media is enough to tell an empty library
     readonly property MLMediaModel _libraryMedia: MLMediaModel {
@@ -562,12 +562,48 @@ Widgets.PageExt {
                 onCurrentIndexChanged: root._onRowCurrentIndexChanged(this)
             }
 
+            // the Favorites: the Playlists, then the media
             RowHeader {
-                visible: favoritesRow.visible
+                visible: favoritePlaylistsRow.visible || favoritesRow.visible
                 text: qsTr("Favorites")
-                view: favoritesRow
+                view: favoritePlaylistsRow.visible ? favoritePlaylistsRow : favoritesRow
 
                 onSeeAllButtonClicked: (reason) => root.seeAllButtonClicked("favorites", reason)
+            }
+
+            PlaylistMediaList {
+                id: favoritePlaylistsRow
+
+                AccessibleCompat.id: "favouritePlaylists"
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+
+                height: currentItem?.contentHeight ?? implicitHeight
+
+                visible: model.count !== 0
+
+                headerPositioning: ListView.InlineHeader
+                enableBeginningFade: false
+                enableEndFade: false
+
+                interactive: false
+
+                emptyLabel: null
+
+                playlistType: MLPlaylistListModel.PLAYLIST_TYPE_ALL
+
+                favoriteOnly: true
+                searchPattern: root.search.pattern
+
+                limit: root._rowLimit(favoritePlaylistsRow)
+
+                Navigation.parentItem: mediaRows
+
+                onShowList: (model, reason) => root.playlistRequested(model, reason)
+
+                onActiveFocusChanged: root._onRowActiveFocusChanged(this)
+                onCurrentIndexChanged: root._onRowCurrentIndexChanged(this)
             }
 
             MediaView {

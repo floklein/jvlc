@@ -48,6 +48,12 @@ struct MLEvent
         } deletion;
         struct
         {
+            int64_t i_entity_id;
+            vlc_ml_parent_type i_entity_type;
+            bool b_favorite;
+        } favorites_changed;
+        struct
+        {
             bool b_idle;
         } background_idle_changed;
         struct
@@ -108,6 +114,11 @@ struct MLEvent
                 break;
             case VLC_ML_EVENT_BACKGROUND_IDLE_CHANGED:
                 background_idle_changed.b_idle = event->background_idle_changed.b_idle;
+                break;
+            case VLC_ML_EVENT_FAVORITES_CHANGED:
+                favorites_changed.i_entity_id = event->favorites_changed.i_entity_id;
+                favorites_changed.i_entity_type = static_cast<vlc_ml_parent_type>(event->favorites_changed.i_entity_type);
+                favorites_changed.b_favorite = event->favorites_changed.b_favorite;
                 break;
             case VLC_ML_EVENT_MEDIA_THUMBNAIL_GENERATED:
             {

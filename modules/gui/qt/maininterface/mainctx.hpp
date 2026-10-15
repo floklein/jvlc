@@ -68,6 +68,7 @@ class MediaLib;
 class SavedStreamsModel;
 class MLBookmarkModel;
 class ColorSchemeModel;
+class PinsModel;
 class VLCVarChoiceModel;
 class SidePanelCtx;
 class ShortcutMessage;
@@ -254,6 +255,7 @@ public:
     inline bool showWaveform() const { return m_showWaveform; }
     inline bool showStatistics() const { return m_showStatistics; }
     inline ColorSchemeModel* getColorScheme() const { return m_colorScheme; }
+    inline PinsModel* getPins() const { return m_pins; }
     bool hasVLM() const;
     bool useClientSideDecoration() const;
     bool hasFirstrun() const;
@@ -517,6 +519,7 @@ protected:
     bool                 m_gridView = false;
     bool                 m_hasGridListMode = false;
     ColorSchemeModel*    m_colorScheme = nullptr;
+    PinsModel*           m_pins = nullptr;
     bool                 m_windowTitlebar = true;
     // NOTE: Ideally this should be a QVLCBool.
     bool                 m_canShowVideoPIP = false;

@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "maininterface/navigationmodel.hpp"
+#include "maininterface/pinsmodel.hpp"
 #include "maininterface/videoblur.hpp"
 
 #include "medialibrary/medialib.hpp"
@@ -286,6 +287,7 @@ void MainUI::registerQMLTypes()
 
         qmlRegisterTypesAndRevisions<NavigationModel>( uri, versionMajor);
         qmlRegisterTypesAndRevisions<NavigationBarContextMenu>( uri, versionMajor );
+        qmlRegisterSingletonInstance<PinsModel>(uri, versionMajor, versionMinor, "Pins", m_mainCtx->getPins());
         // the folder button of the Top bar: also there without the media
         // library, where it finds no folder
         qmlRegisterType<MLMediaFolder>( uri, versionMajor, versionMinor, "MLMediaFolder" );

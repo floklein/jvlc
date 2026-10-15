@@ -77,13 +77,21 @@ NativeMenu {
             "visible": root.showPlayAsAlbumAction &&
                        (root.model instanceof MLAudioModel)
         }, {
-            "text": qsTr("Add to favorites"),
+            "text": qsTr("Favorite"),
             "action": addFavorite,
             "visible": _showAddFavorite
         }, {
-            "text": qsTr("Remove from favorites"),
+            "text": qsTr("Remove from Favorites"),
             "action": removeFavorite,
             "visible": _showRemoveFavorite
+        }, {
+            "text": qsTr("Pin to Sidebar"),
+            "action": pinFolder,
+            "visible": _showPinFolder
+        }, {
+            "text": qsTr("Unpin from Sidebar"),
+            "action": unpinFolder,
+            "visible": _showUnpinFolder
         }, {
             "text": qsTr("Add to Playlist"),
             "children": addToPlaylistItems
@@ -201,6 +209,14 @@ NativeMenu {
         model.setMediaIsFavorite(indexes[0], false)
     }
 
+    function pinFolder(dataList, options, indexes) {
+        Pins.pin(Pins.FOLDER, dataList[0][idDataRole].toString(), dataList[0].title)
+    }
+
+    function unpinFolder(dataList, options, indexes) {
+        Pins.unpin(Pins.FOLDER, dataList[0][idDataRole].toString())
+    }
+
     function markSeen(dataList, options, indexes) {
         model.setItemPlayed(indexes[0], true)
     }
@@ -256,6 +272,20 @@ NativeMenu {
 
     function _showRemoveFavorite(dataList, options, indexes) {
         return _checkRole(dataList, "isFavorite", true)
+    }
+
+    // a folder of the Videos tree or of Home's Frequently Visited Folders
+    function _isFolder(dataList) {
+        return dataList.length === 1
+                && (dataList[0].isFolder === true || root.model instanceof MLVideoFoldersModel)
+    }
+
+    function _showPinFolder(dataList, options, indexes) {
+        return _isFolder(dataList) && !Pins.isPinned(Pins.FOLDER, dataList[0][idDataRole].toString())
+    }
+
+    function _showUnpinFolder(dataList, options, indexes) {
+        return _isFolder(dataList) && Pins.isPinned(Pins.FOLDER, dataList[0][idDataRole].toString())
     }
 
     function _showSeen(dataList, options, indexes) {

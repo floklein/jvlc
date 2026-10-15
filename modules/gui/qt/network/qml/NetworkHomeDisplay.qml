@@ -182,15 +182,53 @@ Widgets.PageExt {
         }
     }
 
-    // Play, Add to Queue, Rename, Remove
+    // Play, Add to Queue, Pin to Sidebar, Rename, Remove
     QtObject {
         id: streamMenu
 
         property string streamId: ""
 
+        // the stream's id is its Pin key
+        property var _actions: []
+
         function show(id, globalPos) {
             streamId = id
-            menu.popup(globalPos, [qsTr("Play"), qsTr("Add to Queue"), qsTr("Rename…"), qsTr("Remove")])
+            const pinned = Pins.isPinned(Pins.STREAM, id)
+            _actions = [{
+                    "text": qsTr("Play"),
+                    "action": (stream) => MainPlaylistController.playMedia(stream.urls)
+                }, {
+                    "text": qsTr("Add to Queue"),
+                    "action": (stream) => MainPlaylistController.append(stream.urls, false)
+                }, {
+                    "text": pinned ? qsTr("Unpin from Sidebar") : qsTr("Pin to Sidebar"),
+                    "action": (stream) => {
+                        if (pinned)
+                            Pins.unpin(Pins.STREAM, stream.id)
+                        else
+                            Pins.pin(Pins.STREAM, stream.id, stream.name)
+                    }
+                }, {
+                    "text": qsTr("Rename…"),
+                    "action": (stream) => {
+                        renameDialog.acceptEmpty = true
+                        renameDialog.ask(stream.isPlaylist ? qsTr("Rename Playlist") : qsTr("Rename Stream"),
+                                         qsTr("Name"), stream.name,
+                                         (text) => {
+                                             SavedStreams.rename(stream.id, text)
+                                             // an empty name gives the default one
+                                             Pins.rename(Pins.STREAM, stream.id, SavedStreams.get(stream.id).name)
+                                         })
+                    }
+                }, {
+                    "text": qsTr("Remove"),
+                    "action": (stream) => {
+                        SavedStreams.remove(stream.id)
+                        Pins.unpin(Pins.STREAM, stream.id)
+                    }
+                }
+            ]
+            menu.popup(globalPos, _actions.map((action) => action.text))
         }
 
         readonly property StringListMenu menu: StringListMenu {
@@ -198,25 +236,9 @@ Widgets.PageExt {
 
             onSelected: (index, _) => {
                 const stream = SavedStreams.get(streamMenu.streamId)
-                if (!stream.id)
+                if (!stream.id || index < 0 || index >= streamMenu._actions.length)
                     return
-                switch (index) {
-                case 0:
-                    MainPlaylistController.playMedia(stream.urls)
-                    break
-                case 1:
-                    MainPlaylistController.append(stream.urls, false)
-                    break
-                case 2:
-                    renameDialog.acceptEmpty = true
-                    renameDialog.ask(stream.isPlaylist ? qsTr("Rename Playlist") : qsTr("Rename Stream"),
-                                     qsTr("Name"), stream.name,
-                                     (text) => SavedStreams.rename(stream.id, text))
-                    break
-                case 3:
-                    SavedStreams.remove(stream.id)
-                    break
-                }
+                streamMenu._actions[index].action(stream)
             }
         }
     }

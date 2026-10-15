@@ -463,6 +463,16 @@ Item {
             onLoaded: item.rootWindow = viewLoader
         }
 
+        // "+ Add item" of the library sidebar: the folder, Playlist and stream picker
+        Loader {
+            anchors.fill: parent
+
+            active: MainCtx.mediaLibraryAvailable
+            source: "qrc:///qt/qml/VLC/MediaLibrary/AddPinDialog.qml"
+
+            onLoaded: item.rootWindow = viewLoader
+        }
+
         // Add Subtitles, from the Track menu, the VLC menu or a file menu;
         // kept here so that it survives switching between the library and
         // the player
@@ -486,6 +496,7 @@ Item {
                 }
             }
         }
+
         Loader {
             asynchronous: true
             source: "qrc:///qt/qml/VLC/Menus/GlobalShortcuts.qml"

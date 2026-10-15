@@ -162,6 +162,7 @@ void fillPlaylist(vlc_ml_playlist_t* out, const VLCTestingEnv::Playlist& playlis
     out->psz_name = strdup(playlist.name.c_str());
     out->i_nb_media = playlist.media.size();
     out->i_nb_unknown = playlist.media.size();
+    out->b_is_favorite = playlist.favorite;
     /* creation order */
     out->i_creation_date = playlist.id;
 }
@@ -237,6 +238,21 @@ void sendEvent(int type, int64_t id, const VLCTestingEnv::Playlist* created = nu
         free(playlist.psz_name);
 }
 
+void sendFavoriteEvent(int64_t id, vlc_ml_parent_type type, bool favorite)
+{
+    vlc_medialibrary_module_t* module = stubML.module;
+    if (!module || !module->cbs)
+        return;
+
+    vlc_ml_event_t ev;
+    memset(&ev, 0, sizeof(ev));
+    ev.i_type = VLC_ML_EVENT_FAVORITES_CHANGED;
+    ev.favorites_changed.i_entity_id = id;
+    ev.favorites_changed.i_entity_type = type;
+    ev.favorites_changed.b_favorite = favorite;
+    module->cbs->pf_send_event(module, &ev);
+}
+
 vlc_ml_media_list_t* newMediaList(const std::vector<int64_t>& ids, const vlc_ml_query_params_t* params)
 {
     size_t offset = params ? params->i_offset : 0;
@@ -256,6 +272,10 @@ vlc_ml_media_list_t* newMediaList(const std::vector<int64_t>& ids, const vlc_ml_
 std::vector<VLCTestingEnv::Playlist> sortedPlaylists(const vlc_ml_query_params_t* params)
 {
     std::vector<VLCTestingEnv::Playlist> result = stubML.playlists;
+    if (params && params->b_favorite_only)
+        result.erase(std::remove_if(result.begin(), result.end(),
+                                    [](const VLCTestingEnv::Playlist& p) { return !p.favorite; }),
+                     result.end());
     const int sort = params ? params->i_sort : VLC_ML_SORTING_DEFAULT;
     const bool desc = params && params->b_desc;
     std::stable_sort(result.begin(), result.end(),
@@ -751,6 +771,18 @@ static int MLControl( vlc_medialibrary_module_t*, int query, va_list args )
         sendEvent(VLC_ML_EVENT_PLAYLIST_UPDATED, id);
         return VLC_SUCCESS;
     }
+    case VLC_ML_PLAYLIST_SET_FAVORITE:
+    {
+        int64_t id = va_arg(args, int64_t);
+        bool favorite = va_arg(args, int);
+        VLCTestingEnv::Playlist* playlist = findPlaylist(id);
+        if (!playlist)
+            return VLC_EGENERIC;
+        playlist->favorite = favorite;
+        guard.unlock();
+        sendFavoriteEvent(id, VLC_ML_PARENT_PLAYLIST, favorite);
+        return VLC_SUCCESS;
+    }
     case VLC_ML_NEW_EXTERNAL_MEDIA:
     {
         const char* mrl = va_arg(args, const char*);
@@ -1103,6 +1135,25 @@ int64_t VLCTestingEnv::addPlaylist(const std::string& name, const std::vector<in
     }
     sendEvent(VLC_ML_EVENT_PLAYLIST_ADDED, created.id, &created);
     return created.id;
+}
+
+void VLCTestingEnv::setPlaylistFavorite(int64_t id, bool favorite)
+{
+    {
+        std::lock_guard<std::mutex> guard(stubML.lock);
+        VLCTestingEnv::Playlist* playlist = findPlaylist(id);
+        if (!playlist)
+            return;
+        playlist->favorite = favorite;
+    }
+    sendFavoriteEvent(id, VLC_ML_PARENT_PLAYLIST, favorite);
+}
+
+bool VLCTestingEnv::playlistFavorite(int64_t id) const
+{
+    std::lock_guard<std::mutex> guard(stubML.lock);
+    const VLCTestingEnv::Playlist* playlist = findPlaylist(id);
+    return playlist && playlist->favorite;
 }
 
 static const char * test_defaults_args[] = {

@@ -33,6 +33,7 @@
 
 #include "mainctx.hpp"
 #include "mainctx_submodels.hpp"
+#include "pinsmodel.hpp"
 #include "medialibrary/mlhelper.hpp"
 #include "medialibrary/mlbookmarkmodel.hpp"
 
@@ -255,6 +256,9 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
 
     /* Controlbar Profile Model Creation */
     m_controlbarProfileModel = new ControlbarProfileModel(p_intf->mainSettings, this);
+
+    /* the Pins of the library sidebar */
+    m_pins = new PinsModel(p_intf->mainSettings, this);
 
     /* Profiles: a switch replaces the options and the Qt settings of the
      * Profile, then the interface reads them again */

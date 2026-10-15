@@ -44,6 +44,9 @@ public: // Interface
     unsigned int getNbVideo() const;
     unsigned int getNbUnknown() const;
 
+    bool isFavorite() const;
+    void setIsFavorite(bool isFavorite);
+
     // the thumbnail chosen by the user, if any
     QString getThumbnail() const;
     void setThumbnail(const QString & thumbnail);
@@ -57,6 +60,8 @@ private:
     unsigned int m_nbAudio;
     unsigned int m_nbVideo;
     unsigned int m_nbUnknown;
+
+    bool m_isFavorite;
 
     QString m_thumbnail;
 };

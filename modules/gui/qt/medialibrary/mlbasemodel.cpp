@@ -437,6 +437,11 @@ void MLBaseModel::onVlcMlEvent(const MLEvent &event)
             }
             break;
         }
+        case VLC_ML_EVENT_FAVORITES_CHANGED:
+            // an item joins or leaves the Favorites
+            if (m_favoriteOnly)
+                emit resetRequested();
+            break;
     }
 
     if (m_mediaLib && m_mediaLib->idle() && m_need_reset)

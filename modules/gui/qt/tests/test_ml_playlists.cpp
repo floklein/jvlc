@@ -437,6 +437,59 @@ private slots:
         QVERIFY(xml.contains(QStringLiteral("<location>vlc://pause:600</location>")));
     }
 
+    // Favorites
+
+    void testFavoritePlaylistJoinsTheFavorites()
+    {
+        m_env->addPlaylist("Chill", {});
+        m_env->addPlaylist("Workout", {});
+
+        MLPlaylistListModel all;
+        all.classBegin();
+        all.setMl(m_medialib.get());
+        all.componentComplete();
+        QTRY_COMPARE(all.getCount(), 2u);
+        QTRY_COMPARE(all.data(all.index(1), MLPlaylistListModel::PLAYLIST_NAME).toString(),
+                     QStringLiteral("Workout"));
+        QVERIFY(!all.data(all.index(1), MLPlaylistListModel::PLAYLIST_IS_FAVORITE).toBool());
+
+        // what Home's Favorites row lists
+        MLPlaylistListModel favorites;
+        favorites.classBegin();
+        favorites.setMl(m_medialib.get());
+        favorites.setFavoriteOnly(true);
+        favorites.componentComplete();
+        QTRY_VERIFY(!favorites.loading());
+        QCOMPARE(favorites.getCount(), 0u);
+
+        all.setPlaylistIsFavorite(all.index(1), true);
+
+        QTRY_COMPARE(favorites.getCount(), 1u);
+        QTRY_COMPARE(favorites.data(favorites.index(0), MLPlaylistListModel::PLAYLIST_NAME).toString(),
+                     QStringLiteral("Workout"));
+        QVERIFY(favorites.data(favorites.index(0), MLPlaylistListModel::PLAYLIST_IS_FAVORITE).toBool());
+        QTRY_VERIFY(all.data(all.index(1), MLPlaylistListModel::PLAYLIST_IS_FAVORITE).toBool());
+    }
+
+    void testUnfavoritePlaylistLeavesTheFavorites()
+    {
+        const int64_t id = m_env->addPlaylist("Chill", {});
+        m_env->setPlaylistFavorite(id, true);
+
+        MLPlaylistListModel favorites;
+        favorites.classBegin();
+        favorites.setMl(m_medialib.get());
+        favorites.setFavoriteOnly(true);
+        favorites.componentComplete();
+        QTRY_COMPARE(favorites.getCount(), 1u);
+        QTRY_VERIFY(favorites.data(favorites.index(0), MLPlaylistListModel::PLAYLIST_IS_FAVORITE).toBool());
+
+        favorites.setPlaylistIsFavorite(favorites.index(0), false);
+
+        QTRY_COMPARE(favorites.getCount(), 0u);
+        QVERIFY(!m_env->playlistFavorite(id));
+    }
+
 private:
     std::unique_ptr<VLCTestingEnv> m_env;
     std::unique_ptr<PlaylistController> m_controller;

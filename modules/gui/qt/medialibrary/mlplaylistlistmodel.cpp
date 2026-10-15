@@ -214,6 +214,35 @@ std::unique_ptr<MLPlaylist> newPlaylistItem(const vlc_ml_playlist_t & data, cons
     return true;
 }
 
+/* Q_INVOKABLE */ void MLPlaylistListModel::setPlaylistIsFavorite(const QModelIndex & index,
+                                                                  bool isFavorite)
+{
+    int row = index.row();
+
+    if (row < 0 || row >= rowCount())
+        return;
+
+    MLPlaylist * playlist = static_cast<MLPlaylist *> (item(row));
+
+    if (playlist == nullptr)
+        return;
+
+    int64_t id = playlist->getId().id;
+
+    // NOTE: The FAVORITES_CHANGED event updates the favorite-only lists.
+    m_mediaLib->runOnMLThread(this,
+    // ML thread
+    [id, isFavorite](vlc_medialibrary_t * ml)
+    {
+        vlc_ml_playlist_set_favorite(ml, id, isFavorite);
+    });
+
+    // NOTE: We want the change to be visible right away.
+    playlist->setIsFavorite(isFavorite);
+
+    emit dataChanged(index, index, { PLAYLIST_IS_FAVORITE });
+}
+
 //-------------------------------------------------------------------------------------------------
 
 /* Q_INVOKABLE */ MLItemId MLPlaylistListModel::getItemId(int index) const
@@ -239,7 +268,8 @@ QHash<int, QByteArray> MLPlaylistListModel::roleNames() const /* override */
         { PLAYLIST_COUNT,     QByteArrayLiteral("count")      },
         { PLAYLIST_NB_AUDIO,  QByteArrayLiteral("nb_audio")   },
         { PLAYLIST_NB_VIDEO,  QByteArrayLiteral("nb_video")   },
-        { PLAYLIST_NB_UNKNOWN,QByteArrayLiteral("nb_unknown") }
+        { PLAYLIST_NB_UNKNOWN,QByteArrayLiteral("nb_unknown") },
+        { PLAYLIST_IS_FAVORITE, QByteArrayLiteral("isFavorite") }
     };
 }
 
@@ -271,6 +301,8 @@ QVariant MLPlaylistListModel::itemRoleData(const MLItem *item, int role) const /
             return QVariant::fromValue(playlist->getNbVideo());
         case PLAYLIST_NB_UNKNOWN:
             return QVariant::fromValue(playlist->getNbUnknown());
+        case PLAYLIST_IS_FAVORITE:
+            return playlist->isFavorite();
         default:
             return QVariant();
     }
@@ -393,6 +425,19 @@ void MLPlaylistListModel::onVlcMlEvent(const MLEvent & event) /* override */
         if (getMLSortingCriteria() == VLC_ML_SORTING_PLAYCOUNT)
             emit resetRequested();
         return;
+    }
+    case VLC_ML_EVENT_FAVORITES_CHANGED:
+    {
+        if (event.favorites_changed.i_entity_type != VLC_ML_PARENT_PLAYLIST)
+            return;
+        // a favorite-only list resets in MLBaseModel
+        if (!getFavoriteOnly())
+        {
+            MLItemId itemId(event.favorites_changed.i_entity_id, VLC_ML_PARENT_PLAYLIST);
+            updateItemInCache(itemId);
+            return;
+        }
+        break;
     }
     default:
         break;

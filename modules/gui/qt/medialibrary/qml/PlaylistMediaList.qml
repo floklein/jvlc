@@ -64,6 +64,7 @@ MainViewLoader {
     property alias sortOrder: playlistModel.sortOrder
     property alias sortCriteria: playlistModel.sortCriteria
     property alias limit: playlistModel.limit
+    property alias favoriteOnly: playlistModel.favoriteOnly
 
     property int playlistType: isMusic ? MLPlaylistListModel.PLAYLIST_TYPE_AUDIO
                                        : MLPlaylistListModel.PLAYLIST_TYPE_VIDEO
@@ -210,8 +211,12 @@ MainViewLoader {
             if (DialogsProvider.questionDialog(qsTr("Do you really want to delete the selected playlist?",
                                                     "Do you really want to delete the selected playlists?",
                                                     items.length),
-                                               qsTr("Delete playlist", "Delete playlists", items.length)))
+                                               qsTr("Delete playlist", "Delete playlists", items.length))) {
                 root.model.deletePlaylists(items)
+                // a deleted Playlist leaves the sidebar
+                for (const id of items)
+                    Pins.unpin(Pins.PLAYLIST, id.toString())
+            }
         } else {
             console.warn(root, ": Nothing to delete")
         }

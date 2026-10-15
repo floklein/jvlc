@@ -208,6 +208,18 @@ void MLMediaModel::onVlcMlEvent(const MLEvent &event)
         deleteItemInCache(itemId);
         return;
     }
+    case VLC_ML_EVENT_FAVORITES_CHANGED:
+    {
+        // a favorite-only list resets in MLBaseModel
+        if (event.favorites_changed.i_entity_type == VLC_ML_PARENT_UNKNOWN && !getFavoriteOnly())
+        {
+            MLItemId itemId(event.favorites_changed.i_entity_id, VLC_ML_PARENT_UNKNOWN);
+            updateItemInCache(itemId);
+            return;
+        }
+        MLBaseModel::onVlcMlEvent(event);
+        return;
+    }
     // audio specific
     case VLC_ML_EVENT_ALBUM_UPDATED:
         if (m_parent.id != 0 && m_parent.type == VLC_ML_PARENT_ALBUM && m_parent.id == event.modification.i_entity_id)
