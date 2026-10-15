@@ -47,6 +47,7 @@
 #include "dialogs/extended/extended.hpp"
 #include "dialogs/plugins/plugins.hpp"
 #include "dialogs/subtitles/add_subtitles_model.hpp"
+#include "dialogs/subtitles/subtitle_match_model.hpp"
 
 #include <vlc_url.h>
 
@@ -986,6 +987,28 @@ void DialogsProvider::addSubtitlesDialog( const QString& mediaMrl )
     MediaLib *ml = p_intf->p_mi ? p_intf->p_mi->getMediaLibrary() : nullptr;
     m_addSubtitlesModel = new AddSubtitlesModel( p_intf, ml, mrl, this );
     emit showAddSubtitles( m_addSubtitlesModel );
+}
+
+void DialogsProvider::addFolderSubtitlesDialog( const QString& folder )
+{
+    if( m_subtitleMatchModel )
+        m_subtitleMatchModel->deleteLater();
+    MediaLib *ml = p_intf->p_mi ? p_intf->p_mi->getMediaLibrary() : nullptr;
+    m_subtitleMatchModel = new SubtitleMatchModel( p_intf, ml, this );
+    m_subtitleMatchModel->setFolder( folder );
+    emit showSubtitleMatches( m_subtitleMatchModel );
+}
+
+void DialogsProvider::addPlaylistSubtitlesDialog( const QVariant& playlistId, const QString& name )
+{
+    MediaLib *ml = p_intf->p_mi ? p_intf->p_mi->getMediaLibrary() : nullptr;
+    if( !ml || !playlistId.canConvert<MLItemId>() )
+        return;
+    if( m_subtitleMatchModel )
+        m_subtitleMatchModel->deleteLater();
+    m_subtitleMatchModel = new SubtitleMatchModel( p_intf, ml, this );
+    m_subtitleMatchModel->loadPlaylist( playlistId.value<MLItemId>(), name );
+    emit showSubtitleMatches( m_subtitleMatchModel );
 }
 
 void DialogsProvider::loadSubtitlesFile()

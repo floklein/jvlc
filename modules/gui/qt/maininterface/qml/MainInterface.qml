@@ -494,6 +494,11 @@ Item {
                     // a Popup created by a Loader doesn't open in the same iteration
                     Qt.callLater(() => addSubtitlesLoader.item?.openWith(model))
                 }
+
+                function onShowSubtitleMatches(model) {
+                    addSubtitlesLoader.active = true
+                    Qt.callLater(() => addSubtitlesLoader.item?.openMatching(model))
+                }
             }
         }
 

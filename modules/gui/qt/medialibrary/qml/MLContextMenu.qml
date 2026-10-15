@@ -100,6 +100,10 @@ NativeMenu {
             "action": addSubtitles,
             "visible": _showAddSubtitles
         }, {
+            "text": qsTr("Add Subtitles to This Folder…"),
+            "action": addFolderSubtitles,
+            "visible": _showAddFolderSubtitles
+        }, {
             "text": qsTr("Mark as seen"),
             "action": markSeen,
             "visible": _showSeen
@@ -201,6 +205,11 @@ NativeMenu {
         DialogsProvider.addSubtitlesDialog(dataList[0].mrl)
     }
 
+    // Add Subtitles, To This Folder
+    function addFolderSubtitles(dataList, options, indexes) {
+        DialogsProvider.addFolderSubtitlesDialog(dataList[0].mrl)
+    }
+
     function addFavorite(dataList, options, indexes) {
         model.setMediaIsFavorite(indexes[0], true)
     }
@@ -300,6 +309,12 @@ NativeMenu {
     function _showAddSubtitles(dataList, options, indexes) {
         return _checkRole(dataList, "isLocal", true)
                 && _checkRole(dataList, "isVideo", true)
+                && !!dataList[0].mrl
+    }
+
+    // one folder of the folder tree
+    function _showAddFolderSubtitles(dataList, options, indexes) {
+        return dataList.length === 1 && dataList[0].isFolder === true
                 && !!dataList[0].mrl
     }
 

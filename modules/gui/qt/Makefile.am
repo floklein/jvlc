@@ -136,6 +136,10 @@ libqt_plugin_la_SOURCES = \
 	dialogs/sout/stream_output.hpp \
 	dialogs/subtitles/add_subtitles_model.cpp \
 	dialogs/subtitles/add_subtitles_model.hpp \
+	dialogs/subtitles/subtitle_match_model.cpp \
+	dialogs/subtitles/subtitle_match_model.hpp \
+	dialogs/subtitles/subtitle_matching.cpp \
+	dialogs/subtitles/subtitle_matching.hpp \
 	dialogs/systray/systray.cpp \
 	dialogs/systray/systray.hpp \
 	dialogs/toolbar/controlbar_profile.hpp \
@@ -450,6 +454,8 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/shortcuts/shortcuts_model.moc.cpp \
 	dialogs/sout/stream_output.moc.cpp \
 	dialogs/subtitles/add_subtitles_model.moc.cpp \
+	dialogs/subtitles/subtitle_match_model.moc.cpp \
+	dialogs/subtitles/subtitle_matching.moc.cpp \
 	dialogs/systray/systray.moc.cpp \
 	dialogs/toolbar/controlbar_profile.moc.cpp \
 	dialogs/toolbar/controlbar_profile_model.moc.cpp \
@@ -2145,6 +2151,61 @@ test_subtitle_matches_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_subtitle_matches_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_subtitle_matches
 TESTS += test_subtitle_matches
+
+# test_subtitle_folder_matches
+test_subtitle_folder_matches_SOURCES = \
+	tests/test_subtitle_folder_matches.cpp \
+	tests/vlc_stub_modules.cpp \
+	tests/vlc_stub_modules.hpp \
+	dialogs/subtitles/subtitle_match_model.cpp \
+	dialogs/subtitles/subtitle_match_model.hpp \
+	dialogs/subtitles/subtitle_matching.cpp \
+	dialogs/subtitles/subtitle_matching.hpp \
+	util/base_model.cpp \
+	util/base_model.hpp \
+	util/covergenerator.cpp \
+	util/vlctick.cpp \
+	medialibrary/medialib.cpp \
+	medialibrary/mlbasemodel.cpp \
+	medialibrary/mlcustomcover.cpp \
+	medialibrary/mlplaycountrank.cpp \
+	medialibrary/mlhelper.cpp \
+	medialibrary/mlplaylist.cpp \
+	medialibrary/mlplaylistlistmodel.cpp \
+	medialibrary/mlplaylistmanager.cpp \
+	medialibrary/mlplaylistmedia.cpp \
+	medialibrary/mlplaylistmodel.cpp \
+	medialibrary/mlrecenthidelist.cpp \
+	medialibrary/mlthreadpool.cpp \
+	medialibrary/mlvideo.cpp \
+	medialibrary/thumbnailcollector.cpp \
+	playlist/playlist_controller.cpp \
+	playlist/playlist_item.cpp
+nodist_test_subtitle_folder_matches_SOURCES = \
+	tests/test_subtitle_folder_matches.moc \
+	dialogs/subtitles/subtitle_match_model.moc.cpp \
+	dialogs/subtitles/subtitle_matching.moc.cpp \
+	util/base_model.moc.cpp \
+	util/vlctick.moc.cpp \
+	medialibrary/medialib.moc.cpp \
+	medialibrary/mlbasemodel.moc.cpp \
+	medialibrary/mlplaylistlistmodel.moc.cpp \
+	medialibrary/mlplaylistmanager.moc.cpp \
+	medialibrary/mlplaylistmodel.moc.cpp \
+	medialibrary/mlrecenthidelist.moc.cpp \
+	medialibrary/mlthreadpool.moc.cpp \
+	medialibrary/mlvideo.moc.cpp \
+	medialibrary/thumbnailcollector.moc.cpp \
+	playlist/playlist_controller.moc.cpp \
+	playlist/playlist_item.moc.cpp
+BUILT_SOURCES += tests/test_subtitle_folder_matches.moc
+CLEANFILES += tests/test_subtitle_folder_matches.moc
+test_subtitle_folder_matches_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_subtitle_folder_matches_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_subtitle_folder_matches_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_subtitle_folder_matches_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_subtitle_folder_matches
+TESTS += test_subtitle_folder_matches
 
 # test_conversion_profile_model
 

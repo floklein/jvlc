@@ -58,6 +58,7 @@
 #include "medialibrary/medialib.hpp"
 
 #include "dialogs/dialogs_provider.hpp"
+#include "dialogs/subtitles/subtitle_matching.hpp"
 #include "dialogs/systray/systray.hpp"
 
 #include "videosurface.hpp"
@@ -248,6 +249,23 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
                 m_medialib, [ml = m_medialib](const QString&, const QString& media,
                                               const QString& source) {
             ml->removeSubtitleMatch(media, source);
+        });
+
+        /* an episode added to a Show after its subtitles were matched gets
+         * matched from the Show's source when it plays */
+        auto matcher = new ShowSubtitleMatcher(p_intf, m_medialib, p_intf->mainSettings, this);
+        connect(THEMIM, &PlayerController::inputChanged, matcher, [this, matcher](bool hasInput) {
+            if (!hasInput)
+                return;
+            QString mrl;
+            {
+                vlc_player_locker lock{ p_intf->p_player };
+                input_item_t *item = vlc_player_GetCurrentMedia(p_intf->p_player);
+                if (item)
+                    mrl = qfu(item->psz_uri);
+            }
+            if (!mrl.isEmpty())
+                matcher->matchOnPlay(mrl);
         });
     }
 

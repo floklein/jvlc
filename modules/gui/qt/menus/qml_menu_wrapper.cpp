@@ -635,6 +635,18 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
 
     if (ids.count() == 1)
     {
+        // Add Subtitles, To This Playlist
+        const QString name = m_model->data(selected.first(), MLPlaylistListModel::PLAYLIST_NAME).toString();
+
+        action = menu->addAction(qtr("Add Subtitle Tracks…"));
+
+        connect(action, &QAction::triggered, [id = ids.first(), name]() {
+            DialogsProvider::getInstance()->addPlaylistSubtitlesDialog(id, name);
+        });
+    }
+
+    if (ids.count() == 1)
+    {
         menu->addSeparator();
 
         action = menu->addAction(qtr("Rename"));

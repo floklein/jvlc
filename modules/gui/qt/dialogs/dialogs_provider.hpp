@@ -81,6 +81,7 @@ class VLCMenuBar;
 class ExtendedDialog;
 class PluginDialog;
 class AddSubtitlesModel;
+class SubtitleMatchModel;
 
 class DialogsProvider : public QObject, public Singleton<DialogsProvider>
 {
@@ -164,6 +165,8 @@ private:
     QPointer<MediaPropertiesModel> m_playerMediaProperties;
     /* the model of the Add Subtitles dialog */
     QPointer<AddSubtitlesModel> m_addSubtitlesModel;
+    /* the model of Add Subtitles, To This Folder or Playlist */
+    QPointer<SubtitleMatchModel> m_subtitleMatchModel;
     std::unique_ptr<PluginDialog> m_pluginDialog;
     std::unique_ptr<input_item_parser_id_t,
                     decltype(&input_item_parser_id_Release)> m_parser;
@@ -249,6 +252,10 @@ public slots:
 
     /* Add Subtitles, To This File: the media of this MRL, or the playing one */
     void addSubtitlesDialog( const QString& mediaMrl = {} );
+    /* Add Subtitles, To This Folder: the folder of this MRL or path */
+    void addFolderSubtitlesDialog( const QString& folder );
+    /* Add Subtitles, To This Playlist */
+    void addPlaylistSubtitlesDialog( const QVariant& playlistId, const QString& name );
     void loadSubtitlesFile();
     void loadAudioFile();
     void loadVideoFile();
@@ -283,6 +290,8 @@ signals:
     void showOpenNetworkDialog();
     /* opens Add Subtitles over this model; the next one replaces it */
     void showAddSubtitles( AddSubtitlesModel *model );
+    /* opens Add Subtitles, To This Folder or Playlist, over this model */
+    void showSubtitleMatches( SubtitleMatchModel *model );
 
     // requests to the QML dialogs
     void showMessages();

@@ -265,7 +265,12 @@ vlc_ml_media_list_t* newMediaList(const std::vector<int64_t>& ids, const vlc_ml_
         calloc(1, sizeof(vlc_ml_media_list_t) + count * sizeof(vlc_ml_media_t)));
     list->i_nb_items = count;
     for (size_t i = 0; i < count; ++i)
+    {
         fillMedia(&list->p_items[i], ids[offset + i]);
+        /* an external media lists its file, like the medialibrary does */
+        if (stubML.external.count(ids[offset + i]))
+            fillFiles(&list->p_items[i], ids[offset + i]);
+    }
     return list;
 }
 
