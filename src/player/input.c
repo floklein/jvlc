@@ -690,8 +690,17 @@ vlc_player_input_HandleEsEvent(struct vlc_player_input *input,
             trackpriv = vlc_player_track_vector_FindById(vec, ev->id, NULL);
             if (trackpriv)
             {
+                enum es_format_category_e cat = ev->fmt->i_cat;
+                /* a forced selection is the viewer's pick, unless it comes
+                 * from vlc_player_SelectDefaultTrack() */
+                bool by_default = false;
+                if (ev->forced && cat >= 0 && cat < DATA_ES)
+                {
+                    by_default = input->ml.default_selection[cat];
+                    input->ml.default_selection[cat] = false;
+                }
                 trackpriv->t.selected = true;
-                trackpriv->selected_by_user = ev->forced;
+                trackpriv->selected_by_user = ev->forced && !by_default;
                 trackpriv->vout_order = ev->vout_order;
                 vlc_player_input_UpdatePickedTracks(input, ev->fmt->i_cat);
                 vlc_player_SendEvent(player, on_track_selection_changed,
@@ -1314,20 +1323,17 @@ vlc_player_input_New(vlc_player_t *player, input_item_t *item)
 
     input->abloop_state[0].set = input->abloop_state[1].set = false;
 
-    memset(&input->ml.states, 0, sizeof(input->ml.states));
-    input->ml.states.aspect_ratio = input->ml.states.crop =
-        input->ml.states.deinterlace = input->ml.states.video_filter = NULL;
-    input->ml.states.current_title = -1;
-    input->ml.states.current_video_track =
-        input->ml.states.current_audio_track =
-        input->ml.states.current_subtitle_track = NULL;
+    vlc_player_input_ResetMlStates(input);
     input->ml.restore = VLC_RESTOREPOINT_NONE;
     input->ml.restore_states = false;
     input->ml.delay_restore = false;
     input->ml.pos = -1.f;
     input->ml.has_audio_tracks = input->ml.has_video_tracks = false;
     for (enum es_format_category_e i = UNKNOWN_ES; i < DATA_ES; ++i)
+    {
         input->ml.picked_tracks[i] = NULL;
+        input->ml.default_selection[i] = false;
+    }
 
     static const struct vlc_input_thread_callbacks cbs = {
         .on_event = input_thread_Events,

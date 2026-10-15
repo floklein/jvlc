@@ -23,7 +23,8 @@ import VLC.Style
 Item {
     id: root
 
-    property color color: "grey"
+    // a colour of the theme (border, visual focus)
+    required property color color
     property real dash: VLCStyle.dp(3, VLCStyle.scale)
     property real lineWidth: VLCStyle.border
 

@@ -67,8 +67,12 @@ Widgets.PageLoader {
 
     // Home lists what lives in the other sections: open it there
 
+    // a folder of songs only opens in Music ▸ Songs
     function showFolder(model, reason) {
-        History.push(["video", "folders"], { parentId: model.id }, reason)
+        if (model.nb_videos === 0 && model.nb_audio > 0)
+            History.push(["music", "tracks"], { parentId: model.id }, reason)
+        else
+            History.push(["video", "folders"], { parentId: model.id }, reason)
     }
 
     function showPlaylist(model, reason) {
@@ -300,10 +304,47 @@ Widgets.PageLoader {
 
             title: qsTr("Favorites")
 
+            // the favorite Playlists first, as in the Home row
+            PlaylistMediaList {
+                id: favoritePlaylists
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+
+                // at most half the page: the media follow
+                height: visible ? Math.min(currentItem?.contentHeight ?? implicitHeight,
+                                           parent.height / 2)
+                                : 0
+
+                visible: model.count !== 0
+
+                playlistType: MLPlaylistListModel.PLAYLIST_TYPE_ALL
+                favoriteOnly: true
+                searchPattern: favoritesPage.search.pattern
+
+                emptyLabel: null
+
+                displayMarginBeginning: root.displayMarginBeginning
+                enableBeginningFade: root.enableBeginningFade
+                enableEndFade: false
+
+                Navigation.downItem: favoriteMedia
+
+                onShowList: (model, reason) => root.showPlaylist(model, reason)
+            }
+
             MediaView {
+                id: favoriteMedia
+
                 focus: true
 
-                anchors.fill: parent
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: favoritePlaylists.bottom
+                anchors.bottom: parent.bottom
+
+                Navigation.upItem: favoritePlaylists.visible ? favoritePlaylists : null
 
                 model: MLMediaModel {
                     favoriteOnly: true

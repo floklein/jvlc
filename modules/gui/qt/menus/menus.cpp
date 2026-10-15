@@ -31,6 +31,8 @@
 #include <vlc_actions.h>
 #include <vlc_interface.h>
 
+#include <algorithm>
+
 #include "menus.hpp"
 
 #include "maininterface/mainctx.hpp"                     /* View modifications */
@@ -39,6 +41,7 @@
 #include "player/player_controller.hpp"                      /* Input Management */
 #include "player/control_list_model.hpp"                  /* Folded controls */
 #include "player/waveform.hpp"                               /* Show waveform */
+#include "player/sleep_timer.hpp"                            /* Sleep Timer */
 #include "playlist/playlist_controller.hpp"
 #include "dialogs/extensions/extensions_manager.hpp"                 /* Extensions menu */
 #include "dialogs/settings/profiles_model.hpp"                       /* Profile menu */
@@ -47,6 +50,7 @@
 #include "util/glyph_icon.hpp"
 #include "style/vlcicons.hpp"
 #include "medialibrary/medialib.hpp"
+#include "medialibrary/mlplaylistmanager.hpp"
 #include "medialibrary/mlrecentmediamodel.hpp"
 #include "medialibrary/mlbookmarkmodel.hpp"
 
@@ -56,6 +60,8 @@
 #include <QActionGroup>
 #include <QWindow>
 #include <QPointer>
+#include <QDesktopServices>
+#include <QUrl>
 
 using namespace vlc::playlist;
 
@@ -231,6 +237,8 @@ void VLCMenuBar::VLCMenuEntries( qt_intf_t *p_intf, QMenu *menu )
         setIcon( action, menu, VLCIcons::recent_tt_base, VLCIcons::recent_tt_accent );
     }
 
+    SleepTimerMenu( p_intf, menu );
+
     menu->addSeparator();
 
     /* Customization */
@@ -268,6 +276,9 @@ void VLCMenuBar::VLCMenuEntries( qt_intf_t *p_intf, QMenu *menu )
     menu->addSeparator();
 
     /* Application */
+    addEntry( p_intf, menu, qtr( "Online &Help" ), "help",
+              []() { QDesktopServices::openUrl( QUrl( QStringLiteral( "https://docs.videolan.me/vlc-user/" ) ) ); } );
+
     action = addEntry( p_intf, menu, qtr( "&About VLC" ), "about",
                        []() { THEDP->aboutDialog(); } );
     action->setMenuRole( QAction::AboutRole );
@@ -314,8 +325,9 @@ void VLCMenuBar::ProfileMenu( qt_intf_t *p_intf, QMenu *menu )
 }
 
 /**
- * The Control bar's controls folded in a narrow window: audio, subtitles and
- * adjustments, in the order of the Control bar, then a separator
+ * The Control bar's controls folded or left out in a narrow window, in the
+ * order of the Control bar, then a separator. A control doing a core hotkey
+ * action does it; the others are handed to <trigger> (the player's QML)
  **/
 void VLCMenuBar::FoldedEntries( qt_intf_t *p_intf, QMenu *menu, const QList<int> &folded,
                                 const std::function<void(int)> &trigger )
@@ -324,30 +336,73 @@ void VLCMenuBar::FoldedEntries( qt_intf_t *p_intf, QMenu *menu, const QList<int>
     {
         int control;
         const char *text;
+        // the key shown; a core hotkey action ("stop") is also what it does
         const char *keyAction;
         QChar base;
         QChar accent;
     };
 
+    using C = ControlListModel;
     static const Entry entries[] = {
-        { ControlListModel::AUDIO_BUTTON, N_( "&Audio" ), "audio-track",
+        { C::AUDIO_BUTTON, N_( "&Audio" ), nullptr,
           VLCIcons::audio_tt_base, VLCIcons::audio_tt_accent },
-        { ControlListModel::SUBTITLES_BUTTON, N_( "Su&btitles" ), "subtitle-track",
+        { C::SUBTITLES_BUTTON, N_( "Su&btitles" ), nullptr,
           VLCIcons::subtitle_tt_base, VLCIcons::subtitle_tt_accent },
-        { ControlListModel::EXTENDED_BUTTON, N_( "Ad&justments" ), "adjustments",
+        { C::EXTENDED_BUTTON, N_( "Ad&justments" ), "adjustments",
           VLCIcons::settings_tt_base, VLCIcons::settings_tt_accent },
+        { C::PLAYLIST_BUTTON, N_( "&Queue" ), "show-queue", QChar(), QChar() },
+        { C::PLAY_BUTTON, N_( "Play/Pa&use" ), "play-pause", QChar(), QChar() },
+        { C::STOP_BUTTON, N_( "S&top" ), "stop", QChar(), QChar() },
+        { C::PREVIOUS_BUTTON, N_( "Pre&vious" ), "prev", QChar(), QChar() },
+        { C::NEXT_BUTTON, N_( "Ne&xt" ), "next", QChar(), QChar() },
+        { C::SKIP_BACK_BUTTON, N_( "Step Back" ), "jump-short", QChar(), QChar() },
+        { C::SKIP_FW_BUTTON, N_( "Step Forward" ), "jump+short", QChar(), QChar() },
+        { C::CHAPTER_PREVIOUS_BUTTON, N_( "Previous Chapter" ), "chapter-prev", QChar(), QChar() },
+        { C::CHAPTER_NEXT_BUTTON, N_( "Next Chapter" ), "chapter-next", QChar(), QChar() },
+        { C::FRAME_PREV_BUTTON, N_( "Previous Frame" ), "frame-previous", QChar(), QChar() },
+        { C::FRAME_NEXT_BUTTON, N_( "Next Frame" ), "frame-next", QChar(), QChar() },
+        { C::SLOWER_BUTTON, N_( "Slower" ), "slower", QChar(), QChar() },
+        { C::FASTER_BUTTON, N_( "Faster" ), "faster", QChar(), QChar() },
+        { C::PLAYBACK_SPEED_BUTTON, N_( "Playback Speed..." ), nullptr, QChar(), QChar() },
+        { C::RANDOM_BUTTON, N_( "Shuffle" ), "random", QChar(), QChar() },
+        { C::LOOP_BUTTON, N_( "Repeat" ), "loop", QChar(), QChar() },
+        { C::VOLUME, N_( "Mute" ), "vol-mute", QChar(), QChar() },
+        { C::SNAPSHOT_BUTTON, N_( "Take Snapshot" ), "snapshot", QChar(), QChar() },
+        { C::RECORD_BUTTON, N_( "Record" ), "record", QChar(), QChar() },
+        { C::BOOKMARK_BUTTON, N_( "Add Bookmark" ), "add-bookmark", QChar(), QChar() },
+        { C::DVD_MENUS_BUTTON, N_( "Disc Menu" ), "disc-menu", QChar(), QChar() },
+        { C::INFO_BUTTON, N_( "Media Information..." ), "media-info", QChar(), QChar() },
+        { C::RENDERER_BUTTON, N_( "Stream && Cast..." ), "stream", QChar(), QChar() },
+        { C::PICTURE_IN_PICTURE_BUTTON, N_( "Picture-in-picture" ), "picture-in-picture",
+          QChar(), QChar() },
+        { C::FULLSCREEN_BUTTON, N_( "Fullscreen" ), "toggle-fullscreen", QChar(), QChar() },
     };
 
+    vlc_object_t *libvlc = VLC_OBJECT( vlc_object_instance( p_intf ) );
     bool added = false;
-    for( const Entry &entry : entries )
+    for( const int control : folded )
     {
-        if( !folded.contains( entry.control ) )
+        const auto entry = std::find_if( std::begin( entries ), std::end( entries ),
+                                         [control]( const Entry &e ) { return e.control == control; } );
+        if( entry == std::end( entries ) )
             continue;
 
-        const int control = entry.control;
-        QAction *action = addEntry( p_intf, menu, qtr( entry.text ), entry.keyAction,
-                                    [trigger, control]() { trigger( control ); } );
-        setIcon( action, menu, entry.base, entry.accent );
+        /* a core hotkey action: done here; else by the player */
+        vlc_action_id_t id = ACTIONID_NONE;
+        if( entry->keyAction )
+        {
+            const QByteArray option = QByteArray( "key-" ).append( entry->keyAction );
+            id = vlc_actions_get_id( option.constData() );
+        }
+        QAction *action = addEntry( p_intf, menu, qtr( entry->text ), entry->keyAction,
+                                    [trigger, control, libvlc, id]() {
+            if( id != ACTIONID_NONE )
+                var_SetInteger( libvlc, "key-action", id );
+            else
+                trigger( control );
+        } );
+        if( !entry->base.isNull() )
+            setIcon( action, menu, entry->base, entry->accent );
         added = true;
     }
 
@@ -463,7 +518,7 @@ void VLCMenuBar::VideoMenu( qt_intf_t *p_intf, QMenu *current )
                        THEMIM, "fullscreen" );
     if( mi )
     {
-        addCheckableEntry( p_intf, current, qtr( "Picture in Pict&ure" ), "picture-in-picture",
+        addCheckableEntry( p_intf, current, qtr( "Picture-in-pict&ure" ), "picture-in-picture",
                            mi, "pictureInPicture" );
         addCheckableEntry( p_intf, current, qtr( "Always on &Top" ), nullptr,
                            mi, "interfaceAlwaysOnTop" );
@@ -559,9 +614,45 @@ void VLCMenuBar::PlaybackMenu( qt_intf_t *p_intf, QMenu *menu )
         action->setData( "bookmark" );
     }
 
+    SleepTimerMenu( p_intf, menu );
+
     menu->addSeparator();
 
     RepeatAndShuffleEntries( p_intf, menu );
+}
+
+/* Sleep Timer ▸: the choices of the Playback tab, the running one checked
+ * (a custom duration is set in the Playback tab) */
+void VLCMenuBar::SleepTimerMenu( qt_intf_t *p_intf, QMenu *menu )
+{
+    QPointer<SleepTimer> timer = THEMIM->getSleepTimer();
+    if( !timer )
+        return;
+
+    QMenu *submenu = menu->addMenu( qtr( "Sl&eep Timer" ) );
+    QActionGroup *group = new QActionGroup( submenu );
+
+    const auto add = [&]( const QString &text, bool checked, std::function<void()> start ) {
+        QAction *action = submenu->addAction( text );
+        action->setCheckable( true );
+        action->setChecked( checked );
+        action->setActionGroup( group );
+        connect( action, &QAction::triggered, timer, [timer, start]() {
+            if( timer )
+                start();
+        } );
+    };
+
+    const SleepTimer::Mode mode = timer->mode();
+    add( qtr( "Off" ), mode == SleepTimer::Off, [timer]() { timer->cancel(); } );
+    for( const int minutes : { 15, 30, 45, 60, 90 } )
+        add( qtr( "%1 min" ).arg( minutes ),
+             mode == SleepTimer::Duration && timer->minutes() == minutes,
+             [timer, minutes]() { timer->start( minutes ); } );
+    add( qtr( "End of This Item" ), mode == SleepTimer::EndOfItem,
+         [timer]() { timer->startEndOfItem(); } );
+    add( qtr( "End of Queue" ), mode == SleepTimer::EndOfQueue,
+         [timer]() { timer->startEndOfQueue(); } );
 }
 
 /* Repeat ▸ and Shuffle, of the Playback and Queue menus */
@@ -611,6 +702,18 @@ void VLCMenuBar::QueueMenu( qt_intf_t *p_intf, QMenu *menu )
     QAction *action = addEntry( p_intf, menu, qtr( "&Clear Queue" ), "play-clear",
                                 [p_intf]() { THEMPL->clear(); } );
     action->setEnabled( !THEMPL->isEmpty() );
+
+    MediaLib *ml = mi ? mi->getMediaLibrary() : nullptr;
+    if( ml )
+    {
+        QPointer<MediaLib> medialib = ml;
+        action = addEntry( p_intf, menu, qtr( "Save Queue as &Playlist..." ), nullptr,
+                           [medialib]() {
+            if( medialib )
+                medialib->playlistManager()->saveQueueAsPlaylist();
+        } );
+        action->setEnabled( !THEMPL->isEmpty() );
+    }
 
     addEntry( p_intf, menu, qtr( "Save Queue to &File..." ), "save-queue",
               []() { THEDP->savePlayingToPlaylist(); } );

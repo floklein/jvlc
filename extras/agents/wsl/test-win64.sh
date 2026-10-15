@@ -29,9 +29,13 @@ for t in json.load(sys.stdin):
 targets=$(cut -f2 "$B/qt-tests.tsv" | sort -u | sed "s,^$B/,,")
 info "building $(echo $targets | wc -w) test executable(s) with -j$JVLC_JOBS"
 # shellcheck disable=SC2086
-ninja -C "$B" -j "$JVLC_JOBS" $targets
+ninja -C "$B" -j "$JVLC_JOBS" $targets modules/libdemux_mock_plugin.dll
 # the tests load the installed libvlc*.dll and plugins: refresh them
 bash "$(dirname "$0")/deploy-win64.sh" "$KEY" "$INSTALL"
+# mock:// (test_qt_conversion_manager) needs demux_mock, which meson does
+# not install
+mkdir -p "$INSTALL/plugins/demux"
+cp -p "$B/modules/libdemux_mock_plugin.dll" "$INSTALL/plugins/demux/"
 
 mkdir -p "$INSTALL/tests"
 # libvlc spawns vlc-preparser.exe from the directory of the executable

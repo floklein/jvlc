@@ -145,11 +145,15 @@ private slots:
         QCOMPARE(timeline.cues().size(), 2);
         QCOMPARE(shownSpy.count(), 1);
 
-        // no subtitle any more: nothing to show, the toggle stays usable
+        QVERIFY(timeline.note().isEmpty());
+
+        // no subtitle any more: nothing to show, the toggle stays usable and
+        // says why nothing shows
         timeline.setTrack(SubtitleTimeline::NoTrack);
         QVERIFY(!timeline.shown());
         QVERIFY(timeline.cues().isEmpty());
         QVERIFY(timeline.unsupportedReason().isEmpty());
+        QVERIFY(!timeline.note().isEmpty());
     }
 
     // Turned off, the lines are not read

@@ -22,13 +22,14 @@
 
 #include "settings_model.hpp"
 
+#include <vlc_common.h>
+#include <vlc_configuration.h>
+#include <vlc_plugin.h>
+
 #include <QCollator>
 #include <QHash>
 #include <QRegularExpression>
 #include <QSettings>
-
-#include <vlc_configuration.h>
-#include <vlc_plugin.h>
 
 #include <algorithm>
 #include <cmath>
@@ -1193,14 +1194,15 @@ bool SettingsFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex& sou
 
     if (!index.data(SettingsModel::AvailableRole).toBool())
         return false;
-    if (!m_showDeveloper && index.data(SettingsModel::DeveloperRole).toBool())
-        return false;
-
     const int kind = index.data(SettingsModel::KindRole).toInt();
 
-    // search covers every page, Advanced Options and the shortcut actions
+    // search covers every page, Advanced Options, the shortcut actions and
+    // the Developer mode options: every option can be found
     if (!m_searchWords.isEmpty())
         return kind == SettingsModel::Setting && matchesSearch(index);
+
+    if (!m_showDeveloper && index.data(SettingsModel::DeveloperRole).toBool())
+        return false;
 
     const QString page = index.data(SettingsModel::PageRole).toString();
     if (page != m_page)

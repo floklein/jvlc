@@ -430,6 +430,20 @@ private slots:
         QCOMPARE(filter.rowCount(), 1);
     }
 
+    // every option can be found, Developer mode or not
+    void testSearchFindsDeveloperRows()
+    {
+        Row verbose = configRow("verbose", "general", {"stats"});
+        verbose.developer = true;
+        m_model->addRow(verbose);
+
+        SettingsFilterModel filter;
+        filter.setSourceModel(m_model.get());
+        filter.setPage("general");
+        filter.setSearchPattern(verbose.label);
+        QCOMPARE(filter.rowCount(), 1);
+    }
+
     /* Rows writing a filter chain */
 
     void testFilterRowEditsTheChain()

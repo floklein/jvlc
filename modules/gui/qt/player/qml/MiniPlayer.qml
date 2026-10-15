@@ -385,6 +385,7 @@ T.Control {
                 readonly property string folderName: Helpers.folderName(Player.url)
 
                 Layout.maximumWidth: parent.width - queueButton.width - parent.spacing
+                                     - (presetButton.visible ? presetButton.width + parent.spacing : 0)
 
                 visible: folderName !== ""
 
@@ -399,7 +400,7 @@ T.Control {
 
                 Navigation.parentItem: root
                 Navigation.upItem: playButton
-                Navigation.rightItem: queueButton
+                Navigation.rightItem: presetButton.visible ? presetButton : queueButton
 
                 onClicked: LibraryPages.showFolder(mediaFolder.folderId, Player.hasVideoOutput,
                                                    Qt.MouseFocusReason)
@@ -416,6 +417,20 @@ T.Control {
                 Layout.fillWidth: true
             }
 
+            // the Preset of the playing file's Show, as in the sidebar footer
+            PresetSelector {
+                id: presetButton
+
+                Layout.maximumWidth: VLCStyle.dp(120, VLCStyle.scale)
+
+                visible: Presets.folder !== ""
+
+                Navigation.parentItem: root
+                Navigation.upItem: playButton
+                Navigation.leftItem: folderButton.visible ? folderButton : null
+                Navigation.rightItem: queueButton
+            }
+
             Widgets.IconToolButton {
                 id: queueButton
 
@@ -426,7 +441,7 @@ T.Control {
 
                 Navigation.parentItem: root
                 Navigation.upItem: playButton
-                Navigation.leftItem: folderButton.visible ? folderButton : null
+                Navigation.leftItem: presetButton.visible ? presetButton : (folderButton.visible ? folderButton : null)
 
                 onClicked: MainCtx.playqueuePanel.visible = !MainCtx.playqueuePanel.visible
             }

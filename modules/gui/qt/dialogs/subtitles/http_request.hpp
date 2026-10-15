@@ -55,6 +55,8 @@ struct HttpRequest
     int maxRedirects = 5;
     // larger bodies fail
     qint64 maxSize = 16 * 1024 * 1024;
+    // the whole request, redirections included, fails after this time
+    vlc_tick_t timeout = VLC_TICK_FROM_SEC(60);
 };
 
 struct HttpResponse

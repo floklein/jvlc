@@ -262,7 +262,12 @@ bool StreamOutput::startAt(Source source, const QString &mrl, const Settings &se
         else if (vlc_playlist_Count(m_playlist) == 0)
             return false;
         else
-            index = source == Queue ? 0 : vlc_playlist_GetCurrentIndex(m_playlist);
+        {
+            /* the Queue goes on from its current item, as it plays */
+            index = vlc_playlist_GetCurrentIndex(m_playlist);
+            if (index < 0 && source == Queue)
+                index = 0;
+        }
         if (index < 0)
             return false;
 

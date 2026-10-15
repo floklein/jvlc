@@ -22,6 +22,12 @@
 
 #include "app_onboarding_model.hpp"
 
+#include <vlc_common.h>
+#include <vlc_configuration.h>
+#include <vlc_media_library.h>
+#include <vlc_url.h>
+#include <vlc_cxx_helpers.hpp>
+
 #include "medialibrary/medialib.hpp"
 #include "util/color_scheme_model.hpp"
 
@@ -29,11 +35,6 @@
 #include <QFileDialog>
 #include <QSettings>
 #include <QUrl>
-
-#include <vlc_configuration.h>
-#include <vlc_media_library.h>
-#include <vlc_url.h>
-#include <vlc_cxx_helpers.hpp>
 
 namespace {
 

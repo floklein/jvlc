@@ -88,8 +88,13 @@ MainViewLoader {
         return currentItem?.getItemY(index) ?? 0
     }
 
-    function _onItemDoubleClicked(model) {
-        MediaLib.addAndPlay(model.id)
+    // the Play rule: the media plays with the ones after it in the view
+    function _playAt(index) {
+        root.model.addAndPlay([root.model.index(index, 0)])
+    }
+
+    function _onItemDoubleClicked(index) {
+        root._playAt(index)
         History.push(["player"])
     }
 
@@ -172,13 +177,13 @@ MainViewLoader {
 
                 onPlayClicked: {
                     if (model.id !== undefined) {
-                        MediaLib.addAndPlay(model.id)
+                        root._playAt(index)
                         if (model.isVideo)
                             MainCtx.requestShowPlayerView()
                     }
                 }
 
-                onItemDoubleClicked: root._onItemDoubleClicked(model)
+                onItemDoubleClicked: root._onItemDoubleClicked(index)
 
                 onContextMenuButtonClicked: (_, globalMousePos) => {
                     gridView.rightClickOnItem(index)
@@ -279,8 +284,8 @@ MainViewLoader {
 
             rowContextMenu: contextMenu
 
-            onItemDoubleClicked: (_, model) => {
-                root._onItemDoubleClicked(model)
+            onItemDoubleClicked: (index, _) => {
+                root._onItemDoubleClicked(index)
             }
 
             onRightClick: (_, _, globalMousePos) => {

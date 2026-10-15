@@ -16,17 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 #include "opensubtitles_models.hpp"
-#include "add_subtitles_model.hpp"
 
+#include <vlc_common.h>
 #include <vlc_configuration.h>
 #include <vlc_interface.h>
 #include <vlc_url.h>
 
-#include <algorithm>
+#include "add_subtitles_model.hpp"
 
 #include <QCollator>
 #include <QDir>
 #include <QFileInfo>
+
+#include <algorithm>
 
 using namespace opensubtitles;
 

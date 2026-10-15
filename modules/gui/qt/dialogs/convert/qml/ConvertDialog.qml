@@ -151,7 +151,7 @@ WindowDialog {
                 Layout.minimumHeight: VLCStyle.dp(72, VLCStyle.scale)
 
                 color: root.colorContext.bg.secondary
-                radius: VLCStyle.dp(6, VLCStyle.scale)
+                radius: VLCStyle.radius_normal
 
                 ListView {
                     id: sourceList

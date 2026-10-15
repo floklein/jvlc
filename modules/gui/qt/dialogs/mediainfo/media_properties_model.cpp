@@ -23,13 +23,15 @@
 #endif
 
 #include "media_properties_model.hpp"
-#include "dialogs/fingerprint/chromaprint.hpp"
 
+#include <vlc_common.h>
 #include <vlc_url.h>
 #include <vlc_meta.h>
 #include <vlc_input_item.h>
 #include <vlc_fingerprinter.h>
 #include <vlc_list.hpp>
+
+#include "dialogs/fingerprint/chromaprint.hpp"
 
 #include <cmath>
 

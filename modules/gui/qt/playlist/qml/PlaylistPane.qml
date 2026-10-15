@@ -296,7 +296,8 @@ T.Pane {
                 enabled: (root.selectionModel?.selectedIndexesFlat.length ?? 0) > 0
                 text: VLCIcons.remove
                 description: qsTr("Remove selected")
-                shortcut: "Delete"
+                //: the Delete key
+                shortcut: qsTr("Delete")
 
                 onClicked: root.removeSelection()
 

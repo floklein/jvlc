@@ -78,8 +78,7 @@ public:
     // initialized in the source file.
     enum PlayerIdentifier {
         Videoplayer = 0,
-        Audioplayer,
-        Miniplayer
+        Audioplayer
     };
     Q_ENUM(PlayerIdentifier)
     // This enum is iterated through QMetaEnum, and

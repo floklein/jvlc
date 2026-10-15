@@ -25,15 +25,17 @@
 #include <vlc_aout.h>
 #include <vlc_configuration.h>
 #include <vlc_iso_lang.h>
+#include <vlc_modules.h>
 #include <vlc_player.h>
+
+#include "qt.hpp"
+#include "../../../audio_filter/equalizer_presets.h"
 
 #include <QCoreApplication>
 #include <QLocale>
 
 #include <algorithm>
 #include <cmath>
-
-#include "../../../audio_filter/equalizer_presets.h"
 
 namespace {
 
@@ -208,6 +210,9 @@ AudioAdjustments::AudioAdjustments(vlc_player_t* player, QObject* parent)
         m_twoPass = config_GetInt("equalizer-2pass") != 0;
     if (config_FindConfig("stereo-mode"))
         m_stereoMode = int(config_GetInt("stereo-mode"));
+    if (m_stereoMode == AOUT_VAR_CHAN_UNSET && config_FindConfig("mix-mode")
+     && config_GetInt("mix-mode") == AOUT_MIX_MODE_BINAURAL)
+        m_stereoMode = HEADPHONES;
     // the first of the preferred languages
     m_language = configString("audio-language").section(',', 0, 0).trimmed();
 
@@ -251,10 +256,10 @@ QStringList AudioAdjustments::bandNames() const
         const float f = frequencies[i];
         if (f >= 1000.f)
             //: an equalizer band, "12 KHz"
-            names.append(tr("%1 KHz").arg(QLocale().toString(f / 1000.f, 'g', 3)));
+            names.append(qtr("%1 KHz").arg(QLocale().toString(f / 1000.f, 'g', 3)));
         else
             //: an equalizer band, "60 Hz"
-            names.append(tr("%1 Hz").arg(QLocale().toString(std::round(f))));
+            names.append(qtr("%1 Hz").arg(QLocale().toString(std::round(f))));
     }
     return names;
 }
@@ -343,7 +348,7 @@ QVariantList AudioAdjustments::languages() const
 {
     QVariantList languages;
     //: the default audio language: the one the file prefers
-    languages.append(QVariantMap{ { "code", QString() }, { "name", tr("Auto") } });
+    languages.append(QVariantMap{ { "code", QString() }, { "name", qtr("Auto") } });
 
     QStringList codes;
     for (const char* code : LANGUAGES)
@@ -625,18 +630,21 @@ void AudioAdjustments::setEqualizer(bool enabled, double preamp, const QList<dou
 QVariantList AudioAdjustments::stereoModes() const
 {
     const struct { int value; const char* name; } modes[] = {
-        //: the stereo mode the audio output picks for the file
-        { AOUT_VAR_CHAN_UNSET, QT_TR_NOOP("Automatic") },
-        { AOUT_VAR_CHAN_STEREO, QT_TR_NOOP("Stereo") },
-        { AOUT_VAR_CHAN_MONO, QT_TR_NOOP("Mono") },
-        { AOUT_VAR_CHAN_RSTEREO, QT_TR_NOOP("Reverse stereo") },
-        { AOUT_VAR_CHAN_LEFT, QT_TR_NOOP("Left") },
-        { AOUT_VAR_CHAN_RIGHT, QT_TR_NOOP("Right") },
-        { AOUT_VAR_CHAN_DOLBYS, QT_TR_NOOP("Dolby Surround") },
+        // the stereo mode the audio output picks for the file
+        { AOUT_VAR_CHAN_UNSET, N_("Automatic") },
+        { AOUT_VAR_CHAN_STEREO, N_("Stereo") },
+        { AOUT_VAR_CHAN_MONO, N_("Mono") },
+        { AOUT_VAR_CHAN_RSTEREO, N_("Reverse stereo") },
+        { AOUT_VAR_CHAN_LEFT, N_("Left") },
+        { AOUT_VAR_CHAN_RIGHT, N_("Right") },
+        { AOUT_VAR_CHAN_DOLBYS, N_("Dolby Surround") },
     };
     QVariantList list;
     for (const auto& mode : modes)
-        list.append(QVariantMap{ { "value", mode.value }, { "name", tr(mode.name) } });
+        list.append(QVariantMap{ { "value", mode.value }, { "name", qtr(mode.name) } });
+    // the binaural mix needs the spatialaudio module
+    if (module_exists("spatialaudio"))
+        list.append(QVariantMap{ { "value", HEADPHONES }, { "name", qtr("Headphones") } });
     return list;
 }
 
@@ -648,9 +656,21 @@ int AudioAdjustments::stereoMode() const
 void AudioAdjustments::showStereoMode(int mode)
 {
     // the output restarts with the new mode
+    const bool headphones = mode == HEADPHONES;
+    const int stereo = headphones ? AOUT_VAR_CHAN_UNSET : mode;
     Aout aout(m_player);
-    if (aout.has("stereo-mode") && var_GetInteger(aout.get(), "stereo-mode") != mode)
-        var_SetInteger(aout.get(), "stereo-mode", mode);
+    if (aout.has("stereo-mode") && var_GetInteger(aout.get(), "stereo-mode") != stereo)
+        var_SetInteger(aout.get(), "stereo-mode", stereo);
+    // the binaural mix on, or off again (another mix chosen in the Audio
+    // menu stays)
+    if (aout.has("mix-mode"))
+    {
+        const int64_t mix = var_GetInteger(aout.get(), "mix-mode");
+        if (headphones && mix != AOUT_MIX_MODE_BINAURAL)
+            var_SetInteger(aout.get(), "mix-mode", AOUT_MIX_MODE_BINAURAL);
+        else if (!headphones && mix == AOUT_MIX_MODE_BINAURAL)
+            var_SetInteger(aout.get(), "mix-mode", AOUT_MIX_MODE_UNSET);
+    }
     if (m_stereoMode != mode)
     {
         m_stereoMode = mode;
@@ -663,7 +683,14 @@ void AudioAdjustments::setStereoMode(int mode)
     m_stereoBeforePreview.reset();
     showStereoMode(mode);
     if (m_profileWrites)
-        config_PutInt("stereo-mode", mode);
+    {
+        const bool headphones = mode == HEADPHONES;
+        config_PutInt("stereo-mode", headphones ? AOUT_VAR_CHAN_UNSET : mode);
+        if (headphones)
+            config_PutInt("mix-mode", AOUT_MIX_MODE_BINAURAL);
+        else if (config_GetInt("mix-mode") == AOUT_MIX_MODE_BINAURAL)
+            config_PutInt("mix-mode", AOUT_MIX_MODE_UNSET);
+    }
     emitModifiedGroups();
     emit adjusted();
 }

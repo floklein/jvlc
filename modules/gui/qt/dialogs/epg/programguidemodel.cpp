@@ -22,15 +22,16 @@
 
 #include "programguidemodel.hpp"
 
-#include <algorithm>
-
-#include <QHash>
-#include <QTimeZone>
-
+#include <vlc_common.h>
 #include <vlc_input_item.h>
 #include <vlc_epg.h>
 
 #include "qt.hpp"
+
+#include <QHash>
+#include <QTimeZone>
+
+#include <algorithm>
 
 ProgramGuideModel::ProgramGuideModel(QObject *parent)
     : QAbstractListModel(parent)

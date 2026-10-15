@@ -208,15 +208,18 @@ MainViewLoader {
                 items.push(root.model.data(i, MLPlaylistListModel.PLAYLIST_ID))
             }
             console.assert(items.length > 0)
-            if (DialogsProvider.questionDialog(qsTr("Do you really want to delete the selected playlist?",
-                                                    "Do you really want to delete the selected playlists?",
-                                                    items.length),
-                                               qsTr("Delete playlist", "Delete playlists", items.length))) {
-                root.model.deletePlaylists(items)
+            const model = root.model
+            DialogsProvider.confirm(qsTr("Delete Playlist", "Delete Playlists", items.length),
+                                    qsTr("Do you really want to delete the selected Playlist?",
+                                         "Do you really want to delete the selected Playlists?",
+                                         items.length),
+                                    qsTr("Delete"),
+                                    () => {
+                model.deletePlaylists(items)
                 // a deleted Playlist leaves the sidebar
                 for (const id of items)
                     Pins.unpin(Pins.PLAYLIST, id.toString())
-            }
+            })
         } else {
             console.warn(root, ": Nothing to delete")
         }

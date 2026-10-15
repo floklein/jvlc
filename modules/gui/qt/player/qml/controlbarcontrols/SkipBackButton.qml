@@ -40,6 +40,8 @@ Widgets.IconToolButton {
             Player.jumpBwd()
     }
     description: _music ? qsTr("Back 15 seconds") : qsTr("Step back")
+    // the short jump's key; the music player's 15 s has none
+    shortcutAction: _music ? "" : "jump-short"
 
     AccessibleCompat.id: "skipBackButton"
 }

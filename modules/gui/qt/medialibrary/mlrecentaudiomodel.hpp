@@ -24,8 +24,11 @@
 #endif
 
 #include "mlaudiomodel.hpp"
+#include "mlhelper.hpp"
+#include "mlrecenthidelist.hpp"
 
-// The songs played most recently ("Listen Again" on Home)
+// The songs played most recently ("Listen Again" on Home), except the ones
+// Recent hides (Clear Recent, Remove from Recent)
 class MLRecentAudioModel : public MLAudioModel
 {
     Q_OBJECT
@@ -33,7 +36,7 @@ class MLRecentAudioModel : public MLAudioModel
 public:
     explicit MLRecentAudioModel(QObject * parent = nullptr);
 
-    virtual ~MLRecentAudioModel() = default;
+    ~MLRecentAudioModel() override = default;
 
 protected: // MLBaseModel implementation
     std::unique_ptr<MLListCacheLoader> createMLLoader() const override;
@@ -41,16 +44,28 @@ protected: // MLBaseModel implementation
     void onVlcMlEvent(const MLEvent & event) override;
 
 private:
+    void onMlChanged();
+
     struct Loader : public MLListCacheLoader::MLOp
     {
-        using MLListCacheLoader::MLOp::MLOp;
+        explicit Loader(const MLRecentAudioModel& model);
 
         size_t count(vlc_medialibrary_t* ml, const vlc_ml_query_params_t*) const override;
 
         std::vector<std::unique_ptr<MLItem>> load(vlc_medialibrary_t* ml, const vlc_ml_query_params_t*) const override;
 
         std::unique_ptr<MLItem> loadItemById(vlc_medialibrary_t* ml, MLItemId itemId) const override;
+
+    private:
+        // every song of the history, the hidden ones taken out
+        std::vector<const vlc_ml_media_t*> visible(const vlc_ml_media_list_t* list) const;
+        ml_unique_ptr<vlc_ml_media_list_t> listAll(vlc_medialibrary_t* ml,
+                                                   const vlc_ml_query_params_t* queryParams) const;
+
+        std::shared_ptr<const MLRecentHideList::Source> m_hideList;
     };
+
+    QMetaObject::Connection m_hideListConnection;
 };
 
 #endif // ML_RECENT_AUDIO_MODEL_H

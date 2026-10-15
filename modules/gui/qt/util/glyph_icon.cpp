@@ -122,7 +122,11 @@ QColor accentColorFor( const QColor &background )
     if( option )
     {
         if( !strcmp( option, "system" ) )
+        {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
             userAccent = qApp->palette().color( QPalette::Normal, QPalette::Accent );
+#endif
+        }
         else if( strcmp( option, "default" ) )
             userAccent = QColor( option );
         free( option );

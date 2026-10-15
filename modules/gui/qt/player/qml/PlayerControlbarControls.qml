@@ -45,7 +45,7 @@ QtObject {
         { id: ControlListModel.SLOWER_BUTTON, file: "SlowerButton.qml", label: VLCIcons.slower, text: qsTr("Slower") },
         { id: ControlListModel.FASTER_BUTTON, file: "FasterButton.qml", label: VLCIcons.faster, text: qsTr("Faster") },
         { id: ControlListModel.FULLSCREEN_BUTTON, file: "FullscreenButton.qml", label: VLCIcons.fullscreen, text: qsTr("Fullscreen") },
-        { id: ControlListModel.PICTURE_IN_PICTURE_BUTTON, file: "PictureInPictureButton.qml", label: VLCIcons.pip, text: qsTr("Picture in Picture") },
+        { id: ControlListModel.PICTURE_IN_PICTURE_BUTTON, file: "PictureInPictureButton.qml", label: VLCIcons.pip, text: qsTr("Picture-in-picture") },
         { id: ControlListModel.EXTENDED_BUTTON, file: "ExtendedSettingsButton.qml", label: VLCIcons.settings, text: qsTr("Adjustments") },
         { id: ControlListModel.PLAYLIST_BUTTON, file: "PlaylistButton.qml", label: VLCIcons.queue, text: qsTr("Queue") },
         { id: ControlListModel.SEEK_BAR, file: "SeekBarWidget.qml", label: VLCIcons.time, text: qsTr("Seek bar") },

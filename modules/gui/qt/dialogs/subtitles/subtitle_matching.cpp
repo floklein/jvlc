@@ -17,29 +17,34 @@
  *****************************************************************************/
 #include "subtitle_matching.hpp"
 
-#include "medialibrary/medialib.hpp"
-#include "medialibrary/mlhelper.hpp"
-#include "player/player_controller.hpp"
-
+#include <vlc_common.h>
 #include <vlc_configuration.h>
+#include <vlc_input_item.h>
 #include <vlc_interface.h>
 #include <vlc_iso_lang.h>
 #include <vlc_media_library.h>
 #include <vlc_player.h>
+#include <vlc_stream.h>
+#include <vlc_stream_extractor.h>
 #include <vlc_url.h>
 
-#include <algorithm>
+#include "medialibrary/medialib.hpp"
+#include "medialibrary/mlhelper.hpp"
+#include "player/player_controller.hpp"
 
 #include <QCollator>
 #include <QCryptographicHash>
 #include <QDir>
 #include <QDirIterator>
+#include <QFile>
 #include <QFileInfo>
+#include <QLocale>
 #include <QRegularExpression>
 #include <QSet>
 #include <QSettings>
 
-#include <QtCore/private/qzipreader_p.h>
+#include <algorithm>
+#include <functional>
 
 namespace subtitlematching {
 
@@ -55,36 +60,11 @@ const QStringList& tags()
 // the matches below this similarity are too far to be picked
 constexpr double MIN_SIMILARITY = 0.5;
 
-struct Number
-{
-    int season = -1;
-    int episode = -1;
-};
+using Number = EpisodeNumber;
 
 Number parseNumber(const QString& name)
 {
-    static const QRegularExpression patterns[] = {
-        // S01E02, s1.e2
-        QRegularExpression(QStringLiteral("(?<![a-z0-9])s(\\d{1,2})[ ._-]*e(\\d{1,3})(?!\\d)"),
-                           QRegularExpression::CaseInsensitiveOption),
-        // 1x02, not 1920x1080
-        QRegularExpression(QStringLiteral("(?<![a-z0-9])(\\d{1,2})x(\\d{1,3})(?![a-z0-9])"),
-                           QRegularExpression::CaseInsensitiveOption),
-        // E02, Ep02, Episode 2
-        QRegularExpression(QStringLiteral("(?<![a-z0-9])(?:e|ep|episode)[ ._-]*(\\d{1,3})(?!\\d)"),
-                           QRegularExpression::CaseInsensitiveOption),
-    };
-
-    for (const QRegularExpression& pattern : patterns)
-    {
-        const QRegularExpressionMatch match = pattern.match(name);
-        if (!match.hasMatch())
-            continue;
-        if (pattern.captureCount() == 2)
-            return { match.captured(1).toInt(), match.captured(2).toInt() };
-        return { -1, match.captured(1).toInt() };
-    }
-    return {};
+    return parseEpisode(name);
 }
 
 QString baseName(const QString& path)
@@ -237,6 +217,42 @@ bool isSafeRelativePath(const QString& path)
 
 } // anonymous namespace
 
+EpisodeNumber parseEpisode(const QString& name)
+{
+    static const QRegularExpression patterns[] = {
+        // S01E02, s1.e2
+        QRegularExpression(QStringLiteral("(?<![a-z0-9])s(\\d{1,2})[ ._-]*e(\\d{1,3})(?!\\d)"),
+                           QRegularExpression::CaseInsensitiveOption),
+        // 1x02, not 1920x1080, nor an audio and a video codec (DDP5.1x264)
+        QRegularExpression(QStringLiteral("(?<![a-z0-9])(?<!\\d\\.)(\\d{1,2})x(?!26[45](?!\\d))(\\d{1,3})(?![a-z0-9])"),
+                           QRegularExpression::CaseInsensitiveOption),
+        // E02, Ep02, Episode 2
+        QRegularExpression(QStringLiteral("(?<![a-z0-9])(?:e|ep|episode)[ ._-]*(\\d{1,3})(?!\\d)"),
+                           QRegularExpression::CaseInsensitiveOption),
+    };
+
+    for (const QRegularExpression& pattern : patterns)
+    {
+        const QRegularExpressionMatch match = pattern.match(name);
+        if (!match.hasMatch())
+            continue;
+        EpisodeNumber number;
+        number.start = match.capturedStart(0);
+        if (pattern.captureCount() == 2)
+        {
+            number.season = match.captured(1).toInt();
+            number.episode = match.captured(2).toInt();
+        }
+        else
+        {
+            number.episode = match.captured(1).toInt();
+            number.numberStart = match.capturedStart(1);
+        }
+        return number;
+    }
+    return {};
+}
+
 const QStringList& subtitleExtensions()
 {
     static const QStringList extensions = [] {
@@ -315,8 +331,92 @@ QString preferredLanguage(vlc_object_t* obj)
     return QString::fromLatin1(lang->psz_iso639_1[0] ? lang->psz_iso639_1 : lang->psz_iso639_2B);
 }
 
-Source::Source(const QString& path)
-    : m_path(QDir::fromNativeSeparators(QDir::cleanPath(path)))
+QStringList preferredLanguages(vlc_object_t* obj)
+{
+    QStringList codes;
+    const QString preferred = preferredLanguage(obj);
+    if (!preferred.isEmpty())
+        codes.push_back(preferred);
+    /* else the interface language, else English, as OpenSubtitles does */
+    const QString system = QLocale().name().section('_', 0, 0);
+    const iso639_lang_t* lang = system.isEmpty() ? nullptr : vlc_find_iso639(qtu(system), false);
+    if (lang != nullptr && lang->psz_iso639_1[0])
+        codes.push_back(QString::fromLatin1(lang->psz_iso639_1));
+    codes.push_back(QStringLiteral("en"));
+    codes.removeDuplicates();
+    return codes;
+}
+
+QVector<ArchiveEntry> listArchive(vlc_object_t* obj, const QString& archiveMrl)
+{
+    QVector<ArchiveEntry> entries;
+    stream_t* stream = vlc_stream_NewURL(obj, qtu(archiveMrl));
+    if (stream == nullptr)
+        return entries;
+    if (vlc_stream_directory_Attach(&stream, nullptr, nullptr, 0) != VLC_SUCCESS)
+    {
+        msg_Warn(obj, "unable to list the archive '%s'", qtu(archiveMrl));
+        vlc_stream_Delete(stream);
+        return entries;
+    }
+
+    input_item_t* root = input_item_New(qtu(archiveMrl), "archive");
+    if (root != nullptr)
+    {
+        /* every file, by its path in the archive */
+        input_item_AddOption(root, "ignore-filetypes=\"\"", VLC_INPUT_OPTION_TRUSTED);
+        input_item_AddOption(root, "no-sub-autodetect-file", VLC_INPUT_OPTION_TRUSTED);
+        input_item_AddOption(root, "extractor-flatten", VLC_INPUT_OPTION_TRUSTED);
+    }
+    input_item_node_t* node = root ? input_item_node_Create(root) : nullptr;
+    if (node != nullptr && vlc_stream_ReadDir(stream, node) == VLC_SUCCESS)
+    {
+        std::function<void(input_item_node_t*)> collect = [&](input_item_node_t* parent) {
+            for (int i = 0; i < parent->i_children; ++i)
+            {
+                const input_item_t* item = parent->pp_children[i]->p_item;
+                if (item->psz_name != nullptr && item->psz_uri != nullptr)
+                    entries.push_back({ qfu(item->psz_name), qfu(item->psz_uri) });
+                collect(parent->pp_children[i]);
+            }
+        };
+        collect(node);
+    }
+    if (node != nullptr)
+        input_item_node_Delete(node);
+    if (root != nullptr)
+        input_item_Release(root);
+    vlc_stream_Delete(stream);
+    return entries;
+}
+
+QByteArray readMrl(vlc_object_t* obj, const QString& mrl, qint64 maxSize)
+{
+    /* an MRL: it may name a file inside an archive */
+    stream_t* stream = vlc_stream_NewMRL(obj, qtu(mrl));
+    if (stream == nullptr)
+        return {};
+    /* stays null if empty */
+    QByteArray data;
+    char buffer[16384];
+    ssize_t read;
+    while ((read = vlc_stream_Read(stream, buffer, sizeof (buffer))) > 0)
+    {
+        if (read > maxSize - data.size())
+        {
+            msg_Warn(obj, "'%s' is too large", qtu(mrl));
+            data = QByteArray();
+            break;
+        }
+        data.append(buffer, read);
+    }
+    vlc_stream_Delete(stream);
+    return data;
+}
+
+Source::Source(vlc_object_t* obj, const QString& path)
+    : m_obj(obj)
+    , m_path(QDir::fromNativeSeparators(QDir::cleanPath(path)))
 {
 }
 
@@ -328,28 +428,28 @@ bool Source::isZip() const
 QVector<Candidate> Source::list() const
 {
     QVector<Candidate> candidates;
-    auto add = [&candidates](const QString& path) {
+    auto add = [&candidates](const QString& path, const QString& mrl) {
         if (!subtitleExtensions().contains(QFileInfo(path).suffix().toLower()))
             return;
-        candidates.push_back({ path.section('/', -1), path, language(path) });
+        candidates.push_back({ path.section('/', -1), path, language(path), mrl });
     };
 
     if (isZip())
     {
-        QZipReader zip(m_path);
-        if (!zip.isReadable())
-            return {};
-        const QVector<QZipReader::FileInfo> entries = zip.fileInfoList();
-        for (const QZipReader::FileInfo& entry : entries)
-            if (entry.isFile && isSafeRelativePath(entry.filePath))
-                add(QDir::cleanPath(entry.filePath));
+        /* through the archive access module */
+        for (const ArchiveEntry& entry : listArchive(m_obj, pathToMrl(m_path)))
+        {
+            const QString path = QString(entry.path).replace('\\', '/');
+            if (isSafeRelativePath(path))
+                add(QDir::cleanPath(path), entry.mrl);
+        }
     }
     else
     {
         const QDir root(m_path);
         QDirIterator it(m_path, QDir::Files | QDir::Readable, QDirIterator::Subdirectories);
         while (it.hasNext())
-            add(QDir::fromNativeSeparators(root.relativeFilePath(it.next())));
+            add(QDir::fromNativeSeparators(root.relativeFilePath(it.next())), {});
     }
 
     QCollator collator = naturalCollator();
@@ -381,10 +481,7 @@ QString Source::resolve(const Candidate& candidate) const
         free(userdata);
     }
 
-    QZipReader zip(m_path);
-    if (!zip.isReadable())
-        return {};
-    const QByteArray data = zip.fileData(candidate.path);
+    const QByteArray data = readMrl(m_obj, candidate.mrl, maxSubtitleSize);
     if (data.isNull())
         return {};
 
@@ -392,9 +489,15 @@ QString Source::resolve(const Candidate& candidate) const
     {
         const QString path = folder + '/' + candidate.path;
         QFile file(path);
-        if (file.exists() && file.size() == data.size())
-            return pathToMrl(path);
-        if (!QDir().mkpath(QFileInfo(path).absolutePath()) || !file.open(QIODevice::WriteOnly))
+        /* the same file, extracted before; never another file */
+        if (file.open(QIODevice::ReadOnly))
+        {
+            if (file.size() == data.size() && file.readAll() == data)
+                return pathToMrl(path);
+            continue;
+        }
+        if (!QDir().mkpath(QFileInfo(path).absolutePath())
+         || !file.open(QIODevice::WriteOnly | QIODevice::NewOnly))
             continue;
         if (file.write(data) != data.size())
         {
@@ -601,7 +704,7 @@ void ShowSubtitleMatcher::matchOnPlay(const QString& mediaMrl)
     m_ml->runOnMLThread<Ctx>(this,
     //ML thread
     [media = mediaMrl, source = show->source, language = show->language,
-     all = show->all, episode](vlc_medialibrary_t* ml, Ctx& ctx) {
+     all = show->all, episode, obj = VLC_OBJECT(m_intf)](vlc_medialibrary_t* ml, Ctx& ctx) {
         /* it has Subtitle matches already */
         ml_unique_ptr<vlc_ml_media_t> entry{ vlc_ml_get_media_by_mrl(ml, qtu(media)) };
         if (entry && entry->p_files)
@@ -610,7 +713,7 @@ void ShowSubtitleMatcher::matchOnPlay(const QString& mediaMrl)
                  && entry->p_files->p_items[i].b_external)
                     return;
 
-        const subtitlematching::Source from(source);
+        const subtitlematching::Source from(obj, source);
         const QVector<subtitlematching::Candidate> candidates = from.list();
         for (int index : subtitlematching::match(episode, candidates, { language, all }))
         {

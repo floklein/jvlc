@@ -110,9 +110,6 @@ libqt_plugin_la_SOURCES = \
 	dialogs/messages/messagesmodel.cpp dialogs/messages/messagesmodel.hpp \
 	dialogs/mediainfo/media_properties_model.cpp dialogs/mediainfo/media_properties_model.hpp \
 	dialogs/open/disc_model.cpp dialogs/open/disc_model.hpp \
-	dialogs/plugins/plugins.cpp dialogs/plugins/plugins.hpp \
-	dialogs/preferences/preferences_widgets.cpp \
-	dialogs/preferences/preferences_widgets.hpp \
 	dialogs/convert/conversion_manager.cpp \
 	dialogs/convert/conversion_manager.hpp \
 	dialogs/convert/conversion_profile_model.cpp \
@@ -232,8 +229,6 @@ libqt_plugin_la_SOURCES = \
 	medialibrary/mlrecentmediamodel.hpp \
 	medialibrary/mlrecentvideomodel.cpp \
 	medialibrary/mlrecentvideomodel.hpp \
-	medialibrary/mlurlmodel.cpp \
-	medialibrary/mlurlmodel.hpp \
 	medialibrary/mlvideo.cpp \
 	medialibrary/mlvideo.hpp \
 	medialibrary/mlvideofoldersmodel.cpp \
@@ -320,12 +315,22 @@ libqt_plugin_la_SOURCES = \
 	player/waveform.hpp \
 	player/waveform_bars.cpp \
 	player/waveform_bars.hpp \
+	player/subtitle_timeline.cpp \
+	player/subtitle_timeline.hpp \
+	player/subtitle_timeline_blocks.cpp \
+	player/subtitle_timeline_blocks.hpp \
 	player/sleep_timer.cpp \
 	player/sleep_timer.hpp \
 	player/playback_statistics.cpp \
 	player/playback_statistics.hpp \
 	player/subtitle_appearance.cpp \
 	player/subtitle_appearance.hpp \
+	player/presets_model.cpp \
+	player/presets_model.hpp \
+	player/preset_controller.cpp \
+	player/preset_controller.hpp \
+	player/player_preset_target.cpp \
+	player/player_preset_target.hpp \
 	player/video_adjustments.cpp \
 	player/video_adjustments.hpp \
 	player/player_video_outputs.cpp \
@@ -453,8 +458,6 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/messages/messagesmodel.moc.cpp \
 	dialogs/mediainfo/media_properties_model.moc.cpp \
 	dialogs/open/disc_model.moc.cpp \
-	dialogs/plugins/plugins.moc.cpp \
-	dialogs/preferences/preferences_widgets.moc.cpp \
 	dialogs/convert/conversion_manager.moc.cpp \
 	dialogs/convert/conversion_profile_model.moc.cpp \
 	dialogs/settings/profiles_model.moc.cpp \
@@ -502,7 +505,6 @@ nodist_libqt_plugin_la_SOURCES = \
 	medialibrary/mlrecenthidelist.moc.cpp \
 	medialibrary/mlrecentmediamodel.moc.cpp \
 	medialibrary/mlrecentvideomodel.moc.cpp \
-	medialibrary/mlurlmodel.moc.cpp \
 	medialibrary/mlvideo.moc.cpp \
 	medialibrary/mlmediamodel.moc.cpp \
 	medialibrary/mlvideomodel.moc.cpp \
@@ -544,9 +546,14 @@ nodist_libqt_plugin_la_SOURCES = \
 	player/control_list_filter.moc.cpp \
 	player/waveform.moc.cpp \
 	player/waveform_bars.moc.cpp \
+	player/subtitle_timeline.moc.cpp \
+	player/subtitle_timeline_blocks.moc.cpp \
 	player/sleep_timer.moc.cpp \
 	player/playback_statistics.moc.cpp \
 	player/subtitle_appearance.moc.cpp \
+	player/presets_model.moc.cpp \
+	player/preset_controller.moc.cpp \
+	player/player_preset_target.moc.cpp \
 	player/video_adjustments.moc.cpp \
 	playlist/playlist_controller.moc.cpp \
 	playlist/playlist_item.moc.cpp \
@@ -1198,8 +1205,7 @@ libqml_module_network_a_QML = \
 	network/qml/NetworkHomeDisplay.qml \
 	network/qml/NetworkPlaylistDisplay.qml \
 	network/qml/NetworkRow.qml \
-	network/qml/NetworkThumbnailItem.qml \
-	network/qml/ServicesManage.qml
+	network/qml/NetworkThumbnailItem.qml
 libqml_module_network_a_Singleton_QML =
 libqml_module_network_a_SOURCES = $(QML_MODULE_network_SRC)
 nodist_libqml_module_network_a_SOURCES = network/qmlassets.cpp $(QML_MODULE_network_NODIST_EXTRA)
@@ -1222,6 +1228,7 @@ libqml_module_player_a_QML = \
 	player/qml/ContinueWatchingPill.qml \
 	player/qml/ShortcutMessagePill.qml \
 	player/qml/SliderBar.qml \
+	player/qml/SubtitleTimelineBar.qml \
 	player/qml/TopBar.qml \
 	player/qml/TrackMenu.qml \
 	player/qml/AdjustmentsSidebar.qml \
@@ -1230,6 +1237,9 @@ libqml_module_player_a_QML = \
 	player/qml/AdjustmentsVideoTab.qml \
 	player/qml/StatisticsOverlay.qml \
 	player/qml/AdjustmentsSubtitlesTab.qml \
+	player/qml/PresetSelector.qml \
+	player/qml/PresetMark.qml \
+	player/qml/PresetNotice.qml \
 	player/qml/ControlLayout.qml \
 	player/qml/ControlRepeater.qml \
 	player/qml/NavigationBox.qml
@@ -1924,6 +1934,7 @@ test_ml_model_SOURCES = \
 	medialibrary/mlmusicfoldertreemodel.hpp medialibrary/mlmusicfoldertreemodel.cpp \
 	medialibrary/mlaudiomodel.hpp medialibrary/mlaudiomodel.cpp \
 	medialibrary/mlvideomodel.hpp medialibrary/mlvideomodel.cpp \
+	medialibrary/mlvideofoldersmodel.hpp medialibrary/mlvideofoldersmodel.cpp \
 	medialibrary/mlmediamodel.hpp medialibrary/mlmediamodel.cpp \
 	medialibrary/mlvideo.hpp medialibrary/mlvideo.cpp \
 	medialibrary/mlaudio.hpp medialibrary/mlaudio.cpp \
@@ -1951,6 +1962,7 @@ nodist_test_ml_model_SOURCES = \
 	medialibrary/mlmusicfoldertreemodel.moc.cpp \
 	medialibrary/mlaudiomodel.moc.cpp \
 	medialibrary/mlvideomodel.moc.cpp \
+	medialibrary/mlvideofoldersmodel.moc.cpp \
 	medialibrary/mlmediamodel.moc.cpp \
 	medialibrary/mlvideo.moc.cpp \
 	medialibrary/thumbnailcollector.moc.cpp \
@@ -2051,8 +2063,10 @@ test_ml_recent_SOURCES = \
 	medialibrary/mlqmltypes.hpp \
 	medialibrary/mlrecenthidelist.hpp medialibrary/mlrecenthidelist.cpp \
 	medialibrary/mlrecentmediamodel.hpp medialibrary/mlrecentmediamodel.cpp \
+	medialibrary/mlrecentvideomodel.hpp medialibrary/mlrecentvideomodel.cpp \
 	medialibrary/mlthreadpool.hpp medialibrary/mlthreadpool.cpp \
 	medialibrary/mlvideo.hpp medialibrary/mlvideo.cpp \
+	medialibrary/mlvideomodel.hpp medialibrary/mlvideomodel.cpp \
 	medialibrary/thumbnailcollector.hpp medialibrary/thumbnailcollector.cpp \
 	playlist/playlist_controller.hpp playlist/playlist_controller.cpp \
 	playlist/playlist_item.hpp playlist/playlist_item.cpp
@@ -2071,8 +2085,10 @@ nodist_test_ml_recent_SOURCES = \
 	medialibrary/mlqmltypes.moc.cpp \
 	medialibrary/mlrecenthidelist.moc.cpp \
 	medialibrary/mlrecentmediamodel.moc.cpp \
+	medialibrary/mlrecentvideomodel.moc.cpp \
 	medialibrary/mlthreadpool.moc.cpp \
 	medialibrary/mlvideo.moc.cpp \
+	medialibrary/mlvideomodel.moc.cpp \
 	medialibrary/thumbnailcollector.moc.cpp \
 	playlist/playlist_controller.moc.cpp \
 	playlist/playlist_item.moc.cpp
@@ -2115,6 +2131,8 @@ test_subtitle_matches_SOURCES = \
 	dialogs/subtitles/add_subtitles_model.hpp \
 	dialogs/subtitles/http_request.cpp \
 	dialogs/subtitles/http_request.hpp \
+	dialogs/subtitles/subtitle_matching.cpp \
+	dialogs/subtitles/subtitle_matching.hpp \
 	player/input_models.cpp \
 	player/input_models.hpp \
 	util/base_model.cpp \
@@ -2140,6 +2158,7 @@ test_subtitle_matches_SOURCES = \
 nodist_test_subtitle_matches_SOURCES = \
 	tests/test_subtitle_matches.moc \
 	dialogs/subtitles/add_subtitles_model.moc.cpp \
+	dialogs/subtitles/subtitle_matching.moc.cpp \
 	player/input_models.moc.cpp \
 	util/base_model.moc.cpp \
 	util/vlctick.moc.cpp \
@@ -2176,6 +2195,8 @@ test_opensubtitles_SOURCES = \
 	dialogs/subtitles/opensubtitles.hpp \
 	dialogs/subtitles/opensubtitles_models.cpp \
 	dialogs/subtitles/opensubtitles_models.hpp \
+	dialogs/subtitles/subtitle_matching.cpp \
+	dialogs/subtitles/subtitle_matching.hpp \
 	player/input_models.cpp \
 	player/input_models.hpp \
 	util/base_model.cpp \
@@ -2203,6 +2224,7 @@ nodist_test_opensubtitles_SOURCES = \
 	dialogs/subtitles/add_subtitles_model.moc.cpp \
 	dialogs/subtitles/opensubtitles.moc.cpp \
 	dialogs/subtitles/opensubtitles_models.moc.cpp \
+	dialogs/subtitles/subtitle_matching.moc.cpp \
 	player/input_models.moc.cpp \
 	util/base_model.moc.cpp \
 	util/vlctick.moc.cpp \
@@ -2231,6 +2253,8 @@ test_subtitle_folder_matches_SOURCES = \
 	tests/test_subtitle_folder_matches.cpp \
 	tests/vlc_stub_modules.cpp \
 	tests/vlc_stub_modules.hpp \
+	dialogs/subtitles/http_request.cpp \
+	dialogs/subtitles/http_request.hpp \
 	dialogs/subtitles/subtitle_match_model.cpp \
 	dialogs/subtitles/subtitle_match_model.hpp \
 	dialogs/subtitles/subtitle_matching.cpp \
@@ -2370,6 +2394,123 @@ test_thread_runner_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_thread_runner_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_thread_runner
 TESTS += test_thread_runner
+
+# test_pins_model
+
+test_pins_model_SOURCES = \
+	tests/test_pins_model.cpp \
+	maininterface/pinsmodel.cpp maininterface/pinsmodel.hpp
+
+nodist_test_pins_model_SOURCES = \
+	tests/test_pins_model.moc \
+	maininterface/pinsmodel.moc.cpp \
+	medialibrary/mlqmltypes.moc.cpp
+
+BUILT_SOURCES += tests/test_pins_model.moc
+CLEANFILES += tests/test_pins_model.moc
+test_pins_model_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_pins_model_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_pins_model_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_pins_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_pins_model
+TESTS += test_pins_model
+
+# test_navigation_history
+
+test_navigation_history_SOURCES = \
+	tests/test_navigation_history.cpp \
+	util/navigation_history.cpp util/navigation_history.hpp
+
+nodist_test_navigation_history_SOURCES = \
+	tests/test_navigation_history.moc \
+	util/navigation_history.moc.cpp \
+	medialibrary/mlqmltypes.moc.cpp
+
+BUILT_SOURCES += tests/test_navigation_history.moc
+CLEANFILES += tests/test_navigation_history.moc
+test_navigation_history_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_navigation_history_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_navigation_history_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_navigation_history_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_navigation_history
+TESTS += test_navigation_history
+
+# test_presets
+
+test_presets_SOURCES = \
+	tests/test_presets.cpp \
+	player/presets_model.cpp player/presets_model.hpp \
+	player/preset_controller.cpp player/preset_controller.hpp
+
+nodist_test_presets_SOURCES = \
+	tests/test_presets.moc \
+	player/presets_model.moc.cpp \
+	player/preset_controller.moc.cpp
+
+BUILT_SOURCES += tests/test_presets.moc
+CLEANFILES += tests/test_presets.moc
+test_presets_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_presets_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_presets_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_presets_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_presets
+TESTS += test_presets
+
+# test_videoblur
+
+test_videoblur_SOURCES = \
+	tests/test_videoblur.cpp \
+	maininterface/videoblur.cpp maininterface/videoblur.hpp
+
+nodist_test_videoblur_SOURCES = \
+	tests/test_videoblur.moc \
+	maininterface/videoblur.moc.cpp
+
+BUILT_SOURCES += tests/test_videoblur.moc
+CLEANFILES += tests/test_videoblur.moc
+test_videoblur_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_videoblur_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_videoblur_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_videoblur_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_videoblur
+TESTS += test_videoblur
+
+# test_subtitle_timeline
+
+test_subtitle_timeline_SOURCES = \
+	tests/test_subtitle_timeline.cpp \
+	player/subtitle_timeline.cpp player/subtitle_timeline.hpp
+
+nodist_test_subtitle_timeline_SOURCES = \
+	tests/test_subtitle_timeline.moc \
+	player/subtitle_timeline.moc.cpp
+
+BUILT_SOURCES += tests/test_subtitle_timeline.moc
+CLEANFILES += tests/test_subtitle_timeline.moc
+test_subtitle_timeline_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_subtitle_timeline_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_subtitle_timeline_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_subtitle_timeline_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_subtitle_timeline
+TESTS += test_subtitle_timeline
+
+# test_window_chrome
+
+test_window_chrome_SOURCES = \
+	tests/test_window_chrome.cpp \
+	maininterface/window_chrome.cpp maininterface/window_chrome.hpp
+
+nodist_test_window_chrome_SOURCES = \
+	tests/test_window_chrome.moc
+
+BUILT_SOURCES += tests/test_window_chrome.moc
+CLEANFILES += tests/test_window_chrome.moc
+test_window_chrome_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_window_chrome_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_window_chrome_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_window_chrome_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_window_chrome
+TESTS += test_window_chrome
 
 # test_theme
 

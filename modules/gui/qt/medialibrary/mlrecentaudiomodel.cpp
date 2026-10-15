@@ -17,12 +17,24 @@
  *****************************************************************************/
 
 #include "mlrecentaudiomodel.hpp"
+
+#include "medialib.hpp"
 #include "mlaudio.hpp"
-#include "mlhelper.hpp"
 
 // Ctor / dtor
 
-MLRecentAudioModel::MLRecentAudioModel(QObject * parent) : MLAudioModel(parent) {}
+MLRecentAudioModel::MLRecentAudioModel(QObject * parent) : MLAudioModel(parent)
+{
+    connect(this, &MLBaseModel::mlChanged, this, &MLRecentAudioModel::onMlChanged);
+}
+
+void MLRecentAudioModel::onMlChanged()
+{
+    disconnect(m_hideListConnection);
+    if (m_mediaLib)
+        m_hideListConnection = connect(m_mediaLib->recentHideList(), &MLRecentHideList::changed,
+                                       this, &MLRecentAudioModel::resetRequested);
+}
 
 // Protected MLBaseModel implementation
 
@@ -52,26 +64,57 @@ void MLRecentAudioModel::onVlcMlEvent(const MLEvent & event) /* override */
 
 // Loader
 
+MLRecentAudioModel::Loader::Loader(const MLRecentAudioModel& model)
+    : MLOp(model)
+{
+    if (model.m_mediaLib)
+        m_hideList = model.m_mediaLib->recentHideList()->source();
+}
+
+ml_unique_ptr<vlc_ml_media_list_t>
+MLRecentAudioModel::Loader::listAll(vlc_medialibrary_t* ml, const vlc_ml_query_params_t* queryParams) const
+{
+    // the media library can't skip the hidden songs: page here
+    vlc_ml_query_params_t params = queryParams ? *queryParams : vlc_ml_query_params_create();
+    params.i_offset = 0;
+    params.i_nbResults = 0;
+    return ml_unique_ptr<vlc_ml_media_list_t>{ vlc_ml_list_audio_history(ml, &params) };
+}
+
+std::vector<const vlc_ml_media_t*>
+MLRecentAudioModel::Loader::visible(const vlc_ml_media_list_t* list) const
+{
+    const MLRecentHideList::Filter hidden = m_hideList ? m_hideList->get()
+                                                       : MLRecentHideList::Filter{};
+    std::vector<const vlc_ml_media_t*> media;
+    for (size_t i = 0; i < list->i_nb_items; ++i)
+        if (!hidden.isHidden(list->p_items[i].i_id, list->p_items[i].i_last_played_date))
+            media.push_back(&list->p_items[i]);
+    return media;
+}
+
 size_t MLRecentAudioModel::Loader::count(vlc_medialibrary_t* ml, const vlc_ml_query_params_t* queryParams) const /* override */
 {
-    return vlc_ml_count_audio_history(ml, queryParams);
+    if (!m_hideList || m_hideList->get().isEmpty())
+        return vlc_ml_count_audio_history(ml, queryParams);
+    ml_unique_ptr<vlc_ml_media_list_t> media_list = listAll(ml, queryParams);
+    return media_list ? visible(media_list.get()).size() : 0;
 }
 
 std::vector<std::unique_ptr<MLItem>>
 MLRecentAudioModel::Loader::load(vlc_medialibrary_t* ml, const vlc_ml_query_params_t* queryParams) const /* override */
 {
-    ml_unique_ptr<vlc_ml_media_list_t> media_list {
-        vlc_ml_list_audio_history(ml, queryParams)
-    };
-
+    ml_unique_ptr<vlc_ml_media_list_t> media_list = listAll(ml, queryParams);
     if (media_list == nullptr)
         return {};
 
+    const std::vector<const vlc_ml_media_t*> media = visible(media_list.get());
+    const size_t offset = queryParams ? queryParams->i_offset : 0;
+    const size_t limit = queryParams ? queryParams->i_nbResults : 0;
+
     std::vector<std::unique_ptr<MLItem>> res;
-
-    for (const vlc_ml_media_t & media : ml_range_iterate<vlc_ml_media_t>(media_list))
-        res.emplace_back(std::make_unique<MLAudio>(ml, &media));
-
+    for (size_t i = offset; i < media.size() && (limit == 0 || res.size() < limit); ++i)
+        res.emplace_back(std::make_unique<MLAudio>(ml, media[i]));
     return res;
 }
 

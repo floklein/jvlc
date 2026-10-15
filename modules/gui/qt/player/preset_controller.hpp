@@ -85,6 +85,13 @@ public:
 
     /// the keys of the file being played, which the next file starts again
     static bool isPerFile(const QString& key);
+    /// the values whose key starts with one of the prefixes; the delays, the
+    /// languages and the speed change on their own, so only their full name
+    /// matches them
+    static QVariantMap keysMatching(const QVariantMap& values, const QStringList& prefixes);
+    /// the key a hotkey action (vlc_action_id_t) adjusts: "audio-delay",
+    /// "sub-delay" or "rate"; empty for the others
+    static QString keyOfAction(int action);
     /// the values in effect: the Preset over the Profile, this file's
     /// choices over both
     static QVariantMap layered(const QVariantMap& profile, const QVariantMap& preset,
@@ -106,6 +113,8 @@ public:
     /// attaches a Preset to the playing file's folder, or Default with an
     /// empty id
     Q_INVOKABLE void choose(const QString& id);
+    /// the same for a folder of the library (its Preset ▸ menu)
+    Q_INVOKABLE void chooseForFolder(const QString& folder, const QString& id);
     /// a Preset of the adjustments that differ from the Profile, attached to
     /// the playing file's folder; returns its id
     Q_INVOKABLE QString createFromCurrent(const QString& name);

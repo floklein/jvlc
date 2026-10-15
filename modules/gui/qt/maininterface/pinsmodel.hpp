@@ -44,7 +44,9 @@ public:
     {
         FOLDER,
         PLAYLIST,
-        STREAM
+        STREAM,
+        // a folder of Music ▸ Songs
+        MUSIC_FOLDER
     };
     Q_ENUM(PinType)
 

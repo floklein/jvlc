@@ -617,6 +617,22 @@ vlc_player_SelectEsId(vlc_player_t *player, vlc_es_id_t *id,
 }
 
 void
+vlc_player_SelectDefaultTrack(vlc_player_t *player,
+                              const struct vlc_player_track *track)
+{
+    struct vlc_player_input *input = vlc_player_get_input_locked(player);
+    if (!input)
+        return;
+
+    const enum es_format_category_e cat = vlc_es_id_GetCat(track->es_id);
+    if (cat < 0 || cat >= DATA_ES)
+        return;
+    if (input_ControlPushEsHelper(input->thread, INPUT_CONTROL_SET_ES,
+                                  track->es_id) == VLC_SUCCESS)
+        input->ml.default_selection[cat] = true;
+}
+
+void
 vlc_player_SelectTracksByStringIds(vlc_player_t *player,
                                    enum es_format_category_e cat,
                                    const char *str_ids)
@@ -1873,6 +1889,26 @@ vlc_player_SetCategoryDelay(vlc_player_t *player, enum es_format_category_e cat,
                                (int)MS_FROM_VLC_TICK(delay));
         vlc_player_SendEvent(player, on_category_delay_changed, cat, delay);
     }
+    return VLC_SUCCESS;
+}
+
+int
+vlc_player_SetCategoryDefaultDelay(vlc_player_t *player,
+                                   enum es_format_category_e cat,
+                                   vlc_tick_t delay)
+{
+    struct vlc_player_input *input = vlc_player_get_input_locked(player);
+    if (!input)
+        return VLC_EGENERIC;
+
+    if (cat != AUDIO_ES && cat != SPU_ES)
+        return VLC_EGENERIC;
+
+    /* the media starts from it: only a later change is its own */
+    input->cat_delays[cat] = input->ml.opened_delays[cat] = delay;
+
+    if (input_SetEsCatDelay(input->thread, cat, delay) == VLC_SUCCESS)
+        vlc_player_SendEvent(player, on_category_delay_changed, cat, delay);
     return VLC_SUCCESS;
 }
 

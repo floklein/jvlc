@@ -13,7 +13,6 @@
 #include "medialibrary/mlartistmodel.hpp"
 #include "medialibrary/mlaudiomodel.hpp"
 #include "medialibrary/mlgenremodel.hpp"
-#include "medialibrary/mlurlmodel.hpp"
 #include "medialibrary/mlmediamodel.hpp"
 #include "medialibrary/mlvideomodel.hpp"
 #include "medialibrary/mlrecentmediamodel.hpp"
@@ -305,7 +304,6 @@ void MainUI::registerQMLTypes()
         qmlRegisterTypesAndRevisions<vlc::QWindowForeign>(uri, versionMajor);
         qmlRegisterTypesAndRevisions<vlc::QScreenForeign>(uri, versionMajor);
         qmlRegisterTypesAndRevisions<vlc::QSortFilterProxyModelForeign>( uri, versionMajor );
-        qmlRegisterTypesAndRevisions<vlc::QMessageBoxForeign>( uri, versionMajor );
 #if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
         qmlRegisterTypesAndRevisions<vlc::QAbstractItemModelForeign>(uri, versionMajor); // Qt >= 6.5.0, import `QtQml.Models`.
 #endif
@@ -568,7 +566,6 @@ void MainUI::registerQMLTypes()
         qmlRegisterType<MLArtistModel>( uri, versionMajor, versionMinor, "MLArtistModel" );
         qmlRegisterType<MLAudioModel>( uri, versionMajor, versionMinor, "MLAudioModel" );
         qmlRegisterType<MLGenreModel>( uri, versionMajor, versionMinor, "MLGenreModel" );
-        qmlRegisterType<MLUrlModel>( uri, versionMajor, versionMinor, "MLUrlModel" );
         qmlRegisterType<MLMediaModel>( uri, versionMajor, versionMinor, "MLMediaModel" );
         qmlRegisterType<MLVideoModel>( uri, versionMajor, versionMinor, "MLVideoModel" );
         qmlRegisterType<MLRecentVideoModel>( uri, versionMajor, versionMinor, "MLRecentVideoModel" );

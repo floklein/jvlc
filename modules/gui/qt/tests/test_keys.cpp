@@ -148,6 +148,28 @@ private slots:
         QCOMPARE(actionForKey("Ctrl+Shift+p"), 0);
     }
 
+    // F1 opens the online help and F6 moves the focus between the areas: no
+    // core hotkey takes them
+    void testF1AndF6AreTheInterfaceKeys()
+    {
+        QCOMPARE(actionForKey("F1"), 0);
+        QCOMPARE(actionForKey("F6"), 0);
+        QCOMPARE(actionForKey("F2"), int(ACTIONID_PLAY_BOOKMARK2));
+    }
+
+    // a shortcut of the interface for a core action (Quit) follows its key
+    void testCoreActionSequenceFollowsRebinding()
+    {
+        QCOMPARE(coreActionSequence(obj(), "quit"), QStringLiteral("Ctrl+Q"));
+        var_Create(obj(), "key-quit", VLC_VAR_STRING);
+        var_SetString(obj(), "key-quit", "Ctrl+Alt+q");
+        QCOMPARE(coreActionSequence(obj(), "quit"), QStringLiteral("Ctrl+Alt+Q"));
+        var_SetString(obj(), "key-quit", "");
+        QCOMPARE(coreActionSequence(obj(), "quit"), QString());
+        var_Destroy(obj(), "key-quit");
+        QCOMPARE(coreActionSequence(obj(), "open-file"), QString());
+    }
+
     void testUnknownActionHasNoKey()
     {
         QCOMPARE(actionKeyText(obj(), "no-such-action"), QString());

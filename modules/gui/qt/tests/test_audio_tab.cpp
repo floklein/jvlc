@@ -24,6 +24,7 @@
 #include <vlc_aout.h>
 #include <vlc_configuration.h>
 #include <vlc_input_item.h>
+#include <vlc_modules.h>
 #include <vlc_player.h>
 #include <vlc/libvlc.h>
 #include "../../../../lib/libvlc_internal.h"
@@ -313,6 +314,32 @@ private slots:
         m_audio->setValue("pitch-shift", 0);
         QVERIFY(!aoutHasFilter("scaletempo_pitch"));
         QVERIFY(!m_audio->modifiedGroups().contains("pitch"));
+    }
+
+    // Headphones: the binaural mix of the output, where VLC can make one
+    void headphonesIsTheBinauralMix()
+    {
+        bool offered = false;
+        for (const QVariant& mode : m_audio->stereoModes())
+            offered |= mode.toMap().value("value").toInt() == AudioAdjustments::HEADPHONES;
+        QCOMPARE(offered, module_exists("spatialaudio"));
+
+        m_audio->setStereoMode(AudioAdjustments::HEADPHONES);
+        QCOMPARE(m_audio->stereoMode(), AudioAdjustments::HEADPHONES);
+        QCOMPARE(config_GetInt("stereo-mode"), AOUT_VAR_CHAN_UNSET);
+        QCOMPARE(config_GetInt("mix-mode"), AOUT_MIX_MODE_BINAURAL);
+        QCOMPARE(aoutInteger("mix-mode"), AOUT_MIX_MODE_BINAURAL);
+
+        // a new session reads it back
+        QCOMPARE(AudioAdjustments(m_player).stereoMode(), AudioAdjustments::HEADPHONES);
+
+        m_audio->setStereoMode(AOUT_VAR_CHAN_STEREO);
+        QCOMPARE(config_GetInt("stereo-mode"), AOUT_VAR_CHAN_STEREO);
+        QCOMPARE(config_GetInt("mix-mode"), AOUT_MIX_MODE_UNSET);
+        QCOMPARE(aoutInteger("mix-mode"), AOUT_MIX_MODE_UNSET);
+
+        m_audio->reset("stereo");
+        QCOMPARE(config_GetInt("mix-mode"), AOUT_MIX_MODE_UNSET);
     }
 
     // the stereo mode is a preference, tried on hover like the presets

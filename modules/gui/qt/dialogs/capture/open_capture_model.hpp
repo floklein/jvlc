@@ -156,7 +156,8 @@ public:
     ModuleOptionsModel* advancedOptions() const { return m_advancedOptions; }
     CapturePreview* preview() const { return m_preview; }
 
-    /* re-list the cameras and microphones */
+    /* re-list the cameras and microphones, in the background:
+     * devicesChanged() tells when they are listed */
     Q_INVOKABLE void refreshDevices();
     /* a SharedInputItem of the capture, to hand to the Queue */
     Q_INVOKABLE QVariant inputItem() const;
@@ -182,6 +183,7 @@ private:
     QStringList basicOptions() const;
     QString itemName() const;
     void updateAdvancedOptions();
+    void setDevices(const QVariantList& video, const QVariantList& audio);
 
     qt_intf_t* m_intf = nullptr;
 

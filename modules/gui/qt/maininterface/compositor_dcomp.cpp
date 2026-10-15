@@ -299,7 +299,11 @@ bool CompositorDirectComposition::setup()
 
 void CompositorDirectComposition::cleanup()
 {
-    m_voutVisual.Reset();
+    // A video output still holds the visual it was given: windowDestroy()
+    // releases it. With the Video blur that visual is a proxy which keeps the
+    // real video visual alive and stops calling the blur once it is gone.
+    if (!m_wnd)
+        m_voutVisual.Reset();
     m_videoVisual.Reset();
     m_acrylicSurface.reset();
 

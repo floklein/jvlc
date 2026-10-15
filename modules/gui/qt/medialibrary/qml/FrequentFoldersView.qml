@@ -36,6 +36,9 @@ VideoAll {
 
         ml: MediaLib
 
+        // the folders of songs too
+        anyMedia: true
+
         sortCriteria: "playcount"
         sortOrder: Qt.DescendingOrder
     }
@@ -52,7 +55,13 @@ VideoAll {
     gridLabels: function (model) {
         if (!model)
             return ""
-        return [ qsTr("%1 Videos").arg(model.count < 100 ? model.count : "99+") ]
+        const count = (n) => n < 100 ? n : "99+"
+        const labels = []
+        if (model.nb_videos > 0)
+            labels.push(qsTr("%1 Videos").arg(count(model.nb_videos)))
+        if (model.nb_audio > 0)
+            labels.push(qsTr("%1 Songs").arg(count(model.nb_audio)))
+        return labels
     }
 
     listLabels: getLabel

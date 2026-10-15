@@ -32,7 +32,6 @@ public:
     enum ID
     {
         Scale,
-        MinimalView,
         NothingToOpen,
         PlaylistAppended,
         PlaylistExported,

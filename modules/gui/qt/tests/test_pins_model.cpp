@@ -155,6 +155,19 @@ private slots:
         QVERIFY(!m_model->data(m_model->index(2), PinsModel::ML_ID).isValid());
     }
 
+    // a music folder opens in Music ▸ Songs: a type of its own
+    void testMusicFolderPinsAreRemembered()
+    {
+        const MLItemId folder{9, VLC_ML_PARENT_FOLDER};
+        QVERIFY(m_model->pin(PinsModel::MUSIC_FOLDER, folder.toString(), QStringLiteral("Albums")));
+        QVERIFY(!m_model->isPinned(PinsModel::FOLDER, folder.toString()));
+        QCOMPARE(m_model->data(m_model->index(0), PinsModel::ML_ID).value<MLItemId>(), folder);
+
+        m_model.reset();
+        m_model = std::make_unique<PinsModel>(m_settings.get());
+        QVERIFY(m_model->isPinned(PinsModel::MUSIC_FOLDER, folder.toString()));
+    }
+
     void testPinsAreRememberedInTheirOrder()
     {
         m_model->pin(PinsModel::FOLDER, QStringLiteral("1"), QStringLiteral("A"));

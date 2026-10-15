@@ -23,6 +23,9 @@
 #include "../player/presets_model.hpp"
 #include "../player/preset_controller.hpp"
 
+#include <vlc_common.h>
+#include <vlc_actions.h>
+
 #include <memory>
 
 #include <QSettings>
@@ -361,6 +364,35 @@ private slots:
         QVERIFY(m_controller->isOverridden({ "video-hue" }));
     }
 
+    void testATabReportsOnlyItsOwnKeys()
+    {
+        const QVariantMap all{
+            { "audio-delay", 200 }, { "audio-language", "ja" }, { "sub-delay", -300 },
+            { "sub-language", "fr" }, { "sub-font", "Arial" }, { "equalizer", "" },
+            { "rate", 1.5 }, { "video-hue", 120. },
+        };
+        // moving the equalizer or the subtitle look reports neither the
+        // file's delays nor the preferred languages
+        QCOMPARE(PresetController::keysMatching(all, { "audio-", "equalizer" }),
+                 QVariantMap({ { "equalizer", "" } }));
+        QCOMPARE(PresetController::keysMatching(all, { "sub-" }),
+                 QVariantMap({ { "sub-font", "Arial" } }));
+        // a key asked by its name is reported
+        QCOMPARE(PresetController::keysMatching(all, { "sub-delay" }),
+                 QVariantMap({ { "sub-delay", -300 } }));
+    }
+
+    // the delay and speed hotkeys change the Preset like the sidebar does
+    void testHotkeysTellWhatTheyAdjust()
+    {
+        QCOMPARE(PresetController::keyOfAction(ACTIONID_AUDIODELAY_UP), QStringLiteral("audio-delay"));
+        QCOMPARE(PresetController::keyOfAction(ACTIONID_SUBDELAY_DOWN), QStringLiteral("sub-delay"));
+        QCOMPARE(PresetController::keyOfAction(ACTIONID_SUBSYNC_APPLY), QStringLiteral("sub-delay"));
+        QCOMPARE(PresetController::keyOfAction(ACTIONID_RATE_FASTER), QStringLiteral("rate"));
+        QCOMPARE(PresetController::keyOfAction(ACTIONID_RATE_NORMAL), QStringLiteral("rate"));
+        QCOMPARE(PresetController::keyOfAction(ACTIONID_PLAY_PAUSE), QString());
+    }
+
     void testLeavingTheShowPutsTheProfileBack()
     {
         const QString anime = m_model->create("Anime", { { "sub-language", "ja" }, { "sub-delay", 300 } });
@@ -456,6 +488,28 @@ private slots:
 
         // choosing it again is no news
         m_controller->choose(anime);
+        QCOMPARE(notice.count(), 1);
+    }
+
+    // the folder menu's Preset ▸, whatever plays
+    void testChoosingAPresetForAFolderShowsTheNotice()
+    {
+        const QString anime = m_model->create("Anime");
+        startController();
+        QSignalSpy notice(m_controller.get(), &PresetController::attached);
+
+        m_controller->chooseForFolder("/shows/The Wand/", anime);
+        QCOMPARE(m_model->folders(anime), QStringList{ "/shows/The Wand" });
+        QCOMPARE(notice.count(), 1);
+        QCOMPARE(notice.first().at(0).toString(), QStringLiteral("Anime"));
+        QCOMPARE(notice.first().at(1).toString(), QStringLiteral("The Wand"));
+
+        // Default stops a parent's Preset, and only then keeps a link
+        m_controller->chooseForFolder("/shows/The Wand/S01", QString());
+        QCOMPARE(m_model->resolve("/shows/The Wand/S01").id, QString());
+        QVERIFY(m_model->link("/shows/The Wand/S01").has_value());
+        m_controller->chooseForFolder("/movies", QString());
+        QVERIFY(!m_model->link("/movies").has_value());
         QCOMPARE(notice.count(), 1);
     }
 

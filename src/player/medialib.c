@@ -27,9 +27,32 @@
 #include "player.h"
 #include "misc/variables.h"
 
+void
+vlc_player_input_ResetMlStates(struct vlc_player_input *input)
+{
+    vlc_ml_playback_states_all *states = &input->ml.states;
+    memset(states, 0, sizeof(*states));
+    states->current_video_track = states->current_audio_track =
+        states->current_subtitle_track = NULL;
+    states->aspect_ratio = states->crop = states->deinterlace =
+        states->video_filter = NULL;
+    states->current_title = -1;
+}
+
+/* item locked */
+static bool
+vlc_player_input_HasSlave(const input_item_t *item, const char *mrl)
+{
+    for (int i = 0; i < item->i_slaves; ++i)
+        if (!strcmp(item->pp_slaves[i]->psz_uri, mrl))
+            return true;
+    return false;
+}
+
 /* Subtitle matches and added audio tracks: attach the external subtitle and
- * audio files saved for the media. The input is not started yet, so they
- * load like the slaves of the item. */
+ * audio files saved for the media, as slaves of the item. The first call comes
+ * before the input starts, so they load with it; vlc_player_RestorePlaybackPos()
+ * calls it again on the running input, which finds them attached already. */
 static void
 vlc_player_input_AttachMlSubtitles(struct vlc_player_input *input,
                                    const vlc_ml_media_t *media)
@@ -50,10 +73,7 @@ vlc_player_input_AttachMlSubtitles(struct vlc_player_input *input,
         {
             /* an added audio track is listed; the track selection picks it
              * like any other */
-            bool attached = false;
-            for (int j = 0; j < item->i_slaves && !attached; ++j)
-                attached = !strcmp(item->pp_slaves[j]->psz_uri, file->psz_mrl);
-            if (attached)
+            if (vlc_player_input_HasSlave(item, file->psz_mrl))
                 continue;
             input_item_slave_t *slave =
                 input_item_slave_New(file->psz_mrl, SLAVE_TYPE_GENERIC,
@@ -67,10 +87,7 @@ vlc_player_input_AttachMlSubtitles(struct vlc_player_input *input,
         if (file->i_type != VLC_ML_FILE_TYPE_SUBTITLE)
             continue;
 
-        bool attached = false;
-        for (int j = 0; j < item->i_slaves && !attached; ++j)
-            attached = !strcmp(item->pp_slaves[j]->psz_uri, file->psz_mrl);
-        if (attached)
+        if (vlc_player_input_HasSlave(item, file->psz_mrl))
         {
             first = false;
             continue;
@@ -119,12 +136,10 @@ vlc_player_input_RestoreMlStates(struct vlc_player_input* input, bool force_pos)
         vlc_ml_release(media);
         return;
     }
-    /* Asked again by vlc_player_RestorePlaybackPos() */
+    /* Asked again by vlc_player_RestorePlaybackPos(): nothing of the previous
+     * states survives, even if they can't be read again */
     vlc_ml_release(&input->ml.states);
-    input->ml.states.current_video_track = input->ml.states.current_audio_track =
-        input->ml.states.current_subtitle_track = NULL;
-    input->ml.states.aspect_ratio = input->ml.states.crop =
-        input->ml.states.deinterlace = input->ml.states.video_filter = NULL;
+    vlc_player_input_ResetMlStates(input);
     if (vlc_ml_media_get_all_playback_pref(ml, media->i_id,
                                            &input->ml.states) != VLC_SUCCESS)
     {

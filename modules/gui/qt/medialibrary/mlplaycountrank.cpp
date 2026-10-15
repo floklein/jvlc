@@ -22,11 +22,12 @@
 
 #include "mlplaycountrank.hpp"
 
-#include <algorithm>
-
+#include <vlc_common.h>
 #include <vlc_media_library.h>
 
 #include "mlhelper.hpp"
+
+#include <algorithm>
 
 MLPlayCountRank::MLPlayCountRank(const MLBaseModel& model, std::shared_ptr<MLOp> entities,
                                  Counter counter)

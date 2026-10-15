@@ -95,6 +95,9 @@ public:
 
     // pick the track; the second subtitle stays
     Q_INVOKABLE void select(int row);
+    // select the track from a preference (a Preset's language): the file
+    // doesn't remember it as the viewer's pick, nothing is emitted
+    void selectAsDefault(int row);
     // show the subtitle track as the second subtitle
     Q_INVOKABLE void selectSecondary(int row);
     Q_INVOKABLE void unselectSecondary();

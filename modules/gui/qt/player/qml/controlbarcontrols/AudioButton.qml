@@ -28,8 +28,9 @@ TrackMenuButton {
     glyph: VLCIcons.audio
     activeGlyph: VLCIcons.audio_active
 
+    // no key: it opens the Track menu, while the "audio-track" key cycles
+    // the tracks
     description: qsTr("Audio")
-    shortcutAction: "audio-track"
 
     AccessibleCompat.id: "audioButton"
 }

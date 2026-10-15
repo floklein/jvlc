@@ -21,12 +21,12 @@
 
 #include "player_video_outputs.hpp"
 
-#include "player/player_controller.hpp"
-
 #include <vlc_common.h>
 #include <vlc_configuration.h>
 #include <vlc_variables.h>
 #include <vlc_vout.h>
+
+#include "player/player_controller.hpp"
 
 PlayerVideoOutputs::PlayerVideoOutputs( PlayerController* player )
     : m_player( player )

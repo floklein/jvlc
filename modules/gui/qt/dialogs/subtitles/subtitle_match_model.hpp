@@ -26,12 +26,16 @@
 #include "medialibrary/mlqmltypes.hpp"
 #include "subtitle_matching.hpp"
 
+#include <functional>
+#include <memory>
+
 #include <QAbstractListModel>
 #include <QStringList>
 #include <QUrl>
 #include <QVariantList>
 #include <QVector>
 
+class HttpWorker;
 class MediaLib;
 
 /**
@@ -63,6 +67,8 @@ class SubtitleMatchModel : public QAbstractListModel
     // From OpenSubtitles for the same episodes (an OpenSubtitlesFolderModel),
     // null when not offered
     Q_PROPERTY(QObject* openSubtitles READ openSubtitles CONSTANT FINAL)
+    // the episodes or the source are being listed, off the UI thread
+    Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged FINAL)
 
 public:
     enum Roles {
@@ -80,6 +86,9 @@ public:
 
     // ml may be null: nothing is saved then
     SubtitleMatchModel(qt_intf_t *intf, MediaLib *ml, QObject *parent = nullptr);
+    ~SubtitleMatchModel() override;
+
+    bool loading() const { return m_pending > 0; }
 
     int rowCount(const QModelIndex &parent = {}) const override;
     QVariant data(const QModelIndex &index, int role) const override;
@@ -128,6 +137,7 @@ signals:
     void languageIndexChanged();
     void countChanged();
     void matchedCountChanged();
+    void loadingChanged();
 
 private:
     struct Row {
@@ -139,7 +149,15 @@ private:
     };
 
     void setEpisodes(const QStringList &mrls, const QString &root);
-    void loadSource(const subtitlematching::Source &source, const QString &language, bool all);
+    void loadSource(const subtitlematching::Source &source,
+                    const QVector<subtitlematching::Candidate> &candidates,
+                    const QString &language, bool all);
+    // lists the source in the background, then matches again
+    void listSource(const subtitlematching::Source &source);
+    // runs the job on the worker (a folder listing can be long); the function
+    // it returns applies its result on the UI thread, in the order of the
+    // calls
+    void inBackground(std::function<std::function<void(SubtitleMatchModel *)>()> job);
     void rematch();
     subtitlematching::Filter filter() const;
 
@@ -158,6 +176,10 @@ private:
     QStringList m_languageCodes;
     int m_languageIndex = -1;
     QVector<Row> m_rows;
+
+    std::unique_ptr<HttpWorker> m_worker;
+    // the listings not applied yet
+    int m_pending = 0;
 };
 
 #endif // SUBTITLE_MATCH_MODEL_HPP

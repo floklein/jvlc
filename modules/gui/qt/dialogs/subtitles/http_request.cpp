@@ -17,6 +17,7 @@
  *****************************************************************************/
 #include "http_request.hpp"
 
+#include <vlc_common.h>
 #include <vlc_tls.h>
 
 #include <memory>
@@ -74,21 +75,99 @@ bool writeAll(vlc_tls_t *tls, const QByteArray &data)
     return vlc_tls_Write(tls, data.constData(), data.size()) == data.size();
 }
 
+/* the longest status, header or chunk-size line */
+constexpr qsizetype maxLineLength = 8 * 1024;
+/* the most bytes of headers in one response */
+constexpr qsizetype maxHeaderBytes = 64 * 1024;
+
+/* a line without its CRLF; fails past maxLineLength */
 QByteArray readLine(vlc_tls_t *tls, bool &ok)
 {
-    char *line = vlc_tls_GetLine(tls);
-    ok = line != nullptr;
-    QByteArray result(line);
-    free(line);
-    return result;
+    QByteArray line;
+    ok = false;
+    for (;;)
+    {
+        char c;
+        if (vlc_tls_Read(tls, &c, 1, false) != 1)
+            return {};
+        if (c == '\n')
+            break;
+        if (line.size() >= maxLineLength)
+            return {};
+        line.append(c);
+    }
+    if (line.endsWith('\r'))
+        line.chop(1);
+    ok = true;
+    return line;
 }
 
+/* count must be within what the body may still grow by */
 bool readBytes(vlc_tls_t *tls, qint64 count, QByteArray &body)
 {
     const qsizetype start = body.size();
     body.resize(start + count);
     return vlc_tls_Read(tls, body.data() + start, count, true) == count;
 }
+
+bool sameOrigin(const QUrl &a, const QUrl &b)
+{
+    return a.scheme() == b.scheme()
+        && a.host().compare(b.host(), Qt::CaseInsensitive) == 0
+        && a.port(a.scheme() == QLatin1String("https") ? 443 : 80)
+           == b.port(b.scheme() == QLatin1String("https") ? 443 : 80);
+}
+
+/* the headers that carry credentials: never sent to another origin */
+bool isCredential(const QByteArray &name)
+{
+    const QByteArray lower = name.toLower();
+    return lower == "authorization" || lower == "api-key" || lower == "cookie"
+        || lower == "proxy-authorization";
+}
+
+/**
+ * Interrupts the blocking calls of the thread after a timeout, or when the
+ * thread's own interrupt context is interrupted.
+ */
+class Deadline
+{
+public:
+    explicit Deadline(vlc_tick_t timeout)
+        : m_context(vlc_interrupt_create())
+    {
+        if (m_context == nullptr)
+            return;
+        vlc_interrupt_forward_start(m_context, m_forward);
+        m_previous = vlc_interrupt_set(m_context);
+        m_timer = vlc_timer_create(&m_timerId, [](void *context) {
+            vlc_interrupt_kill(static_cast<vlc_interrupt_t *>(context));
+        }, m_context) == 0;
+        if (m_timer)
+            vlc_timer_schedule(m_timerId, false, timeout, VLC_TIMER_FIRE_ONCE);
+    }
+
+    ~Deadline()
+    {
+        if (m_context == nullptr)
+            return;
+        if (m_timer)
+            vlc_timer_destroy(m_timerId);
+        vlc_interrupt_set(m_previous);
+        vlc_interrupt_forward_stop(m_forward);
+        vlc_interrupt_destroy(m_context);
+    }
+
+    Deadline(const Deadline &) = delete;
+    Deadline &operator=(const Deadline &) = delete;
+
+private:
+    vlc_interrupt_t *m_context;
+    vlc_interrupt_t *m_previous = nullptr;
+    void *m_forward[2] = { nullptr, nullptr };
+    vlc_timer_t m_timerId;
+    bool m_timer = false;
+};
 
 } // anonymous namespace
 
@@ -98,12 +177,21 @@ HttpResponse httpRequest(vlc_object_t *obj, const HttpRequest &request)
     QUrl url = request.url;
     QByteArray method = request.method;
     QByteArray body = request.body;
+    /* the credentials go to the origin of the request only */
+    bool credentials = true;
+
+    const Deadline deadline(request.timeout);
+    auto fail = [&response](const QString &error) {
+        response.status = 0;
+        response.error = vlc_killed() ? QStringLiteral("timed out or canceled") : error;
+        return response;
+    };
 
     for (int redirects = 0;; ++redirects)
     {
         Connection conn;
         if (!open(obj, url, conn, response.error))
-            return response;
+            return fail(response.error);
 
         QByteArray path = url.path(QUrl::FullyEncoded).toLatin1();
         if (path.isEmpty())
@@ -120,40 +208,35 @@ HttpResponse httpRequest(vlc_object_t *obj, const HttpRequest &request)
                         + "Connection: close\r\n"
                         + "Accept-Encoding: identity\r\n";
         for (const auto &header : request.headers)
-            head += header.first + ": " + header.second + "\r\n";
+            if (credentials || !isCredential(header.first))
+                head += header.first + ": " + header.second + "\r\n";
         if (!body.isEmpty() || method == "POST" || method == "PUT")
             head += "Content-Length: " + QByteArray::number(body.size()) + "\r\n";
         head += "\r\n";
 
         if (!writeAll(conn.tls, head + body))
-        {
-            response.error = QStringLiteral("cannot send the request");
-            return response;
-        }
+            return fail(QStringLiteral("cannot send the request"));
 
         /* the status line: "HTTP/1.1 200 OK" */
         bool ok;
         const QByteArray status = readLine(conn.tls, ok);
         const QList<QByteArray> parts = status.split(' ');
         if (!ok || parts.size() < 2 || !parts[0].startsWith("HTTP/"))
-        {
-            response.error = QStringLiteral("no response");
-            return response;
-        }
+            return fail(QStringLiteral("no response"));
         response.status = parts[1].toInt();
 
         qint64 length = -1;
         bool chunked = false;
         QByteArray location;
+        qsizetype headerBytes = 0;
         for (;;)
         {
             const QByteArray line = readLine(conn.tls, ok);
             if (!ok)
-            {
-                response.status = 0;
-                response.error = QStringLiteral("truncated response");
-                return response;
-            }
+                return fail(QStringLiteral("truncated response"));
+            headerBytes += line.size() + 2;
+            if (headerBytes > maxHeaderBytes)
+                return fail(QStringLiteral("response headers too large"));
             if (line.isEmpty())
                 break;
             const qsizetype colon = line.indexOf(':');
@@ -175,7 +258,13 @@ HttpResponse httpRequest(vlc_object_t *obj, const HttpRequest &request)
         if (redirect && !location.isEmpty() && redirects < request.maxRedirects
          && (method == "GET" || response.status == 303))
         {
-            url = url.resolved(QUrl::fromEncoded(location));
+            const QUrl next = url.resolved(QUrl::fromEncoded(location));
+            /* never from https down to http */
+            if (url.scheme() == QLatin1String("https") && next.scheme() != QLatin1String("https"))
+                return fail(QStringLiteral("insecure redirection"));
+            if (!sameOrigin(url, next))
+                credentials = false;
+            url = next;
             method = "GET";
             body.clear();
             continue;
@@ -192,32 +281,21 @@ HttpResponse httpRequest(vlc_object_t *obj, const HttpRequest &request)
                 const QByteArray sizeLine = readLine(conn.tls, ok);
                 bool hex;
                 const qint64 size = sizeLine.split(';').first().trimmed().toLongLong(&hex, 16);
+                /* written so that it can't overflow */
                 if (!ok || !hex || size < 0
-                 || response.body.size() + size > request.maxSize)
-                {
-                    response.status = 0;
-                    response.error = QStringLiteral("bad chunked response");
-                    return response;
-                }
+                 || size > request.maxSize - response.body.size())
+                    return fail(QStringLiteral("bad chunked response"));
                 if (size == 0)
                     break;
                 if (!readBytes(conn.tls, size, response.body))
-                {
-                    response.status = 0;
-                    response.error = QStringLiteral("truncated response");
-                    return response;
-                }
+                    return fail(QStringLiteral("truncated response"));
                 readLine(conn.tls, ok); /* the CRLF after the chunk */
             }
         }
         else if (length >= 0)
         {
             if (length > request.maxSize || !readBytes(conn.tls, length, response.body))
-            {
-                response.status = 0;
-                response.error = QStringLiteral("truncated response");
-                return response;
-            }
+                return fail(QStringLiteral("truncated response"));
         }
         else
         {
@@ -226,14 +304,12 @@ HttpResponse httpRequest(vlc_object_t *obj, const HttpRequest &request)
             ssize_t read;
             while ((read = vlc_tls_Read(conn.tls, buffer, sizeof (buffer), false)) > 0)
             {
-                if (response.body.size() + read > request.maxSize)
-                {
-                    response.status = 0;
-                    response.error = QStringLiteral("response too large");
-                    return response;
-                }
+                if (read > request.maxSize - response.body.size())
+                    return fail(QStringLiteral("response too large"));
                 response.body.append(buffer, read);
             }
+            if (vlc_killed())
+                return fail(QString());
         }
         return response;
     }

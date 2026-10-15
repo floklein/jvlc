@@ -536,16 +536,8 @@ void AppSettingsModel::addInterfaceRows()
         addRow(std::move(row));
     }
 
-    {
-        Row row = makeRow("auto-hide-controls", "interface", controls, qtr("Auto-hide the controls"), Choice);
-        row.help = qtr("When the bars hide over the video until you move the pointer.");
-        row.choices = {
-            choice(false, qtr("Always")),
-            choice(true, qtr("In fullscreen only")),
-        };
-        bindConfig(row, { QStringLiteral("qt-pin-controls") });
-        addRow(std::move(row));
-    }
+    /* no "Auto-hide the controls": in a window the bars sit beside the
+     * video, they only hide over it, in fullscreen and Hide UI */
 
     {
         Row row = makeRow("mouse-hide-timeout", "interface", controls, qtr("Hide the pointer after"), Slider);
@@ -781,12 +773,12 @@ void AppSettingsModel::onSettingChanged(const QString& id)
     if (!m_ctx)
         return;
 
-    /* MainCtx mirrors several options (window decorations, pinned
-     * controls, pointer timeout, Accent color, reduced motion...): reload
+    /* MainCtx mirrors several options (window decorations,
+     * pointer timeout, Accent color, reduced motion...): reload
      * them so that the interface follows at once. */
     static const char* const mirrored[] = {
         "accent-color", "video-on-top", "window-decorations",
-        "auto-hide-controls", "mouse-hide-timeout", "reduce-motion",
+        "mouse-hide-timeout", "reduce-motion",
         "osd-shortcut-keys", "video-blur", "max-volume", "play-adds-to-queue",
     };
     for (const char* name : mirrored)

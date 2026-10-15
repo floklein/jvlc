@@ -38,6 +38,20 @@ class QSettings;
  * E02), then by name similarity, within a language. */
 namespace subtitlematching {
 
+// the season and episode a file name gives: S01E02, 1x02, E02 (season -1);
+// -1 when absent. The one reading of the names, for the matching and for
+// OpenSubtitles.
+struct EpisodeNumber
+{
+    int season = -1;
+    int episode = -1;
+    // where the number starts in the name, -1 without one
+    qsizetype start = -1;
+    // for E02 alone, where its digits start
+    qsizetype numberStart = -1;
+};
+EpisodeNumber parseEpisode(const QString &name);
+
 // the subtitle file extensions, without ".txt", too common for other files
 const QStringList& subtitleExtensions();
 bool isVideoFile(const QString &fileName);
@@ -52,6 +66,9 @@ QString language(const QString &path);
 QString languageName(const QString &code);
 // the code of the preferred subtitle language of the Profile, if any
 QString preferredLanguage(vlc_object_t *obj);
+// the language codes to start the language filter on, by preference: the
+// Profile's, the interface language, English
+QStringList preferredLanguages(vlc_object_t *obj);
 
 // a subtitle file of a source
 struct Candidate
@@ -60,14 +77,32 @@ struct Candidate
     // the path in the source, '/' separated
     QString path;
     QString language;
+    // the MRL of a file of a .zip; empty in a folder
+    QString mrl;
 };
+
+// the largest subtitle file read from an archive or a link
+constexpr qint64 maxSubtitleSize = 16 * 1024 * 1024;
+
+// a file of an archive
+struct ArchiveEntry
+{
+    // its path in the archive, as the archive names it: check it before use
+    QString path;
+    QString mrl;
+};
+
+// the files of an archive, through the archive access module
+QVector<ArchiveEntry> listArchive(vlc_object_t *obj, const QString &archiveMrl);
+// the content of an MRL; null if it is empty, unreadable or above maxSize
+QByteArray readMrl(vlc_object_t *obj, const QString &mrl, qint64 maxSize);
 
 // a folder or a .zip file of subtitle files
 class Source
 {
 public:
     Source() = default;
-    explicit Source(const QString &path);
+    Source(vlc_object_t *obj, const QString &path);
 
     bool isValid() const { return !m_path.isEmpty(); }
     bool isZip() const;
@@ -80,6 +115,7 @@ public:
     QString resolve(const Candidate &candidate) const;
 
 private:
+    vlc_object_t *m_obj = nullptr;
     QString m_path;
 };
 

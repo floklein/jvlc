@@ -59,6 +59,7 @@ QHash<int, QByteArray> MLVideoFoldersModel::roleNames() const /* override */
         { FOLDER_DURATION, QByteArrayLiteral("duration") },
         { FOLDER_COUNT, QByteArrayLiteral("count") },
         { FOLDER_NB_VIDEOS, QByteArrayLiteral("nb_videos") },
+        { FOLDER_NB_AUDIO, QByteArrayLiteral("nb_audio") },
     };
 }
 
@@ -92,8 +93,14 @@ QVariant MLVideoFoldersModel::itemRoleData(const MLItem * item, const int role) 
         case FOLDER_DURATION:
             return QVariant::fromValue(folder->getDuration());
         case FOLDER_COUNT:
+            /* the media the model lists the folder for */
+            if (m_anyMedia)
+                return QVariant::fromValue(folder->getVideoCount() + folder->getAudioCount());
+            return QVariant::fromValue(m_music ? folder->getAudioCount() : folder->getVideoCount());
         case FOLDER_NB_VIDEOS:
             return QVariant::fromValue(folder->getVideoCount());
+        case FOLDER_NB_AUDIO:
+            return QVariant::fromValue(folder->getAudioCount());
         default:
             return QVariant();
     }
@@ -106,6 +113,24 @@ vlc_ml_sorting_criteria_t MLVideoFoldersModel::nameToCriteria(QByteArray name) c
         { QByteArrayLiteral("duration"), VLC_ML_SORTING_DURATION },
         { QByteArrayLiteral("playcount"), VLC_ML_SORTING_PLAYCOUNT },
     }.value(name, VLC_ML_SORTING_DEFAULT);
+}
+
+void MLVideoFoldersModel::setMusic(bool music)
+{
+    if (m_music == music)
+        return;
+    m_music = music;
+    emit musicChanged();
+    emit resetRequested();
+}
+
+void MLVideoFoldersModel::setAnyMedia(bool anyMedia)
+{
+    if (m_anyMedia == anyMedia)
+        return;
+    m_anyMedia = anyMedia;
+    emit anyMediaChanged();
+    emit resetRequested();
 }
 
 std::unique_ptr<MLListCacheLoader>
@@ -157,7 +182,7 @@ void MLVideoFoldersModel::onVlcMlEvent(const MLEvent & event) /* override */
 // Loader
 size_t MLVideoFoldersModel::Loader::count(vlc_medialibrary_t * ml, const vlc_ml_query_params_t* queryParams) const /* override */
 {
-    return vlc_ml_count_folders_by_type(ml, queryParams, VLC_ML_MEDIA_TYPE_VIDEO);
+    return vlc_ml_count_folders_by_type(ml, queryParams, m_type);
 }
 
 std::vector<std::unique_ptr<MLItem>>
@@ -165,7 +190,7 @@ MLVideoFoldersModel::Loader::load(vlc_medialibrary_t * ml,
                                   const vlc_ml_query_params_t* queryParams) const /* override */
 {
     ml_unique_ptr<vlc_ml_folder_list_t> list(vlc_ml_list_folders_by_type(ml, queryParams,
-                                                                         VLC_ML_MEDIA_TYPE_VIDEO));
+                                                                         m_type));
 
     if (list == nullptr)
         return {};

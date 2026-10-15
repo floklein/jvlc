@@ -39,13 +39,13 @@ Widgets.IconToolButton {
     checked: MainCtx.playqueuePanel.visible
 
     description: qsTr("Queue")
-    shortcut: "Ctrl+L" // GlobalShortcuts.qml
+    shortcutAction: "show-queue"
 
     // Figma "Icon Wrapper": 24 px icon, 4 px padding, 30 px wide
     leftPadding: VLCStyle.dp(3, VLCStyle.scale)
     rightPadding: VLCStyle.dp(3, VLCStyle.scale)
-    topPadding: VLCStyle.dp(4, VLCStyle.scale)
-    bottomPadding: VLCStyle.dp(4, VLCStyle.scale)
+    topPadding: VLCStyle.spacing_4
+    bottomPadding: VLCStyle.spacing_4
 
     toggle: true
 

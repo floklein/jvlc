@@ -930,6 +930,7 @@ vlc_player_SeekByTime
 vlc_player_SelectCategoryLanguage
 vlc_player_SelectChapter
 vlc_player_SelectChapterIdx
+vlc_player_SelectDefaultTrack
 vlc_player_SelectEsId
 vlc_player_SelectEsIdList
 vlc_player_SelectNextChapter
@@ -948,6 +949,7 @@ vlc_player_SetAtoBLoop
 vlc_player_SetAtoBLoopTime
 vlc_player_SetAtoBLoopPosition
 vlc_player_ResetAtoBLoop
+vlc_player_SetCategoryDefaultDelay
 vlc_player_SetCategoryDelay
 vlc_player_SetCurrentMedia
 vlc_player_SetNextMedia

@@ -29,8 +29,9 @@ TrackMenuButton {
     glyph: VLCIcons.subtitles
     activeGlyph: VLCIcons.subtitles_active
 
+    // no key: it opens the Track menu, while the "subtitle-track" key cycles
+    // the tracks
     description: qsTr("Subtitles")
-    shortcutAction: "subtitle-track"
 
     AccessibleCompat.id: "subtitlesButton"
 }

@@ -19,6 +19,10 @@
 
 #include <QQuickWindow>
 
+#include <algorithm>
+#include <cmath>
+#include <vector>
+
 void VideoBlurProvider::updateRegion(const void* key, const Region& region)
 {
     emit regionChanged(reinterpret_cast<quintptr>(key), region);
@@ -27,6 +31,102 @@ void VideoBlurProvider::updateRegion(const void* key, const Region& region)
 void VideoBlurProvider::removeRegion(const void* key)
 {
     emit regionRemoved(reinterpret_cast<quintptr>(key));
+}
+
+VideoBlurLayout videoBlurLayout(const QList<VideoBlurProvider::Region>& regions)
+{
+    // the blurred parts: a rounded region without its corner squares
+    QList<QRectF> blurred;
+    VideoBlurLayout layout;
+    for (const VideoBlurProvider::Region& region : regions)
+    {
+        if (region.opacity < 0.5 || region.rect.isEmpty())
+            continue;
+        layout.bounds = layout.bounds.united(region.rect);
+        const qreal radius = std::min({ region.radius, region.rect.width() / 2.,
+                                        region.rect.height() / 2. });
+        if (radius <= 0.)
+        {
+            blurred.append(region.rect);
+            continue;
+        }
+        const QRectF& rect = region.rect;
+        blurred.append(rect.adjusted(radius, 0., -radius, 0.));
+        blurred.append(rect.adjusted(0., radius, 0., -radius));
+
+        // the corners in strips of 2 pixels at most, each blurred only where
+        // the whole strip is inside the rounded corner
+        const int strips = std::min(8, static_cast<int>(std::ceil(radius / 2.)));
+        const qreal height = radius / strips;
+        for (int i = 1; i < strips; ++i)
+        {
+            // from the center of the corner's circle to the strip's outer edge
+            const qreal dy = radius - i * height;
+            const qreal inset = radius - std::sqrt(radius * radius - dy * dy);
+            const qreal top = rect.top() + i * height;
+            const qreal bottom = rect.bottom() - (i + 1) * height;
+            blurred.append(QRectF(QPointF(rect.left() + inset, top),
+                                  QPointF(rect.left() + radius, top + height)));
+            blurred.append(QRectF(QPointF(rect.right() - radius, top),
+                                  QPointF(rect.right() - inset, top + height)));
+            blurred.append(QRectF(QPointF(rect.left() + inset, bottom),
+                                  QPointF(rect.left() + radius, bottom + height)));
+            blurred.append(QRectF(QPointF(rect.right() - radius, bottom),
+                                  QPointF(rect.right() - inset, bottom + height)));
+        }
+    }
+    if (layout.bounds.isEmpty())
+        return {};
+
+    // a grid on every edge; its cells outside the blurred parts are gaps
+    std::vector<qreal> xs{ layout.bounds.left(), layout.bounds.right() };
+    std::vector<qreal> ys{ layout.bounds.top(), layout.bounds.bottom() };
+    for (const QRectF& rect : blurred)
+    {
+        xs.insert(xs.end(), { rect.left(), rect.right() });
+        ys.insert(ys.end(), { rect.top(), rect.bottom() });
+    }
+    for (std::vector<qreal>* edges : { &xs, &ys })
+    {
+        std::sort(edges->begin(), edges->end());
+        edges->erase(std::unique(edges->begin(), edges->end()), edges->end());
+    }
+
+    const auto isBlurred = [&blurred](const QPointF& point) {
+        return std::any_of(blurred.cbegin(), blurred.cend(),
+                           [&point](const QRectF& rect) { return rect.contains(point); });
+    };
+
+    for (size_t row = 0; row + 1 < ys.size(); ++row)
+    {
+        const qreal top = ys[row], bottom = ys[row + 1];
+        // the runs of gap cells of this row
+        QList<QRectF> runs;
+        for (size_t column = 0; column + 1 < xs.size(); ++column)
+        {
+            const qreal left = xs[column], right = xs[column + 1];
+            if (isBlurred({ (left + right) / 2., (top + bottom) / 2. }))
+                continue;
+            if (!runs.isEmpty() && runs.last().right() == left)
+                runs.last().setRight(right);
+            else
+                runs.append(QRectF(QPointF(left, top), QPointF(right, bottom)));
+        }
+        // a run just below a gap of the same width extends it
+        for (const QRectF& run : runs)
+        {
+            const auto above = std::find_if(layout.gaps.begin(), layout.gaps.end(),
+                                            [&run](const QRectF& gap) {
+                return gap.bottom() == run.top() && gap.left() == run.left()
+                    && gap.right() == run.right();
+            });
+            if (above != layout.gaps.end())
+                above->setBottom(run.bottom());
+            else
+                layout.gaps.append(run);
+        }
+    }
+    return layout;
 }
 
 VideoBlurGate::VideoBlurGate(VideoBlurProvider* provider, QObject* parent)

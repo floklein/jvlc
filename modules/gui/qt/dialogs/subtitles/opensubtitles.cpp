@@ -18,6 +18,7 @@
 #include "opensubtitles.hpp"
 #include "add_subtitles_model.hpp"
 #include "http_request.hpp"
+#include "subtitle_matching.hpp"
 
 /* OPENSUBTITLES_API_KEY and OPENSUBTITLES_API_URL, from the build options */
 #include "opensubtitles_config.h"
@@ -81,12 +82,6 @@ QString ParsedName::query() const
 ParsedName parseName(const QString &fileName)
 {
     static const QRegularExpression extension(QStringLiteral("\\.[A-Za-z0-9]{2,4}$"));
-    static const QRegularExpression seasonEpisode(
-        QStringLiteral("(?:^|[^A-Za-z0-9])[Ss](\\d{1,2})[ ._-]*[Ee](\\d{1,3})(?![0-9])"));
-    static const QRegularExpression crossed(
-        QStringLiteral("(?:^|[^A-Za-z0-9])(\\d{1,2})[xX](\\d{2,3})(?![0-9])"));
-    static const QRegularExpression episodeOnly(
-        QStringLiteral("(?:^|[^A-Za-z0-9])(?:[Ee][Pp]?|[Ee]pisode[ ._-]?)(\\d{1,3})(?![0-9])"));
     static const QRegularExpression tags(
         QStringLiteral("(?:^|[^A-Za-z0-9])((?:19|20)\\d\\d|480p|576p|720p|1080[pi]|2160p|4k|"
                        "x26[45]|h\\.?26[45]|hevc|bluray|blu-ray|brrip|bdrip|webrip|web-dl|"
@@ -97,20 +92,20 @@ ParsedName parseName(const QString &fileName)
     QString name = fileName;
     name.remove(extension);
 
+    /* the same reading as the subtitle matching */
     qsizetype cut = name.size();
-    QRegularExpressionMatch match = seasonEpisode.match(name);
-    if (!match.hasMatch())
-        match = crossed.match(name);
-    if (match.hasMatch())
+    const subtitlematching::EpisodeNumber number = subtitlematching::parseEpisode(name);
+    if (number.season >= 0)
     {
-        parsed.season = match.captured(1).toInt();
-        parsed.episode = match.captured(2).toInt();
-        cut = match.capturedStart(0);
+        parsed.season = number.season;
+        parsed.episode = number.episode;
+        cut = number.start;
     }
-    else if ((match = episodeOnly.match(name)).hasMatch() && match.capturedStart(1) > 2)
+    /* E02 alone, after a title */
+    else if (number.episode >= 0 && number.numberStart > 2)
     {
-        parsed.episode = match.captured(1).toInt();
-        cut = match.capturedStart(0);
+        parsed.episode = number.episode;
+        cut = number.start;
     }
 
     /* a year or a release tag ends the title, unless it starts it */

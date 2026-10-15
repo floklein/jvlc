@@ -22,11 +22,12 @@
 
 #include "shortcuts_model.hpp"
 
-#include "util/vlchotkeyconverter.hpp"
-
+#include <vlc_common.h>
 #include <vlc_actions.h>
 #include <vlc_configuration.h>
 #include <vlc_variables.h>
+
+#include "util/vlchotkeyconverter.hpp"
 
 #include <algorithm>
 
@@ -131,8 +132,9 @@ const struct
     { "convert",              ShortcutsModel::Interface, N_("Convert…") },
     { "stream",               ShortcutsModel::Interface, N_("Stream & Cast…") },
     { "library-search",       ShortcutsModel::Interface, N_("Search the library") },
+    { "library-pane",         ShortcutsModel::Interface, N_("Library pane") },
     { "hide-ui",              ShortcutsModel::Interface, N_("Hide UI") },
-    { "picture-in-picture",   ShortcutsModel::Interface, N_("Picture in Picture") },
+    { "picture-in-picture",   ShortcutsModel::Interface, N_("Picture-in-picture") },
     { "interface-fullscreen", ShortcutsModel::Interface, N_("Fullscreen interface") },
     { "leave-fullscreen",     ShortcutsModel::Interface, N_("Leave fullscreen") },
     { "intf-show",            ShortcutsModel::Interface, N_("Show the controls in fullscreen") },
@@ -142,6 +144,7 @@ const struct
     { "codec-info",           ShortcutsModel::Interface, N_("Codec information") },
     { "messages",             ShortcutsModel::Interface, N_("Messages") },
     { "settings",             ShortcutsModel::Interface, N_("Settings") },
+    { "help",                 ShortcutsModel::Interface, N_("Online help") },
     { "about",                ShortcutsModel::Interface, N_("About VLC") },
     { "quit",                 ShortcutsModel::Interface, N_("Quit") },
 

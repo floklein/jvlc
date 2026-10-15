@@ -140,7 +140,14 @@ FocusScope {
 
                             iconTxt: VLCIcons.play
                             text: qsTr("Play")
-                            onClicked: MediaLib.addAndPlay( model.id )
+                            // the Play rule: with the media after it in the view
+                            onClicked: {
+                                const viewModel = root.view?.model
+                                if (viewModel && root.index >= 0)
+                                    viewModel.addAndPlay([viewModel.index(root.index, 0)])
+                                else
+                                    MediaLib.addAndPlay(model.id)
+                            }
                         }
 
                         Widgets.ButtonExt {

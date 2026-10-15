@@ -22,18 +22,19 @@
 
 #include "mlfolderactions.hpp"
 
-#include <algorithm>
+#include <vlc_common.h>
+#include <vlc_media_library.h>
+
+#include "medialib.hpp"
+#include "mlfoldertreemodel.hpp"
+#include "mlhelper.hpp"
 
 #include <QCollator>
 #include <QDir>
 #include <QJSEngine>
 #include <QUrl>
 
-#include <vlc_media_library.h>
-
-#include "medialib.hpp"
-#include "mlfoldertreemodel.hpp"
-#include "mlhelper.hpp"
+#include <algorithm>
 
 namespace {
 
@@ -258,6 +259,7 @@ void MLFolderActions::toQueue(const MLItemId &folder, int type, QueueAction acti
             m_mediaLib->shuffleAndPlay(ctx.ids);
             break;
         case Enqueue:
+            /* MediaLib keeps the upstream name: it adds to the Queue */
             m_mediaLib->addToPlaylist(ctx.ids);
             break;
         case PlayNext:

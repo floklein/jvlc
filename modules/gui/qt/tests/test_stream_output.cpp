@@ -271,8 +271,8 @@ private slots:
         QVERIFY(m_stream->isStreaming());
         QCOMPARE(streaming.count(), 1);
         QCOMPARE(playerSout(), QString("#http{mux=ts,dst=:8080/}"));
-        /* the whole Queue, from its first item */
-        QCOMPARE(currentIndex(), 0);
+        /* the Queue, from its current item on, as it plays */
+        QCOMPARE(currentIndex(), 1);
         QTRY_VERIFY(isStarted());
     }
 

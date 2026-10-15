@@ -22,14 +22,15 @@
 
 #include "settings_registry.hpp"
 
-#include <QObject>
-
-#include "qt.hpp"
-
+#include <vlc_common.h>
 #include <vlc_configuration.h>
 #include <vlc_modules.h>
 #include <vlc_plugin.h>
 #include <vlc_config_cat.h>
+
+#include "qt.hpp"
+
+#include <QObject>
 
 namespace {
 

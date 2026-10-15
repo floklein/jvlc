@@ -61,12 +61,13 @@ Repeater {
         return widths
     }
 
-    // the ids of the controls folded away, which the VLC menu shows instead
+    // the ids of the controls folded away, or left out because they don't
+    // fit, which the VLC menu shows instead
     readonly property var foldedControls: {
         const controls = []
         for (let i = 0; i < count; ++i) {
             const loader = itemAt(i)
-            if (loader?.folded)
+            if (loader && (loader.folded || !loader.fits))
                 controls.push(loader.controlId)
         }
         return controls

@@ -21,15 +21,14 @@
 
 #include "podcast_feeds.hpp"
 
-#include "saved_streams_model.hpp"
-
-#include "qt.hpp"
-
 #include <vlc_common.h>
 #include <vlc_configuration.h>
 #include <vlc_cxx_helpers.hpp>
 #include <vlc_media_source.h>
 #include <vlc_variables.h>
+
+#include "saved_streams_model.hpp"
+#include "qt.hpp"
 
 namespace {
 

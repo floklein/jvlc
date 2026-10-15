@@ -1261,9 +1261,11 @@ DiscMenuAction(intf_thread_t *intf, vlc_action_id_t action_id)
     }
 
     /* the keys with a modifier (Alt+Left, Ctrl+Up) keep seeking and changing
-     * the volume */
-    int64_t key = var_GetInteger(vlc_object_instance(intf), "key-pressed");
-    if (key & KEY_MODIFIER)
+     * the volume, as do global keys and the actions sent without a key (from
+     * a menu): "key-action-key" is the key behind this very action, unlike
+     * "key-pressed" which keeps the last key */
+    int64_t key = var_GetInteger(vlc_object_instance(intf), "key-action-key");
+    if (key == 0 || (key & KEY_MODIFIER))
         return action_id;
 
     vlc_player_t *player = vlc_playlist_GetPlayer(intf->p_sys->playlist);

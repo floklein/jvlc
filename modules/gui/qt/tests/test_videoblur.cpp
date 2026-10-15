@@ -16,6 +16,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 
+#include <algorithm>
+#include <cmath>
+
 #include <QtTest>
 #include <QQuickWindow>
 #include <QQuickItem>
@@ -215,6 +218,61 @@ private slots:
     /* The Video blur shows only when the user's setting, Windows
      * transparency effects and battery saver allow it; otherwise the panels
      * keep the Tint. */
+    // the compositor draws one blurred copy of the video under every region,
+    // and sharp copies over the rest of their bounds
+    void layoutCoversTheRegionsWithOneBlur()
+    {
+        auto region = [](const QRectF &rect, qreal radius = 0., qreal opacity = 1.) {
+            VideoBlurProvider::Region r;
+            r.rect = rect;
+            r.radius = radius;
+            r.opacity = opacity;
+            return r;
+        };
+
+        // the two bars and a side panel
+        VideoBlurLayout layout = videoBlurLayout({
+            region({ 0, 0, 640, 40 }), region({ 0, 440, 640, 40 }),
+            region({ 400, 60, 220, 360 }),
+        });
+        QCOMPARE(layout.bounds, QRectF(0, 0, 640, 480));
+        QCOMPARE(layout.gaps, QList<QRectF>({
+            { 0, 40, 640, 20 }, { 0, 60, 400, 360 }, { 620, 60, 20, 360 }, { 0, 420, 640, 20 },
+        }));
+
+        // a rounded panel: no blur outside its rounded corners, blur in it
+        // but for slivers of 2 pixels along the corners
+        const QRectF panel(100, 100, 200, 100);
+        layout = videoBlurLayout({ region(panel, 10.) });
+        QCOMPARE(layout.bounds, panel);
+        const auto inGap = [&layout](const QPointF &point) {
+            return std::any_of(layout.gaps.cbegin(), layout.gaps.cend(),
+                               [&point](const QRectF &gap) { return gap.contains(point); });
+        };
+        for (qreal y = panel.top() + .25; y < panel.bottom(); y += .5)
+        {
+            for (qreal x = panel.left() + .25; x < panel.right(); x += .5)
+            {
+                // the distance outside the rounded rectangle, 0 inside
+                const qreal dx = std::max({ panel.left() + 10. - x, x - (panel.right() - 10.), 0. });
+                const qreal dy = std::max({ panel.top() + 10. - y, y - (panel.bottom() - 10.), 0. });
+                const qreal outside = std::hypot(dx, dy) - 10.;
+                if (outside > 0.)
+                    QVERIFY2(inGap({ x, y }), qPrintable(QString("%1,%2").arg(x).arg(y)));
+                else if (outside < -2.5)
+                    QVERIFY2(!inGap({ x, y }), qPrintable(QString("%1,%2").arg(x).arg(y)));
+            }
+        }
+
+        // a panel shows its blur from half its fade
+        layout = videoBlurLayout({ region({ 0, 0, 640, 40 }, 0., 0.3) });
+        QVERIFY(layout.bounds.isEmpty());
+        QVERIFY(layout.gaps.isEmpty());
+        layout = videoBlurLayout({ region({ 0, 0, 640, 40 }, 0., 0.6) });
+        QCOMPARE(layout.bounds, QRectF(0, 0, 640, 40));
+        QVERIFY(layout.gaps.isEmpty());
+    }
+
     void opensWhenEverythingAllowsIt()
     {
         VideoBlurProvider provider;

@@ -234,7 +234,7 @@ WindowDialog {
                         Layout.fillHeight: true
 
                         color: root.colorContext.bg.secondary
-                        radius: VLCStyle.dp(6, VLCStyle.scale)
+                        radius: VLCStyle.radius_normal
 
                         ListView {
                             id: deviceList
@@ -540,7 +540,7 @@ WindowDialog {
         }
 
         background: Rectangle {
-            radius: VLCStyle.dp(4, VLCStyle.scale)
+            radius: VLCStyle.radius_small
             color: delegate.hovered ? delegateTheme.bg.highlight : "transparent"
         }
 

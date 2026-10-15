@@ -16,8 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 #include "conversion_manager.hpp"
-#include "conversion_profile_model.hpp"
 
+#include <vlc_common.h>
+#include <vlc_input_item.h>
+#include <vlc_interface.h>
+#include <vlc_variables.h>
+
+#include "conversion_profile_model.hpp"
 #include "qt.hpp"
 
 #include <QDir>
@@ -25,10 +30,6 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QStandardPaths>
-
-#include <vlc_input_item.h>
-#include <vlc_interface.h>
-#include <vlc_variables.h>
 
 namespace {
 
@@ -72,8 +73,8 @@ ConversionManager::~ConversionManager()
     vlc_player_Delete(m_player);
 
     const int row = runningRow();
-    if (row >= 0 && (m_jobs[row].overwrite || !m_jobs[row].existed))
-        QFile::remove(m_jobs[row].destination);
+    if (row >= 0 && (m_conversions[row].overwrite || !m_conversions[row].existed))
+        QFile::remove(m_conversions[row].destination);
 
     vlc_object_delete(m_object);
 }
@@ -152,7 +153,7 @@ int ConversionManager::rowCount(const QModelIndex& parent) const
 {
     if (parent.isValid())
         return 0;
-    return m_jobs.size();
+    return m_conversions.size();
 }
 
 QVariant ConversionManager::data(const QModelIndex& index, int role) const
@@ -160,23 +161,23 @@ QVariant ConversionManager::data(const QModelIndex& index, int role) const
     if (!checkIndex(index, CheckIndexOption::IndexIsValid | CheckIndexOption::ParentIsInvalid))
         return {};
 
-    const Job& job = m_jobs[index.row()];
+    const Conversion& conversion = m_conversions[index.row()];
     switch (role)
     {
     case Qt::DisplayRole:
     case NAME:
     {
-        const QString name = QUrl(job.mrl).fileName();
-        return name.isEmpty() ? job.mrl : name;
+        const QString name = QUrl(conversion.mrl).fileName();
+        return name.isEmpty() ? conversion.mrl : name;
     }
     case SOURCE:
-        return job.mrl;
+        return conversion.mrl;
     case DESTINATION:
-        return job.destination;
+        return conversion.destination;
     case STATE:
-        return QVariant::fromValue(job.state);
+        return QVariant::fromValue(conversion.state);
     case PROGRESS:
-        return job.progress;
+        return conversion.progress;
     default:
         return {};
     }
@@ -195,19 +196,19 @@ QHash<int, QByteArray> ConversionManager::roleNames() const
 
 int ConversionManager::activeCount() const
 {
-    return std::count_if(m_jobs.cbegin(), m_jobs.cend(),
-                         [](const Job& job) { return isActive(job.state); });
+    return std::count_if(m_conversions.cbegin(), m_conversions.cend(),
+                         [](const Conversion& conversion) { return isActive(conversion.state); });
 }
 
 double ConversionManager::progress() const
 {
     double sum = 0.;
     int count = 0;
-    for (const Job& job : m_jobs)
+    for (const Conversion& conversion : m_conversions)
     {
-        if (job.state == Failed || job.state == Cancelled)
+        if (conversion.state == Failed || conversion.state == Cancelled)
             continue;
-        sum += job.progress;
+        sum += conversion.progress;
         count++;
     }
     return count ? sum / count : 0.;
@@ -215,8 +216,8 @@ double ConversionManager::progress() const
 
 int ConversionManager::runningRow() const
 {
-    for (int i = 0; i < m_jobs.size(); i++)
-        if (m_jobs[i].state == Running)
+    for (int i = 0; i < m_conversions.size(); i++)
+        if (m_conversions[i].state == Running)
             return i;
     return -1;
 }
@@ -243,8 +244,8 @@ QString ConversionManager::convertedPath(const QString& mrl, const QString& exte
     const auto taken = [this](const QString& path) {
         if (QFileInfo::exists(path))
             return true;
-        return std::any_of(m_jobs.cbegin(), m_jobs.cend(), [&path](const Job& job) {
-            return isActive(job.state) && job.destination == path;
+        return std::any_of(m_conversions.cbegin(), m_conversions.cend(), [&path](const Conversion& conversion) {
+            return isActive(conversion.state) && conversion.destination == path;
         });
     };
 
@@ -293,23 +294,23 @@ void ConversionManager::convert(const QStringList& mrls, const QString& profileV
 void ConversionManager::add(const QString& mrl, const QString& soutChain,
                             const QString& destination, bool overwrite)
 {
-    Job job;
-    job.mrl = mrl;
-    job.sout = soutChain;
-    job.destination = destination;
-    job.overwrite = overwrite;
+    Conversion conversion;
+    conversion.mrl = mrl;
+    conversion.sout = soutChain;
+    conversion.destination = destination;
+    conversion.overwrite = overwrite;
 
     const QUrl source(mrl);
     if (soutChain.isEmpty() || destination.isEmpty()
         || (source.isLocalFile() && QFileInfo(source.toLocalFile()) == QFileInfo(destination)))
-        job.state = Failed;
+        conversion.state = Failed;
 
-    const int row = m_jobs.size();
+    const int row = m_conversions.size();
     beginInsertRows({}, row, row);
-    m_jobs.append(job);
+    m_conversions.append(conversion);
     endInsertRows();
     emit countChanged();
-    if (job.state == Pending)
+    if (conversion.state == Pending)
         emit activeCountChanged();
     emit progressChanged();
 
@@ -318,13 +319,13 @@ void ConversionManager::add(const QString& mrl, const QString& soutChain,
 
 void ConversionManager::setState(int row, State state)
 {
-    Job& job = m_jobs[row];
-    if (job.state == state)
+    Conversion& conversion = m_conversions[row];
+    if (conversion.state == state)
         return;
-    const bool wasActive = isActive(job.state);
-    job.state = state;
+    const bool wasActive = isActive(conversion.state);
+    conversion.state = state;
     if (state == Done)
-        job.progress = 1.;
+        conversion.progress = 1.;
     emit dataChanged(index(row), index(row), { STATE, PROGRESS });
     if (wasActive != isActive(state))
         emit activeCountChanged();
@@ -336,7 +337,7 @@ void ConversionManager::setRunningProgress(double progress)
     const int row = runningRow();
     if (row < 0)
         return;
-    m_jobs[row].progress = progress;
+    m_conversions[row].progress = progress;
     emit dataChanged(index(row), index(row), { PROGRESS });
     emit progressChanged();
 }
@@ -346,29 +347,29 @@ void ConversionManager::startNext()
     if (runningRow() >= 0)
         return;
 
-    const auto it = std::find_if(m_jobs.begin(), m_jobs.end(),
-                                 [](const Job& job) { return job.state == Pending; });
-    if (it == m_jobs.end())
+    const auto it = std::find_if(m_conversions.begin(), m_conversions.end(),
+                                 [](const Conversion& conversion) { return conversion.state == Pending; });
+    if (it == m_conversions.end())
         return;
-    const int row = std::distance(m_jobs.begin(), it);
-    Job& job = *it;
+    const int row = std::distance(m_conversions.begin(), it);
+    Conversion& conversion = *it;
 
-    job.existed = QFileInfo::exists(job.destination);
-    if ((job.existed && !job.overwrite) || !ensurePlayer())
+    conversion.existed = QFileInfo::exists(conversion.destination);
+    if ((conversion.existed && !conversion.overwrite) || !ensurePlayer())
     {
         setState(row, Failed);
         startNext();
         return;
     }
 
-    input_item_t* item = input_item_New(qtu(job.mrl), nullptr);
+    input_item_t* item = input_item_New(qtu(conversion.mrl), nullptr);
     if (!item)
     {
         setState(row, Failed);
         startNext();
         return;
     }
-    input_item_AddOption(item, qtu(QStringLiteral("sout=") + job.sout),
+    input_item_AddOption(item, qtu(QStringLiteral("sout=") + conversion.sout),
                          VLC_INPUT_OPTION_TRUSTED);
 
     m_error = false;
@@ -381,7 +382,7 @@ void ConversionManager::startNext()
     vlc_player_Unlock(m_player);
     input_item_Release(item);
 
-    msg_Dbg(m_parent, "converting %s with %s", qtu(job.mrl), qtu(job.sout));
+    msg_Dbg(m_parent, "converting %s with %s", qtu(conversion.mrl), qtu(conversion.sout));
 
     if (ret != VLC_SUCCESS)
     {
@@ -398,15 +399,15 @@ void ConversionManager::finishRunning()
     if (row < 0)
         return;
 
-    const Job& job = m_jobs[row];
+    const Conversion& conversion = m_conversions[row];
     State state = Done;
     if (m_cancelRequested)
         state = Cancelled;
-    else if (m_error || QFileInfo(job.destination).size() <= 0)
+    else if (m_error || QFileInfo(conversion.destination).size() <= 0)
         state = Failed;
 
-    if (state != Done && (job.overwrite || !job.existed))
-        QFile::remove(job.destination);
+    if (state != Done && (conversion.overwrite || !conversion.existed))
+        QFile::remove(conversion.destination);
 
     setState(row, state);
     startNext();
@@ -414,10 +415,10 @@ void ConversionManager::finishRunning()
 
 void ConversionManager::cancel(int row)
 {
-    if (row < 0 || row >= m_jobs.size())
+    if (row < 0 || row >= m_conversions.size())
         return;
 
-    switch (m_jobs[row].state)
+    switch (m_conversions[row].state)
     {
     case Pending:
         setState(row, Cancelled);
@@ -435,18 +436,18 @@ void ConversionManager::cancel(int row)
 
 void ConversionManager::cancelAll()
 {
-    for (int i = m_jobs.size() - 1; i >= 0; i--)
+    for (int i = m_conversions.size() - 1; i >= 0; i--)
         cancel(i);
 }
 
 void ConversionManager::clearFinished()
 {
-    for (int i = m_jobs.size() - 1; i >= 0; i--)
+    for (int i = m_conversions.size() - 1; i >= 0; i--)
     {
-        if (isActive(m_jobs[i].state))
+        if (isActive(m_conversions[i].state))
             continue;
         beginRemoveRows({}, i, i);
-        m_jobs.removeAt(i);
+        m_conversions.removeAt(i);
         endRemoveRows();
     }
     emit countChanged();

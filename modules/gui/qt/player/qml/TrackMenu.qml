@@ -141,8 +141,8 @@ T.Popup {
             trackContextMenu.tracks = tracks
             trackContextMenu.row = row
             trackContextMenu.secondary = secondary
-            popup(globalPos, [secondary ? qsTr("Hide second subtitle")
-                                        : qsTr("Show as second subtitle")])
+            popup(globalPos, [secondary ? qsTr("Hide Second Subtitle")
+                                        : qsTr("Show as Second Subtitle")])
         }
     }
 
@@ -180,8 +180,8 @@ T.Popup {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: VLCStyle.dp(6, VLCStyle.scale)
-                anchors.rightMargin: VLCStyle.dp(6, VLCStyle.scale)
+                anchors.leftMargin: VLCStyle.spacing_6
+                anchors.rightMargin: VLCStyle.spacing_6
 
                 spacing: VLCStyle.dp(1, VLCStyle.scale)
 
@@ -248,7 +248,7 @@ T.Popup {
                 Column {
                     width: parent.width
 
-                    leftPadding: VLCStyle.dp(20, VLCStyle.scale)
+                    leftPadding: VLCStyle.spacing_20
                     rightPadding: leftPadding
                     bottomPadding: VLCStyle.margin_normal
 
@@ -293,8 +293,8 @@ T.Popup {
 
                     HeaderButton {
                         text: VLCIcons.edit
-                        description: root._removeMode ? qsTr("Stop removing external tracks")
-                                                      : qsTr("Remove external tracks")
+                        description: root._removeMode ? qsTr("Stop Removing External Tracks")
+                                                      : qsTr("Remove External Tracks")
                         checked: root._removeMode
 
                         onClicked: root._removeMode = !root._removeMode
@@ -327,9 +327,9 @@ T.Popup {
 
             Layout.fillWidth: true
             Layout.preferredHeight: VLCStyle.dp(32, VLCStyle.scale)
-            Layout.margins: VLCStyle.dp(20, VLCStyle.scale)
+            Layout.margins: VLCStyle.spacing_20
 
-            text: qsTr("More settings")
+            text: qsTr("More Settings")
 
             Accessible.name: text
 
@@ -383,7 +383,7 @@ T.Popup {
         background: Item {
             Rectangle {
                 anchors.fill: parent
-                anchors.margins: VLCStyle.dp(4, VLCStyle.scale)
+                anchors.margins: VLCStyle.spacing_4
 
                 radius: VLCStyle.radius_small
 
@@ -492,7 +492,7 @@ T.Popup {
             anchors.rightMargin: VLCStyle.dp(28, VLCStyle.scale) - VLCStyle.dp(3, VLCStyle.scale)
             anchors.verticalCenter: parent.verticalCenter
 
-            spacing: VLCStyle.dp(14, VLCStyle.scale)
+            spacing: VLCStyle.spacing_14
         }
     }
 
@@ -530,7 +530,7 @@ T.Popup {
 
         width: parent.width
 
-        leftPadding: VLCStyle.dp(20, VLCStyle.scale)
+        leftPadding: VLCStyle.spacing_20
         rightPadding: leftPadding
         bottomPadding: VLCStyle.margin_normal
 
@@ -636,7 +636,7 @@ T.Popup {
         }
 
         contentItem: RowLayout {
-            spacing: VLCStyle.dp(10, VLCStyle.scale)
+            spacing: VLCStyle.spacing_10
 
             Widgets.IconLabel {
                 Layout.preferredWidth: VLCStyle.dp(32, VLCStyle.scale)
@@ -682,7 +682,7 @@ T.Popup {
 
                 font.pixelSize: VLCStyle.icon_normal
 
-                padding: VLCStyle.dp(4, VLCStyle.scale)
+                padding: VLCStyle.spacing_4
 
                 onClicked: trackRow.removeClicked()
             }

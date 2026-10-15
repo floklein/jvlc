@@ -28,7 +28,7 @@ Widgets.IconToolButton {
     enabled: Player.isStarted
 
     text: VLCIcons.pip
-    description: qsTr("Picture in Picture")
+    description: qsTr("Picture-in-picture")
     shortcutAction: "picture-in-picture"
 
     AccessibleCompat.id: "pictureInPictureButton"

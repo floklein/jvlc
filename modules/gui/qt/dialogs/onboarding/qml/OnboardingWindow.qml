@@ -44,6 +44,11 @@ Window {
 
     color: theme.bg.primary
 
+    // the Theme step's swatches picture the Light and Dark Themes whatever
+    // the palette in use, so they are not palette colours
+    readonly property color _lightSwatch: "#b5b5b5"
+    readonly property color _darkSwatch: "#222222"
+
     // the choices applied: the window can go
     signal finished()
 
@@ -125,7 +130,7 @@ Window {
         Rectangle {
             z: -1
             anchors.fill: parent
-            anchors.topMargin: VLCStyle.dp(4, VLCStyle.scale)
+            anchors.topMargin: VLCStyle.spacing_4
             anchors.bottomMargin: -VLCStyle.dp(4, VLCStyle.scale)
             radius: parent.radius
             color: theme.separator
@@ -405,11 +410,10 @@ Window {
                             spacing: VLCStyle.dp(40, VLCStyle.scale)
 
                             Repeater {
-                                // ColorSchemeModel.ColorScheme values
                                 model: [
-                                    { value: 1, label: qsTr("Light") },
-                                    { value: 2, label: qsTr("Dark") },
-                                    { value: 0, label: qsTr("System") },
+                                    { value: ColorSchemeModel.Light, label: qsTr("Light") },
+                                    { value: ColorSchemeModel.Dark, label: qsTr("Dark") },
+                                    { value: ColorSchemeModel.System, label: qsTr("System") },
                                 ]
 
                                 delegate: T.AbstractButton {
@@ -452,21 +456,21 @@ Window {
                                             Rectangle {
                                                 id: swatch
                                                 anchors.fill: parent
-                                                anchors.margins: VLCStyle.dp(8, VLCStyle.scale)
+                                                anchors.margins: VLCStyle.spacing_8
                                                 radius: VLCStyle.radius_normal
-                                                color: themeButton.modelData.value === 1 ? "#b5b5b5" : "#222222"
+                                                color: themeButton.modelData.value === ColorSchemeModel.Light ? root._lightSwatch : root._darkSwatch
                                                 clip: true
 
                                                 // System: half light, half dark
                                                 Rectangle {
-                                                    visible: themeButton.modelData.value === 0
+                                                    visible: themeButton.modelData.value === ColorSchemeModel.System
                                                     width: parent.width * 1.5
                                                     height: parent.height * 1.5
                                                     x: parent.width * 0.35
                                                     y: -parent.height * 0.25
                                                     rotation: -25
                                                     transformOrigin: Item.TopLeft
-                                                    color: "#b5b5b5"
+                                                    color: root._lightSwatch
                                                 }
                                             }
                                         }

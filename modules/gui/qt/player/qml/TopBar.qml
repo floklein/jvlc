@@ -64,6 +64,9 @@ FocusScope {
     readonly property int _padding: VLCStyle.dp(6, VLCStyle.scale) + sideMargin
 
     readonly property bool _fullscreen: MainCtx.intfMainWindow.visibility === Window.FullScreen
+    // the key follows the user's bindings
+    readonly property string _fullscreenShortcut: MainCtx.keyBindingsRevision >= 0
+                                                  ? MainCtx.actionShortcut("toggle-fullscreen") : ""
 
     // the desktop puts the window buttons on the left (Linux)
     readonly property bool _buttonsOnLeft: MainCtx.windowButtonsOnLeft && root.showCSD
@@ -279,7 +282,7 @@ FocusScope {
 
                 iconTxt: root._fullscreen ? VLCIcons.fullscreen_active : VLCIcons.fullscreen
                 description: root._fullscreen ? qsTr("Exit fullscreen") : qsTr("Fullscreen")
-                shortcut: (MainCtx.keyBindingsRevision >= 0 ? MainCtx.actionShortcut("toggle-fullscreen") : "")
+                shortcut: root._fullscreenShortcut
 
                 AccessibleCompat.id: "topBarFullscreenButton"
 
@@ -300,7 +303,7 @@ FocusScope {
 
                 showFullscreen: true
                 fullscreenChecked: root._fullscreen
-                fullscreenShortcut: (MainCtx.keyBindingsRevision >= 0 ? MainCtx.actionShortcut("toggle-fullscreen") : "")
+                fullscreenShortcut: root._fullscreenShortcut
 
                 onFullscreenClicked: root.toggleFullscreen()
 

@@ -17,11 +17,11 @@
  *****************************************************************************/
 #include "window_chrome.hpp"
 
-#include <algorithm>
-
 #include <QDir>
 #include <QProcess>
 #include <QSettings>
+
+#include <algorithm>
 
 namespace WindowChrome
 {
@@ -72,7 +72,7 @@ ButtonsSide buttonsSideFromKdeButtons( const QString &onLeft, const QString &onR
     return ButtonsSide::Right;
 }
 
-ButtonsSide desktopButtonsSide()
+void queryDesktopButtonsSide( QObject *context, std::function<void( ButtonsSide )> done )
 {
 #if defined(Q_OS_UNIX) && !defined(Q_OS_DARWIN)
     const QString desktop = qEnvironmentVariable( "XDG_CURRENT_DESKTOP" );
@@ -84,9 +84,10 @@ ButtonsSide desktopButtonsSide()
             dir = QDir::homePath() + QLatin1String( "/.config" );
         QSettings kwin( dir + QLatin1String( "/kwinrc" ), QSettings::IniFormat );
         kwin.beginGroup( QStringLiteral( "org.kde.kdecoration2" ) );
-        return buttonsSideFromKdeButtons(
-                    kwin.value( QStringLiteral( "ButtonsOnLeft" ), QStringLiteral( "MS" ) ).toString(),
-                    kwin.value( QStringLiteral( "ButtonsOnRight" ), QStringLiteral( "HIAX" ) ).toString() );
+        done( buttonsSideFromKdeButtons(
+                  kwin.value( QStringLiteral( "ButtonsOnLeft" ), QStringLiteral( "MS" ) ).toString(),
+                  kwin.value( QStringLiteral( "ButtonsOnRight" ), QStringLiteral( "HIAX" ) ).toString() ) );
+        return;
     }
 
     static const char *const gnomeLike[] = { "GNOME", "Unity", "Budgie", "Pantheon", "Pop" };
@@ -95,21 +96,29 @@ ButtonsSide desktopButtonsSide()
         if( !desktop.contains( QLatin1String( name ), Qt::CaseInsensitive ) )
             continue;
 
-        QProcess gsettings;
-        gsettings.start( QStringLiteral( "gsettings" ),
-                         { QStringLiteral( "get" ),
-                           QStringLiteral( "org.gnome.desktop.wm.preferences" ),
-                           QStringLiteral( "button-layout" ) } );
-        if( !gsettings.waitForFinished( 1000 ) || gsettings.exitCode() != 0 )
-        {
-            gsettings.kill();
-            gsettings.waitForFinished( 100 );
-            return ButtonsSide::Right;
-        }
-        return buttonsSideFromGnomeLayout( QString::fromUtf8( gsettings.readAllStandardOutput() ) );
+        // the right side until gsettings answers, which may take a while
+        auto gsettings = new QProcess( context );
+        QObject::connect( gsettings, &QProcess::finished, context,
+                          [gsettings, done]( int exitCode, QProcess::ExitStatus status ) {
+            if( status == QProcess::NormalExit && exitCode == 0 )
+                done( buttonsSideFromGnomeLayout( QString::fromUtf8( gsettings->readAllStandardOutput() ) ) );
+            gsettings->deleteLater();
+        } );
+        QObject::connect( gsettings, &QProcess::errorOccurred, context,
+                          [gsettings]( QProcess::ProcessError error ) {
+            if( error == QProcess::FailedToStart )
+                gsettings->deleteLater();
+        } );
+        gsettings->start( QStringLiteral( "gsettings" ),
+                          { QStringLiteral( "get" ),
+                            QStringLiteral( "org.gnome.desktop.wm.preferences" ),
+                            QStringLiteral( "button-layout" ) } );
+        return;
     }
+#else
+    Q_UNUSED( context );
 #endif
-    return ButtonsSide::Right;
+    done( ButtonsSide::Right );
 }
 
 QRect pictureInPictureGeometry( const QRect &available, const QSize &videoSize,

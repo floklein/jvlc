@@ -20,14 +20,19 @@
 #endif
 
 #include "open_capture_model.hpp"
-#include "util/shared_input_item.hpp"
 
-#include <QDir>
-#include <QRegularExpression>
-
+#include <vlc_common.h>
 #include <vlc_configuration.h>
 #include <vlc_input_item.h>
 #include <vlc_modules.h>
+
+#include "util/shared_input_item.hpp"
+
+#include <QCoreApplication>
+#include <QDir>
+#include <QPointer>
+#include <QRegularExpression>
+#include <QThreadPool>
 
 namespace {
 
@@ -509,25 +514,42 @@ void OpenCaptureModel::updateAdvancedOptions()
 
 void OpenCaptureModel::refreshDevices()
 {
+    /* DirectShow takes a while to enumerate the devices: not on the UI
+     * thread */
+    QPointer<OpenCaptureModel> self(this);
+    QThreadPool::globalInstance()->start([self]() {
+        QVariantList video;
+        QVariantList audio;
 #ifdef _WIN32
-    if (module_exists("dshow"))
-    {
-        /* DirectShow lists "" (the default device) and "none" first, unless
-         * its list callback cannot be reached */
-        const auto withDefaults = [](QVariantList devices) {
-            if (!containsValue(devices, QStringLiteral("none")))
-                devices.prepend(choice(QStringLiteral("none"), qtr("None")));
-            if (!containsValue(devices, QString()))
-                devices.prepend(choice(QString(), qtr("Default")));
-            return devices;
-        };
-        m_videoDevices = withDefaults(stringChoices("dshow-vdev"));
-        m_audioDevices = withDefaults(stringChoices("dshow-adev"));
-    }
+        if (module_exists("dshow"))
+        {
+            /* DirectShow lists "" (the default device) and "none" first,
+             * unless its list callback cannot be reached */
+            const auto withDefaults = [](QVariantList devices) {
+                if (!containsValue(devices, QStringLiteral("none")))
+                    devices.prepend(choice(QStringLiteral("none"), qtr("None")));
+                if (!containsValue(devices, QString()))
+                    devices.prepend(choice(QString(), qtr("Default")));
+                return devices;
+            };
+            video = withDefaults(stringChoices("dshow-vdev"));
+            audio = withDefaults(stringChoices("dshow-adev"));
+        }
 #else
-    m_videoDevices = v4l2VideoDevices();
-    m_audioDevices = alsaCaptureDevices();
+        video = v4l2VideoDevices();
+        audio = alsaCaptureDevices();
 #endif
+        QMetaObject::invokeMethod(qApp, [self, video, audio]() {
+            if (self)
+                self->setDevices(video, audio);
+        }, Qt::QueuedConnection);
+    });
+}
+
+void OpenCaptureModel::setDevices(const QVariantList& video, const QVariantList& audio)
+{
+    m_videoDevices = video;
+    m_audioDevices = audio;
     emit devicesChanged();
 
     /* keep the selection if the device is still there */

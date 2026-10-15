@@ -21,14 +21,16 @@
 #endif
 
 #include "profiles_model.hpp"
+
+#include <vlc_common.h>
+#include <vlc_configuration.h>
+#include <vlc_modules.h>
+#include <vlc_plugin.h>
+
 #include "settings_registry.hpp"
 
 #include <QSettings>
 #include <QUuid>
-
-#include <vlc_configuration.h>
-#include <vlc_modules.h>
-#include <vlc_plugin.h>
 
 namespace {
 

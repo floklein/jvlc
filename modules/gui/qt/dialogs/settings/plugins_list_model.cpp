@@ -22,11 +22,12 @@
 
 #include "plugins_list_model.hpp"
 
-#include <QCollator>
+#include <vlc_common.h>
+#include <vlc_modules.h>
 
 #include "qt.hpp"
 
-#include <vlc_modules.h>
+#include <QCollator>
 
 #include <algorithm>
 

@@ -23,8 +23,14 @@
 #include "config.h"
 #endif
 
+#include "mlhelper.hpp"
+#include "mlrecenthidelist.hpp"
 #include "mlvideomodel.hpp"
 
+/**
+ * Continue Watching: the videos of the history stopped before their end,
+ * except the ones Recent hides (Clear Recent, Remove from Recent).
+ */
 class MLRecentVideoModel : public MLVideoModel
 {
     Q_OBJECT
@@ -41,16 +47,28 @@ protected: // MLVideoModel reimplementation
     void onVlcMlEvent(const MLEvent & event) override;
 
 private:
+    void onMlChanged();
+
     struct Loader : public MLListCacheLoader::MLOp
     {
-        using MLListCacheLoader::MLOp::MLOp;
+        explicit Loader(const MLRecentVideoModel& model);
 
         size_t count(vlc_medialibrary_t* ml, const vlc_ml_query_params_t*) const override;
 
         std::vector<std::unique_ptr<MLItem>> load(vlc_medialibrary_t* ml, const vlc_ml_query_params_t*) const override;
 
         std::unique_ptr<MLItem> loadItemById(vlc_medialibrary_t* ml, MLItemId itemId) const override;
+
+    private:
+        // the videos in progress and not hidden, in the order asked
+        std::vector<const vlc_ml_media_t*> inProgress(const vlc_ml_media_list_t* list) const;
+        ml_unique_ptr<vlc_ml_media_list_t> listAll(vlc_medialibrary_t* ml,
+                                                   const vlc_ml_query_params_t* queryParams) const;
+
+        std::shared_ptr<const MLRecentHideList::Source> m_hideList;
     };
+
+    QMetaObject::Connection m_hideListConnection;
 };
 
 #endif // ML_RECENT_VIDEO_MODEL_H

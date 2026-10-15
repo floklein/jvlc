@@ -42,14 +42,6 @@ constexpr QChar SETTINGS_PROFILE_SEPARATOR {'$'};
 
 using C = ControlListModel;
 
-// The mini player is not customizable: every Layout uses this arrangement
-static const PlayerControlbarModel::Zones miniPlayerZones {
-    QVector<int> { C::ARTWORK_INFO },
-    QVector<int> { C::RANDOM_BUTTON, C::PREVIOUS_BUTTON, C::PLAY_BUTTON, C::NEXT_BUTTON, C::LOOP_BUTTON },
-    QVector<int> { C::VOLUME, C::PLAYER_SWITCH_BUTTON },
-    QVector<int> {}, QVector<int> {}, QVector<int> {}
-};
-
 decltype (ControlbarProfileModel::m_defaults)
     ControlbarProfileModel::m_defaults =
         {
@@ -59,7 +51,6 @@ decltype (ControlbarProfileModel::m_defaults)
                 {
                     { PlayerControlbarModel::Videoplayer, {} },
                     { PlayerControlbarModel::Audioplayer, {} },
-                    { PlayerControlbarModel::Miniplayer, miniPlayerZones }
                 }
             },
             {
@@ -96,8 +87,7 @@ decltype (ControlbarProfileModel::m_defaults)
                             QVector<int> { C::TITLE_WIDGET },
                             QVector<int> {}
                         }
-                    },
-                    { PlayerControlbarModel::Miniplayer, miniPlayerZones }
+                    }
                 }
             },
             {
@@ -128,8 +118,7 @@ decltype (ControlbarProfileModel::m_defaults)
                                            C::PLAYLIST_BUTTON },
                             QVector<int> {}, QVector<int> {}, QVector<int> {}
                         }
-                    },
-                    { PlayerControlbarModel::Miniplayer, miniPlayerZones }
+                    }
                 }
             }
         };
@@ -400,7 +389,7 @@ bool ControlbarProfileModel::testOpenEditor() const
 void ControlbarProfileModel::resetToDefault(int identifier)
 {
     const auto ptrProfile = currentModel();
-    if (!ptrProfile || identifier == PlayerControlbarModel::Miniplayer)
+    if (!ptrProfile)
         return;
 
     Style style = Style::DEFAULT_STYLE;
@@ -442,10 +431,6 @@ void ControlbarProfileModel::save(bool clearDirty) const
         for (auto it = ptrModelMap.constBegin(); it != ptrModelMap.end(); ++it)
         {
             const int identifier = it.key();
-
-            // the mini player is fixed
-            if (identifier == PlayerControlbarModel::Miniplayer)
-                continue;
 
             const auto serializedModels = m_profiles.at(i)->getModelData(identifier);
 
@@ -498,8 +483,7 @@ bool ControlbarProfileModel::reload()
     }
 
     beginResetModel();
-
-    // what a saved Layout lacks comes from Default, and the mini player
+    // what a saved Layout lacks comes from Default
     // always does
     QVector<ControlbarProfile::Configuration> defaults;
     for (const auto& i : m_defaults)
@@ -539,7 +523,8 @@ bool ControlbarProfileModel::reload()
 
             bool ok = false;
             int identifier = alignments[0].toInt(&ok);
-            if (!ok || identifier < 0 || identifier == PlayerControlbarModel::Miniplayer)
+            // an unknown player (the old mini player layout): ignored
+            if (!ok || identifier < 0 || identifier > PlayerControlbarModel::Audioplayer)
                 continue;
 
             static const auto split = [](auto ref) {

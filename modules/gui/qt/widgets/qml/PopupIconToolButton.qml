@@ -57,6 +57,18 @@ Widgets.IconToolButton {
             parent.Navigation.defaultNavigationUp()
     }
 
+    // the popup opens above the bar that holds the button (an ancestor named
+    // "controlBar", from the top of its background), not over it
+    property real _barOffset: 0
+
+    function _barTop() : real {
+        for (let item = control.parent; item; item = item.parent) {
+            if (item.objectName === "controlBar")
+                return control.mapFromItem(item, 0, item.topInset ?? 0).y
+        }
+        return 0
+    }
+
     // Events
 
     onClicked: popup.open()
@@ -69,7 +81,9 @@ Widgets.IconToolButton {
         id: popup
 
         x: (parent.width - width) / 2
-        y: -height - VLCStyle.margin_xxxsmall
+        y: control._barOffset - height - VLCStyle.margin_xxxsmall
+
+        onAboutToShow: control._barOffset = Math.min(control._barTop(), 0)
 
         // the accessible name only, it shows no header
         title: control.description

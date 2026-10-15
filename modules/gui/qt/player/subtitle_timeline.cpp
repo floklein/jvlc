@@ -17,10 +17,13 @@
  *****************************************************************************/
 #include "subtitle_timeline.hpp"
 
+#include <vlc_common.h>
 #include <vlc_block.h>
 #include <vlc_demux.h>
 #include <vlc_es_out.h>
 #include <vlc_stream.h>
+
+#include "qt.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -345,12 +348,19 @@ QString SubtitleTimeline::unsupportedReason() const
     switch (m_kind)
     {
     case EmbeddedTrack:
-        return tr("Only subtitles from a separate file can be shown on the timeline.");
+        return qtr("Only subtitles from a separate file can be shown on the timeline.");
     case ExternalPictureTrack:
-        return tr("Only text subtitles can be shown on the timeline.");
+        return qtr("Only text subtitles can be shown on the timeline.");
     default:
         return {};
     }
+}
+
+QString SubtitleTimeline::note() const
+{
+    if (m_kind == NoTrack)
+        return qtr("Shows the lines of a subtitle file once one is on.");
+    return unsupportedReason();
 }
 
 void SubtitleTimeline::setEnabled(bool enabled)
@@ -368,7 +378,7 @@ void SubtitleTimeline::setTrack(TrackKind kind, const QString& mrl)
     if (m_kind == kind && m_mrl == source)
         return;
 
-    const QString oldReason = unsupportedReason();
+    const QString oldReason = note();
     m_kind = kind;
     if (m_mrl != source)
     {
@@ -378,7 +388,7 @@ void SubtitleTimeline::setTrack(TrackKind kind, const QString& mrl)
         setCues({});
     }
 
-    if (unsupportedReason() != oldReason)
+    if (note() != oldReason)
         emit unsupportedReasonChanged();
     update();
 }

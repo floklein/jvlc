@@ -76,10 +76,7 @@ void ControlbarProfile::setModelData(int identifier, const PlayerControlbarModel
     }
 
     // the Layouts the user customizes follow the rules of Customize Player
-    if (identifier == PlayerControlbarModel::Miniplayer)
-        ptrModel->loadModels(data);
-    else
-        ptrModel->loadModels(PlayerControlbarModel::sanitized(data));
+    ptrModel->loadModels(PlayerControlbarModel::sanitized(data));
 
     ptrModel->setDirty(true);
 }

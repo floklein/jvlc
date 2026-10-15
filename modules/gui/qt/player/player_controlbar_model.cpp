@@ -29,8 +29,7 @@
 decltype (PlayerControlbarModel::playerIdentifierDictionary)
     PlayerControlbarModel::playerIdentifierDictionary {
         {Videoplayer, N_("Video player")},
-        {Audioplayer, N_("Music player")},
-        {Miniplayer,  N_("Mini player")}
+        {Audioplayer, N_("Music player")}
     };
 
 QJSValue PlayerControlbarModel::getPlaylistIdentifierListModel(QQmlEngine *engine, QJSEngine *scriptEngine)
@@ -45,10 +44,6 @@ QJSValue PlayerControlbarModel::getPlaylistIdentifierListModel(QQmlEngine *engin
     for (int i = 0; i < metaEnum.keyCount(); ++i)
     {
        const int val = metaEnum.value(i);
-
-       // the mini player is not customizable
-       if (val == Miniplayer)
-           continue;
 
        QJSValue obj = scriptEngine->newObject();
 

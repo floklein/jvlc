@@ -526,6 +526,19 @@ Item {
         onAboutToHide: restoreFocus()
     }
 
+    // DialogsProvider.confirm(): a question in the interface's own style
+    Connections {
+        target: DialogsProvider
+
+        function onConfirmationRequested(title, text, acceptText) {
+            customDialog.title = title
+            customDialog.ask(text,
+                             () => DialogsProvider.answerConfirmation(true),
+                             () => DialogsProvider.answerConfirmation(false),
+                             { ok: acceptText, cancel: qsTr("Cancel") })
+        }
+    }
+
     Loader {
         id: toolbarEditorDialogLoader
         active: false

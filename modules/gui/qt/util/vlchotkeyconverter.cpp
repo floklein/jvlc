@@ -454,9 +454,11 @@ const AppAction appActions[] = {
     { "adjustments",          "Ctrl+E" },
     { "codec-info",           "Ctrl+J" },
     { "convert",              "Ctrl+R" },
+    { "help",                 "F1" },
     { "hide-ui",              "Ctrl+H" },
     { "interface-fullscreen", "F11" },
     { "jump-to-time",         "Ctrl+T" },
+    { "library-pane",         "Ctrl+Shift+L" },
     { "library-search",       "Ctrl+F" },
     { "media-info",           "Ctrl+I" },
     { "messages",             "Ctrl+M" },
@@ -534,6 +536,25 @@ QString appActionSequence( vlc_object_t *obj, const QString &action )
     if( it->isEmpty() )
         return {};
     return vlcKeyToQtSequence( vlc_str2keycode( qtu( *it ) ) );
+}
+
+QString coreActionSequence( vlc_object_t *obj, const QString &action )
+{
+    // only known actions have a "key-" option
+    const QByteArray option = "key-" + action.toUtf8();
+    if( vlc_actions_get_id( option.constData() ) == ACTIONID_NONE )
+        return {};
+
+    uint_fast32_t *keycodes = nullptr;
+    const size_t count = vlc_actions_get_keycodes( obj, option.constData() + 4, false, &keycodes );
+    QString sequence;
+    for( size_t i = 0; i < count && sequence.isEmpty(); ++i )
+    {
+        if( keycodes[i] != KEY_UNSET )
+            sequence = vlcKeyToQtSequence( keycodes[i] );
+    }
+    free( keycodes );
+    return sequence;
 }
 
 QString actionKeyText( vlc_object_t *obj, const QString &action )

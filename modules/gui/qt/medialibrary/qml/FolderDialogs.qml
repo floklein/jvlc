@@ -53,7 +53,7 @@ Item {
                           (presetName) => {
                               const id = Presets.model.create(presetName)
                               if (id !== "")
-                                  Presets.model.attach(path, id)
+                                  Presets.chooseForFolder(path, id)
                           })
         }
     }
@@ -138,7 +138,7 @@ Item {
                 rows.push([qsTr("Duration"), properties._duration(folder.duration)])
             if ((folder.size ?? 0) > 0)
                 rows.push([qsTr("Size"), properties._size(folder.size)])
-            if (!properties._songs && (folder.path ?? "") !== "") {
+            if ((folder.path ?? "") !== "") {
                 const id = Presets.model.presetOf(folder.path)
                 rows.push([qsTr("Preset"), id === "" ? qsTr("Default") : Presets.model.name(id)])
             }

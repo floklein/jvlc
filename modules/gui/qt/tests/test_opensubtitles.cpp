@@ -32,8 +32,10 @@
 #include <vlc_variables.h>
 
 #include "../dialogs/subtitles/add_subtitles_model.hpp"
+#include "../dialogs/subtitles/http_request.hpp"
 #include "../dialogs/subtitles/opensubtitles.hpp"
 #include "../dialogs/subtitles/opensubtitles_models.hpp"
+#include "../dialogs/subtitles/subtitle_matching.hpp"
 #include "../medialibrary/medialib.hpp"
 #include "../player/player_controller.hpp"
 #include "../playlist/playlist_controller.hpp"
@@ -44,6 +46,7 @@
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -157,6 +160,9 @@ public:
     int userRemaining = 19;
     /* plain files under /links/ */
     QMap<QString, QByteArray> links;
+    /* if set, the raw bytes sent for a request instead of the answer: an
+     * empty answer sends nothing until the server stops */
+    std::function<QByteArray(const Request &)> raw;
 
     explicit MockApi(vlc_object_t *obj)
         : m_obj(obj)
@@ -253,7 +259,8 @@ private:
     void run()
     {
         vlc_interrupt_set(m_interrupt);
-        for (;;)
+        /* a stalled reply may have consumed the interruption */
+        while (!vlc_killed())
         {
             /* interrupted by the destructor */
             const int fd = vlc_accept_i11e(m_fds[0], nullptr, nullptr, false);
@@ -316,10 +323,26 @@ private:
         request.json = QJsonDocument::fromJson(body).object();
 
         Reply reply;
+        std::function<QByteArray(const Request &)> rawReply;
         {
             std::lock_guard<std::mutex> lock(m_lock);
             m_received.push_back(request);
-            reply = answer(request);
+            rawReply = raw;
+            if (!rawReply)
+                reply = answer(request);
+        }
+        if (rawReply)
+        {
+            const QByteArray bytes = rawReply(request);
+            if (bytes.isEmpty())
+            {
+                /* stalled until the destructor interrupts the server */
+                vlc_mwait_i11e(vlc_tick_now() + VLC_TICK_FROM_SEC(30));
+                return;
+            }
+            vlc_tls_Write(socket, bytes.constData(), bytes.size());
+            vlc_tls_Shutdown(socket, true);
+            return;
         }
 
         QByteArray out = "HTTP/1.1 " + QByteArray::number(reply.status) + " X\r\n"
@@ -539,6 +562,32 @@ private slots:
         QTest::newRow("movie") << "Some.Movie.2010.1080p.BluRay.x264.mkv" << "Some Movie";
         QTest::newRow("year first") << "2001.A.Space.Odyssey.1968.mkv" << "2001 A Space Odyssey";
         QTest::newRow("plain") << "holidays.mp4" << "holidays";
+        // an audio and a video codec are no season and episode
+        QTest::newRow("codecs") << "Some.Movie.2019.DDP5.1x264.mkv" << "Some Movie";
+        QTest::newRow("dots, crossed") << "The.Wand.1x02.mkv" << "The Wand S01E02";
+    }
+
+    // Add Subtitles to a folder matches with the same reading of the names
+    void testOneEpisodeParser_data()
+    {
+        QTest::addColumn<QString>("name");
+        QTest::addColumn<int>("season");
+        QTest::addColumn<int>("episode");
+        QTest::newRow("season episode") << "Show.S01E02.720p" << 1 << 2;
+        QTest::newRow("crossed") << "Show 1x02" << 1 << 2;
+        QTest::newRow("episode") << "Show - E05" << -1 << 5;
+        QTest::newRow("codecs") << "Movie.DDP5.1x264" << -1 << -1;
+        QTest::newRow("resolution") << "Movie.1920x1080" << -1 << -1;
+    }
+
+    void testOneEpisodeParser()
+    {
+        QFETCH(QString, name);
+        QFETCH(int, season);
+        QFETCH(int, episode);
+        const subtitlematching::EpisodeNumber number = subtitlematching::parseEpisode(name);
+        QCOMPARE(number.season, season);
+        QCOMPARE(number.episode, episode);
     }
 
     void testParsesTheNameOfAVideo()
@@ -874,6 +923,87 @@ private slots:
         QVERIFY(!after->quota().signedIn);
     }
 
+    // HTTP
+
+    void testHttpRefusesAChunkLargerThanTheLimit()
+    {
+        /* a small chunk, then one whose size wraps the total around */
+        m_api->raw = [](const MockApi::Request &) -> QByteArray {
+            return "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n"
+                   "2\r\nab\r\n7ffffffffffffffe\r\nabcd\r\n0\r\n\r\n";
+        };
+        HttpRequest request;
+        request.url = QUrl(m_api->base() + "/links/x.srt");
+        const HttpResponse response = httpRequest(VLC_OBJECT(m_env->intf), request);
+        QCOMPARE(response.status, 0);
+        QVERIFY(!response.error.isEmpty());
+    }
+
+    void testHttpRefusesEndlessHeaders()
+    {
+        m_api->raw = [](const MockApi::Request &) -> QByteArray {
+            QByteArray reply = "HTTP/1.1 200 OK\r\n";
+            for (int i = 0; i < 2000; ++i)
+                reply += "X-Filler-" + QByteArray::number(i) + ": " + QByteArray(64, 'x') + "\r\n";
+            return reply + "Content-Length: 2\r\n\r\nok";
+        };
+        HttpRequest request;
+        request.url = QUrl(m_api->base() + "/links/x.srt");
+        QCOMPARE(httpRequest(VLC_OBJECT(m_env->intf), request).status, 0);
+
+        /* nor a single endless line */
+        m_api->raw = [](const MockApi::Request &) -> QByteArray {
+            return "HTTP/1.1 200 OK\r\nX-Long: " + QByteArray(256 * 1024, 'x')
+                   + "\r\nContent-Length: 2\r\n\r\nok";
+        };
+        QCOMPARE(httpRequest(VLC_OBJECT(m_env->intf), request).status, 0);
+    }
+
+    void testHttpGivesUpAfterTheTimeout()
+    {
+        m_api->raw = [](const MockApi::Request &) { return QByteArray(); };
+        HttpRequest request;
+        request.url = QUrl(m_api->base() + "/links/x.srt");
+        request.timeout = VLC_TICK_FROM_MS(300);
+        QElapsedTimer timer;
+        timer.start();
+        const HttpResponse response = httpRequest(VLC_OBJECT(m_env->intf), request);
+        QCOMPARE(response.status, 0);
+        QVERIFY(!response.error.isEmpty());
+        QVERIFY2(timer.elapsed() < 10000, qPrintable(QString::number(timer.elapsed())));
+    }
+
+    void testHttpRedirectKeepsTheKeysOnTheSameHostOnly()
+    {
+        MockApi other(VLC_OBJECT(m_env->intf));
+        QVERIFY(other.listening());
+        other.links.insert("x.srt", srt("elsewhere"));
+        const QByteArray target = (other.base() + "/links/x.srt").toLatin1();
+        m_api->raw = [target](const MockApi::Request &r) -> QByteArray {
+            const QByteArray location = r.path == "/same" ? QByteArray("/api/v1/infos/user") : target;
+            return "HTTP/1.1 302 Found\r\nLocation: " + location + "\r\nContent-Length: 0\r\n\r\n";
+        };
+
+        HttpRequest request;
+        request.url = QUrl(m_api->base() + "/elsewhere");
+        request.headers = { { "User-Agent", "test" }, { "Api-Key", "test-key" },
+                            { "Authorization", "Bearer token-of-jane" } };
+        const HttpResponse response = httpRequest(VLC_OBJECT(m_env->intf), request);
+        QVERIFY(response.ok());
+        QVERIFY(response.body.contains("elsewhere"));
+        const MockApi::Request sent = other.last("GET", "/links/x.srt");
+        QCOMPARE(sent.method, QByteArray("GET"));
+        QCOMPARE(sent.headers.value("user-agent"), QByteArray("test"));
+        QVERIFY(!sent.headers.contains("api-key"));
+        QVERIFY(!sent.headers.contains("authorization"));
+
+        /* the same host keeps them */
+        request.url = QUrl(m_api->base() + "/same");
+        httpRequest(VLC_OBJECT(m_env->intf), request);
+        const MockApi::Request same = m_api->last("GET", "/api/v1/infos/user");
+        QCOMPARE(same.headers.value("api-key"), QByteArray("test-key"));
+    }
+
     // From Link…
 
     void testFromLinkAddsASubtitleFile()
@@ -918,6 +1048,8 @@ private slots:
             { "Show S01E02.srt", srt("second") },
             { "readme.txt", "not a subtitle" },
             { "Show S01E01.srt", srt("first") },
+            /* any subtitle format VLC reads */
+            { "Show S01E03.ttml", "<tt/>" },
         }));
 
         AddSubtitlesModel model(m_env->intf, m_medialib.get(), toMrl(video));
@@ -925,7 +1057,7 @@ private slots:
         QTRY_VERIFY(!model.fetching());
         QCOMPARE(model.linkError(), QString());
         QCOMPARE(names(model, AddSubtitlesModel::NameRole),
-                 QStringList({ "Show S01E01.srt", "Show S01E02.srt" }));
+                 QStringList({ "Show S01E01.srt", "Show S01E02.srt", "Show S01E03.ttml" }));
         /* several to choose from: none is checked */
         QCOMPARE(model.checkedCount(), 0);
 

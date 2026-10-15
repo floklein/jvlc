@@ -2574,7 +2574,8 @@ vlc_module_begin ()
 #   define KEY_SET_BOOKMARK8      "Ctrl+F8"
 #   define KEY_SET_BOOKMARK9      "Ctrl+F9"
 #   define KEY_SET_BOOKMARK10     "Ctrl+F10"
-#   define KEY_PLAY_BOOKMARK1     "F1"
+    /* F1 opens the online help */
+#   define KEY_PLAY_BOOKMARK1     NULL
 #   define KEY_PLAY_BOOKMARK2     "F2"
 #   define KEY_PLAY_BOOKMARK3     "F3"
 #   define KEY_PLAY_BOOKMARK4     "F4"

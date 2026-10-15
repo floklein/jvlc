@@ -18,6 +18,7 @@
 
 #include "shortcut_message.hpp"
 
+#include <vlc_common.h>
 #include <vlc_variables.h>
 #include <vlc_actions.h>
 #include <vlc_vout.h>
@@ -147,15 +148,15 @@ QString shortcutKeyText(uint_fast32_t vlcKey)
 
     switch (base)
     {
-        case KEY_UP:    text.replace(last, text.size() - last, QChar(0x2191)); break;
-        case KEY_DOWN:  text.replace(last, text.size() - last, QChar(0x2193)); break;
-        case KEY_LEFT:  text.replace(last, text.size() - last, QChar(0x2190)); break;
-        case KEY_RIGHT: text.replace(last, text.size() - last, QChar(0x2192)); break;
-        default:
-            // letters as printed on the keyboard: "Shift+R"
-            if (text.size() - last == 1)
-                text[last] = text[last].toUpper();
-            break;
+    case KEY_UP:    text.replace(last, text.size() - last, QChar(0x2191)); break;
+    case KEY_DOWN:  text.replace(last, text.size() - last, QChar(0x2193)); break;
+    case KEY_LEFT:  text.replace(last, text.size() - last, QChar(0x2190)); break;
+    case KEY_RIGHT: text.replace(last, text.size() - last, QChar(0x2192)); break;
+    default:
+        // letters as printed on the keyboard: "Shift+R"
+        if (text.size() - last == 1)
+            text[last] = text[last].toUpper();
+        break;
     }
     return text;
 }

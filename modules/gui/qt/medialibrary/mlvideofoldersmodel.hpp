@@ -31,6 +31,21 @@ class MLVideoFoldersModel : public MLBaseModel
 {
     Q_OBJECT
 
+    // the folders holding songs instead of videos (the Pin picker)
+    Q_PROPERTY(bool music READ music WRITE setMusic NOTIFY musicChanged FINAL)
+    // the folders holding videos or songs (Home's Frequently Visited Folders)
+    Q_PROPERTY(bool anyMedia READ anyMedia WRITE setAnyMedia NOTIFY anyMediaChanged FINAL)
+
+public:
+    bool music() const { return m_music; }
+    void setMusic(bool music);
+    bool anyMedia() const { return m_anyMedia; }
+    void setAnyMedia(bool anyMedia);
+
+signals:
+    void musicChanged();
+    void anyMediaChanged();
+
 public:
     enum Roles
     {
@@ -40,7 +55,8 @@ public:
         FOLDER_THUMBNAIL,
         FOLDER_DURATION,
         FOLDER_COUNT,
-        FOLDER_NB_VIDEOS
+        FOLDER_NB_VIDEOS,
+        FOLDER_NB_AUDIO
     };
 
 public:
@@ -62,14 +78,24 @@ protected: // MLBaseModel reimplementation
 private:
     struct Loader : public MLListCacheLoader::MLOp
     {
-        using MLListCacheLoader::MLOp::MLOp;
+        explicit Loader(const MLVideoFoldersModel& model)
+            : MLOp(model)
+            , m_type(model.m_anyMedia ? VLC_ML_MEDIA_TYPE_UNKNOWN
+                     : model.m_music ? VLC_ML_MEDIA_TYPE_AUDIO : VLC_ML_MEDIA_TYPE_VIDEO)
+        {}
         size_t count(vlc_medialibrary_t * ml, const vlc_ml_query_params_t* queryParams) const override;
 
         std::vector<std::unique_ptr<MLItem>> load(vlc_medialibrary_t * ml,
                                                   const vlc_ml_query_params_t* queryParams) const override;
 
         std::unique_ptr<MLItem> loadItemById(vlc_medialibrary_t* ml, MLItemId itemId) const override;
+
+    private:
+        const vlc_ml_media_type_t m_type;
     };
+
+    bool m_music = false;
+    bool m_anyMedia = false;
 };
 
 #endif // MLVIDEOFOLDERSMODEL_HPP

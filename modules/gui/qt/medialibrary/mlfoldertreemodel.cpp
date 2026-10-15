@@ -22,10 +22,7 @@
 
 #include "mlfoldertreemodel.hpp"
 
-#include <algorithm>
-
-#include <QCollator>
-
+#include <vlc_common.h>
 #include <vlc_media_library.h>
 
 #include "mlcustomcover.hpp"
@@ -33,6 +30,10 @@
 #include "mlhelper.hpp"
 #include "mlvideo.hpp"
 #include "util/vlctick.hpp"
+
+#include <QCollator>
+
+#include <algorithm>
 
 namespace {
 

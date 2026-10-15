@@ -219,6 +219,16 @@ void TrackListModel::unselectSecondary()
     vlc_player_UnselectEsId(m_player, m_data[row].m_id.get());
 }
 
+void TrackListModel::selectAsDefault(int row)
+{
+    if (row < 0 || row >= m_data.size())
+        return;
+    vlc_player_locker lock{ m_player };
+    const vlc_player_track* track = vlc_player_GetTrack(m_player, m_data[row].m_id.get());
+    if (track)
+        vlc_player_SelectDefaultTrack(m_player, track);
+}
+
 void TrackListModel::unselectAll()
 {
     if (m_data.isEmpty())

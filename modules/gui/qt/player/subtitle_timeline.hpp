@@ -63,6 +63,9 @@ class SubtitleTimeline : public QObject
     // why the current subtitle cannot be shown, empty when it can or when
     // there is no subtitle: the toggle is disabled with this explanation
     Q_PROPERTY(QString unsupportedReason READ unsupportedReason NOTIFY unsupportedReasonChanged FINAL)
+    // under the toggle: the unsupported reason, or why nothing shows without
+    // a subtitle; empty when the subtitle shows
+    Q_PROPERTY(QString note READ note NOTIFY unsupportedReasonChanged FINAL)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged FINAL)
     // the seek bar shows the timeline: it is on and the lines are known
     Q_PROPERTY(bool shown READ shown NOTIFY shownChanged FINAL)
@@ -107,6 +110,7 @@ public:
 
     bool enabled() const { return m_enabled; }
     QString unsupportedReason() const;
+    QString note() const;
     bool loading() const { return m_loading; }
     bool shown() const { return m_shown; }
 

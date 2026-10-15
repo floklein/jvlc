@@ -106,7 +106,7 @@ signals:
     void progressChanged();
 
 private:
-    struct Job {
+    struct Conversion {
         QString mrl;
         QString sout;
         QString destination;
@@ -132,7 +132,7 @@ private:
     vlc_player_t* m_player = nullptr;
     vlc_player_listener_id* m_listener = nullptr;
 
-    QVector<Job> m_jobs;
+    QVector<Conversion> m_conversions;
     bool m_cancelRequested = false;
     bool m_error = false;
     /* only accessed from the player callbacks */

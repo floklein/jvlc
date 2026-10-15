@@ -192,6 +192,50 @@ test_picked_tracks_are_remembered(struct ctx *ctx)
 }
 
 static void
+test_defaults_are_not_remembered(struct ctx *ctx)
+{
+    test_log("defaults_are_not_remembered\n");
+    vlc_player_t *player = ctx->player;
+
+    struct media_params movie = DEFAULT_MEDIA_PARAMS(VLC_TICK_FROM_SEC(16));
+    movie.track_count[SPU_ES] = 2;
+
+    /* the interface applies the preferences of the media's folder (its
+     * Preset): they aren't the media's own */
+    play(ctx, "movie", &movie);
+    int ret = vlc_player_SetCategoryDefaultDelay(player, AUDIO_ES,
+                                                 VLC_TICK_FROM_MS(250));
+    assert(ret == VLC_SUCCESS);
+    assert(vlc_player_GetAudioDelay(player) == VLC_TICK_FROM_MS(250));
+    while (vlc_player_GetSubtitleTrackCount(player) < 2)
+        vlc_player_CondWait(player, &ctx->wait);
+    vlc_player_SelectDefaultTrack(player, vlc_player_GetSubtitleTrackAt(player, 1));
+    while (!vlc_player_GetSubtitleTrackAt(player, 1)->selected)
+        vlc_player_CondWait(player, &ctx->wait);
+    test_end(ctx);
+
+    vlc_ml_playback_states_all states = saved_states(ctx, &movie);
+    assert(!states.has_audio_delay);
+    assert(states.current_subtitle_track == NULL);
+    vlc_ml_release(&states);
+
+    /* the viewer's own change after them is */
+    play(ctx, "movie", &movie);
+    assert_no_memory(player);
+    ret = vlc_player_SetCategoryDefaultDelay(player, SPU_ES, VLC_TICK_FROM_MS(100));
+    assert(ret == VLC_SUCCESS);
+    vlc_player_SetSubtitleDelay(player, VLC_TICK_FROM_MS(300),
+                                VLC_PLAYER_WHENCE_ABSOLUTE);
+    test_end(ctx);
+
+    states = saved_states(ctx, &movie);
+    assert(states.has_subtitle_delay);
+    assert(states.subtitle_delay == 300000);
+    assert(!states.has_audio_delay);
+    vlc_ml_release(&states);
+}
+
+static void
 test_speed_is_not_per_media(struct ctx *ctx)
 {
     test_log("speed_is_not_per_media\n");
@@ -257,6 +301,7 @@ main(void)
     test_delays_are_remembered_per_media(&ctx);
     test_music_remembers_too(&ctx);
     test_picked_tracks_are_remembered(&ctx);
+    test_defaults_are_not_remembered(&ctx);
     test_speed_is_not_per_media(&ctx);
     test_restore_can_be_turned_off(&ctx);
     ctx_destroy(&ctx);

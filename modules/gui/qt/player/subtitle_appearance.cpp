@@ -21,6 +21,8 @@
 
 #include "subtitle_appearance.hpp"
 
+#include "qt.hpp"
+
 #include <QLocale>
 #include <QSet>
 
@@ -207,9 +209,9 @@ QVariantList SubtitleAppearance::languages() const
     QVariantList languages;
     languages.reserve(static_cast<qsizetype>(list.size()) + 2);
     //: default subtitle language: the media picks its subtitles
-    languages.append(choice(QString(), tr("Automatic")));
+    languages.append(choice(QString(), qtr("Automatic")));
     //: default subtitle language: no subtitles
-    languages.append(choice(QStringLiteral("none"), tr("None")));
+    languages.append(choice(QStringLiteral("none"), qtr("None")));
     for (const Language& language : list)
         languages.append(choice(language.code, language.name));
     return languages;

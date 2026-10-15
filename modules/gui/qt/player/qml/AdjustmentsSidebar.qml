@@ -52,6 +52,7 @@ T.Pane {
     // every tab back to its defaults, except the default languages
     function resetAll() {
         Player.videoAdjustments.resetAll()
+        Player.resetVideoView()
         Player.audioAdjustments.resetAll()
         if (Player.rate !== 1)
             Player.rate = 1
@@ -60,6 +61,9 @@ T.Pane {
         if (Player.hasSecondarySubtitle)
             Player.secondarySubtitleDelayMS = 0
         Player.subtitleDurationFactor = 0
+        // the subtitle file's own speed
+        if (Player.subtitleFPS !== 0)
+            Player.subtitleFPS = 0
     }
 
     function _tabInfo(tab) {

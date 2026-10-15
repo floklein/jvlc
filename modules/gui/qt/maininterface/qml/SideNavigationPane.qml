@@ -95,6 +95,7 @@ T.Pane {
     function pinIcon(type) {
         switch (type) {
         case Pins.FOLDER:
+        case Pins.MUSIC_FOLDER:
             return VLCIcons.folder
         case Pins.PLAYLIST:
             return VLCIcons.playlist
@@ -108,6 +109,8 @@ T.Pane {
         switch (type) {
         case Pins.FOLDER:
             return ["video", "folders"]
+        case Pins.MUSIC_FOLDER:
+            return ["music", "tracks"]
         case Pins.PLAYLIST:
             return ["playlists", "list"]
         default:
@@ -120,7 +123,7 @@ T.Pane {
         const type = Pins.data(index, Pins.TYPE)
         const mlId = Pins.data(index, Pins.ML_ID)
 
-        if (type === Pins.FOLDER && mlId) {
+        if ((type === Pins.FOLDER || type === Pins.MUSIC_FOLDER) && mlId) {
             History.push(pinPath(type), { parentId: mlId }, focusReason)
         } else if (type === Pins.PLAYLIST && mlId) {
             History.push(pinPath(type), { parentId: mlId, title: Pins.data(index, Pins.LABEL) }, focusReason)

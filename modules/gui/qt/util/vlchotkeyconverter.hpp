@@ -83,6 +83,16 @@ QString formatAppKeys( const QHash<QString, QString> &keys );
 QString appActionSequence( struct vlc_object_t *obj, const QString &action );
 
 /**
+ * @brief the key sequence of a core hotkey action, for an interface shortcut
+ * that does the same (Quit)
+ * @param obj object the core key bindings are inherited from
+ * @param action action name, e.g. "quit"
+ * @return a portable key sequence ("Ctrl+Q"), or an empty string if @a action
+ * is not a core action or has no key
+ */
+QString coreActionSequence( struct vlc_object_t *obj, const QString &action );
+
+/**
  * @brief the key shown next to an action in menus and tooltips
  * @param obj object the core key bindings are inherited from
  * @param action a core hotkey action ("play-pause") or an interface action

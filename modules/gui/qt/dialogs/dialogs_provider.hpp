@@ -45,9 +45,9 @@
 
 #include <QEvent>
 #include <QFileDialog>
+#include <QJSValue>
 #include <QObject>
 #include <QStringList>
-#include <QMessageBox>
 #include <QPointer>
 #include <QUrl>
 
@@ -78,7 +78,6 @@ class QEvent;
 class QSignalMapper;
 class VLCMenuBar;
 
-class PluginDialog;
 class AddSubtitlesModel;
 class SubtitleMatchModel;
 namespace opensubtitles { class Client; }
@@ -105,7 +104,6 @@ public:
     };
     Q_ENUM(StreamAndCastTab)
 
-    Q_PROPERTY(bool pluginDialogVisible READ pluginDialogVisible NOTIFY pluginDialogVisibleChanged FINAL)
     Q_PROPERTY(bool prefsDialogVisible READ prefsDialogVisible NOTIFY prefsDialogVisibleChanged FINAL)
 
     static DialogsProvider *getInstance()
@@ -147,8 +145,6 @@ public:
 protected:
     void customEvent( QEvent *) override;
 
-    bool eventFilter(QObject *watched, QEvent *event) override;
-
 private:
     DialogsProvider( qt_intf_t * );
     virtual ~DialogsProvider() override;
@@ -165,6 +161,9 @@ private:
     // the Settings window is a QML window, see Dialogs.qml
     bool m_settingsDialogVisible = false;
 
+    /* the onAccepted of the pending confirm() */
+    QJSValue m_confirmation;
+
     QPointer<MediaPropertiesModel> m_playerMediaProperties;
     /* the model of the Add Subtitles dialog */
     QPointer<AddSubtitlesModel> m_addSubtitlesModel;
@@ -172,7 +171,6 @@ private:
     QPointer<SubtitleMatchModel> m_subtitleMatchModel;
     /* the OpenSubtitles session, shared by Add Subtitles and Settings */
     QPointer<opensubtitles::Client> m_openSubtitles;
-    std::unique_ptr<PluginDialog> m_pluginDialog;
     std::unique_ptr<input_item_parser_id_t,
                     decltype(&input_item_parser_id_Release)> m_parser;
 
@@ -181,10 +179,6 @@ private:
 
     void playerMediaProperties( MediaPropertiesModel::Tab tab );
 
-    template<typename T>
-    inline void ensureDialog(std::unique_ptr<T>& dialog);
-    template<typename T>
-    void toggleDialogVisible(std::unique_ptr<T>& dialog);
 
 public slots:
     void mediaInfoDialog( void );
@@ -192,12 +186,13 @@ public slots:
     void mediaInfoDialog( const PlaylistItem& pItem );
     void mediaInfoDialog( const MLItemId& itemId );
     void mediaCodecDialog();
-    bool questionDialog(const QString& text, const QString& title = {}) const;
-    QMessageBox::StandardButton messageDialog(const QString& text,
-                                              const QString& title = {},
-                                              const QMessageBox::StandardButtons buttons = QMessageBox::NoButton,
-                                              const QMessageBox::StandardButton defaultButton = QMessageBox::NoButton,
-                                              const QMessageBox::Icon icon = QMessageBox::NoIcon);
+    /* a question in the interface's own style (Dialogs.qml), rather than a
+     * system message box: onAccepted, a JavaScript function, runs if the
+     * user accepts */
+    void confirm(const QString& title, const QString& text, const QString& acceptText,
+                 const QJSValue& onAccepted);
+    /* Dialogs.qml: the answer to confirm() */
+    void answerConfirmation(bool accepted);
     // shows or hides the Settings window
     void prefsDialog();
     // opens Settings at a page ("general", "interface"...), Advanced
@@ -216,7 +211,6 @@ public slots:
     void sendKey( int key );
     void aboutDialog();
     void gotoTimeDialog();
-    void pluginDialog();
     void epgDialog();
     void setPopupMenu();
     void destroyPopupMenu();
@@ -272,7 +266,6 @@ public slots:
     void restartVLC();
 
 public:
-    bool pluginDialogVisible() const;
     bool prefsDialogVisible() const;
 
 signals:
@@ -302,13 +295,14 @@ signals:
     void showSubtitleMatches( SubtitleMatchModel *model );
 
     // requests to the QML dialogs
+    void confirmationRequested(const QString& title, const QString& text,
+                               const QString& acceptText);
     void showMessages();
     void showAbout();
     void showProgramGuide();
     void showJumpToTime();
 
     //visiblity signal
-    void pluginDialogVisibleChanged();
     void prefsDialogVisibleChanged();
 };
 

@@ -21,11 +21,11 @@
 
 #include "preparser_playlist_reader.hpp"
 
-#include "qt.hpp"
-
 #include <vlc_common.h>
 #include <vlc_input_item.h>
 #include <vlc_preparser.h>
+
+#include "qt.hpp"
 
 #include <QMetaObject>
 

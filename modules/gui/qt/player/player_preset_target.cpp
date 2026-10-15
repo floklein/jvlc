@@ -21,17 +21,17 @@
 
 #include "player_preset_target.hpp"
 
+#include <vlc_common.h>
+#include <vlc_configuration.h>
+#include <vlc_iso_lang.h>
+#include <vlc_player.h>
+
 #include "qt.hpp"
 #include "player_controller.hpp"
 #include "input_models.hpp"
 #include "audio_adjustments.hpp"
 #include "subtitle_appearance.hpp"
 #include "video_adjustments.hpp"
-
-#include <vlc_common.h>
-#include <vlc_configuration.h>
-#include <vlc_iso_lang.h>
-#include <vlc_player.h>
 
 #include <QColor>
 #include <QLocale>
@@ -368,12 +368,11 @@ void PlayerPresetTarget::apply(const QVariantMap& values)
                 if (value.toDouble() > 0.)
                     vlc_player_ChangeRate(player, value.toFloat());
             }
-            else if (key == QLatin1String("audio-delay"))
-                vlc_player_SetAudioDelay(player, VLC_TICK_FROM_MS(value.toLongLong()),
-                                         VLC_PLAYER_WHENCE_ABSOLUTE);
+            // not the file's own: only the viewer's later changes are
             else
-                vlc_player_SetSubtitleDelay(player, VLC_TICK_FROM_MS(value.toLongLong()),
-                                            VLC_PLAYER_WHENCE_ABSOLUTE);
+                vlc_player_SetCategoryDefaultDelay(player,
+                    key == QLatin1String("audio-delay") ? AUDIO_ES : SPU_ES,
+                    VLC_TICK_FROM_MS(value.toLongLong()));
         }
     }
     m_applying = false;
@@ -387,19 +386,7 @@ void PlayerPresetTarget::reportChanges(const QStringList& prefixes)
 {
     if (m_applying)
         return;
-    const QVariantMap all = values();
-    QVariantMap changed;
-    for (auto it = all.cbegin(); it != all.cend(); ++it)
-    {
-        for (const QString& prefix : prefixes)
-        {
-            if (it.key().startsWith(prefix))
-            {
-                changed.insert(it.key(), it.value());
-                break;
-            }
-        }
-    }
+    const QVariantMap changed = PresetController::keysMatching(values(), prefixes);
     if (!changed.isEmpty())
         emit changedByUser(changed);
 }
@@ -422,8 +409,9 @@ void PlayerPresetTarget::pickLanguages()
             const QModelIndex index = tracks->index(row);
             if (languageCode(tracks->data(index, TrackListModel::LanguageRole).toString()) != code)
                 continue;
+            // a preference, not the file's own pick
             if (!tracks->data(index, Qt::CheckStateRole).toBool())
-                tracks->select(row);
+                tracks->selectAsDefault(row);
             wanted.clear();
             return;
         }

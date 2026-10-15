@@ -112,6 +112,9 @@ struct VLCTestingEnv
     {
         int64_t id;
         int64_t lastPlayed;
+        // the video history lists the videos; -1: not in progress
+        vlc_ml_media_type_t type = VLC_ML_MEDIA_TYPE_UNKNOWN;
+        double progress = -1.;
     };
 
     // replace the history (sends HISTORY_CHANGED)

@@ -385,6 +385,10 @@ public slots:
     TrackListModel* getAudioTracks();
     TrackListModel* getSubtitleTracks();
 
+    /// zoom, aspect ratio and crop ratio of the video outputs back to their
+    /// defaults (Reset All Adjustments)
+    Q_INVOKABLE void resetVideoView();
+
     VLCDuration getAudioDelay() const;
     void setAudioDelay( VLCDuration );
     Q_INVOKABLE void addAudioDelay( VLCDuration );

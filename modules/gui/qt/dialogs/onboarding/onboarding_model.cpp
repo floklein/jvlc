@@ -22,14 +22,15 @@
 
 #include "onboarding_model.hpp"
 
+#include <vlc_common.h>
+#include <vlc_actions.h>
+
 #include "style/accent_colors.hpp"
 #include "util/vlchotkeyconverter.hpp"
 
 #include <QDir>
 #include <QUrl>
 #include <QVariantMap>
-
-#include <vlc_actions.h>
 
 namespace {
 
@@ -49,6 +50,7 @@ const struct
     { N_("Toggle fullscreen"),          { "toggle-fullscreen" } },
     { N_("Increase / decrease volume"), { "vol-up", "vol-down" } },
     { N_("Show / hide Queue"),          { "show-queue" } },
+    { N_("Show / hide the Library pane"), { "library-pane" } },
     { N_("Take a snapshot"),            { "snapshot" } },
     { N_("Record"),                     { "record" } },
 };

@@ -57,7 +57,23 @@ FocusScope {
             trackMenu.openOnTab(TrackMenuFSM.Subtitles)
             break
         case ControlListModel.EXTENDED_BUTTON:
+        case ControlListModel.PLAYBACK_SPEED_BUTTON:
             MainCtx.toggleAdjustments()
+            break
+        case ControlListModel.PLAYLIST_BUTTON:
+            MainCtx.playqueuePanel.visible = !MainCtx.playqueuePanel.visible
+            break
+        case ControlListModel.BOOKMARK_BUTTON:
+            MainCtx.addBookmark()
+            break
+        case ControlListModel.INFO_BUTTON:
+            DialogsProvider.mediaInfoDialog()
+            break
+        case ControlListModel.RENDERER_BUTTON:
+            DialogsProvider.streamAndCastDialog(DialogsProvider.CAST_TAB)
+            break
+        case ControlListModel.PICTURE_IN_PICTURE_BUTTON:
+            MainCtx.pictureInPicture = Player.isStarted
             break
         }
     }
@@ -129,6 +145,12 @@ FocusScope {
             rightPanel.toggleAdjustments()
         else if (pending >= 0)
             rightPanel.openAdjustments(pending)
+
+        // Jump to Time was asked for from the library
+        if (MainCtx.takePendingJumpToTime()) {
+            playerToolbarVisibilityFSM.askShow()
+            Qt.callLater(controlBar.openJumpToTime)
+        }
     }
 
     // test hook for screenshots (VLC_QT_TEST_SHOW_BARS): once the video
@@ -1377,6 +1399,7 @@ FocusScope {
                 PropertyChanges {
                     target: adjustmentsPanel
                     anchors.rightMargin: VLCStyle.spacing_20
+                    opacity: 1
                     visible: true
                 }
            }, State {
@@ -1384,12 +1407,14 @@ FocusScope {
                 PropertyChanges {
                     target: adjustmentsPanel
                     anchors.rightMargin: - (adjustmentsPanel.width + VLCStyle.spacing_20)
+                    // with reduced motion, it fades instead of sliding
+                    opacity: MainCtx.reduceMotion ? 0 : 1
                     visible: false
                 }
            }
         ]
 
-        // slides in and out, 150 ms
+        // slides in and out, 150 ms; fades with reduced motion
         transitions: Transition {
             id: adjustmentsTransition
             enabled: false
@@ -1400,11 +1425,18 @@ FocusScope {
             SequentialAnimation {
                 PropertyAction { property: "visible" }
 
-                NumberAnimation {
-                    property: "anchors.rightMargin"
-                    duration: MainCtx.reduceMotion ? 0 : VLCStyle.duration_short * 1.5
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
+                ParallelAnimation {
+                    NumberAnimation {
+                        property: "anchors.rightMargin"
+                        duration: MainCtx.reduceMotion ? 0 : VLCStyle.duration_short * 1.5
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
+                    }
+
+                    NumberAnimation {
+                        property: "opacity"
+                        duration: MainCtx.reduceMotion ? VLCStyle.duration_short * 1.5 : 0
+                    }
                 }
             }
         }
@@ -1490,6 +1522,7 @@ FocusScope {
                 PropertyChanges {
                     target: libraryPaneLoader
                     anchors.leftMargin: 0
+                    opacity: 1
                     visible: true
                 }
             }, State {
@@ -1497,12 +1530,14 @@ FocusScope {
                 PropertyChanges {
                     target: libraryPaneLoader
                     anchors.leftMargin: - libraryPaneLoader.width
+                    // with reduced motion, it fades instead of sliding
+                    opacity: MainCtx.reduceMotion ? 0 : 1
                     visible: false
                 }
             }
         ]
 
-        // slides in and out, 150 ms; instant with reduced motion
+        // slides in and out, 150 ms; fades with reduced motion
         transitions: Transition {
             id: libraryPaneTransition
 
@@ -1514,11 +1549,18 @@ FocusScope {
             SequentialAnimation {
                 PropertyAction { property: "visible" }
 
-                NumberAnimation {
-                    property: "anchors.leftMargin"
-                    duration: MainCtx.reduceMotion ? 0 : VLCStyle.duration_short * 1.5
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
+                ParallelAnimation {
+                    NumberAnimation {
+                        property: "anchors.leftMargin"
+                        duration: MainCtx.reduceMotion ? 0 : VLCStyle.duration_short * 1.5
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
+                    }
+
+                    NumberAnimation {
+                        property: "opacity"
+                        duration: MainCtx.reduceMotion ? VLCStyle.duration_short * 1.5 : 0
+                    }
                 }
             }
         }

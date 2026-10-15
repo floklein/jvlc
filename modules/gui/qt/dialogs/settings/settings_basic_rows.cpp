@@ -22,10 +22,11 @@
 
 #include "settings_basic_rows.hpp"
 
-#include "settings_model.hpp"
-
+#include <vlc_common.h>
 #include <vlc_configuration.h>
 #include <vlc_modules.h>
+
+#include "settings_model.hpp"
 
 #include <algorithm>
 #include <cstring>

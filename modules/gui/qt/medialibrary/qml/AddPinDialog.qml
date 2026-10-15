@@ -62,6 +62,13 @@ Item {
                 "label": "title",
                 "empty": qsTr("No folders yet")
             }, {
+                // the folders of Music ▸ Songs
+                "text": qsTr("Music Folders"),
+                "type": Pins.MUSIC_FOLDER,
+                "model": musicFolders,
+                "label": "title",
+                "empty": qsTr("No music folders yet")
+            }, {
                 "text": qsTr("Playlists"),
                 "type": Pins.PLAYLIST,
                 "model": playlists,
@@ -96,6 +103,15 @@ Item {
             id: folders
 
             ml: MediaLib
+            sortCriteria: "title"
+            searchPattern: searchField.text
+        }
+
+        MLVideoFoldersModel {
+            id: musicFolders
+
+            ml: MediaLib
+            music: true
             sortCriteria: "title"
             searchPattern: searchField.text
         }

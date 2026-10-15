@@ -65,3 +65,24 @@ We use Sentence for:
  - Tooltips
 
 We use "..." after a menu item if it opens another dialog.
+
+** Test hooks **
+
+Screenshots of states that otherwise need a mouse or a keyboard are taken
+without any input: these environment variables put the interface in such a
+state. They change nothing when unset, and are not user settings.
+
+ - VLC_QT_TEST_HIDE_UI: start in Hide UI (mainctx.cpp)
+ - VLC_QT_TEST_SHOW_BARS=<panel>: reveal the bars over the playing video,
+   also in Hide UI, and open the panel named queue, adjustments or library
+   (any other value: no panel) (MainCtx::testShowBars, Player.qml)
+ - VLC_QT_TEST_SEEK_PREVIEW=<0 to 1>: the seek bar previews that position as
+   if hovered (SeekThumbnailer::testPosition)
+ - VLC_QT_TEST_VIDEO_ADJUSTMENTS="hue=120;negate=1": Video tab values set on
+   the first video output (player_controller.cpp)
+ - VLC_QT_TEST_PICTURE_IN_PICTURE: Picture-in-picture once playback starts
+   (interface_window_handler.cpp)
+ - VLC_QT_TEST_CUSTOMIZE_PLAYER: open Customize Player at start
+   (ControlbarProfileModel, Dialogs.qml)
+
+Add new ones to this list.

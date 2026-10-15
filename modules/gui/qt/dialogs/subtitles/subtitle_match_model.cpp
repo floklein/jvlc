@@ -17,18 +17,20 @@
  *****************************************************************************/
 #include "subtitle_match_model.hpp"
 
-#include "medialibrary/medialib.hpp"
-#include "medialibrary/mlhelper.hpp"
-
+#include <vlc_common.h>
 #include <vlc_url.h>
 
-#include <algorithm>
+#include "http_request.hpp"
+#include "medialibrary/medialib.hpp"
+#include "medialibrary/mlhelper.hpp"
 
 #include <QCollator>
 #include <QDir>
 #include <QDirIterator>
 #include <QFileDialog>
 #include <QFileInfo>
+
+#include <algorithm>
 
 using namespace subtitlematching;
 
@@ -59,6 +61,12 @@ SubtitleMatchModel::SubtitleMatchModel(qt_intf_t* intf, MediaLib* ml, QObject* p
     , m_intf(intf)
     , m_ml(ml)
 {
+}
+
+SubtitleMatchModel::~SubtitleMatchModel()
+{
+    /* waits for a listing in progress */
+    m_worker.reset();
 }
 
 int SubtitleMatchModel::rowCount(const QModelIndex& parent) const
@@ -183,39 +191,69 @@ void SubtitleMatchModel::setFolder(const QString& folder)
     m_target = root.section('/', -1, -1, QString::SectionSkipEmpty);
     emit targetChanged();
 
-    /* its videos first, then its subfolders' */
-    QStringList files;
-    QDirIterator it(root, QDir::Files | QDir::Readable, QDirIterator::Subdirectories);
-    while (it.hasNext())
-    {
-        const QString path = QDir::fromNativeSeparators(it.next());
-        if (isVideoFile(path))
-            files.push_back(path.mid(root.size() + 1));
-    }
-    QCollator collator;
-    collator.setNumericMode(true);
-    collator.setCaseSensitivity(Qt::CaseInsensitive);
-    std::sort(files.begin(), files.end(), [&collator](const QString& a, const QString& b) {
-        const int depthA = a.count('/'), depthB = b.count('/');
-        if (depthA != depthB)
-            return depthA < depthB;
-        return collator.compare(a, b) < 0;
-    });
-
-    QStringList mrls;
-    for (const QString& file : files)
-        mrls.push_back(pathToMrl(root + '/' + file));
-
     /* the source the Show remembers, else the Show's folder */
     m_defaultSource = root;
-    m_rows.clear();
     const std::optional<ShowSubtitleSources::Show> remembered =
         ShowSubtitleSources(m_intf->mainSettings).showOf(root);
+    QString language;
+    bool all = false;
+    Source source(VLC_OBJECT(m_intf), root);
     if (remembered && QFileInfo::exists(remembered->source))
-        loadSource(Source(remembered->source), remembered->language, remembered->all);
-    else
-        loadSource(Source(root), {}, false);
-    setEpisodes(mrls, root);
+    {
+        source = Source(VLC_OBJECT(m_intf), remembered->source);
+        language = remembered->language;
+        all = remembered->all;
+    }
+
+    inBackground([root, source, language, all]() -> std::function<void(SubtitleMatchModel*)> {
+        /* its videos first, then its subfolders' */
+        QStringList files;
+        QDirIterator it(root, QDir::Files | QDir::Readable, QDirIterator::Subdirectories);
+        while (it.hasNext())
+        {
+            const QString path = QDir::fromNativeSeparators(it.next());
+            if (isVideoFile(path))
+                files.push_back(path.mid(root.size() + 1));
+        }
+        QCollator collator;
+        collator.setNumericMode(true);
+        collator.setCaseSensitivity(Qt::CaseInsensitive);
+        std::sort(files.begin(), files.end(), [&collator](const QString& a, const QString& b) {
+            const int depthA = a.count('/'), depthB = b.count('/');
+            if (depthA != depthB)
+                return depthA < depthB;
+            return collator.compare(a, b) < 0;
+        });
+
+        QStringList mrls;
+        for (const QString& file : files)
+            mrls.push_back(pathToMrl(root + '/' + file));
+
+        const QVector<Candidate> candidates = source.list();
+        return [root, source, candidates, mrls, language, all](SubtitleMatchModel* model) {
+            model->m_rows.clear();
+            model->loadSource(source, candidates, language, all);
+            model->setEpisodes(mrls, root);
+        };
+    });
+}
+
+void SubtitleMatchModel::inBackground(std::function<std::function<void(SubtitleMatchModel*)>()> job)
+{
+    if (!m_worker)
+        m_worker = std::make_unique<HttpWorker>();
+    if (m_pending++ == 0)
+        emit loadingChanged();
+    /* one by one: the results come in the order of the calls */
+    m_worker->post([this, job]() {
+        std::function<void(SubtitleMatchModel*)> apply = job();
+        /* dropped if the model goes first */
+        QMetaObject::invokeMethod(this, [this, apply]() {
+            apply(this);
+            if (--m_pending == 0)
+                emit loadingChanged();
+        }, Qt::QueuedConnection);
+    });
 }
 
 void SubtitleMatchModel::setPlaylist(const QString& name, const QStringList& mediaMrls)
@@ -238,9 +276,15 @@ void SubtitleMatchModel::setPlaylist(const QString& name, const QStringList& med
     }
 
     m_defaultSource = folder;
-    m_rows.clear();
-    loadSource(Source(folder), {}, false);
-    setEpisodes(mediaMrls, {});
+    const Source source(VLC_OBJECT(m_intf), folder);
+    inBackground([source, mediaMrls]() -> std::function<void(SubtitleMatchModel*)> {
+        const QVector<Candidate> candidates = source.list();
+        return [source, candidates, mediaMrls](SubtitleMatchModel* model) {
+            model->m_rows.clear();
+            model->loadSource(source, candidates, {}, false);
+            model->setEpisodes(mediaMrls, {});
+        };
+    });
 }
 
 void SubtitleMatchModel::loadPlaylist(const MLItemId& playlistId, const QString& name)
@@ -283,16 +327,25 @@ void SubtitleMatchModel::setSource(const QUrl& source)
     const QString path = source.isLocalFile() ? source.toLocalFile() : localPath(source.toString());
     if (path.isEmpty())
         return;
-    loadSource(Source(path), {}, false);
-    rematch();
+    listSource(Source(VLC_OBJECT(m_intf), path));
 }
 
 void SubtitleMatchModel::resetSource()
 {
     if (m_defaultSource.isEmpty())
         return;
-    loadSource(Source(m_defaultSource), {}, false);
-    rematch();
+    listSource(Source(VLC_OBJECT(m_intf), m_defaultSource));
+}
+
+void SubtitleMatchModel::listSource(const Source& source)
+{
+    inBackground([source]() -> std::function<void(SubtitleMatchModel*)> {
+        const QVector<Candidate> candidates = source.list();
+        return [source, candidates](SubtitleMatchModel* model) {
+            model->loadSource(source, candidates, {}, false);
+            model->rematch();
+        };
+    });
 }
 
 void SubtitleMatchModel::browseFolder()
@@ -312,10 +365,11 @@ void SubtitleMatchModel::browseZip()
         setSource(zip);
 }
 
-void SubtitleMatchModel::loadSource(const Source& source, const QString& language, bool all)
+void SubtitleMatchModel::loadSource(const Source& source, const QVector<Candidate>& candidates,
+                                    const QString& language, bool all)
 {
     m_source = source;
-    m_candidates = source.list();
+    m_candidates = candidates;
 
     QStringList codes;
     for (const Candidate& candidate : m_candidates)
@@ -326,7 +380,7 @@ void SubtitleMatchModel::loadSource(const Source& source, const QString& languag
     });
     m_languageCodes = codes;
 
-    /* the language the Show was matched with, else the preferred one, else
+    /* the language the Show was matched with, else the preferred ones, else
      * the first */
     if (codes.size() < 2)
         m_languageIndex = -1;
@@ -335,7 +389,17 @@ void SubtitleMatchModel::loadSource(const Source& source, const QString& languag
     else if (codes.contains(language))
         m_languageIndex = codes.indexOf(language);
     else
-        m_languageIndex = std::max<int>(codes.indexOf(preferredLanguage(VLC_OBJECT(m_intf))), 0);
+    {
+        m_languageIndex = 0;
+        for (const QString& preferred : preferredLanguages(VLC_OBJECT(m_intf)))
+        {
+            if (codes.contains(preferred))
+            {
+                m_languageIndex = codes.indexOf(preferred);
+                break;
+            }
+        }
+    }
 
     for (Row& row : m_rows)
         row.overridden = false;

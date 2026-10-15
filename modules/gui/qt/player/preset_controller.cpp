@@ -21,6 +21,9 @@
 
 #include "preset_controller.hpp"
 
+#include <vlc_common.h>
+#include <vlc_actions.h>
+
 #include <QUrl>
 
 #include <utility>
@@ -51,6 +54,52 @@ PresetController::PresetController(PresetsModel* model, PresetTarget* target, QO
 bool PresetController::isPerFile(const QString& key)
 {
     return key == QLatin1String("audio-delay") || key == QLatin1String("sub-delay");
+}
+
+QVariantMap PresetController::keysMatching(const QVariantMap& values, const QStringList& prefixes)
+{
+    static const QStringList ownKeys = {
+        QStringLiteral("audio-delay"), QStringLiteral("sub-delay"),
+        QStringLiteral("audio-language"), QStringLiteral("sub-language"),
+        QStringLiteral("rate"),
+    };
+    QVariantMap matching;
+    for (auto it = values.cbegin(); it != values.cend(); ++it)
+    {
+        const bool own = ownKeys.contains(it.key());
+        for (const QString& prefix : prefixes)
+        {
+            if (own ? it.key() == prefix : it.key().startsWith(prefix))
+            {
+                matching.insert(it.key(), it.value());
+                break;
+            }
+        }
+    }
+    return matching;
+}
+
+QString PresetController::keyOfAction(int action)
+{
+    switch (action)
+    {
+    case ACTIONID_AUDIODELAY_DOWN:
+    case ACTIONID_AUDIODELAY_UP:
+        return QStringLiteral("audio-delay");
+    case ACTIONID_SUBDELAY_DOWN:
+    case ACTIONID_SUBDELAY_UP:
+    case ACTIONID_SUBSYNC_APPLY:
+    case ACTIONID_SUBSYNC_RESET:
+        return QStringLiteral("sub-delay");
+    case ACTIONID_RATE_NORMAL:
+    case ACTIONID_RATE_SLOWER:
+    case ACTIONID_RATE_FASTER:
+    case ACTIONID_RATE_SLOWER_FINE:
+    case ACTIONID_RATE_FASTER_FINE:
+        return QStringLiteral("rate");
+    default:
+        return {};
+    }
 }
 
 QVariantMap PresetController::layered(const QVariantMap& profile, const QVariantMap& preset,
@@ -207,22 +256,29 @@ void PresetController::onChangedByUser(const QVariantMap& values)
 
 void PresetController::choose(const QString& id)
 {
-    if (m_folder.isEmpty() || (!id.isEmpty() && !m_model->contains(id)))
+    chooseForFolder(m_folder, id);
+}
+
+void PresetController::chooseForFolder(const QString& path, const QString& id)
+{
+    const QString folder = PresetsModel::normalizeFolder(path);
+    if (folder.isEmpty() || (!id.isEmpty() && !m_model->contains(id)))
         return;
-    if (m_model->resolve(m_folder).id == id)
+    if (m_model->resolve(folder).id == id)
         return;
 
     if (id.isEmpty())
     {
         // Default: drop the folder's own Preset, and stop a parent's
-        m_model->detach(m_folder);
-        if (!m_model->resolve(m_folder).id.isEmpty())
-            m_model->attach(m_folder, QString());
+        m_model->detach(folder);
+        if (!m_model->resolve(folder).id.isEmpty())
+            m_model->attach(folder, QString());
         return;
     }
 
-    m_model->attach(m_folder, id);
-    emit attached(m_model->name(id), folderName());
+    m_model->attach(folder, id);
+    const QString name = folder.section('/', -1);
+    emit attached(m_model->name(id), name.isEmpty() ? folder : name);
 }
 
 QString PresetController::createFromCurrent(const QString& name)

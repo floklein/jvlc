@@ -185,7 +185,13 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
     settings = getSettings();
     m_colorScheme = new ColorSchemeModel(this);
 
-    m_windowButtonsOnLeft = (WindowChrome::desktopButtonsSide() == WindowChrome::ButtonsSide::Left);
+    WindowChrome::queryDesktopButtonsSide(this, [this](WindowChrome::ButtonsSide side) {
+        const bool onLeft = side == WindowChrome::ButtonsSide::Left;
+        if (onLeft == m_windowButtonsOnLeft)
+            return;
+        m_windowButtonsOnLeft = onLeft;
+        emit windowButtonsOnLeftChanged();
+    });
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
     connect(m_colorScheme, &ColorSchemeModel::currentChanged, qGuiApp, [colorScheme = m_colorScheme]() {
@@ -839,7 +845,10 @@ QString MainCtx::actionShortcut(const QString &action) const
 
 QString MainCtx::actionSequence(const QString &action) const
 {
-    return appActionSequence(VLC_OBJECT(vlc_object_instance(p_intf)), action);
+    vlc_object_t *obj = VLC_OBJECT(vlc_object_instance(p_intf));
+    if (!appActionDefaultSequence(action).isEmpty())
+        return appActionSequence(obj, action);
+    return coreActionSequence(obj, action);
 }
 
 void MainCtx::notifyKeyBindingsChanged()
@@ -884,6 +893,21 @@ void MainCtx::openAdjustments(int tab)
     }
     m_pendingAdjustments = tab;
     setPlayerView(true);
+}
+
+bool MainCtx::requestJumpToTime()
+{
+    if (getEffectiveMainInterfaceMode() == MAININTERFACE_MODE_PLAYER)
+        return true;
+    /* the player view opens with it, over its seek bar */
+    m_pendingJumpToTime = true;
+    setPlayerView(true);
+    return false;
+}
+
+bool MainCtx::takePendingJumpToTime()
+{
+    return std::exchange(m_pendingJumpToTime, false);
 }
 
 int MainCtx::takePendingAdjustments()

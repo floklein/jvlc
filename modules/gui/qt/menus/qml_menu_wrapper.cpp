@@ -538,7 +538,7 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
         const MLItemId id = ids.first().value<MLItemId>();
         const QString name = m_model->data(selected.first(), MLPlaylistListModel::PLAYLIST_NAME).toString();
 
-        action = menu->addAction(qtr("Export Playlist…"));
+        action = menu->addAction(qtr("Export Playlist..."));
 
         connect(action, &QAction::triggered, [ml, id, name]() {
             ml->playlistManager()->exportPlaylistAs(id, name);
@@ -581,7 +581,7 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
         // Add Subtitles, To This Playlist
         const QString name = m_model->data(selected.first(), MLPlaylistListModel::PLAYLIST_NAME).toString();
 
-        action = menu->addAction(qtr("Add Subtitle Tracks…"));
+        action = menu->addAction(qtr("Add Subtitle Tracks..."));
 
         connect(action, &QAction::triggered, [id = ids.first(), name]() {
             DialogsProvider::getInstance()->addPlaylistSubtitlesDialog(id, name);
@@ -756,7 +756,7 @@ void PlaylistContextMenu::popup(int selectedIndex, QPoint pos )
             m_controler->goTo(selectedIndex, true);
         });
 
-        action = m_menu->addAction( qtr("Play next") );
+        action = m_menu->addAction( qtr("Play Next") );
         action->setEnabled(rows != QVector<int>{ m_model->getCurrentIndex() });
         connect(action, &QAction::triggered, [this, rows]( ) {
             m_model->moveItemsAfterCurrent(rows);
@@ -804,6 +804,15 @@ void PlaylistContextMenu::popup(int selectedIndex, QPoint pos )
             m_menu->addSeparator();
         }
 
+        // the rows, in the background (Conversion)
+        action = m_menu->addAction( qtr("Convert...") );
+        connect(action, &QAction::triggered, [this, rows]( ) {
+            QStringList mrls;
+            for (const int row : rows)
+                mrls.push_back(m_model->itemAt(row).getUrl().toString(QUrl::FullyEncoded));
+            DialogsProvider::getInstance()->convertDialog(mrls);
+        });
+
 #ifdef _WIN32
         action = m_menu->addAction( qtr("Show in File Explorer") );
 #else
@@ -837,7 +846,7 @@ void PlaylistContextMenu::popup(int selectedIndex, QPoint pos )
         }
 
         // streams the current item or the whole Queue, or casts them
-        action = m_menu->addAction( qtr("Stream & Cast...") );
+        action = m_menu->addAction( qtr("Stream && Cast...") );
         action->setEnabled(m_model->rowCount() > 0);
         connect(action, &QAction::triggered, []( ) {
             DialogsProvider::getInstance()->streamAndCastDialog();

@@ -72,6 +72,27 @@ signals:
 };
 
 /**
+ * Where a compositor draws the Video blur with a single blurred copy of the
+ * video: several blurred copies of one swap chain don't all follow the video
+ * with DirectComposition (only one of them is redrawn, #81).
+ *
+ * The blurred copy fills `bounds`, which holds every region shown; sharp
+ * copies of the video cover the `gaps`, the parts of `bounds` outside the
+ * regions. A rounded region leaves its corner squares to the gaps, so no
+ * blurred video shows outside its rounded Tint. A fading region shows from
+ * half its opacity.
+ */
+struct VideoBlurLayout
+{
+    // empty when no region shows
+    QRectF bounds;
+    // row by row, from the top left
+    QList<QRectF> gaps;
+};
+
+VideoBlurLayout videoBlurLayout(const QList<VideoBlurProvider::Region>& regions);
+
+/**
  * Whether the Video blur shows. It follows the user's setting ("Blur the video
  * behind panels"), and turns off by itself while Windows transparency effects
  * are off or battery saver is on.

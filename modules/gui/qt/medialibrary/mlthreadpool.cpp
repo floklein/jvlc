@@ -116,26 +116,49 @@ void ThreadRunner::processQueueLocked(const QString& queueName)
 
     auto taskId = m_taskId++;
     struct Ctx{};
-    auto runnable = new RunOnThreadRunner<Ctx>(taskId, this,
+    auto runnable = new RunOnThreadRunner<Ctx>(this, taskId, this,
         [this, queueName](Ctx&){
             QRunnable* task = getNextTaskFromQueue(queueName);
             if (!task)
             {
                 return;
             }
+            /* read before it runs: once it ran, its owner may delete it */
+            const bool autoDelete = task->autoDelete();
             task->run();
-            if (task->autoDelete())
+            if (autoDelete)
                 delete task;
         },
         [this, queueName](quint64, const Ctx&){
+             /* the same order as runOnThread(): the maps and the task ids
+              * are changed under m_lock */
+             QMutexLocker locker(&m_lock);
+             if (m_shuttingDown)
+                 return;
              QMutexLocker lock(&m_serialTaskLock);
              processQueueLocked(queueName);
         });
-    connect(runnable, &RunOnThreadBaseRunner::done, this, &ThreadRunner::runOnThreadDone);
     m_runningTasks.insert(taskId, runnable);
     m_objectTasks.insert(this, taskId);
+    ++m_pendingTasks;
 
     m_threadPool.start(runnable);
+}
+
+void RunOnThreadBaseRunner::finish(quint64 target, const QObject* object, int status)
+{
+    ThreadRunner* runner = m_runner;
+    RunOnThreadBaseRunner* self = this;
+    /* the runner lives until every pending task came back */
+    QMetaObject::invokeMethod(runner, [runner, self, target, object, status]() {
+        runner->runOnThreadDone(self, target, object, status);
+    }, Qt::QueuedConnection);
+}
+
+void ThreadRunner::deleteIfDoneLocked()
+{
+    if (m_shuttingDown && m_pendingTasks == 0)
+        deleteLater();
 }
 
 void ThreadRunner::destroy()
@@ -151,6 +174,7 @@ void ThreadRunner::destroy()
         if (tryTake(task))
         {
             delete task;
+            --m_pendingTasks;
             m_runningTasks.remove(key);
             taskIt = m_objectTasks.erase(taskIt);
             if (m_objectTasks.count(object) == 0)
@@ -160,10 +184,7 @@ void ThreadRunner::destroy()
             ++taskIt;
     }
 
-    if (m_runningTasks.empty())
-    {
-        deleteLater();
-    }
+    deleteIfDoneLocked();
 }
 
 void ThreadRunner::cancelTask(const QObject* object, quint64 taskId)
@@ -177,7 +198,10 @@ void ThreadRunner::cancelTask(const QObject* object, quint64 taskId)
     task->cancel();
     bool removed = tryTake(task);
     if (removed)
+    {
         delete task;
+        --m_pendingTasks;
+    }
     m_runningTasks.remove(taskId);
     m_objectTasks.remove(object, taskId);
     if (m_objectTasks.count(object) == 0)
@@ -187,9 +211,13 @@ void ThreadRunner::cancelTask(const QObject* object, quint64 taskId)
 void ThreadRunner::runOnThreadDone(RunOnThreadBaseRunner* runner, quint64 target, const QObject* object, int status)
 {
     QMutexLocker locker{&m_lock};
+    assert(m_pendingTasks > 0);
+    --m_pendingTasks;
     if (!m_runningTasks.contains(target))
     {
+        /* canceled, or its object was destroyed */
         runner->deleteLater();
+        deleteIfDoneLocked();
         return;
     }
 
@@ -198,10 +226,9 @@ void ThreadRunner::runOnThreadDone(RunOnThreadBaseRunner* runner, quint64 target
     if (m_objectTasks.count(object) == 0)
         disconnect(object, &QObject::destroyed, this, &ThreadRunner::runOnThreadTargetDestroyed);
 
-    if (m_shuttingDown)
+    if (m_shuttingDown || status != ML_TASK_STATUS_SUCCEED)
     {
-        if (m_runningTasks.empty())
-            deleteLater();
+        deleteIfDoneLocked();
         runner->deleteLater();
         return;
     }
@@ -239,10 +266,14 @@ void ThreadRunner::runOnThreadTargetDestroyed(QObject * object)
             assert(task);
             bool removed = tryTake(task);
             if (removed)
+            {
                 delete task;
+                --m_pendingTasks;
+            }
             m_runningTasks.remove(taskId);
         }
         m_objectTasks.remove(object);
         //no need to disconnect QObject::destroyed, as object is currently being destroyed
+        deleteIfDoneLocked();
     }
 }

@@ -16,11 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 #include "add_subtitles_model.hpp"
-#include "http_request.hpp"
 
-#include "medialibrary/medialib.hpp"
-#include "player/player_controller.hpp"
-
+#include <vlc_common.h>
 #include <vlc_configuration.h>
 #include <vlc_input_item.h>
 #include <vlc_interface.h>
@@ -29,7 +26,10 @@
 #include <vlc_stream_extractor.h>
 #include <vlc_url.h>
 
-#include <algorithm>
+#include "http_request.hpp"
+#include "subtitle_matching.hpp"
+#include "medialibrary/medialib.hpp"
+#include "player/player_controller.hpp"
 
 #include <QCollator>
 #include <QDir>
@@ -39,34 +39,12 @@
 #include <QSet>
 #include <QTemporaryDir>
 
+#include <algorithm>
+
+using subtitlematching::pathToMrl;
+using subtitlematching::subtitleExtensions;
+
 namespace {
-
-/* the subtitle file extensions, as in the subtitle file filter, without
- * ".txt", too common for other files */
-const QStringList& subtitleExtensions()
-{
-    static const QStringList extensions = [] {
-        QStringList list;
-        for (const QString& pattern : QString(EXTENSIONS_SUBTITLE).split(';', Qt::SkipEmptyParts))
-        {
-            const QString ext = pattern.mid(pattern.indexOf('.') + 1).toLower();
-            if (!ext.isEmpty() && ext != QLatin1String("txt"))
-                list.push_back(ext);
-        }
-        return list;
-    }();
-    return extensions;
-}
-
-QString pathToMrl(const QString& path)
-{
-    char* uri = vlc_path2uri(qtu(QDir::toNativeSeparators(path)), "file");
-    if (uri == nullptr)
-        return {};
-    QString mrl = qfu(uri);
-    free(uri);
-    return mrl;
-}
 
 /* the subtitle files of a folder, in natural order */
 QStringList subtitleFiles(const QDir& dir)
@@ -99,49 +77,17 @@ const QStringList& linkExtensions()
 QVector<QPair<QString, QString>> listArchive(vlc_object_t* obj, const QString& archiveMrl)
 {
     QVector<QPair<QString, QString>> files;
-    stream_t* stream = vlc_stream_NewURL(obj, qtu(archiveMrl));
-    if (stream == nullptr)
+    for (const subtitlematching::ArchiveEntry& entry : subtitlematching::listArchive(obj, archiveMrl))
     {
-        msg_Warn(obj, "unable to open the archive '%s'", qtu(archiveMrl));
-        return files;
+        /* an entry's name can't lead out of the folder, nor be anything but
+         * a subtitle file (any VLC reads: it stays inside the archive's
+         * folder) */
+        const QString name = opensubtitles::safeFileName(entry.path);
+        if (subtitleExtensions().contains(QFileInfo(name).suffix().toLower()))
+            files.push_back({ name, entry.mrl });
     }
-    if (vlc_stream_directory_Attach(&stream, nullptr, nullptr, 0) != VLC_SUCCESS)
-    {
-        msg_Warn(obj, "unable to list the archive '%s'", qtu(archiveMrl));
-        vlc_stream_Delete(stream);
-        return files;
-    }
-
-    input_item_t* root = input_item_New(qtu(archiveMrl), "archive");
-    if (root != nullptr)
-    {
-        /* subtitles are ignored by default, or attached to videos */
-        input_item_AddOption(root, "ignore-filetypes=\"\"", VLC_INPUT_OPTION_TRUSTED);
-        input_item_AddOption(root, "no-sub-autodetect-file", VLC_INPUT_OPTION_TRUSTED);
-        input_item_AddOption(root, "extractor-flatten", VLC_INPUT_OPTION_TRUSTED);
-    }
-    input_item_node_t* node = root ? input_item_node_Create(root) : nullptr;
-    if (node != nullptr && vlc_stream_ReadDir(stream, node) == VLC_SUCCESS)
-    {
-        std::function<void(input_item_node_t*)> collect = [&](input_item_node_t* parent) {
-            for (int i = 0; i < parent->i_children; ++i)
-            {
-                input_item_node_t* child = parent->pp_children[i];
-                /* an entry's name can't lead out of the folder, nor be
-                 * anything but a subtitle */
-                const QString name = opensubtitles::safeFileName(qfu(child->p_item->psz_name));
-                if (opensubtitles::isDownloadExtension(QFileInfo(name).suffix().toLower()))
-                    files.push_back({ name, qfu(child->p_item->psz_uri) });
-                collect(child);
-            }
-        };
-        collect(node);
-    }
-    if (node != nullptr)
-        input_item_node_Delete(node);
-    if (root != nullptr)
-        input_item_Release(root);
-    vlc_stream_Delete(stream);
+    if (files.isEmpty())
+        msg_Warn(obj, "no subtitle files in the archive '%s'", qtu(archiveMrl));
 
     QCollator collator;
     collator.setNumericMode(true);
@@ -376,7 +322,8 @@ void AddSubtitlesModel::addLink(const QString& link)
         QFile file(target);
         if (!response.ok() || response.body.isEmpty())
             error = qtr("The link couldn't be downloaded.");
-        else if (!file.open(QIODevice::WriteOnly) || file.write(response.body) != response.body.size())
+        else if (!file.open(QIODevice::WriteOnly | QIODevice::NewOnly)
+              || file.write(response.body) != response.body.size())
             error = qtr("The link couldn't be downloaded.");
         else
         {
@@ -417,25 +364,38 @@ QString AddSubtitlesModel::copyFetched(const Row& row)
     QString base = QFileInfo(name).completeBaseName();
     if (base.isEmpty())
         base = QStringLiteral("subtitle");
-    const QString suffix = opensubtitles::downloadSuffix(name);
-    QString path = QDir(folder).filePath(base + QLatin1Char('.') + suffix);
-    for (int i = 2; QFileInfo::exists(path); ++i)
-        path = QDir(folder).filePath(QStringLiteral("%1 (%2).%3").arg(base).arg(i).arg(suffix));
+    /* any subtitle extension VLC reads (the link or the archive entry was
+     * checked against them) */
+    const QString ownSuffix = QFileInfo(name).suffix().toLower();
+    const QString suffix = subtitleExtensions().contains(ownSuffix)
+                         ? ownSuffix : opensubtitles::downloadSuffix(name);
 
-    /* through a stream: the file may be inside a .zip */
-    stream_t* stream = vlc_stream_NewMRL(m_intf, qtu(row.mrl));
-    if (stream == nullptr)
-        return {};
-    QFile out(path);
-    bool ok = out.open(QIODevice::WriteOnly);
-    char buffer[16384];
-    ssize_t read;
-    while (ok && (read = vlc_stream_Read(stream, buffer, sizeof (buffer))) > 0)
-        ok = out.write(buffer, read) == read;
-    vlc_stream_Delete(stream);
-    out.close();
-    if (!ok)
+    /* through a stream: the file may be inside a .zip; a subtitle file is
+     * small, anything larger is refused */
+    const QByteArray data = subtitlematching::readMrl(VLC_OBJECT(m_intf), row.mrl,
+                                                      subtitlematching::maxSubtitleSize);
+    if (data.isNull())
     {
+        msg_Warn(m_intf, "unable to copy the subtitles '%s'", qtu(row.mrl));
+        return {};
+    }
+
+    /* a new file: never one already there */
+    QString path = QDir(folder).filePath(base + QLatin1Char('.') + suffix);
+    QFile out(path);
+    for (int i = 2; !out.open(QIODevice::WriteOnly | QIODevice::NewOnly); ++i)
+    {
+        if (!QFileInfo::exists(path) || i > 100)
+        {
+            msg_Warn(m_intf, "unable to copy the subtitles '%s'", qtu(row.mrl));
+            return {};
+        }
+        path = QDir(folder).filePath(QStringLiteral("%1 (%2).%3").arg(base).arg(i).arg(suffix));
+        out.setFileName(path);
+    }
+    if (out.write(data) != data.size())
+    {
+        out.close();
         out.remove();
         msg_Warn(m_intf, "unable to copy the subtitles '%s'", qtu(row.mrl));
         return {};

@@ -648,7 +648,6 @@ enum vlc_ml_control
     VLC_ML_MEDIA_REMOVE_BOOKMARK,           /**< arg1: media id; arg2: int64_t */
     VLC_ML_MEDIA_REMOVE_ALL_BOOKMARKS,      /**< arg1: media id */
     VLC_ML_MEDIA_UPDATE_BOOKMARK,           /**< arg1: media id; arg2: int64_t; arg3: const char*; arg4: const char* */
-    VLC_ML_MEDIA_REMOVE_EXTERNAL_MRL,       /**< arg1: media id; arg2: const char*; can fail */
 
     /* Playlist management */
     VLC_ML_PLAYLIST_CREATE, /**< arg1: const char*; arg2(out): vlc_ml_playlist_t**; can fail */
@@ -665,6 +664,9 @@ enum vlc_ml_control
     VLC_ML_ALBUM_SET_FAVORITE, /**< arg1: album id; arg2: bool; can fail */
     VLC_ML_GENRE_SET_FAVORITE, /**< arg1: genre id; arg2: bool; can fail */
     VLC_ML_PLAYLIST_SET_FAVORITE, /**< arg1: playlist id; arg2: bool; can fail */
+
+    /* Media management, added last to keep the values above */
+    VLC_ML_MEDIA_REMOVE_EXTERNAL_MRL,       /**< arg1: media id; arg2: const char*; can fail */
 };
 
 /**

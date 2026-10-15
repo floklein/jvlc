@@ -24,6 +24,8 @@
 #include <QPointF>
 
 #include <map>
+#include <memory>
+#include <vector>
 
 #include <windows.h>
 #include <wrl.h>
@@ -50,26 +52,31 @@ struct DCompLinearTransferEffect;
  * Draws the Video blur with DirectComposition.
  *
  * The video output sets its swap chain as the content of the video visual.
- * A swap chain may be the content of several visuals, so each region reported
- * by `VideoBlur` items gets a visual showing the same swap chain, blurred by
- * a Gaussian blur effect and clipped by its parent visual:
+ * A swap chain may be the content of several visuals, but only one blurred
+ * copy of it follows the video: with one blurred visual per region, the
+ * others kept stale GPU memory (#81). So a single blurred copy fills the
+ * bounds of the regions, and sharp copies of the video (no effect) cover the
+ * parts of the bounds outside the regions (`videoBlurLayout()`):
  *
- *   rootVisual()                 between the video visual and Qt's UI visual
- *   └── clip visual (per region)  rectangle clip = the region
- *       └── blur visual           content = swap chain, offset = video position,
- *                                 effect = Gaussian blur, then a linear transfer
+ *   rootVisual()                  between the video visual and Qt's UI visual
+ *   ├── blur clip visual          rectangle clip = the bounds of the regions
+ *   │   └── blur visual           content = swap chain, offset = video position,
+ *   │                             effect = Gaussian blur, then a linear transfer
+ *   └── gap visual (per gap)      rectangle clip = the gap
+ *       └── sharp visual          content = swap chain, offset = video position
  *
- * The linear transfer clamps the blurred video to the range of the region's
- * Theme (`VideoBlurProvider::Region::darkest`, `brightest`), so the text
- * stays readable under the Tint over the blur.
+ * The linear transfer clamps the blurred video to the range of the Theme
+ * (`VideoBlurProvider::Region::darkest`, `brightest`), so the text stays
+ * readable under the Tint over the blur.
  *
  * The clip is on the parent and the effect on the child, so the blur samples
- * the video beyond the region's edges instead of transparent pixels. The
- * parent also fades the blur with its panel (an effect group's opacity).
+ * the video beyond the bounds instead of transparent pixels. A panel's blur
+ * shows from half its fade.
  *
  * The swap chain never reaches the Qt module: `wrapVideoVisual()` returns the
  * visual to hand to the video output, which forwards every call to the real
- * video visual and also hands the content set by `SetContent()` to the blur.
+ * video visual and also hands the content set by `SetContent()` to the blur,
+ * as long as the blur exists.
  *
  * The provider is published as `MainCtx.videoBlurProvider` while the Video
  * blur is on: the "qt-video-blur" setting, Windows transparency effects and
@@ -99,19 +106,26 @@ public:
 
     void setVideoContent(IUnknown *content);
 
+    // shared by the blur and the visuals it wraps for the video output, which
+    // may outlive it
+    struct ContentSink
+    {
+        QMutex lock;
+        CompositorDCompositionVideoBlur *blur = nullptr;
+    };
+
 private:
-    struct Region
+    // a sharp copy of the video over a gap
+    struct Gap
     {
         Microsoft::WRL::ComPtr<IDCompositionVisual2> clipVisual;
-        Microsoft::WRL::ComPtr<IDCompositionRectangleClip> clip;
-        Microsoft::WRL::ComPtr<IDCompositionEffectGroup> fade;
-        Microsoft::WRL::ComPtr<IDCompositionVisual2> blurVisual;
-        Microsoft::WRL::ComPtr<IDCompositionGaussianBlurEffect> blur;
-        Microsoft::WRL::ComPtr<DCompLinearTransferEffect> clamp;
+        Microsoft::WRL::ComPtr<IDCompositionVisual2> videoVisual;
     };
 
     void onRegionChanged(quintptr key, const VideoBlurProvider::Region &region);
     void onRegionRemoved(quintptr key);
+    // m_lock held: lays out the blur and the gaps for the regions, and commits
+    void relayoutLocked();
 
     void updateBatterySaver();
 
@@ -129,11 +143,20 @@ private:
 
     Microsoft::WRL::ComPtr<IDCompositionDevice3> m_device;
     Microsoft::WRL::ComPtr<IDCompositionVisual2> m_rootVisual;
+    Microsoft::WRL::ComPtr<IDCompositionVisual2> m_blurClipVisual;
+    Microsoft::WRL::ComPtr<IDCompositionRectangleClip> m_blurClip;
+    Microsoft::WRL::ComPtr<IDCompositionVisual2> m_blurVisual;
+    Microsoft::WRL::ComPtr<IDCompositionGaussianBlurEffect> m_blur;
+    Microsoft::WRL::ComPtr<DCompLinearTransferEffect> m_clamp;
+    bool m_blurShown = false;
+
+    std::shared_ptr<ContentSink> m_sink;
 
     // Accessed from the GUI thread (regions), the render thread (position)
     // and the video output thread (content):
     QMutex m_lock;
-    std::map<quintptr, Region> m_regions;
+    std::map<quintptr, VideoBlurProvider::Region> m_regions;
+    std::vector<Gap> m_gaps;
     Microsoft::WRL::ComPtr<IUnknown> m_content;
     QPointF m_videoPosition;
 };

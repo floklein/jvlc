@@ -21,6 +21,8 @@
 
 #include "presets_model.hpp"
 
+#include "qt.hpp"
+
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -127,7 +129,7 @@ QString PresetsModel::duplicate(const QString& id)
     const int row = rowOf(id);
     if (row < 0)
         return {};
-    const QString base = tr("%1 Copy").arg(m_presets[row].name);
+    const QString base = qtr("%1 Copy").arg(m_presets[row].name);
     QString copyName = base;
     for (int n = 2; !isNameAvailable(copyName); ++n)
         copyName = QStringLiteral("%1 %2").arg(base).arg(n);
@@ -395,5 +397,6 @@ void PresetsModel::save()
     m_settings->endArray();
 
     m_settings->endGroup();
-    m_settings->sync();
+    // no sync(): a slider writes on each step, QSettings writes the file
+    // once the event loop is idle, and when it goes
 }

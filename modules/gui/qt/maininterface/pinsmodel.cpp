@@ -24,14 +24,14 @@
 
 #include "medialibrary/mlqmltypes.hpp"
 
-#include <iterator>
-
 #include <QSettings>
+
+#include <iterator>
 
 namespace {
 
 // the type names stored in the settings
-const char *const typeNames[] = { "folder", "playlist", "stream" };
+const char *const typeNames[] = { "folder", "playlist", "stream", "music-folder" };
 
 bool typeFromName(const QString &name, PinsModel::PinType *type)
 {

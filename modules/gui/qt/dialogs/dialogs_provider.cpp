@@ -44,7 +44,6 @@
 /* The dialogs */
 #include "dialogs/messages/messagesmodel.hpp"
 #include "dialogs/dialogs/dialogmodel.hpp"
-#include "dialogs/plugins/plugins.hpp"
 #include "dialogs/subtitles/add_subtitles_model.hpp"
 #include "dialogs/subtitles/opensubtitles.hpp"
 #include "dialogs/subtitles/opensubtitles_models.hpp"
@@ -60,15 +59,11 @@
 #include <QUrl>
 #include <QInputDialog>
 #include <QPointer>
-#include <QMessageBox>
 #include <QProcess>
 #include <QSettings>
 
 #define I_OP_DIR_WINTITLE I_DIR_OR_FOLDER( N_("Open Directory"), \
                                            N_("Open Folder") )
-
-#define ALL_DIALOG(X) \
-    X(pluginDialog)
 
 DialogsProvider::DialogsProvider( qt_intf_t *_p_intf )
     : QObject( NULL ), p_intf( _p_intf ), m_parser( nullptr, &input_item_parser_id_Release )
@@ -250,31 +245,6 @@ void DialogsProvider::customEvent( QEvent *event )
     }
 }
 
-bool DialogsProvider::eventFilter(QObject *watched, QEvent *event) {
-    assert(event);
-    assert(watched);
-
-#define CASE_DIALOG(dialog) \
-    if (watched == m_ ## dialog .get()) { \
-        emit dialog ## VisibleChanged(); \
-        break;\
-    }
-
-    switch (event->type()) {
-    case QEvent::Hide:
-    case QEvent::Show:
-    case QEvent::Close:
-    case QEvent::Destroy:
-    {
-        ALL_DIALOG(CASE_DIALOG)
-        break;
-    }
-    default:
-        break;
-    }
-    return false;
-}
-
 
 /****************************************************************************
  * Individual simple dialogs
@@ -349,7 +319,12 @@ void DialogsProvider::saveMessages()
 
 void DialogsProvider::gotoTimeDialog()
 {
-    emit showJumpToTime();
+    /* over the player's seek bar: from the library, the player view opens
+     * first, with it, when something plays */
+    if( !THEMIM->hasInput() )
+        return;
+    if( !p_intf->p_mi || p_intf->p_mi->requestJumpToTime() )
+        emit showJumpToTime();
 }
 
 void DialogsProvider::aboutDialog()
@@ -483,57 +458,24 @@ void DialogsProvider::mediaInfoDialog( const MLItemId& itemId )
     }
 }
 
-bool DialogsProvider::questionDialog(const QString& text, const QString &title) const
+void DialogsProvider::confirm(const QString& title, const QString& text,
+                              const QString& acceptText, const QJSValue& onAccepted)
 {
-    QMessageBox messageBox;
-    messageBox.setText(text);
-    if (!title.isEmpty())
-        messageBox.setWindowTitle(title);
-    messageBox.setIcon(QMessageBox::Question);
-    messageBox.setStandardButtons(QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No));
-    messageBox.setDefaultButton(QMessageBox::No);
+    /* a new question replaces one left unanswered */
+    m_confirmation = onAccepted;
+    emit confirmationRequested(title, text, acceptText);
+}
 
-    QVLCDialog::setWindowTransientParent(&messageBox, nullptr, p_intf);
-
-    int result = messageBox.exec();
-    return result == QMessageBox::Yes;
+void DialogsProvider::answerConfirmation(bool accepted)
+{
+    QJSValue callback = std::exchange(m_confirmation, QJSValue());
+    if (accepted && callback.isCallable())
+        callback.call();
 }
 
 void DialogsProvider::mediaCodecDialog()
 {
     playerMediaProperties( MediaPropertiesModel::CodecTab );
-}
-
-QMessageBox::StandardButton DialogsProvider::messageDialog(const QString &text,
-                                                           const QString &title,
-                                                           const QMessageBox::StandardButtons buttons,
-                                                           const QMessageBox::StandardButton defaultButton,
-                                                           const QMessageBox::Icon icon)
-{
-    QMessageBox messageBox;
-
-    messageBox.setText(text);
-
-    if (!title.isEmpty())
-        messageBox.setWindowTitle(title);
-
-    if (icon != QMessageBox::NoIcon)
-        messageBox.setIcon(icon);
-
-    if (buttons != QMessageBox::NoButton)
-        messageBox.setStandardButtons(buttons);
-
-    if (defaultButton != QMessageBox::NoButton)
-        messageBox.setDefaultButton(defaultButton);
-
-    QVLCDialog::setWindowTransientParent(&messageBox, nullptr, p_intf);
-
-    return static_cast<QMessageBox::StandardButton>(messageBox.exec());
-}
-
-void DialogsProvider::pluginDialog()
-{
-    toggleDialogVisible(m_pluginDialog);
 }
 
 void DialogsProvider::epgDialog()
@@ -1107,29 +1049,3 @@ void DialogsProvider::sendKey( int key )
      // forward key to vlc core when not a key accelerator
      var_SetInteger( vlc_object_instance(p_intf), "key-pressed", key );
 }
-
-
-template<typename T>
-void DialogsProvider::ensureDialog(std::unique_ptr<T>& dialog)
-{
-    if (!dialog) {
-        dialog = std::make_unique<T>(p_intf);
-        //install event filter to track visibility
-        dialog->installEventFilter(this);
-    }
-}
-
-template<typename T>
-void DialogsProvider::toggleDialogVisible(std::unique_ptr<T>& dialog) {
-    ensureDialog(dialog);
-    dialog->toggleVisible();
-}
-
-#define DIALOG_VISIBLE_GETTER(dialog) \
-    bool DialogsProvider:: dialog ## Visible() const { \
-        if (!m_ ## dialog) \
-            return false; \
-        return m_ ## dialog->isVisible(); \
-    }
-
-ALL_DIALOG(DIALOG_VISIBLE_GETTER)

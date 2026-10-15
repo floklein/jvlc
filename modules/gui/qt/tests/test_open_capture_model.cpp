@@ -215,8 +215,11 @@ private slots:
 #endif
         if (module_exists(qtu(OpenCaptureModel::moduleForType(OpenCaptureModel::Camera))))
         {
-            /* "no audio" is one of the listed audio devices */
+            /* "no audio" is one of the listed audio devices, listed in the
+             * background */
+            QSignalSpy listed(m_model.get(), &OpenCaptureModel::devicesChanged);
             m_model->refreshDevices();
+            QTRY_COMPARE(listed.count(), 1);
             QVERIFY(hasValue(m_model->audioDevices(), m_model->audioDevice()));
         }
     }

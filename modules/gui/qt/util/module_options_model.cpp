@@ -21,13 +21,14 @@
 
 #include "module_options_model.hpp"
 
-#include "qt.hpp"
-
-#include <algorithm>
-
+#include <vlc_common.h>
 #include <vlc_configuration.h>
 #include <vlc_modules.h>
 #include <vlc_plugin.h>
+
+#include "qt.hpp"
+
+#include <algorithm>
 
 namespace {
 

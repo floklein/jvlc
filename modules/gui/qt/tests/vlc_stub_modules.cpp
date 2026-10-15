@@ -622,20 +622,34 @@ static int MLList( vlc_medialibrary_module_t*, int query,
     }
     case VLC_ML_LIST_HISTORY:
     case VLC_ML_COUNT_HISTORY:
+    case VLC_ML_LIST_VIDEO_HISTORY:
+    case VLC_ML_COUNT_VIDEO_HISTORY:
     {
-        (void) va_arg(args, int); /* history type: the stub has one history */
-        if (query == VLC_ML_COUNT_HISTORY)
+        const bool videoOnly = query == VLC_ML_LIST_VIDEO_HISTORY
+                            || query == VLC_ML_COUNT_VIDEO_HISTORY;
+        if (!videoOnly)
+            (void) va_arg(args, int); /* history type: the stub has one history */
+        std::vector<VLCTestingEnv::HistoryEntry> entries;
+        for (const auto& entry : stubML.history)
+            if (!videoOnly || entry.type == VLC_ML_MEDIA_TYPE_VIDEO)
+                entries.push_back(entry);
+        if (query == VLC_ML_COUNT_HISTORY || query == VLC_ML_COUNT_VIDEO_HISTORY)
         {
-            *va_arg(args, size_t*) = stubML.history.size();
+            *va_arg(args, size_t*) = entries.size();
             return VLC_SUCCESS;
         }
         std::vector<int64_t> ids;
-        for (const auto& entry : stubML.history)
+        for (const auto& entry : entries)
             ids.push_back(entry.id);
         vlc_ml_media_list_t* list = newMediaList(ids, params);
         const size_t offset = params ? std::min<size_t>(params->i_offset, ids.size()) : 0;
         for (size_t i = 0; i < list->i_nb_items; ++i)
-            list->p_items[i].i_last_played_date = stubML.history[offset + i].lastPlayed;
+        {
+            const VLCTestingEnv::HistoryEntry& entry = entries[offset + i];
+            list->p_items[i].i_last_played_date = entry.lastPlayed;
+            list->p_items[i].i_type = entry.type;
+            list->p_items[i].f_progress = entry.progress;
+        }
         *va_arg(args, vlc_ml_media_list_t**) = list;
         return VLC_SUCCESS;
     }

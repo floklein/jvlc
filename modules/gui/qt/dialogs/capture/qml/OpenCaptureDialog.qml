@@ -64,7 +64,8 @@ Window {
     }
 
     function play() {
-        MainPlaylistController.append([capture.inputItem()], true)
+        // the Play rule, as every Play does
+        MainPlaylistController.playMedia([capture.inputItem()])
         close()
     }
 

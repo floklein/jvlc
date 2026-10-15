@@ -34,6 +34,7 @@
 #include <QUrl>
 
 #include <algorithm>
+#include <vector>
 
 /*
  * File format:
@@ -184,41 +185,58 @@ void QueueStore::save()
 
     vlc_playlist_t *playlist = m_controller->getPlaylist().m_playlist;
 
-    QJsonArray items;
-    ssize_t current = -1;
+    /* only copied under the playlist lock, which the player shares: the
+     * checks and the JSON come after */
+    struct Entry
+    {
+        QString uri;
+        QString name;
+        vlc_tick_t duration;
+    };
+    std::vector<Entry> entries;
+    ssize_t playlistCurrent;
     {
         vlc_playlist_locker locker(playlist);
 
-        const ssize_t playlistCurrent = vlc_playlist_GetCurrentIndex(playlist);
+        playlistCurrent = vlc_playlist_GetCurrentIndex(playlist);
         const size_t count = vlc_playlist_Count(playlist);
-        for (size_t i = 0; i < count && items.size() < MAX_ITEMS; ++i)
+        /* the MRLs refused below may leave room for more */
+        entries.reserve(std::min<size_t>(count, 2 * MAX_ITEMS));
+        for (size_t i = 0; i < count && entries.size() < 2 * MAX_ITEMS; ++i)
         {
             input_item_t *media =
                 vlc_playlist_item_GetMedia(vlc_playlist_Get(playlist, i));
 
             vlc_mutex_locker itemLocker(&media->lock);
-
-            bool hadCredentials;
-            const QString mrl = sanitizedMrl(qfu(media->psz_uri), &hadCredentials);
-            if (mrl.isNull())
-                continue;
-
-            QJsonObject item;
-            item.insert("mrl", mrl);
-            /* the name may be the MRL itself, credentials included, or any
-             * URL with credentials: drop it then, the core names the restored
-             * item after its MRL */
-            const QString name = qfu(media->psz_name);
-            if (!hadCredentials && !name.isEmpty() && name.size() <= MAX_NAME_LENGTH
-             && !containsCredentials(name))
-                item.insert("name", name);
-            if (media->i_duration > 0)
-                item.insert("duration", static_cast<qint64>(MS_FROM_VLC_TICK(media->i_duration)));
-
-            if (static_cast<ssize_t>(i) == playlistCurrent)
-                current = items.size();
-            items.append(item);
+            entries.push_back({ qfu(media->psz_uri), qfu(media->psz_name), media->i_duration });
         }
+    }
+
+    QJsonArray items;
+    ssize_t current = -1;
+    for (size_t i = 0; i < entries.size() && items.size() < MAX_ITEMS; ++i)
+    {
+        const Entry &entry = entries[i];
+
+        bool hadCredentials;
+        const QString mrl = sanitizedMrl(entry.uri, &hadCredentials);
+        if (mrl.isNull())
+            continue;
+
+        QJsonObject item;
+        item.insert("mrl", mrl);
+        /* the name may be the MRL itself, credentials included, or any
+         * URL with credentials: drop it then, the core names the restored
+         * item after its MRL */
+        if (!hadCredentials && !entry.name.isEmpty() && entry.name.size() <= MAX_NAME_LENGTH
+         && !containsCredentials(entry.name))
+            item.insert("name", entry.name);
+        if (entry.duration > 0)
+            item.insert("duration", static_cast<qint64>(MS_FROM_VLC_TICK(entry.duration)));
+
+        if (static_cast<ssize_t>(i) == playlistCurrent)
+            current = items.size();
+        items.append(item);
     }
 
     QJsonObject root;

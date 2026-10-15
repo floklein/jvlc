@@ -47,6 +47,13 @@ Widgets.PopupIconToolButton {
     popup.contentItem: ColumnLayout {
         spacing: VLCStyle.margin_small
 
+        // a popup isn't inside the button: its buttons take the palette
+        // from here, as PlaybackSpeed does (magenta without it)
+        readonly property ColorContext colorContext: ColorContext {
+            palette: root.colorContext.palette
+            colorSet: ColorContext.Window
+        }
+
         Widgets.ListLabel {
             Layout.fillWidth: true
             Layout.maximumWidth: VLCStyle.dp(280, VLCStyle.scale)

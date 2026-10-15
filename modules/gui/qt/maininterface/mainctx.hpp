@@ -142,7 +142,7 @@ class MainCtx : public QObject
     // the window shrunk into a small always-on-top video (minimal view)
     Q_PROPERTY(bool pictureInPicture READ pictureInPicture WRITE setPictureInPicture NOTIFY pictureInPictureChanged FINAL)
     // the desktop puts the window buttons on the left of title bars (Linux)
-    Q_PROPERTY(bool windowButtonsOnLeft READ windowButtonsOnLeft CONSTANT FINAL)
+    Q_PROPERTY(bool windowButtonsOnLeft READ windowButtonsOnLeft NOTIFY windowButtonsOnLeftChanged FINAL)
     Q_PROPERTY(bool albumSections READ albumSections WRITE setAlbumSections NOTIFY albumSectionsChanged FINAL)
     Q_PROPERTY(bool lyricsMode READ lyricsMode WRITE setLyricsMode NOTIFY lyricsModeChanged FINAL)
     // Show waveform: the music player draws its seek bar as a waveform
@@ -471,7 +471,7 @@ public:
     Q_INVOKABLE QString actionShortcut(const QString &action) const;
 
     /// the key sequence of the interface action @a action ("open-folder"),
-    /// for the interface's shortcuts
+    /// or of a core hotkey action ("quit"), for the interface's shortcuts
     Q_INVOKABLE QString actionSequence(const QString &action) const;
 
     /// Keyboard Shortcuts saved new keys
@@ -494,6 +494,10 @@ public:
     /// the request left for a player view that was not open, or
     /// AdjustmentsNone
     Q_INVOKABLE int takePendingAdjustments();
+    /// Jump to Time from the library: true when the player view shows, else
+    /// it opens and takePendingJumpToTime() tells it to show Jump to Time
+    bool requestJumpToTime();
+    Q_INVOKABLE bool takePendingJumpToTime();
 
     double artistAlbumsWidth() const;
     void setArtistAlbumsWidth(double newArtistAlbumsWidth);
@@ -591,6 +595,7 @@ protected:
     bool m_showStatistics = false;
     bool m_showSubtitleTimeline = false;
     int m_pendingAdjustments = AdjustmentsNone;
+    bool m_pendingJumpToTime = false;
     bool m_adjustmentsOpened = false;
 
     bool m_usingTouch = false;
@@ -666,6 +671,7 @@ signals:
     /// addBookmark() added the bookmark @a name
     void bookmarkAdded(const QString &name);
     void keyBindingsRevisionChanged();
+    void windowButtonsOnLeftChanged();
     void askShow();
     void askBoss();
     void askRaise();

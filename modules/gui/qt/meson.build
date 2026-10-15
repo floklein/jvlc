@@ -49,8 +49,6 @@ moc_headers = files(
     'dialogs/messages/messagesmodel.hpp',
     'dialogs/mediainfo/media_properties_model.hpp',
     'dialogs/open/disc_model.hpp',
-    'dialogs/plugins/plugins.hpp',
-    'dialogs/preferences/preferences_widgets.hpp',
     'dialogs/convert/conversion_manager.hpp',
     'dialogs/convert/conversion_profile_model.hpp',
     'dialogs/settings/profiles_model.hpp',
@@ -98,7 +96,6 @@ moc_headers = files(
     'medialibrary/mlrecenthidelist.hpp',
     'medialibrary/mlrecentmediamodel.hpp',
     'medialibrary/mlrecentvideomodel.hpp',
-    'medialibrary/mlurlmodel.hpp',
     'medialibrary/mlvideo.hpp',
     'medialibrary/mlmediamodel.hpp',
     'medialibrary/mlvideomodel.hpp',
@@ -251,10 +248,6 @@ qt_plugin_sources = files(
     'dialogs/mediainfo/media_properties_model.hpp',
     'dialogs/open/disc_model.cpp',
     'dialogs/open/disc_model.hpp',
-    'dialogs/plugins/plugins.cpp',
-    'dialogs/plugins/plugins.hpp',
-    'dialogs/preferences/preferences_widgets.cpp',
-    'dialogs/preferences/preferences_widgets.hpp',
     'dialogs/convert/conversion_manager.cpp',
     'dialogs/convert/conversion_manager.hpp',
     'dialogs/convert/conversion_profile_model.cpp',
@@ -378,8 +371,6 @@ qt_plugin_sources = files(
     'medialibrary/mlrecentmediamodel.hpp',
     'medialibrary/mlrecentvideomodel.cpp',
     'medialibrary/mlrecentvideomodel.hpp',
-    'medialibrary/mlurlmodel.cpp',
-    'medialibrary/mlurlmodel.hpp',
     'medialibrary/mlvideo.cpp',
     'medialibrary/mlvideo.hpp',
     'medialibrary/mlvideofoldersmodel.cpp',
@@ -807,8 +798,7 @@ qml_modules += {
         'network/qml/NetworkHomeDisplay.qml',
         'network/qml/NetworkPlaylistDisplay.qml',
         'network/qml/NetworkRow.qml',
-        'network/qml/NetworkThumbnailItem.qml',
-        'network/qml/ServicesManage.qml'
+        'network/qml/NetworkThumbnailItem.qml'
     ),
 }
 
@@ -1417,6 +1407,7 @@ if qt6_dep.found()
                 'medialibrary/mlmusicfoldertreemodel.cpp',
                 'medialibrary/mlaudiomodel.cpp',
                 'medialibrary/mlvideomodel.cpp',
+                'medialibrary/mlvideofoldersmodel.cpp',
                 'medialibrary/mlmediamodel.cpp',
                 'medialibrary/mlvideo.cpp',
                 'medialibrary/mlaudio.cpp',
@@ -1446,6 +1437,7 @@ if qt6_dep.found()
                 'medialibrary/mlmusicfoldertreemodel.hpp',
                 'medialibrary/mlaudiomodel.hpp',
                 'medialibrary/mlvideomodel.hpp',
+                'medialibrary/mlvideofoldersmodel.hpp',
                 'medialibrary/mlmediamodel.hpp',
                 'medialibrary/mlvideo.hpp',
                 'medialibrary/thumbnailcollector.hpp',
@@ -1537,8 +1529,10 @@ if qt6_dep.found()
                 'medialibrary/mlplaylistmanager.cpp',
                 'medialibrary/mlrecenthidelist.cpp',
                 'medialibrary/mlrecentmediamodel.cpp',
+                'medialibrary/mlrecentvideomodel.cpp',
                 'medialibrary/mlthreadpool.cpp',
                 'medialibrary/mlvideo.cpp',
+                'medialibrary/mlvideomodel.cpp',
                 'medialibrary/thumbnailcollector.cpp',
                 'playlist/playlist_controller.cpp',
                 'playlist/playlist_item.cpp',
@@ -1560,8 +1554,10 @@ if qt6_dep.found()
                 'medialibrary/mlqmltypes.hpp',
                 'medialibrary/mlrecenthidelist.hpp',
                 'medialibrary/mlrecentmediamodel.hpp',
+                'medialibrary/mlrecentvideomodel.hpp',
                 'medialibrary/mlthreadpool.hpp',
                 'medialibrary/mlvideo.hpp',
+                'medialibrary/mlvideomodel.hpp',
                 'medialibrary/thumbnailcollector.hpp',
                 'playlist/playlist_controller.hpp',
                 'playlist/playlist_item.hpp',
@@ -1818,6 +1814,7 @@ if qt6_dep.found()
             ),
             'suite': ['qt'],
             'include_directories' : qt_include_dir,
+            'link_with': [libvlccore],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qtest_qt6_dep]
         }
@@ -2382,6 +2379,7 @@ if qt6_dep.found()
                 'tests/vlc_stub_modules.cpp',
                 'dialogs/subtitles/add_subtitles_model.cpp',
                 'dialogs/subtitles/http_request.cpp',
+                'dialogs/subtitles/subtitle_matching.cpp',
                 'player/input_models.cpp',
                 'util/base_model.cpp',
                 'util/covergenerator.cpp',
@@ -2408,6 +2406,7 @@ if qt6_dep.found()
             ),
             'moc_headers': files(
                 'dialogs/subtitles/add_subtitles_model.hpp',
+                'dialogs/subtitles/subtitle_matching.hpp',
                 'player/input_models.hpp',
                 'util/asynctask.hpp',
                 'util/base_model.hpp',
@@ -2443,6 +2442,7 @@ if qt6_dep.found()
                 'dialogs/subtitles/http_request.cpp',
                 'dialogs/subtitles/opensubtitles.cpp',
                 'dialogs/subtitles/opensubtitles_models.cpp',
+                'dialogs/subtitles/subtitle_matching.cpp',
                 'player/input_models.cpp',
                 'util/base_model.cpp',
                 'util/covergenerator.cpp',
@@ -2471,6 +2471,7 @@ if qt6_dep.found()
                 'dialogs/subtitles/add_subtitles_model.hpp',
                 'dialogs/subtitles/opensubtitles.hpp',
                 'dialogs/subtitles/opensubtitles_models.hpp',
+                'dialogs/subtitles/subtitle_matching.hpp',
                 'player/input_models.hpp',
                 'util/asynctask.hpp',
                 'util/base_model.hpp',
@@ -2499,12 +2500,13 @@ if qt6_dep.found()
 
         vlc_tests += {
             'name': 'test_qt_subtitle_folder_matches',
-            # the private QtCore headers (QZipReader): with a static Qt, only
+            # the private QtCore headers (QZipWriter): with a static Qt, only
             # the flags qmake gives the plugin find them
             'cpp_args': qt_extra_flags,
             'sources': files(
                 'tests/test_subtitle_folder_matches.cpp',
                 'tests/vlc_stub_modules.cpp',
+                'dialogs/subtitles/http_request.cpp',
                 'dialogs/subtitles/subtitle_match_model.cpp',
                 'dialogs/subtitles/subtitle_matching.cpp',
                 'util/base_model.cpp',

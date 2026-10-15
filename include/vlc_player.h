@@ -1688,6 +1688,20 @@ VLC_API unsigned
 vlc_player_SelectEsId(vlc_player_t *player, vlc_es_id_t *es_id,
                       enum vlc_player_select_policy policy);
 
+/**
+ * Select a track as a preference
+ *
+ * Like vlc_player_SelectEsId() with VLC_PLAYER_SELECT_EXCLUSIVE, for a track
+ * chosen from the viewer's preferences (a preferred language for the media's
+ * folder, for instance) rather than picked by the viewer: the media doesn't
+ * remember it as its own (see vlc_player_GetMediaMemory()).
+ *
+ * @param player locked player instance
+ * @param track a track of the current media
+ */
+VLC_API void
+vlc_player_SelectDefaultTrack(vlc_player_t *player,
+                              const struct vlc_player_track *track);
 
 /**
  * Helper to select a track
@@ -2096,6 +2110,25 @@ vlc_player_GetCategoryDelay(vlc_player_t *player, enum es_format_category_e cat)
 VLC_API int
 vlc_player_SetCategoryDelay(vlc_player_t *player, enum es_format_category_e cat,
                             vlc_tick_t delay, enum vlc_player_whence whence);
+
+/**
+ * Set the delay of one category for the current media, as a preference
+ *
+ * Like vlc_player_SetCategoryDelay() with an absolute delay, for a delay that
+ * comes from the viewer's preferences (for the media's folder, for instance)
+ * rather than from the viewer's change: the media doesn't remember it as its
+ * own (see vlc_player_GetMediaMemory()), and no OSD message is shown. Only
+ * later changes are remembered.
+ *
+ * @param player locked player instance
+ * @param cat AUDIO_ES or SPU_ES
+ * @param delay a valid time
+ * @return VLC_SUCCESS or VLC_EGENERIC if the category is not handled
+ */
+VLC_API int
+vlc_player_SetCategoryDefaultDelay(vlc_player_t *player,
+                                   enum es_format_category_e cat,
+                                   vlc_tick_t delay);
 
 /**
  * Get the delay of a track

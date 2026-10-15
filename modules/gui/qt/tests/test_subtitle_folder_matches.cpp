@@ -40,6 +40,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QLocale>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QStringList>
@@ -209,6 +210,7 @@ private slots:
 
         auto model = newModel();
         model->setFolder(toMrl(show));
+        QTRY_VERIFY(!model->loading());
 
         QCOMPARE(model->target(), QDir(show).dirName());
         QVERIFY(!model->isPlaylist());
@@ -244,6 +246,7 @@ private slots:
         auto model = newModel();
         /* a path works as well as an MRL */
         model->setFolder(show);
+        QTRY_VERIFY(!model->loading());
 
         /* the episode number wins over a closer name */
         QCOMPARE(matches(*model), QStringList({
@@ -268,6 +271,7 @@ private slots:
 
         auto model = newModel();
         model->setFolder(show);
+        QTRY_VERIFY(!model->loading());
 
         QCOMPARE(matches(*model), QStringList({
             "A Short Day.mkv -> a.short.day.srt",
@@ -291,6 +295,7 @@ private slots:
 
         auto model = newModel();
         model->setFolder(show);
+        QTRY_VERIFY(!model->loading());
         QCOMPARE(matches(*model), QStringList({
             "Show S01E01.mkv -> Show S01E01.srt",
             "Show S01E02.mkv -> Show S01E02.srt",
@@ -347,6 +352,7 @@ private slots:
 
         auto model = newModel();
         model->setFolder(show);
+        QTRY_VERIFY(!model->loading());
 
         QCOMPARE(model->languages(), QStringList({ "English", "French", "All" }));
         QCOMPARE(model->languageIndex(), 1);
@@ -393,11 +399,44 @@ private slots:
 
         auto model = newModel();
         model->setFolder(show);
+        QTRY_VERIFY(!model->loading());
 
         /* the first language */
         QCOMPARE(model->languages(), QStringList({ "Italian", "Spanish", "All" }));
         QCOMPARE(model->languageIndex(), 0);
         QCOMPARE(matches(*model), QStringList({ "Show S01E01.mkv -> Show S01E01.it.srt" }));
+    }
+
+    void testLanguageFilterWithoutSubtitleLanguageFollowsTheSystemThenEnglish()
+    {
+        config_PutPsz("sub-language", "");
+        const QLocale previous;
+        const QString show = touchAll({
+            "Show S01E01.mkv",
+            "subs/Show S01E01.ar.srt",
+            "subs/Show S01E01.es.srt",
+            "subs/Show S01E01.en.srt",
+            "subs/Show S01E01.it.srt",
+        });
+
+        /* the system language */
+        QLocale::setDefault(QLocale(QLocale::Italian, QLocale::Italy));
+        auto model = newModel();
+        model->setFolder(show);
+        QTRY_VERIFY(!model->loading());
+        QCOMPARE(model->languages(),
+                 QStringList({ "Arabic", "English", "Italian", "Spanish", "All" }));
+        QCOMPARE(model->languageIndex(), 2);
+
+        /* not offered: English */
+        QLocale::setDefault(QLocale(QLocale::German, QLocale::Germany));
+        model = newModel();
+        model->setFolder(show);
+        QTRY_VERIFY(!model->loading());
+        QCOMPARE(model->languageIndex(), 1);
+        QCOMPARE(matches(*model), QStringList({ "Show S01E01.mkv -> Show S01E01.en.srt" }));
+
+        QLocale::setDefault(previous);
     }
 
     // Sources
@@ -413,11 +452,13 @@ private slots:
 
         auto model = newModel();
         model->setFolder(m_dir->filePath("Show"));
+        QTRY_VERIFY(!model->loading());
         QVERIFY(model->source().endsWith(" / Show"));
         QCOMPARE(model->matchedCount(), 0);
 
         QSignalSpy spy(model.get(), &SubtitleMatchModel::sourceChanged);
         model->setSource(QUrl::fromLocalFile(m_dir->filePath("Downloads")));
+        QTRY_VERIFY(!model->loading());
         QCOMPARE(spy.count(), 1);
         QVERIFY(model->source().endsWith(" / Downloads"));
         QVERIFY(!model->sourceIsZip());
@@ -428,6 +469,7 @@ private slots:
 
         /* back to the Show's folder */
         model->resetSource();
+        QTRY_VERIFY(!model->loading());
         QVERIFY(model->source().endsWith(" / Show"));
         QCOMPARE(model->matchedCount(), 0);
     }
@@ -444,7 +486,9 @@ private slots:
 
         auto model = newModel();
         model->setFolder(m_dir->filePath("Show"));
+        QTRY_VERIFY(!model->loading());
         model->setSource(QUrl::fromLocalFile(zip));
+        QTRY_VERIFY(!model->loading());
         QVERIFY(model->sourceIsZip());
         QVERIFY(model->source().endsWith(" / Show.Season.1.zip"));
 
@@ -462,9 +506,62 @@ private slots:
                      QStringList({ toMrl(extracted) }));
         QFile file(extracted);
         QVERIFY(file.open(QIODevice::ReadOnly));
-        QVERIFY(file.readAll().contains("Show.S01E01/Show S01E01.srt"));
+        QCOMPARE(file.readAll(), QByteArray("1\n00:00:00,000 --> 00:10:00,000\nShow.S01E01/Show S01E01.srt\n\n"));
         QVERIFY(!QFile::exists(m_dir->filePath("Downloads/evil S01E01.srt")));
         QVERIFY(!QFile::exists(m_dir->filePath("evil S01E01.srt")));
+    }
+
+    void testZipNeverOverwritesAnotherFile()
+    {
+        touchAll({ "Show/Show S01E01.mkv" });
+        const QString zip = writeZip("Downloads/Show.Season.1.zip", { "Show S01E01.srt" });
+        /* the user's own file where the extracted one would go */
+        const QString mine = m_dir->filePath("Downloads/Show.Season.1/Show S01E01.srt");
+        QDir().mkpath(QFileInfo(mine).absolutePath());
+        {
+            QFile file(mine);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write("mine");
+        }
+
+        auto model = newModel();
+        model->setFolder(m_dir->filePath("Show"));
+        QTRY_VERIFY(!model->loading());
+        model->setSource(QUrl::fromLocalFile(zip));
+        QTRY_VERIFY(!model->loading());
+        model->save();
+
+        const QString episode = toMrl(m_dir->filePath("Show/Show S01E01.mkv"));
+        QTRY_COMPARE(savedMatches(episode).size(), 1);
+        QVERIFY(savedMatches(episode).first() != toMrl(mine));
+        QFile file(mine);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(file.readAll(), QByteArray("mine"));
+    }
+
+    void testZipSkipsAnEntryTooLarge()
+    {
+        touchAll({ "Show/Show S01E01.mkv", "Show/Show S01E02.mkv" });
+        const QString zip = m_dir->filePath("Downloads/big.zip");
+        QDir().mkpath(QFileInfo(zip).absolutePath());
+        {
+            QZipWriter writer(zip);
+            /* compresses to almost nothing */
+            writer.addFile("Show S01E01.srt", QByteArray(40 * 1024 * 1024, '\n'));
+            writer.addFile("Show S01E02.srt", QByteArray("1\n00:00:00,000 --> 00:10:00,000\nok\n\n"));
+            writer.close();
+        }
+
+        auto model = newModel();
+        model->setFolder(m_dir->filePath("Show"));
+        QTRY_VERIFY(!model->loading());
+        model->setSource(QUrl::fromLocalFile(zip));
+        QTRY_VERIFY(!model->loading());
+        model->save();
+
+        QTRY_COMPARE(savedMatches(toMrl(m_dir->filePath("Show/Show S01E02.mkv"))).size(), 1);
+        QCOMPARE(savedMatches(toMrl(m_dir->filePath("Show/Show S01E01.mkv"))), QStringList());
+        QVERIFY(!QFile::exists(m_dir->filePath("Downloads/big/Show S01E01.srt")));
     }
 
     // Save
@@ -481,6 +578,7 @@ private slots:
 
         auto model = newModel();
         model->setFolder(show);
+        QTRY_VERIFY(!model->loading());
         model->setMatch(1, -1);
         model->save();
 
@@ -505,7 +603,9 @@ private slots:
 
         auto model = newModel();
         model->setFolder(m_dir->filePath("Show"));
+        QTRY_VERIFY(!model->loading());
         model->setSource(QUrl::fromLocalFile(m_dir->filePath("Downloads")));
+        QTRY_VERIFY(!model->loading());
         model->setMatch(1, -1);
         model->save();
         QTRY_COMPARE(savedMatches(toMrl(m_dir->filePath("Show/Show S01E01.mkv"))).size(), 1);
@@ -513,6 +613,7 @@ private slots:
         /* the dialog opens on it again */
         auto again = newModel();
         again->setFolder(m_dir->filePath("Show"));
+        QTRY_VERIFY(!again->loading());
         QVERIFY(again->source().endsWith(" / Downloads"));
         QCOMPARE(again->matchedCount(), 2);
 
@@ -555,6 +656,7 @@ private slots:
 
         auto model = newModel();
         model->setFolder(m_dir->filePath("Show"));
+        QTRY_VERIFY(!model->loading());
         QCOMPARE(model->languages(), QStringList({ "English", "French", "All" }));
         model->setLanguageIndex(1);
         model->save();

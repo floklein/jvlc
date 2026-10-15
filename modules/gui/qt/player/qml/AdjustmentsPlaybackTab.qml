@@ -223,7 +223,8 @@ FocusScope {
                 Layout.leftMargin: VLCStyle.spacing_20 + VLCStyle.spacing_4
                 Layout.rightMargin: VLCStyle.spacing_20
 
-                text: Player.subtitleTimeline.unsupportedReason
+                // why it can't, or why nothing shows yet
+                text: Player.subtitleTimeline.note
                 color: theme.fg.secondary
                 font.pixelSize: VLCStyle.fontSize_small
                 font.family: VLCStyle.fontFamily

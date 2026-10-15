@@ -77,7 +77,11 @@ void UINotifier::setupNotifications()
             return;
 
         m_ctx->setSettingValue(hintShownKey, true);
+        // the key bound to Hide UI, which the user may have changed
+        const QString key = m_ctx->actionShortcut(QStringLiteral("hide-ui"));
         emit showNotification(HideUI
-                              , qtr("Point at the top or bottom edge to show the bars. Ctrl+H turns Hide UI off."));
+                              , key.isEmpty()
+                                ? qtr("Point at the top or bottom edge to show the bars.")
+                                : qtr("Point at the top or bottom edge to show the bars. %1 turns Hide UI off.").arg(key));
     });
 }

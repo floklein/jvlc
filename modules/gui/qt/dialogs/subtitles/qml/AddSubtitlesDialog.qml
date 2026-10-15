@@ -512,7 +512,7 @@ ModalDialog {
                         anchors.fill: parent
 
                         clip: true
-                        spacing: VLCStyle.dp(4, VLCStyle.scale)
+                        spacing: VLCStyle.spacing_4
                         keyNavigationEnabled: true
 
                         model: root.model
@@ -572,7 +572,7 @@ ModalDialog {
                         anchors.fill: parent
 
                         clip: true
-                        spacing: VLCStyle.dp(4, VLCStyle.scale)
+                        spacing: VLCStyle.spacing_4
                         keyNavigationEnabled: true
 
                         model: root.model?.openSubtitles ?? null
@@ -636,7 +636,7 @@ ModalDialog {
                         anchors.fill: parent
 
                         clip: true
-                        spacing: VLCStyle.dp(4, VLCStyle.scale)
+                        spacing: VLCStyle.spacing_4
                         keyNavigationEnabled: true
 
                         model: root.matchModel?.openSubtitles ?? null
@@ -678,7 +678,7 @@ ModalDialog {
                     anchors.fill: parent
 
                     clip: true
-                    spacing: VLCStyle.dp(4, VLCStyle.scale)
+                    spacing: VLCStyle.spacing_4
                     keyNavigationEnabled: true
 
                     model: root.matchModel

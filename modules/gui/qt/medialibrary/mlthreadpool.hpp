@@ -53,8 +53,15 @@ public:
                           const char* queue = nullptr);
 
 private slots:
-    void runOnThreadDone(RunOnThreadBaseRunner* runner, quint64 target, const QObject* object, int status);
     void runOnThreadTargetDestroyed(QObject * object);
+
+private:
+    friend class RunOnThreadBaseRunner;
+    // in the runner's thread, once per task that was started
+    void runOnThreadDone(RunOnThreadBaseRunner* runner, quint64 target, const QObject* object, int status);
+    // m_lock held: the runner goes once shutting down and no task can call
+    // it back anymore
+    void deleteIfDoneLocked();
 
 
 private:
@@ -87,6 +94,9 @@ private:
     quint64 m_taskId = 1;
     QMap<quint64, RunOnThreadBaseRunner*> m_runningTasks;
     QMultiMap<const QObject*, quint64> m_objectTasks;
+    // the tasks created and neither taken back before they ran nor handed
+    // back by runOnThreadDone(): even canceled, they call the runner back
+    size_t m_pendingTasks = 0;
     QMutex m_lock;
 };
 
@@ -94,23 +104,33 @@ class RunOnThreadBaseRunner : public QObject, public QRunnable
 {
     Q_OBJECT
 public:
+    explicit RunOnThreadBaseRunner(ThreadRunner* runner)
+        : m_runner(runner)
+    {}
     virtual ~RunOnThreadBaseRunner() = default;
     virtual void runUICallback() = 0;
     virtual void cancel() = 0;
-signals:
-    void done(RunOnThreadBaseRunner* runner, quint64 target, const QObject* object, int status);
+
+protected:
+    // from the pool thread, last: hands the task to the runner's thread,
+    // which may delete it at once, so nothing of it is touched afterwards
+    void finish(quint64 target, const QObject* object, int status);
+
+private:
+    ThreadRunner* const m_runner;
 };
 
 template<typename Ctx>
 class RunOnThreadRunner : public RunOnThreadBaseRunner {
 public:
     RunOnThreadRunner(
+        ThreadRunner* runner,
         quint64 taskId,
         const QObject* obj,
         std::function<void (Ctx&)> mlFun,
         std::function<void (quint64, Ctx&)> uiFun
         )
-        : RunOnThreadBaseRunner()
+        : RunOnThreadBaseRunner(runner)
         , m_taskId(taskId)
         , m_obj(obj)
         , m_mlFun(mlFun)
@@ -123,11 +143,11 @@ public:
     {
         if (m_canceled)
         {
-            emit done(this, m_taskId, m_obj, ThreadRunner::ML_TASK_STATUS_CANCELED);
+            finish(m_taskId, m_obj, ThreadRunner::ML_TASK_STATUS_CANCELED);
             return;
         }
         m_mlFun(m_ctx);
-        emit done(this, m_taskId, m_obj, ThreadRunner::ML_TASK_STATUS_SUCCEED);
+        finish(m_taskId, m_obj, ThreadRunner::ML_TASK_STATUS_SUCCEED);
     }
 
     //called from UI thread
@@ -161,11 +181,11 @@ quint64 ThreadRunner::runOnThread(const QObject* obj,
         return 0;
 
     auto taskId = m_taskId++;
-    auto runnable = new RunOnThreadRunner<Ctx>(taskId, obj, mlFun, uiFun);
-    connect(runnable, &RunOnThreadBaseRunner::done, this, &ThreadRunner::runOnThreadDone);
+    auto runnable = new RunOnThreadRunner<Ctx>(this, taskId, obj, mlFun, uiFun);
     connect(obj, &QObject::destroyed, this, &ThreadRunner::runOnThreadTargetDestroyed, Qt::DirectConnection);
     m_runningTasks.insert(taskId, runnable);
     m_objectTasks.insert(obj, taskId);
+    ++m_pendingTasks;
     start(runnable, queue);
     return taskId;
 }

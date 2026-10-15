@@ -31,6 +31,7 @@
 #include "player/video_adjustments.hpp"
 #include "player/player_video_outputs.hpp"
 #include "player/audio_adjustments.hpp"
+#include "player/preset_controller.hpp"
 
 #include <vlc_actions.h>           /* ACTION_ID */
 #include <vlc_configuration.h>
@@ -70,9 +71,25 @@ using SharedTitleList = ::vlc::vlc_shared_data_ptr<vlc_player_title_list,
                                                    &vlc_player_title_list_Hold,
                                                    &vlc_player_title_list_Release>;
 
+int PlayerControllerPrivate::onKeyAction( vlc_object_t *, const char *, vlc_value_t,
+                                          vlc_value_t action, void *data )
+{
+    auto that = static_cast<PlayerControllerPrivate *>( data );
+    const QString key = PresetController::keyOfAction( action.i_int );
+    if ( key.isEmpty() )
+        return VLC_SUCCESS;
+    /* after the core applied it, on the UI thread */
+    PlayerController *q = that->q_func();
+    QMetaObject::invokeMethod( q, [q, key]() { emit q->adjustedByUser( key ); },
+                               Qt::QueuedConnection );
+    return VLC_SUCCESS;
+}
+
 PlayerControllerPrivate::~PlayerControllerPrivate()
 {
     assert(m_smpteTimerRequestCount == 0);
+
+    var_DelCallback( vlc_object_instance(p_intf), "key-action", onKeyAction, this );
 
     vlc_player_locker locker{m_player}; //this also locks the player
     vlc_player_vout_RemoveListener( m_player, m_player_vout_listener );
@@ -1330,6 +1347,10 @@ PlayerControllerPrivate::PlayerControllerPrivate(PlayerController *playercontrol
         m_player_timer = vlc_player_AddTimer( m_player, VLC_TICK_FROM_MS(500), &player_timer_cbs, this );
     }
 
+    /* the delay and speed hotkeys (handled by the core) adjust like the
+     * sidebar does, for the active Preset */
+    var_AddCallback( vlc_object_instance(p_intf), "key-action", onKeyAction, this );
+
     QObject::connect( &m_autoscale, &QVLCBool::valueChanged, q_ptr, &PlayerController::autoscaleChanged );
     QObject::connect( &m_audioVisualization, &VLCVarChoiceModel::hasCurrentChanged, q_ptr, &PlayerController::hasAudioVisualizationChanged );
 
@@ -1752,7 +1773,6 @@ void PlayerController::littlefaster()
 {
     Q_D(PlayerController);
     msg_Dbg( d->p_intf, "littlefaster");
-    emit adjustedByUser( QStringLiteral( "rate" ) );
     var_SetInteger( vlc_object_instance(d->p_intf), "key-action", ACTIONID_RATE_FASTER_FINE );
 }
 
@@ -1760,7 +1780,6 @@ void PlayerController::littleslower()
 {
     Q_D(PlayerController);
     msg_Dbg( d->p_intf, "littleslower");
-    emit adjustedByUser( QStringLiteral( "rate" ) );
     var_SetInteger( vlc_object_instance(d->p_intf), "key-action", ACTIONID_RATE_SLOWER_FINE );
 }
 
@@ -1988,6 +2007,22 @@ int PlayerController::getSecondarySubtitleDelayMS() const
 void PlayerController::setSecondarySubtitleDelayMS(int ms)
 {
     setSecondarySubtitleDelay( VLCDuration::fromMS(ms) );
+}
+
+void PlayerController::resetVideoView()
+{
+    Q_D(PlayerController);
+    size_t count;
+    vout_thread_t **vouts = vlc_player_vout_HoldAll( d->m_player, &count );
+    for ( size_t i = 0; vouts && i < count; ++i )
+    {
+        // the same values as Default and 1:1 in the Video tab
+        var_SetFloat( vouts[i], "zoom", 1.f );
+        var_SetString( vouts[i], "aspect-ratio", "" );
+        var_SetString( vouts[i], "crop", "" );
+        vout_Release( vouts[i] );
+    }
+    free( vouts );
 }
 
 void PlayerController::setSubtitleFPS(float fps)

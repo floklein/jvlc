@@ -42,7 +42,8 @@ Item {
     ShortcutExt{ context: Qt.WindowShortcut; sequence: root.sequence("save-queue"); onActivated: DialogsProvider.savePlayingToPlaylist(); }
     ShortcutExt{ sequence: root.sequence("convert"); onActivated: DialogsProvider.openAndTranscodingDialogs(); }
     ShortcutExt{ sequence: root.sequence("stream"); onActivated: DialogsProvider.openAndStreamingDialogs(); }
-    ShortcutExt{ sequence:"Ctrl+Q"; onActivated: DialogsProvider.quit(); }
+    // Quit is a core hotkey: the same key, rebound with it
+    ShortcutExt{ sequence: root.sequence("quit"); onActivated: DialogsProvider.quit(); }
     ShortcutExt{ sequence: root.sequence("adjustments"); onActivated: MainCtx.toggleAdjustments(); }
     ShortcutExt{ sequence: root.sequence("media-info"); onActivated: DialogsProvider.mediaInfoDialog(); }
     ShortcutExt{ sequence: root.sequence("codec-info"); onActivated: DialogsProvider.mediaCodecDialog(); }
@@ -53,7 +54,9 @@ Item {
 
     ShortcutExt{ sequence: root.sequence("show-queue"); onActivated: MainCtx.playqueuePanel.visible = !MainCtx.playqueuePanel.visible; }
 
-    ShortcutExt{ sequence:"F1"; onActivated: Qt.openUrlExternally("https://docs.videolan.me/vlc-user/") }
+    ShortcutExt{ sequence: root.sequence("help"); onActivated: Qt.openUrlExternally("https://docs.videolan.me/vlc-user/") }
+    // the Library pane beside the video
+    ShortcutExt{ sequence: root.sequence("library-pane"); onActivated: if (MainCtx.playerView) LibraryPages.paneOpen = !LibraryPages.paneOpen }
     ShortcutExt{ sequence: root.sequence("interface-fullscreen"); onActivated: MainCtx.toggleInterfaceFullScreen() }
     ShortcutExt{ sequence: root.sequence("hide-ui"); onActivated: MainCtx.hideUI = !MainCtx.hideUI; }
     // in while something plays, out at any time

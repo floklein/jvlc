@@ -81,6 +81,10 @@ class AudioAdjustments : public QObject
 
 public:
     static constexpr int BAND_COUNT = 10;
+    // the stereo mode "Headphones": the binaural mix of the output
+    // ("mix-mode"), with the stereo mode automatic; the value the deprecated
+    // AOUT_VAR_CHAN_HEADPHONES had
+    static constexpr int HEADPHONES = 6;
 
     explicit AudioAdjustments(vlc_player_t* player, QObject* parent = nullptr);
 

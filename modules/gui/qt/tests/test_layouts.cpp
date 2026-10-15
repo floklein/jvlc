@@ -434,8 +434,9 @@ private slots:
         QCOMPARE(video->topRight()->getControls(), QVector<int>{});
     }
 
-    // the mini player is not customizable
-    void testMiniPlayerIsFixed()
+    // the mini player has its own controls (MiniPlayer.qml): a layout saved
+    // for the old one is ignored
+    void testOldMiniPlayerLayoutIsIgnored()
     {
         const QString path = newSettingsPath();
         {
@@ -447,12 +448,8 @@ private slots:
         ControlbarProfileModel model(&settings);
         QTRY_COMPARE(model.rowCount(), 1);
 
-        const auto reference = defaultLayout();
-        PlayerControlbarModel* mini = model.currentModel()->getModel(P::Miniplayer);
-        QVERIFY(mini);
-        QVERIFY(*mini == *reference->getModel(P::Miniplayer));
-        QVERIFY(!mini->isPlaced(C::STOP_BUTTON));
-        QVERIFY(!mini->isPlaced(C::VLC_MENU_BUTTON));
+        QVERIFY(model.currentModel()->getModel(P::Videoplayer));
+        QVERIFY(!model.currentModel()->getModel(2));
     }
 };
 

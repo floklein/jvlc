@@ -63,6 +63,9 @@ public:
     void UpdateSubtitleTimelineTrack();
     int interpolateTime(vlc_tick_t system_now);
     bool isCurrentItemSynced();
+    // "key-action": the delay and speed hotkeys emit adjustedByUser()
+    static int onKeyAction(vlc_object_t *, const char *, vlc_value_t, vlc_value_t action,
+                           void *data);
 
     // Lazily reads m_syltRaw (the raw sylt-data buffer captured during
     // UpdateMeta) into a list of TimedText entries. The cache is

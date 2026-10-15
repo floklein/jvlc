@@ -991,7 +991,7 @@ FocusScope {
                     width: VLCStyle.dp(18, VLCStyle.scale)
                     height: width
 
-                    radius: VLCStyle.dp(2, VLCStyle.scale)
+                    radius: VLCStyle.radius_xxsmall
                     color: colorRow.color
                     border.width: swatch.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : VLCStyle.border
                     border.color: swatch.visualFocus ? theme.accent : theme.fg.secondary
@@ -1057,7 +1057,7 @@ FocusScope {
                         Keys.onDownPressed: paletteGrid.children[Math.min(index + paletteGrid.columns, root._palette.length - 1)].forceActiveFocus(Qt.TabFocusReason)
 
                         background: Rectangle {
-                            radius: VLCStyle.dp(2, VLCStyle.scale)
+                            radius: VLCStyle.radius_xxsmall
                             color: paletteSwatch.modelData
                             border.width: paletteSwatch.visualFocus || paletteSwatch.hovered
                                           ? VLCStyle.dp(2, VLCStyle.scale) : VLCStyle.border

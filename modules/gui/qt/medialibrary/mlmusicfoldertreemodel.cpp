@@ -22,10 +22,7 @@
 
 #include "mlmusicfoldertreemodel.hpp"
 
-#include <algorithm>
-
-#include <QCollator>
-
+#include <vlc_common.h>
 #include <vlc_media_library.h>
 
 #include "mlaudio.hpp"
@@ -34,6 +31,10 @@
 #include "mlfoldertreemodel.hpp"
 #include "mlhelper.hpp"
 #include "util/vlctick.hpp"
+
+#include <QCollator>
+
+#include <algorithm>
 
 namespace {
 
@@ -81,11 +82,27 @@ int byDisc(const QCollator &, const MLAudio &a, const MLAudio &b)
     return compareNumbers(a.getDiscNumber(), b.getDiscNumber());
 }
 
+// Unplayed First: never played, then played
+int byUnplayed(const QCollator &, const MLAudio &a, const MLAudio &b)
+{
+    return compareNumbers(a.playCount() > 0, b.playCount() > 0);
+}
+
+// Played First: the most played first
+int byPlayed(const QCollator &, const MLAudio &a, const MLAudio &b)
+{
+    return compareNumbers(b.playCount(), a.playCount());
+}
+
 // the criteria a sort compares, in order; empty for the library's order
 std::vector<TrackCompare> trackCriteria(const QString &criteria)
 {
     if (criteria == QLatin1String("insertion"))
         return {};
+    if (criteria == QLatin1String("unplayed"))
+        return { byUnplayed, byTitle };
+    if (criteria == QLatin1String("played"))
+        return { byPlayed, byTitle };
     if (criteria == QLatin1String("main_artist"))
         return { byArtist, byAlbum, byDisc, byTrack, byTitle };
     if (criteria == QLatin1String("album_title"))

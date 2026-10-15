@@ -18,9 +18,13 @@
 #ifndef VLC_QT_WINDOW_CHROME_HPP
 #define VLC_QT_WINDOW_CHROME_HPP
 
+#include <functional>
+
 #include <QRect>
 #include <QSize>
 #include <QString>
+
+class QObject;
 
 // The window chrome of the redesign: the window title, the side of the
 // window buttons and the Picture-in-picture geometry.
@@ -44,8 +48,10 @@ ButtonsSide buttonsSideFromGnomeLayout( const QString &layout );
 // from KDE's ButtonsOnLeft and ButtonsOnRight settings, "X" being close
 ButtonsSide buttonsSideFromKdeButtons( const QString &onLeft, const QString &onRight );
 
-// the side the desktop uses, read from its settings (Linux only, right elsewhere)
-ButtonsSide desktopButtonsSide();
+// the side the desktop uses, read from its settings (Linux only, right
+// elsewhere); GNOME asks gsettings, a process: the answer comes later, to
+// <done> in the thread of <context>, never blocking it
+void queryDesktopButtonsSide( QObject *context, std::function<void( ButtonsSide )> done );
 
 // the Picture-in-picture window in the available area of a screen: the saved
 // geometry when it lies on that screen, else about 480 px wide at the video's

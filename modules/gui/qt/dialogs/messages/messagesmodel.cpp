@@ -22,8 +22,6 @@
 
 #include "messagesmodel.hpp"
 
-#include <algorithm>
-
 #include <vlc_common.h>
 #include <vlc_interface.h>
 
@@ -31,6 +29,8 @@
 #include <QFile>
 #include <QGuiApplication>
 #include <QTextStream>
+
+#include <algorithm>
 
 namespace {
 

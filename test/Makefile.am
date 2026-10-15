@@ -304,7 +304,7 @@ test_src_player_conversion_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)
 test_src_player_stream_output_SOURCES = src/player/common.h src/player/modules.c \
 	src/player/stream_output.c
 test_src_player_stream_output_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)
-test_src_player_seeks_SOURCES =src/player/common.h src/player/modules.c \
+test_src_player_seeks_SOURCES = src/player/common.h src/player/modules.c \
 	src/player/seeks.c
 test_src_player_seeks_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)
 test_src_player_teletext_SOURCES = src/player/common.h src/player/modules.c \

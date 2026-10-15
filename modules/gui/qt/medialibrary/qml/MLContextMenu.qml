@@ -69,25 +69,25 @@ NativeMenu {
         // the folder menu
         {
             "text": qsTr("Play"),
-            "action": (dataList) => FolderActions.play(_folderId(dataList), _folderType()),
+            "action": (dataList) => FolderActions.play(_folderId(dataList), _folderType(dataList[0])),
             "visible": _isFolder
         }, {
             "text": qsTr("Shuffle"),
-            "action": (dataList) => FolderActions.shuffle(_folderId(dataList), _folderType()),
+            "action": (dataList) => FolderActions.shuffle(_folderId(dataList), _folderType(dataList[0])),
             "visible": _isFolder
         }, {
             "text": qsTr("Add to Queue"),
-            "action": (dataList) => FolderActions.addToQueue(_folderId(dataList), _folderType()),
+            "action": (dataList) => FolderActions.addToQueue(_folderId(dataList), _folderType(dataList[0])),
             "visible": _isFolder
         }, {
-            "text": qsTr("Play next"),
-            "action": (dataList) => FolderActions.playNext(_folderId(dataList), _folderType()),
+            "text": qsTr("Play Next"),
+            "action": (dataList) => FolderActions.playNext(_folderId(dataList), _folderType(dataList[0])),
             "visible": _isFolder
         }, {
             "text": qsTr("Preset"),
             "children": presetItems,
+            // music folders too: an equalizer per album
             "visible": (dataList) => _isFolder(dataList) && _folderPath(dataList) !== ""
-                                     && _folderType() !== FolderActions.Songs
         }, {
             "text": qsTr("Pin to Sidebar"),
             "action": pinFolder,
@@ -98,17 +98,17 @@ NativeMenu {
             "visible": _showUnpinFolder
         }, {
             "text": qsTr("Mark as Watched"),
-            "action": (dataList) => FolderActions.setWatched(_folderId(dataList), _folderType(), true),
+            "action": (dataList) => FolderActions.setWatched(_folderId(dataList), _folderType(dataList[0]), true),
             "visible": (dataList) => _canMarkFolder(dataList) && dataList[0].folder.unwatched > 0
         }, {
             "text": qsTr("Mark as Unwatched"),
-            "action": (dataList) => FolderActions.setWatched(_folderId(dataList), _folderType(), false),
+            "action": (dataList) => FolderActions.setWatched(_folderId(dataList), _folderType(dataList[0]), false),
             "visible": (dataList) => _canMarkFolder(dataList) && dataList[0].folder.unwatched === 0
         }, {
             "text": qsTr("Add Subtitles to This Folder…"),
             "action": (dataList) => DialogsProvider.addFolderSubtitlesDialog(_folderMrl(dataList)),
             "visible": (dataList) => _isFolder(dataList) && _folderPath(dataList) !== ""
-                                     && _folderType() !== FolderActions.Songs
+                                     && _folderType(dataList[0]) !== FolderActions.Songs
         }, {
             "separator": true,
             "visible": _isFolder
@@ -118,7 +118,7 @@ NativeMenu {
             "visible": (dataList) => _isFolder(dataList) && _folderPath(dataList) !== ""
         }, {
             "text": qsTr("Properties"),
-            "action": (dataList) => FolderActions.showProperties(_folderId(dataList), _folderType()),
+            "action": (dataList) => FolderActions.showProperties(_folderId(dataList), _folderType(dataList[0])),
             "visible": _isFolder
         }, {
             "separator": true,
@@ -139,7 +139,7 @@ NativeMenu {
             "action": addAndPlay,
             "visible": _isFiles
         }, {
-            "text": qsTr("Play next"),
+            "text": qsTr("Play Next"),
             "action": playNext,
             "visible": _isFiles
         }, {
@@ -226,7 +226,7 @@ NativeMenu {
             "visible": (dataList) => _isOther(dataList) && root.showPlayAsAlbumAction
                                      && (root.model instanceof MLAudioModel)
         }, {
-            "text": qsTr("Play next"),
+            "text": qsTr("Play Next"),
             "action": playNext,
             "visible": _isOther
         }, {
@@ -234,7 +234,7 @@ NativeMenu {
             "action": enqueue,
             "visible": _isOther
         }, {
-            "text": qsTr("Add album to Queue"),
+            "text": qsTr("Add Album to Queue"),
             "action": enqueueAsAlbum,
             "visible": (dataList) => _isOther(dataList) && root.showPlayAsAlbumAction
                                      && (root.model instanceof MLAudioModel)
@@ -273,7 +273,7 @@ NativeMenu {
                 return
             }
 
-            FolderActions.describe(data[0][root.idDataRole], root._folderType(), (folder) => {
+            FolderActions.describe(data[0][root.idDataRole], root._folderType(data[0]), (folder) => {
                 setData(requestID, [Object.assign({}, data[0], { "folder": folder })])
             })
         })
@@ -338,12 +338,8 @@ NativeMenu {
         const items = [{
             "text": qsTr("Default"),
             "checked": current === "",
-            "action": () => {
-                // follow the parent folders again, unless they have a Preset
-                presets.detach(folder)
-                if (presets.presetOf(folder) !== "")
-                    presets.attach(folder, "")
-            }
+            // as in the sidebar: a parent's Preset stops here
+            "action": () => Presets.chooseForFolder(folder, "")
         }]
 
         for (let row = 0; row < presets.count; ++row) {
@@ -352,7 +348,8 @@ NativeMenu {
             items.push({
                 "text": presets.data(index, PresetsModel.NAME),
                 "checked": id === current,
-                "action": () => presets.attach(folder, id)
+                // shows "Using <Preset> for <folder>"
+                "action": () => Presets.chooseForFolder(folder, id)
             })
         }
 
@@ -371,12 +368,17 @@ NativeMenu {
         _setFavorite(dataList, indexes, false)
     }
 
+    // a folder of Music ▸ Songs opens there
+    function _pinType(data) {
+        return _folderType(data) === FolderActions.Songs ? Pins.MUSIC_FOLDER : Pins.FOLDER
+    }
+
     function pinFolder(dataList, options, indexes) {
-        Pins.pin(Pins.FOLDER, dataList[0][idDataRole].toString(), dataList[0].title)
+        Pins.pin(_pinType(dataList[0]), dataList[0][idDataRole].toString(), dataList[0].title)
     }
 
     function unpinFolder(dataList, options, indexes) {
-        Pins.unpin(Pins.FOLDER, dataList[0][idDataRole].toString())
+        Pins.unpin(_pinType(dataList[0]), dataList[0][idDataRole].toString())
     }
 
     // hides them from Recent, their watched state and progress stay
@@ -435,10 +437,15 @@ NativeMenu {
     }
 
     // the type of media of the folders: the videos in Videos, the songs in
-    // Songs
-    function _folderType() {
+    // Songs; on Home, where folders of both are listed, what the folder holds
+    function _folderType(data) {
         if (root.model instanceof MLMusicFolderTreeModel)
             return FolderActions.Songs
+        if (root.model instanceof MLVideoFoldersModel && root.model.anyMedia && data) {
+            if (!data.nb_videos)
+                return FolderActions.Songs
+            return data.nb_audio ? FolderActions.AnyMedia : FolderActions.Videos
+        }
         if (root.model instanceof MLFolderTreeModel || root.model instanceof MLVideoFoldersModel)
             return FolderActions.Videos
         return FolderActions.AnyMedia
@@ -472,16 +479,16 @@ NativeMenu {
     }
 
     function _canMarkFolder(dataList) {
-        return _isFolder(dataList) && _folderType() !== FolderActions.Songs
+        return _isFolder(dataList) && _folderType(dataList[0]) !== FolderActions.Songs
                 && (dataList[0].folder?.media ?? 0) > 0
     }
 
     function _showPinFolder(dataList, options, indexes) {
-        return _isFolder(dataList) && !Pins.isPinned(Pins.FOLDER, dataList[0][idDataRole].toString())
+        return _isFolder(dataList) && !Pins.isPinned(_pinType(dataList[0]), dataList[0][idDataRole].toString())
     }
 
     function _showUnpinFolder(dataList, options, indexes) {
-        return _isFolder(dataList) && Pins.isPinned(Pins.FOLDER, dataList[0][idDataRole].toString())
+        return _isFolder(dataList) && Pins.isPinned(_pinType(dataList[0]), dataList[0][idDataRole].toString())
     }
 
     // media files: rows with an MRL that aren't folders

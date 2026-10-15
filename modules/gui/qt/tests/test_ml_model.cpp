@@ -26,6 +26,7 @@
 #include "../medialibrary/mlmediafolder.hpp"
 #include "../medialibrary/mlmusicfoldertreemodel.hpp"
 #include "../medialibrary/mlplaycountrank.hpp"
+#include "../medialibrary/mlvideofoldersmodel.hpp"
 #include "../medialibrary/medialib.hpp"
 #include "../playlist/playlist_controller.hpp"
 #include "vlc_stub_modules.hpp"
@@ -661,6 +662,48 @@ private slots:
         QCOMPARE(folder.folderId().id, 1);
     }
 
+    // Home's Frequently Visited Folders: folders of videos and of songs
+
+    void testFrequentFoldersListVideoAndMusicFolders()
+    {
+        m_env->mlFolders = {
+            {1, 0, "Shows"}, {2, 0, "Music"}, {3, 0, "Mixed"}, {4, 0, "Empty"},
+        };
+        m_env->mlMedia = {
+            {10, 1, "The Wand S01E01"},
+            {11, 1, "The Wand S01E02"},
+            {12, 2, "untangle", -1., 0, VLC_ML_MEDIA_TYPE_AUDIO},
+            {13, 3, "Clip"},
+            {14, 3, "moonlight", -1., 0, VLC_ML_MEDIA_TYPE_AUDIO},
+        };
+
+        auto folders = [this](bool anyMedia, bool music) {
+            auto model = std::make_unique<MLVideoFoldersModel>();
+            model->classBegin();
+            model->setAnyMedia(anyMedia);
+            model->setMusic(music);
+            model->setMl(m_medialib.get());
+            model->componentComplete();
+            [&] { QVERIFY(QTest::qWaitFor([&]() { return !model->loading(); })); }();
+            return model;
+        };
+
+        /* (the stub lists the folders in the order of their ids) */
+        auto all = folders(true, false);
+        QCOMPARE(titles(*all), QStringList({"Shows", "Music", "Mixed"}));
+        QCOMPARE(roleValues(*all, "count"), QVariantList({2u, 1u, 2u}));
+        QCOMPARE(roleValues(*all, "nb_videos"), QVariantList({2u, 0u, 1u}));
+        QCOMPARE(roleValues(*all, "nb_audio"), QVariantList({0u, 1u, 1u}));
+
+        /* the Videos and the Pin picker's Music Folders count their own */
+        auto videos = folders(false, false);
+        QCOMPARE(titles(*videos), QStringList({"Shows", "Mixed"}));
+        QCOMPARE(roleValues(*videos, "count"), QVariantList({2u, 1u}));
+        auto music = folders(false, true);
+        QCOMPARE(titles(*music), QStringList({"Music", "Mixed"}));
+        QCOMPARE(roleValues(*music, "count"), QVariantList({1u, 1u}));
+    }
+
     // Songs: the music folder tree
 
     void testSongsTopListsAddedFoldersWithMusic()
@@ -713,6 +756,22 @@ private slots:
 
         QTRY_COMPARE(model->path().size(), 2);
         QCOMPARE(model->path().at(1).toMap().value("title").toString(), QStringLiteral("My Songs"));
+    }
+
+    // like Unwatched First of the video folders
+    void testSongsSortUnplayedFirst()
+    {
+        m_env->mlFolders = { {1, 0, "Music"} };
+        m_env->mlMedia = {
+            {10, 1, "Bravo", -1., 3, VLC_ML_MEDIA_TYPE_AUDIO},
+            {11, 1, "Alpha", -1., 0, VLC_ML_MEDIA_TYPE_AUDIO},
+            {12, 1, "Charlie", -1., 0, VLC_ML_MEDIA_TYPE_AUDIO},
+            {13, 1, "Delta", -1., 1, VLC_ML_MEDIA_TYPE_AUDIO},
+        };
+        auto unplayed = makeSongsModel(1, "unplayed", Qt::AscendingOrder);
+        QCOMPARE(titles(*unplayed), QStringList({"Alpha", "Charlie", "Bravo", "Delta"}));
+        auto played = makeSongsModel(1, "played", Qt::AscendingOrder);
+        QCOMPARE(titles(*played), QStringList({"Bravo", "Delta", "Alpha", "Charlie"}));
     }
 
     void testSongsSortByArtist()

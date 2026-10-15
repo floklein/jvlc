@@ -21,16 +21,16 @@
 
 #include "conversion_profile_model.hpp"
 
+#include <vlc_common.h>
+#include <vlc_configuration.h>
+#include <vlc_modules.h>
+
 #include "dialogs/sout/profiles.hpp"
 #include "util/soutchain.hpp"
 
 #include <QSettings>
 #include <QRegularExpression>
 #include <QUrl>
-
-#include <vlc_common.h>
-#include <vlc_configuration.h>
-#include <vlc_modules.h>
 
 namespace {
 

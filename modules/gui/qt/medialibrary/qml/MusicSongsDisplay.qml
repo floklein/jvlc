@@ -47,7 +47,10 @@ Widgets.PageExt {
     hasGridListMode: false
     isSearchable: true
 
+    // as in Videos, with Unplayed and Played for Unwatched and Watched
     sortModel: [
+        { text: qsTr("Unplayed First"), criteria: "unplayed", order: Qt.AscendingOrder },
+        { text: qsTr("Played First"), criteria: "played", order: Qt.AscendingOrder },
         { text: qsTr("Title A-Z"), criteria: "title", order: Qt.AscendingOrder },
         { text: qsTr("Title Z-A"), criteria: "title", order: Qt.DescendingOrder },
         { text: qsTr("Artist"), criteria: "main_artist", order: Qt.AscendingOrder },

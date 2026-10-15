@@ -278,7 +278,7 @@ FocusScope {
 
                 visible: durationLabel.activeFocus
 
-                radius: VLCStyle.dp(2, VLCStyle.scale)
+                radius: VLCStyle.radius_xxsmall
                 color: "transparent"
                 border.width: VLCStyle.focus_border
                 // the focus ring color: theme.visualFocus is only set on a focused context

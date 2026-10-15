@@ -59,9 +59,11 @@ namespace
 class VideoVisualProxy final : public IDCompositionVisual
 {
 public:
-    VideoVisualProxy(IDCompositionVisual *visual, CompositorDCompositionVideoBlur *blur)
+    using ContentSink = CompositorDCompositionVideoBlur::ContentSink;
+
+    VideoVisualProxy(IDCompositionVisual *visual, std::shared_ptr<ContentSink> sink)
         : m_visual(visual)
-        , m_blur(blur)
+        , m_sink(std::move(sink))
     {
     }
 
@@ -159,8 +161,11 @@ public:
     HRESULT STDMETHODCALLTYPE SetContent(IUnknown *content) override
     {
         const HRESULT hr = m_visual->SetContent(content);
-        if (SUCCEEDED(hr))
-            m_blur->setVideoContent(content);
+        // the blur may be gone already (the window surface was destroyed
+        // while the video output lives)
+        QMutexLocker lock(&m_sink->lock);
+        if (SUCCEEDED(hr) && m_sink->blur)
+            m_sink->blur->setVideoContent(content);
         return hr;
     }
 
@@ -189,7 +194,7 @@ private:
 
     std::atomic<ULONG> m_refCount {1};
     ComPtr<IDCompositionVisual> m_visual;
-    CompositorDCompositionVideoBlur *m_blur;
+    const std::shared_ptr<ContentSink> m_sink;
 };
 
 }
@@ -247,6 +252,37 @@ CompositorDCompositionVideoBlur::CompositorDCompositionVideoBlur(qt_intf_t *intf
     if (FAILED(m_device->CreateVisual(&m_rootVisual)))
         throw std::runtime_error("failed to create the video blur root visual");
 
+    try
+    {
+        HR(m_device->CreateVisual(&m_blurClipVisual), "create video blur clip visual");
+        HR(m_device->CreateRectangleClip(&m_blurClip), "create video blur clip");
+        HR(m_device->CreateVisual(&m_blurVisual), "create video blur visual");
+        HR(m_device->CreateGaussianBlurEffect(&m_blur), "create video blur effect");
+        HR(m_device->CreateLinearTransferEffect(reinterpret_cast<void **>(m_clamp.ReleaseAndGetAddressOf())),
+           "create video blur clamp");
+
+        // Hard borders: the blur does not fade to transparent at the edges
+        // of the video.
+        HR(m_blur->SetBorderMode(D2D1_BORDER_MODE_HARD), "set video blur border mode");
+        // The video, blurred, then clamped (makeThemeTokens() computes the
+        // Tint over the blur from the clamped range). Opaque, so the raw
+        // video never shows through where the blur is transparent.
+        HR(m_clamp->SetInput(0, m_blur.Get(), 0), "set video blur clamp input");
+        HR(m_clamp->SetClampOutput(TRUE), "set video blur clamp output");
+        HR(m_clamp->SetAlphaSlope(0.f), "set video blur clamp alpha");
+        HR(m_clamp->SetAlphaYIntercept(1.f), "set video blur clamp alpha");
+        HR(m_blurVisual->SetEffect(m_clamp.Get()), "set video blur effect");
+        HR(m_blurClipVisual->SetClip(m_blurClip.Get()), "set video blur clip");
+        HR(m_blurClipVisual->AddVisual(m_blurVisual.Get(), FALSE, nullptr), "add video blur visual");
+    }
+    catch (const DXError &err)
+    {
+        throw std::runtime_error(err.what());
+    }
+
+    m_sink = std::make_shared<ContentSink>();
+    m_sink->blur = this;
+
     connect(&m_provider, &VideoBlurProvider::regionChanged,
             this, &CompositorDCompositionVideoBlur::onRegionChanged);
     connect(&m_provider, &VideoBlurProvider::regionRemoved,
@@ -272,6 +308,13 @@ CompositorDCompositionVideoBlur::CompositorDCompositionVideoBlur(qt_intf_t *intf
 
 CompositorDCompositionVideoBlur::~CompositorDCompositionVideoBlur()
 {
+    // the visuals handed to the video output stop calling it (waiting for a
+    // call in progress); always the sink lock, then m_lock
+    {
+        QMutexLocker lock(&m_sink->lock);
+        m_sink->blur = nullptr;
+    }
+
     qApp->removeNativeEventFilter(this);
     if (m_powerSavingNotification)
         UnregisterPowerSettingNotification(m_powerSavingNotification);
@@ -282,6 +325,7 @@ CompositorDCompositionVideoBlur::~CompositorDCompositionVideoBlur()
     if (m_rootVisual)
         m_rootVisual->RemoveAllVisuals();
     m_regions.clear();
+    m_gaps.clear();
 }
 
 bool CompositorDCompositionVideoBlur::nativeEventFilter(const QByteArray &, void *message, qintptr *)
@@ -340,7 +384,7 @@ ComPtr<IDCompositionVisual> CompositorDCompositionVideoBlur::wrapVideoVisual(IDC
 {
     assert(videoVisual);
     ComPtr<IDCompositionVisual> proxy;
-    proxy.Attach(new VideoVisualProxy(videoVisual, this));
+    proxy.Attach(new VideoVisualProxy(videoVisual, m_sink));
     return proxy;
 }
 
@@ -348,10 +392,12 @@ void CompositorDCompositionVideoBlur::setVideoPosition(const QPointF &position)
 {
     QMutexLocker lock(&m_lock);
     m_videoPosition = position;
-    for (auto &[key, region] : m_regions)
+    m_blurVisual->SetOffsetX(position.x());
+    m_blurVisual->SetOffsetY(position.y());
+    for (Gap &gap : m_gaps)
     {
-        region.blurVisual->SetOffsetX(position.x());
-        region.blurVisual->SetOffsetY(position.y());
+        gap.videoVisual->SetOffsetX(position.x());
+        gap.videoVisual->SetOffsetY(position.y());
     }
 }
 
@@ -359,8 +405,9 @@ void CompositorDCompositionVideoBlur::setVideoContent(IUnknown *content)
 {
     QMutexLocker lock(&m_lock);
     m_content = content;
-    for (auto &[key, region] : m_regions)
-        region.blurVisual->SetContent(content);
+    m_blurVisual->SetContent(content);
+    for (Gap &gap : m_gaps)
+        gap.videoVisual->SetContent(content);
     // The video output commits the device after `SetContent()`.
 }
 
@@ -373,94 +420,100 @@ void CompositorDCompositionVideoBlur::clearVideoContent()
 void CompositorDCompositionVideoBlur::onRegionChanged(quintptr key, const VideoBlurProvider::Region &value)
 {
     QMutexLocker lock(&m_lock);
-
-    auto it = m_regions.find(key);
-    if (it == m_regions.end())
-    {
-        Region region;
-        try
-        {
-            HR(m_device->CreateVisual(&region.clipVisual), "create video blur clip visual");
-            HR(m_device->CreateRectangleClip(&region.clip), "create video blur clip");
-            HR(m_device->CreateEffectGroup(&region.fade), "create video blur fade");
-            HR(m_device->CreateVisual(&region.blurVisual), "create video blur visual");
-            HR(m_device->CreateGaussianBlurEffect(&region.blur), "create video blur effect");
-            HR(m_device->CreateLinearTransferEffect(reinterpret_cast<void **>(region.clamp.ReleaseAndGetAddressOf())),
-               "create video blur clamp");
-
-            // Hard borders: the blur does not fade to transparent at the
-            // edges of the video.
-            HR(region.blur->SetBorderMode(D2D1_BORDER_MODE_HARD), "set video blur border mode");
-            // The video, blurred, then clamped (makeThemeTokens() computes
-            // the Tint over the blur from the clamped range). Opaque, so the
-            // raw video never shows through where the blur is transparent.
-            HR(region.clamp->SetInput(0, region.blur.Get(), 0), "set video blur clamp input");
-            HR(region.clamp->SetClampOutput(TRUE), "set video blur clamp output");
-            HR(region.clamp->SetAlphaSlope(0.f), "set video blur clamp alpha");
-            HR(region.clamp->SetAlphaYIntercept(1.f), "set video blur clamp alpha");
-            HR(region.blurVisual->SetEffect(region.clamp.Get()), "set video blur effect");
-            HR(region.clipVisual->SetEffect(region.fade.Get()), "set video blur fade");
-            HR(region.blurVisual->SetOffsetX(m_videoPosition.x()), "set video blur offset");
-            HR(region.blurVisual->SetOffsetY(m_videoPosition.y()), "set video blur offset");
-            HR(region.blurVisual->SetContent(m_content.Get()), "set video blur content");
-            HR(region.clipVisual->SetClip(region.clip.Get()), "set video blur clip");
-            HR(region.clipVisual->AddVisual(region.blurVisual.Get(), FALSE, nullptr), "add video blur visual");
-            HR(m_rootVisual->AddVisual(region.clipVisual.Get(), TRUE, nullptr), "add video blur clip visual");
-        }
-        catch (const DXError &err)
-        {
-            msg_Err(m_intf, "failed to create a video blur region: '%s' code: 0x%lX", err.what(), err.code());
-            return;
-        }
-        it = m_regions.emplace(key, std::move(region)).first;
-    }
-
-    // the blur fades with its panel, and its strength follows the scale
-    it->second.fade->SetOpacity(static_cast<float>(value.opacity));
-    it->second.blur->SetStandardDeviation(static_cast<float>(value.deviation));
-
-    // each channel from [0, 1] into [darkest, brightest]
-    DCompLinearTransferEffect *const clamp = it->second.clamp.Get();
-    const float slope = static_cast<float>(value.brightest - value.darkest);
-    const float intercept = static_cast<float>(value.darkest);
-    clamp->SetRedSlope(slope);
-    clamp->SetRedYIntercept(intercept);
-    clamp->SetGreenSlope(slope);
-    clamp->SetGreenYIntercept(intercept);
-    clamp->SetBlueSlope(slope);
-    clamp->SetBlueYIntercept(intercept);
-
-    IDCompositionRectangleClip *const clip = it->second.clip.Get();
-    const QRectF &rect = value.rect;
-    clip->SetLeft(rect.left());
-    clip->SetTop(rect.top());
-    clip->SetRight(rect.right());
-    clip->SetBottom(rect.bottom());
-
-    const float radius = value.radius;
-    clip->SetTopLeftRadiusX(radius);
-    clip->SetTopLeftRadiusY(radius);
-    clip->SetTopRightRadiusX(radius);
-    clip->SetTopRightRadiusY(radius);
-    clip->SetBottomLeftRadiusX(radius);
-    clip->SetBottomLeftRadiusY(radius);
-    clip->SetBottomRightRadiusX(radius);
-    clip->SetBottomRightRadiusY(radius);
-
-    m_device->Commit();
+    m_regions[key] = value;
+    relayoutLocked();
 }
 
 void CompositorDCompositionVideoBlur::onRegionRemoved(quintptr key)
 {
     QMutexLocker lock(&m_lock);
-
-    const auto it = m_regions.find(key);
-    if (it == m_regions.end())
+    if (m_regions.erase(key) == 0)
         return;
+    relayoutLocked();
+}
 
-    // Detached, the region costs nothing to compose:
-    m_rootVisual->RemoveVisual(it->second.clipVisual.Get());
-    m_regions.erase(it);
+void CompositorDCompositionVideoBlur::relayoutLocked()
+{
+    QList<VideoBlurProvider::Region> regions;
+    for (const auto &[key, region] : m_regions)
+        regions.append(region);
+    const VideoBlurLayout layout = videoBlurLayout(regions);
+
+    try
+    {
+        if (layout.bounds.isEmpty())
+        {
+            // Detached, the blur costs nothing to compose:
+            if (m_blurShown)
+                HR(m_rootVisual->RemoveAllVisuals(), "remove the video blur");
+            m_blurShown = false;
+            m_gaps.clear();
+            m_device->Commit();
+            return;
+        }
+
+        // The regions share the blur: the strength follows the scale and the
+        // clamped range the Theme, the same for every panel
+        const VideoBlurProvider::Region &first = regions.first();
+        HR(m_blur->SetStandardDeviation(static_cast<float>(first.deviation)), "set video blur deviation");
+        // each channel from [0, 1] into [darkest, brightest]
+        const float slope = static_cast<float>(first.brightest - first.darkest);
+        const float intercept = static_cast<float>(first.darkest);
+        m_clamp->SetRedSlope(slope);
+        m_clamp->SetRedYIntercept(intercept);
+        m_clamp->SetGreenSlope(slope);
+        m_clamp->SetGreenYIntercept(intercept);
+        m_clamp->SetBlueSlope(slope);
+        m_clamp->SetBlueYIntercept(intercept);
+
+        m_blurClip->SetLeft(layout.bounds.left());
+        m_blurClip->SetTop(layout.bounds.top());
+        m_blurClip->SetRight(layout.bounds.right());
+        m_blurClip->SetBottom(layout.bounds.bottom());
+        if (!m_blurShown)
+        {
+            HR(m_blurVisual->SetOffsetX(m_videoPosition.x()), "set video blur offset");
+            HR(m_blurVisual->SetOffsetY(m_videoPosition.y()), "set video blur offset");
+            HR(m_blurVisual->SetContent(m_content.Get()), "set video blur content");
+            // at the bottom (TRUE without a reference)
+            HR(m_rootVisual->AddVisual(m_blurClipVisual.Get(), TRUE, nullptr), "add the video blur");
+            m_blurShown = true;
+        }
+
+        // a sharp copy of the video over each gap, above the blur
+        while (m_gaps.size() > static_cast<size_t>(layout.gaps.size()))
+        {
+            m_rootVisual->RemoveVisual(m_gaps.back().clipVisual.Get());
+            m_gaps.pop_back();
+        }
+        while (m_gaps.size() < static_cast<size_t>(layout.gaps.size()))
+        {
+            Gap gap;
+            HR(m_device->CreateVisual(&gap.clipVisual), "create video blur gap");
+            HR(m_device->CreateVisual(&gap.videoVisual), "create video blur gap video");
+            HR(gap.videoVisual->SetOffsetX(m_videoPosition.x()), "set video blur gap offset");
+            HR(gap.videoVisual->SetOffsetY(m_videoPosition.y()), "set video blur gap offset");
+            HR(gap.videoVisual->SetContent(m_content.Get()), "set video blur gap content");
+            HR(gap.clipVisual->AddVisual(gap.videoVisual.Get(), FALSE, nullptr), "add video blur gap video");
+            // on top (FALSE without a reference)
+            HR(m_rootVisual->AddVisual(gap.clipVisual.Get(), FALSE, nullptr), "add video blur gap");
+            m_gaps.push_back(std::move(gap));
+        }
+        for (size_t i = 0; i < m_gaps.size(); ++i)
+        {
+            const QRectF &rect = layout.gaps[i];
+            HR(m_gaps[i].clipVisual->SetClip(D2D_RECT_F{ static_cast<float>(rect.left()),
+                                                          static_cast<float>(rect.top()),
+                                                          static_cast<float>(rect.right()),
+                                                          static_cast<float>(rect.bottom()) }),
+               "set video blur gap clip");
+        }
+    }
+    catch (const DXError &err)
+    {
+        msg_Err(m_intf, "failed to lay out the video blur: '%s' code: 0x%lX", err.what(), err.code());
+    }
+
     m_device->Commit();
 }
 

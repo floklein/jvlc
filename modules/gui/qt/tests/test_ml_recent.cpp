@@ -23,6 +23,7 @@
 
 #include "../medialibrary/medialib.hpp"
 #include "../medialibrary/mlrecentmediamodel.hpp"
+#include "../medialibrary/mlrecentvideomodel.hpp"
 #include "../playlist/playlist_controller.hpp"
 
 #include <memory>
@@ -200,7 +201,11 @@ private slots:
 
     void testClearRecentHidesEverythingPlayedSoFar()
     {
-        m_env->setHistory({{3, daysAgo(0)}, {1, daysAgo(1)}, {2, daysAgo(9)}});
+        // the same times when the history is given again below: a second
+        // may pass meanwhile
+        const int64_t today = daysAgo(0);
+        const int64_t yesterday = daysAgo(1);
+        m_env->setHistory({{3, today}, {1, yesterday}, {2, daysAgo(9)}});
 
         auto model = newModel();
         QTRY_COMPARE(titles(*model), QStringList({"ml:3", "ml:1", "ml:2"}));
@@ -210,14 +215,47 @@ private slots:
         QTRY_COMPARE(model->getCount(), 0u);
         QCOMPARE(m_env->historyClears(), 0);
 
-        // what is played next shows up
-        m_env->setHistory({{2, daysAgo(0) + 10}, {3, daysAgo(0)}, {1, daysAgo(1)}});
+        // what is played next shows up, however long the reload took
+        m_env->setHistory({{2, QDateTime::currentSecsSinceEpoch() + 60}, {3, today},
+                           {1, yesterday}});
         QTRY_COMPARE(titles(*model), QStringList({"ml:2"}));
 
         model.reset();
         restart();
         auto restarted = newModel();
         QTRY_COMPARE(titles(*restarted), QStringList({"ml:2"}));
+    }
+
+    // Continue Watching: the videos stopped before their end, newest first;
+    // Clear Recent hides them too
+    void testContinueWatchingListsTheVideosInProgress()
+    {
+        const int64_t now = daysAgo(0);
+        m_env->setHistory({
+            {5, now, VLC_ML_MEDIA_TYPE_VIDEO, 0.4},
+            {6, now - 10, VLC_ML_MEDIA_TYPE_VIDEO, -1.}, // watched to the end
+            {7, now - 20, VLC_ML_MEDIA_TYPE_AUDIO, 0.5},
+            {8, now - 30, VLC_ML_MEDIA_TYPE_VIDEO, 0.9},
+        });
+
+        auto continueWatching = std::make_unique<MLRecentVideoModel>();
+        continueWatching->classBegin();
+        continueWatching->setMl(m_medialib.get());
+        continueWatching->componentComplete();
+        const auto continueTitles = [&continueWatching]() {
+            QStringList result;
+            for (int i = 0; i < continueWatching->rowCount(); ++i)
+                result.push_back(continueWatching->data(continueWatching->index(i),
+                                                        MLMediaModel::MEDIA_TITLE).toString());
+            return result;
+        };
+        QTRY_COMPARE(continueTitles(), QStringList({"ml:5", "ml:8"}));
+        QCOMPARE(continueWatching->getCount(), 2u);
+
+        auto recent = newModel();
+        QTRY_COMPARE(recent->getCount(), 4u);
+        recent->clearRecent();
+        QTRY_COMPARE(continueWatching->getCount(), 0u);
     }
 
 private:

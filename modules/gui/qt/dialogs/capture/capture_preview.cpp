@@ -21,6 +21,7 @@
 
 #include "capture_preview.hpp"
 
+#include <vlc_common.h>
 #include <vlc_block.h>
 #include <vlc_input_item.h>
 #include <vlc_picture.h>

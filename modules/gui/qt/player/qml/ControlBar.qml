@@ -32,6 +32,9 @@ import VLC.Util
 T.Pane {
     id: root
 
+    // the popups of its buttons open above it (PopupIconToolButton)
+    objectName: "controlBar"
+
     enum TimeTextPosition {
         Hide,
         AboveSlider,
@@ -271,7 +274,7 @@ T.Pane {
 
                     visible: mediaRemainingTime.activeFocus
 
-                    radius: VLCStyle.dp(2, VLCStyle.scale)
+                    radius: VLCStyle.radius_xxsmall
                     color: "transparent"
                     border.width: VLCStyle.focus_border
                     // the focus ring color: theme.visualFocus is only set on a focused context

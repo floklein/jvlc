@@ -134,6 +134,9 @@ struct vlc_player_input
         bool has_audio_tracks;
         /* The string ids of the tracks picked by the viewer, by category */
         char *picked_tracks[DATA_ES];
+        /* The next forced selection of a category comes from
+         * vlc_player_SelectDefaultTrack(): it isn't the viewer's pick */
+        bool default_selection[DATA_ES];
     } ml;
 
     unsigned repeat;
@@ -613,6 +616,10 @@ vlc_player_osd_Program(vlc_player_t *player, const char *name);
 /*
  * player/medialib.c
  */
+
+/* Empty playback states, not holding anything to release */
+void
+vlc_player_input_ResetMlStates(struct vlc_player_input *input);
 
 void
 vlc_player_input_RestoreMlStates(struct vlc_player_input* input, bool force_pos);
