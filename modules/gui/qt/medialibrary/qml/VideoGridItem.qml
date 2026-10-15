@@ -115,6 +115,9 @@ Widgets.GridItem {
 
             anchors.right: parent.right
             anchors.top: parent.top
+            // the corner of the triangle sits on the rounded corner of the cover
+            anchors.rightMargin: Math.round(root.pictureRadius * (1 - Math.SQRT1_2))
+            anchors.topMargin: anchors.rightMargin
 
             width: VLCStyle.gridItem_newIndicator
             height: width

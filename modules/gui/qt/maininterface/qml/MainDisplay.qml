@@ -387,6 +387,11 @@ FocusScope {
             width: VLCStyle.isScreenReallySmall ? 0.0 : collapsedWidth
 
             property real collapsedWidth: VLCStyle.icon_normal + VLCStyle.margin_small + VLCStyle.margin_xsmall + VLCStyle.applicationHorizontalMargin
+                                          + 2 * cardMargin
+
+            // Figma 6261:15094: the navigation is a card on the background
+            // of the window, which the pages share
+            readonly property real cardMargin: VLCStyle.margin_xsmall
 
             delegateShowText: (state === "expanded")
 
@@ -396,14 +401,26 @@ FocusScope {
 
             property int maximumWidth: Math.max(minimumWidth, (g_mainDisplay.width + sidebarResizeHandle.width) / 3)
 
-            topPadding: 0
-            leftPadding: 0
-            rightPadding: sidebarResizeHandle.visible ? sidebarResizeHandle.visualBorder.width : 0.0
-            bottomPadding: VLCStyle.applicationVerticalMargin + VLCStyle.margin_small
+            topPadding: cardMargin + VLCStyle.margin_xxsmall
+            leftPadding: cardMargin
+            rightPadding: cardMargin + (sidebarResizeHandle.visible ? sidebarResizeHandle.visualBorder.width : 0.0)
+            bottomPadding: VLCStyle.applicationVerticalMargin + VLCStyle.margin_small + cardMargin
 
             safeAreaLeftMargin: VLCStyle.applicationHorizontalMargin
 
             useAcrylic: (VLCStyle.isScreenSmall ? (sidebar.state === "") : true) // See `694d51a7` for the reasoning.
+
+            background: Rectangle {
+                color: stackViewParent.color
+
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: sidebar.cardMargin
+                    anchors.leftMargin: sidebar.cardMargin + sidebar.safeAreaLeftMargin
+                    radius: VLCStyle.radius_normal
+                    color: sidebar.colorContext.bg.primary
+                }
+            }
 
             NavigationBarContextMenu {
                 id: navigationBarContextMenu

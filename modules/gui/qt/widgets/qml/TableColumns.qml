@@ -258,6 +258,7 @@ Item {
             anchors.centerIn: parent
 
             horizontalAlignment: Text.AlignHCenter
+            font.weight: Font.Normal
             text: timeDel.rowModel?.[timeDel.colModel.criteria]?.formatShort() ?? ""
             color: timeDel.selected
                 ? timeDel.colorContext.fg.highlight
@@ -308,6 +309,8 @@ Item {
                 id: text
 
                 anchors.verticalCenter: parent.verticalCenter
+                // list rows are regular (Figma 970:3308)
+                font.weight: Font.Normal
                 text: (source.rowModel && root.showTitleText)
                       ? root._titleTextProvider(source.rowModel, source.colModel)
                       : ""

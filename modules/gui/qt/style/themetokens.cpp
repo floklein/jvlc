@@ -325,6 +325,49 @@ AccentShades deriveAccentShades(const QColor& accent, bool dark)
     };
 }
 
+MenuColors menuColors(const ThemeTokens& t)
+{
+    MenuColors c;
+    // Figma's "BG/A3 Transparent", made opaque over the window: a native
+    // menu has no translucent background on every platform
+    c.background = composite(t.bgA3Transparent, t.bgB1);
+    c.border = t.dividerDim;
+    c.text = t.fgA2;
+    c.disabledText = t.fgA4;
+    c.hoveredBackground = t.dividerDim;
+    c.hoveredText = t.fg1;
+    c.separator = t.dividerDim;
+    return c;
+}
+
+QString menuStyleSheet(const ThemeTokens& t, double scale)
+{
+    const MenuColors c = menuColors(t);
+    const auto px = [scale](double value) {
+        return QStringLiteral("%1px").arg(std::max(1L, std::lround(value * scale)));
+    };
+    const auto name = [](const QColor& color) {
+        return color.name(QColor::HexRgb);
+    };
+
+    return QStringLiteral(
+        "QMenu {"
+        " background-color: %1; color: %2;"
+        " border: 1px solid %3; border-radius: %4; padding: %5;"
+        " font-family: \"Inter\"; font-size: %6; icon-size: %15; }"
+        "QMenu::item {"
+        " background-color: transparent; border-radius: %7;"
+        " min-height: %8; padding: %9 %10; }"
+        "QMenu::item:selected { background-color: %11; color: %12; }"
+        "QMenu::item:disabled { color: %13; }"
+        "QMenu::icon { padding-left: %10; }"
+        "QMenu::separator { height: 1px; background-color: %14; margin: %5 0; }")
+        .arg(name(c.background), name(c.text), name(c.border),
+             px(10), px(4), px(14), px(6), px(44), px(2))
+        .arg(px(14), name(c.hoveredBackground), name(c.hoveredText),
+             name(c.disabledText), name(c.separator), px(24));
+}
+
 bool resolveDarkTheme(ColorSchemeModel::ColorScheme theme, bool systemIsDark)
 {
     switch (theme)

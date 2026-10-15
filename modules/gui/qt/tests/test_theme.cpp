@@ -454,6 +454,56 @@ private slots:
         QCOMPARE_COLOR(makeThemeTokens(dark, QColor("#1f6fd1")).accentLogo, logo);
     }
 
+    void testMenusFollowTheTheme_data()
+    {
+        QTest::addColumn<bool>("dark");
+        QTest::newRow("dark") << true;
+        QTest::newRow("light") << false;
+    }
+
+    void testMenusFollowTheTheme()
+    {
+        QFETCH(bool, dark);
+        const ThemeTokens t = makeThemeTokens(dark);
+        const MenuColors c = menuColors(t);
+
+        // Figma 6062:13354: BG/A3 Transparent, FG/A2 text, Divider/Dim lines
+        QCOMPARE(c.background, composite(t.bgA3Transparent, t.bgB1));
+        QCOMPARE(c.text, t.fgA2);
+        QCOMPARE(c.separator, t.dividerDim);
+        if (dark)
+            QCOMPARE(c.background.name(), QStringLiteral("#181818"));
+
+        // a dark menu in the dark Theme, a light one in the light Theme
+        QCOMPARE(c.background.lightnessF() < 0.5, dark);
+
+        // the entries read on the menu, hovered or not
+        QVERIFY(contrastRatio(c.text, c.background) >= 4.5);
+        QVERIFY(contrastRatio(c.hoveredText, c.hoveredBackground) >= 4.5);
+    }
+
+    void testMenuStyleSheetDrawsFigmaRows()
+    {
+        const ThemeTokens t = makeThemeTokens(true);
+        const MenuColors c = menuColors(t);
+
+        const QString sheet = menuStyleSheet(t);
+        QVERIFY(sheet.contains(c.background.name()));
+        QVERIFY(sheet.contains(c.text.name()));
+        QVERIFY(sheet.contains(c.hoveredBackground.name()));
+        // 48 px rows: 44 px, plus 2 px of padding above and below
+        QVERIFY(sheet.contains(QStringLiteral("min-height: 44px; padding: 2px 14px;")));
+        QVERIFY(sheet.contains(QStringLiteral("font-size: 14px")));
+        QVERIFY(sheet.contains(QStringLiteral("border-radius: 10px")));
+        QVERIFY(sheet.contains(QStringLiteral("icon-size: 24px")));
+        QVERIFY(!sheet.contains(QLatin1Char('%')));
+
+        // the rows follow the interface scale
+        const QString scaled = menuStyleSheet(t, 1.5);
+        QVERIFY(scaled.contains(QStringLiteral("min-height: 66px; padding: 3px 21px;")));
+        QVERIFY(scaled.contains(QStringLiteral("font-size: 21px")));
+    }
+
     void testThemeResolution_data()
     {
         QTest::addColumn<ColorSchemeModel::ColorScheme>("theme");

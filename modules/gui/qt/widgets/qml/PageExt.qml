@@ -281,6 +281,10 @@ T.Page {
 
                 visible: !crumbs.visible
 
+                // a page without trail reads as the last crumb of one (Figma 6261:15078)
+                font.pixelSize: VLCStyle.fontSize_large
+                font.weight: Font.DemiBold
+
                 color: theme.fg.primary
             }
 

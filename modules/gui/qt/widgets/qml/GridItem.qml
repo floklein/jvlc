@@ -357,6 +357,10 @@ T.ItemDelegate {
                 id: titleLabel
 
                 height: implicitHeight
+                // card titles are regular (Figma 6261:15078, 970:2703); they
+                // stay brighter than the subtitle, which takes Figma's FG/A3
+                // place in the readable FG/A1
+                font.weight: Font.Normal
                 color: root.selected
                     ? theme.fg.highlight
                     : theme.fg.primary

@@ -45,9 +45,10 @@ Widgets.PageExt {
     Accessible.role: Accessible.Client
     Accessible.name: qsTr("Network view")
 
-    // the services list ends with an "Add a service" row, hidden here
-    readonly property int itemCount: SavedStreams.count + Math.max(0, servicesRepeater.count - 1)
-                                     + sharesRepeater.count
+    // shown in the header, as in the other sections; the services list ends
+    // with an "Add a service" row, hidden here
+    itemCount: SavedStreams.count + Math.max(0, servicesRepeater.count - 1)
+               + sharesRepeater.count
 
     function setCurrentItemFocus(reason) {
         addRow.forceActiveFocus(reason)
@@ -86,19 +87,6 @@ Widgets.PageExt {
 
             width: flickable.width
             spacing: 0
-
-            Widgets.CaptionLabel {
-                text: qsTr("%1 item", "%1 items", root.itemCount).arg(root.itemCount)
-                color: theme.fg.secondary
-                Layout.bottomMargin: VLCStyle.spacing_10
-            }
-
-            Rectangle {
-                implicitHeight: VLCStyle.border
-                color: theme.separator
-                Layout.fillWidth: true
-                Layout.bottomMargin: VLCStyle.spacing_10
-            }
 
             NetworkRow {
                 id: addRow

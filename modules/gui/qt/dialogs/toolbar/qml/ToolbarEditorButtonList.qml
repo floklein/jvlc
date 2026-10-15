@@ -308,9 +308,11 @@ GridView {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
 
-                    color: colorContext.fg.primary
+                    // Figma 2107:5604: regular labels, quieter than the icons
+                    color: colorContext.fg.secondary
                     elide: Text.ElideNone
                     font.pixelSize: VLCStyle.fontSize_normal
+                    font.weight: Font.Normal
                     maximumLineCount: 2
                     text: modelData.text
                     wrapMode: Text.WordWrap

@@ -118,6 +118,8 @@ T.ItemDelegate {
             Layout.fillWidth: true
 
             Widgets.ListLabel {
+                // rows of the library are regular (Figma 858:5294)
+                font.weight: Font.Normal
                 text: root.text
                 color: theme.fg.primary
                 elide: Text.ElideRight

@@ -22,6 +22,7 @@ import VLC.MainInterface
 import VLC.MediaLibrary
 import VLC.Dialogs
 import VLC.Player
+import VLC.Style
 
 import VLC.Util
 
@@ -69,18 +70,22 @@ NativeMenu {
         // the folder menu
         {
             "text": qsTr("Play"),
+            "icon": _icon("playback"),
             "action": (dataList) => FolderActions.play(_folderId(dataList), _folderType(dataList[0])),
             "visible": _isFolder
         }, {
             "text": qsTr("Shuffle"),
+            "icon": _icon("shuffle"),
             "action": (dataList) => FolderActions.shuffle(_folderId(dataList), _folderType(dataList[0])),
             "visible": _isFolder
         }, {
             "text": qsTr("Add to Queue"),
+            "icon": _icon("queue"),
             "action": (dataList) => FolderActions.addToQueue(_folderId(dataList), _folderType(dataList[0])),
             "visible": _isFolder
         }, {
             "text": qsTr("Play Next"),
+            "icon": _icon("next"),
             "action": (dataList) => FolderActions.playNext(_folderId(dataList), _folderType(dataList[0])),
             "visible": _isFolder
         }, {
@@ -98,14 +103,17 @@ NativeMenu {
             "visible": _showUnpinFolder
         }, {
             "text": qsTr("Mark as Watched"),
+            "icon": _icon("check_selected"),
             "action": (dataList) => FolderActions.setWatched(_folderId(dataList), _folderType(dataList[0]), true),
             "visible": (dataList) => _canMarkFolder(dataList) && dataList[0].folder.unwatched > 0
         }, {
             "text": qsTr("Mark as Unwatched"),
+            "icon": _icon("check_selected"),
             "action": (dataList) => FolderActions.setWatched(_folderId(dataList), _folderType(dataList[0]), false),
             "visible": (dataList) => _canMarkFolder(dataList) && dataList[0].folder.unwatched === 0
         }, {
             "text": qsTr("Add Subtitles to This Folder…"),
+            "icon": _icon("subtitles"),
             "action": (dataList) => DialogsProvider.addFolderSubtitlesDialog(_folderMrl(dataList)),
             "visible": (dataList) => _isFolder(dataList) && _folderPath(dataList) !== ""
                                      && _folderType(dataList[0]) !== FolderActions.Songs
@@ -114,10 +122,12 @@ NativeMenu {
             "visible": _isFolder
         }, {
             "text": _showInFileManagerText,
+            "icon": _icon("folder"),
             "action": (dataList) => Qt.openUrlExternally(_folderMrl(dataList)),
             "visible": (dataList) => _isFolder(dataList) && _folderPath(dataList) !== ""
         }, {
             "text": qsTr("Properties"),
+            "icon": _icon("info"),
             "action": (dataList) => FolderActions.showProperties(_folderId(dataList), _folderType(dataList[0])),
             "visible": _isFolder
         }, {
@@ -136,50 +146,62 @@ NativeMenu {
         // the file menu
         {
             "text": qsTr("Play"),
+            "icon": _icon("playback"),
             "action": addAndPlay,
             "visible": _isFiles
         }, {
             "text": qsTr("Play Next"),
+            "icon": _icon("next"),
             "action": playNext,
             "visible": _isFiles
         }, {
             "text": qsTr("Add to Queue"),
+            "icon": _icon("queue"),
             "action": enqueue,
             "visible": _isFiles
         }, {
             "text": qsTr("Add to Playlist"),
+            "icon": _icon("playlists"),
             "children": addToPlaylistItems,
             "visible": _isFiles
         }, {
             "text": qsTr("Mark as Watched"),
+            "icon": _icon("check_selected"),
             "action": (dataList) => MediaLib.setMediaWatched(_mlIDList(dataList), true),
             "visible": (dataList) => _areVideos(dataList) && !dataList.every(_isWatched)
         }, {
             "text": qsTr("Mark as Unwatched"),
+            "icon": _icon("check_selected"),
             "action": (dataList) => MediaLib.setMediaWatched(_mlIDList(dataList), false),
             "visible": (dataList) => _areVideos(dataList) && dataList.every(_isWatched)
         }, {
             "text": qsTr("Favorite"),
+            "icon": _icon("favorite"),
             "action": addFavorite,
             "visible": (dataList) => _isFiles(dataList) && _checkRole(dataList, "isFavorite", false)
         }, {
             "text": qsTr("Remove from Favorites"),
+            "icon": _icon("favorite"),
             "action": removeFavorite,
             "visible": (dataList) => _isFiles(dataList) && _checkRole(dataList, "isFavorite", true)
         }, {
             "text": qsTr("Add Subtitle Tracks…"),
+            "icon": _icon("subtitles"),
             "action": (dataList) => DialogsProvider.addSubtitlesDialog(dataList[0].mrl),
             "visible": _isLocalVideo
         }, {
             "text": qsTr("Add Audio Track…"),
+            "icon": _icon("audio"),
             "action": (dataList) => DialogsProvider.addAudioTrackDialog(dataList[0].mrl),
             "visible": _isLocalVideo
         }, {
             "text": qsTr("Stream & Cast…"),
+            "icon": _icon("streaming"),
             "action": (dataList) => DialogsProvider.streamAndCastMediaDialog(dataList[0].mrl, dataList[0].title),
             "visible": (dataList) => _isFiles(dataList) && dataList.length === 1
         }, {
             "text": qsTr("Convert…"),
+            "icon": _icon("swap"),
             "action": (dataList) => DialogsProvider.convertDialog(dataList.map((data) => data.mrl)),
             "visible": _isFiles
         }, {
@@ -187,14 +209,17 @@ NativeMenu {
             "visible": _isFiles
         }, {
             "text": _showInFileManagerText,
+            "icon": _icon("folder"),
             "action": (dataList) => Qt.openUrlExternally(_parentUrl(dataList[0].mrl)),
             "visible": _isLocalFile
         }, {
             "text": qsTr("Go to Source"),
+            "icon": _icon("arrow_right"),
             "action": goToSource,
             "visible": (dataList) => _isLocalFile(dataList) && !_isFolderTree()
         }, {
             "text": qsTr("Properties & Metadata"),
+            "icon": _icon("info"),
             "action": (dataList) => DialogsProvider.mediaInfoDialog(dataList[0][idDataRole]),
             "visible": (dataList) => _isFiles(dataList) && dataList.length === 1
                                      && !(dataList[0][idDataRole].hasParent())
@@ -280,6 +305,12 @@ NativeMenu {
     }
 
     // Functions
+
+    // the two-tone icon "<name>_tt_base" / "<name>_tt_accent" of an entry,
+    // as the menus of Figma (2404:13340, 2459:9389)
+    function _icon(name) {
+        return [VLCIcons[name + "_tt_base"] ?? "", VLCIcons[name + "_tt_accent"] ?? ""]
+    }
 
     function addAndPlay(dataList, options, indexes) {
         // the model applies the Play rule (the rest of the view after a media)

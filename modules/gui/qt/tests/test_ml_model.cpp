@@ -695,6 +695,11 @@ private slots:
         QCOMPARE(roleValues(*all, "nb_videos"), QVariantList({2u, 0u, 1u}));
         QCOMPARE(roleValues(*all, "nb_audio"), QVariantList({0u, 1u, 1u}));
 
+        /* the library gives no duration for these folders: Home shows none,
+           not "0 ms" */
+        for (const QVariant &duration : roleValues(*all, "duration"))
+            QVERIFY(!duration.isValid());
+
         /* the Videos and the Pin picker's Music Folders count their own */
         auto videos = folders(false, false);
         QCOMPARE(titles(*videos), QStringList({"Shows", "Mixed"}));

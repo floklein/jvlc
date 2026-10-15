@@ -91,6 +91,9 @@ QVariant MLVideoFoldersModel::itemRoleData(const MLItem * item, const int role) 
                                     , QStringLiteral(":/placeholder/noart_videoCover.svg"));
         }
         case FOLDER_DURATION:
+            // the library may not know it: no duration rather than "0 ms"
+            if (folder->getDuration().asMilliseconds() <= 0)
+                return {};
             return QVariant::fromValue(folder->getDuration());
         case FOLDER_COUNT:
             /* the media the model lists the folder for */

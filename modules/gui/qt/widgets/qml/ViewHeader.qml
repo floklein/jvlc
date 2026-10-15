@@ -86,12 +86,16 @@ T.Pane {
 
         anchors.fill: parent
 
+        // Figma 6261:15078: 20 px, regular, FG/A1
         SubtitleLabel {
             id: label
 
             Layout.fillWidth: !root.seeAllChevron
 
-            color: theme.fg.primary
+            font.pixelSize: VLCStyle.fontSize_sectionTitle
+            font.weight: Font.Normal
+
+            color: theme.fg.secondary
         }
 
         TextToolButton {

@@ -20,6 +20,7 @@
 
 #include <QColor>
 #include <QList>
+#include <QString>
 
 #include "util/color_scheme_model.hpp"
 
@@ -132,6 +133,30 @@ QColor composite(const QColor& color, const QColor& backdrop);
  * background. Black or white when it cannot.
  */
 QColor withContrast(const QColor& color, const QList<QColor>& backgrounds, double ratio);
+
+/**
+ * Colors of the native menus (QMenu): the VLC menu, the right-click menu and
+ * the library item menus, as Figma's menu (6062:13354) in the given Theme.
+ */
+struct MenuColors
+{
+    QColor background;
+    QColor border;
+    QColor text;
+    QColor disabledText;
+    QColor hoveredBackground;
+    QColor hoveredText;
+    QColor separator;
+};
+
+MenuColors menuColors(const ThemeTokens& t);
+
+/**
+ * The style sheet that draws the native menus as Figma's menu (6062:13354):
+ * 48 px rows, 14 px text, rounded corners, in the colors of menuColors().
+ * scale is the interface scale.
+ */
+QString menuStyleSheet(const ThemeTokens& t, double scale = 1.);
 
 /**
  * Whether a Theme choice shows the dark palette. System follows the

@@ -45,6 +45,7 @@ QtObject {
         objectName: "themePalette"
         source: MainCtx.colorScheme.scheme
         ctx: MainCtx
+        stylesWidgets: true
     }
 
     readonly property SystemPalette darkPalette: SystemPalette {
@@ -108,6 +109,9 @@ QtObject {
     readonly property int fontSize_xlarge: fontMetrics_xlarge.font.pixelSize
     readonly property int fontSize_xxlarge: fontMetrics_xxlarge.font.pixelSize
     readonly property int fontSize_xxxlarge: fontMetrics_xxxlarge.font.pixelSize
+
+    // the title of a row of the library, as Home's "Continue Watching" (Figma 6261:15078)
+    readonly property int fontSize_sectionTitle: MainCtx.dp(20, scale)
 
     readonly property int fontHeight_xxsmall: Math.ceil(fontMetrics_xxsmall.lineSpacing)
     readonly property int fontHeight_xsmall: Math.ceil(fontMetrics_xsmall.lineSpacing)
@@ -235,10 +239,11 @@ QtObject {
     readonly property int gridCover_music_border: MainCtx.dp(3, scale)
 
     readonly property int gridCover_video_width: colWidth(2)
-    readonly property int gridCover_video_height: ( gridCover_video_width * 10.0 ) / 16
+    // video cards are 16:9 with 12 px corners (Figma 6261:15078, 970:2703)
+    readonly property int gridCover_video_height: ( gridCover_video_width * 9.0 ) / 16
     readonly property int gridCover_video_border: MainCtx.dp(4, scale)
 
-    readonly property int gridCover_radius: radius_small
+    readonly property int gridCover_radius: MainCtx.dp(12, scale)
 
     readonly property int expandCover_music_height: MainCtx.dp(171, scale)
     readonly property int expandCover_music_width: MainCtx.dp(171, scale)

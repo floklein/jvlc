@@ -70,8 +70,6 @@ FocusScope {
         implicitHeight: VLCStyle.dp(36, VLCStyle.scale)
 
         text: model.label
-        iconTxt: model.expanded ? VLCIcons.chevron_up : VLCIcons.chevron_down
-        iconSize: VLCStyle.icon_small
         font.pixelSize: VLCStyle.fontSize_normal
         font.weight: Font.Normal
 
@@ -83,9 +81,38 @@ FocusScope {
         Accessible.role: Accessible.Button
         Accessible.name: model.label
 
+        // Figma 999:5047: "Advanced Options ›" centered on a raised bar
+        contentItem: RowLayout {
+            spacing: VLCStyle.spacing_8
+
+            Item { Layout.fillWidth: true }
+
+            Text {
+                text: advancedHeader.text
+                color: advancedHeader.hovered || advancedHeader.visualFocus ? theme.fg.primary : theme.fg.secondary
+                font.pixelSize: VLCStyle.fontSize_normal
+                font.family: VLCStyle.fontFamily
+                Accessible.ignored: true
+            }
+
+            Widgets.IconLabel {
+                text: VLCIcons.chevron_right
+                rotation: model.expanded ? 90 : 0
+                color: advancedHeader.hovered || advancedHeader.visualFocus ? theme.fg.primary : theme.fg.secondary
+                font.pixelSize: VLCStyle.icon_small
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        readonly property ColorContext barColorContext: ColorContext {
+            id: barTheme
+            colorSet: ColorContext.Window
+        }
+
         background: Rectangle {
-            radius: VLCStyle.radius_normal
-            color: advancedHeader.hovered || advancedHeader.visualFocus ? theme.bg.highlight : theme.bg.secondary
+            radius: VLCStyle.radius_small
+            color: advancedHeader.hovered || advancedHeader.visualFocus ? theme.bg.highlight : barTheme.bg.primary
             border.width: advancedHeader.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : 0
             border.color: theme.accent
         }

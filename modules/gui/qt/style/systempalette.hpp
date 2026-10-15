@@ -105,6 +105,8 @@ public:
     Q_PROPERTY(qreal videoBlurBrightest MEMBER m_videoBlurBrightest NOTIFY paletteChanged FINAL)
     Q_PROPERTY(bool hasCSDImage READ hasCSDImage NOTIFY hasCSDImageChanged FINAL)
     Q_PROPERTY(CSDMetrics* csdMetrics READ getCSDMetrics NOTIFY CSDMetricsChanged FINAL)
+    // the palette of the interface also styles the native menus (QMenu)
+    Q_PROPERTY(bool stylesWidgets MEMBER m_stylesWidgets NOTIFY stylesWidgetsChanged FINAL)
 
 public:
     SystemPalette(QObject* parent = nullptr);
@@ -135,9 +137,11 @@ signals:
     void hasCSDImageChanged();
     void ctxChanged();
     void CSDMetricsChanged();
+    void stylesWidgetsChanged();
 
 private:
     void updatePalette();
+    void styleWidgets(const QString& menuStyleSheet);
     void loadAccentColor();
 
     void makeThemePalette(const ThemeTokens& t);
@@ -149,6 +153,7 @@ private:
     ColorSchemeModel::ColorScheme m_source = ColorSchemeModel::ColorScheme::Light;
     bool m_isDark = false;
     bool m_hasCSDImage = false;
+    bool m_stylesWidgets = false;
     qreal m_videoBlurDarkest = 0.;
     qreal m_videoBlurBrightest = 1.;
 

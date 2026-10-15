@@ -139,6 +139,11 @@ QIcon glyphIcon( QChar base, QChar accent, const QWidget *widget )
 {
     registerIconFont();
 
+    // the style sheet of the Theme sets the palette of a widget when it
+    // polishes it, which a menu being built has not been yet
+    if( widget )
+        widget->ensurePolished();
+
     const QPalette palette = widget ? widget->palette() : qApp->palette();
     const QColor background = palette.color( QPalette::Window );
 

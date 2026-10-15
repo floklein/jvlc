@@ -45,6 +45,9 @@ QtObject {
         "separator" - (Boolean) (optional) the entry is a line between groups; a line is never
                       shown first, last or next to another one
 
+        "icon" - ([base, accent]) (optional) the two-tone icon of the entry: VLCIcons glyphs,
+                 either one may be ""
+
        e.g see MLContextMenu.qml
     **/
 
@@ -113,6 +116,7 @@ QtObject {
                     _effectiveActions.push({ "text": action.text, "children": children })
                     textStrings.push({
                         "text": action.text,
+                        "icon": action.icon ?? [],
                         "children": children.map((child) => {
                             if (child.separator)
                                 return ""
@@ -125,7 +129,8 @@ QtObject {
                 }
 
                 _effectiveActions.push(action)
-                textStrings.push(action.text)
+                textStrings.push(Array.isArray(action.icon) ? { "text": action.text, "icon": action.icon }
+                                                            : action.text)
             }
         }
 

@@ -28,6 +28,8 @@
 #include "playlist/playlist_model.hpp"
 #include "dialogs/dialogs_provider.hpp"
 #include "util/colorizedsvgicon.hpp"
+#include "util/glyph_icon.hpp"
+#include "style/vlcicons.hpp"
 #include "maininterface/navigationmodel.hpp"
 #include "maininterface/pinsmodel.hpp"
 
@@ -79,14 +81,31 @@ void StringListMenu::popup(const QPoint &point, const QVariantList &stringList)
     assert(m_ctx);
     QMenu *m = newMenu();
 
+    // the two-tone icon of an entry {text, icon: [base, accent]}, either
+    // glyph may be empty (Figma 2404:13340)
+    const auto setEntryIcon = [](QAction *action, const QMenu *menu, const QVariantMap &entry)
+    {
+        const QVariantList icon = entry.value("icon").toList();
+        if (icon.size() != 2)
+            return;
+        const auto glyph = [](const QVariant &value) {
+            const QString text = value.toString();
+            return text.isEmpty() ? QChar() : text.front();
+        };
+        action->setIcon(glyphIcon(glyph(icon[0]), glyph(icon[1]), menu));
+    };
+
     for (int i = 0; i != stringList.size(); ++i)
     {
         // NOTE: An entry {text, children} is a submenu, an empty child a
-        //       separator; a child {text, checked} has a check mark.
-        if (stringList[i].typeId() == QMetaType::QVariantMap)
+        //       separator; a child {text, checked} has a check mark. An
+        //       entry {text, icon} is an entry with an icon.
+        const bool isMap = stringList[i].typeId() == QMetaType::QVariantMap;
+        const QVariantMap entry = isMap ? stringList[i].toMap() : QVariantMap {};
+        if (isMap && entry.contains("children"))
         {
-            const QVariantMap entry = stringList[i].toMap();
             QMenu *submenu = m->addMenu(entry.value("text").toString());
+            setEntryIcon(submenu->menuAction(), m, entry);
             const QVariantList children = entry.value("children").toList();
             for (int j = 0; j != children.size(); ++j)
             {
@@ -113,7 +132,7 @@ void StringListMenu::popup(const QPoint &point, const QVariantList &stringList)
             continue;
         }
 
-        const auto str = stringList[i].toString();
+        const auto str = isMap ? entry.value("text").toString() : stringList[i].toString();
         // an empty entry is a separator
         if (str.isEmpty())
         {
@@ -123,10 +142,12 @@ void StringListMenu::popup(const QPoint &point, const QVariantList &stringList)
         // entries are text ("Stream & Cast…", user names): no mnemonic
         QString label = str;
         label.replace('&', QLatin1String("&&"));
-        m->addAction(label, this, [this, i, str]()
+        QAction *action = m->addAction(label, this, [this, i, str]()
         {
             emit selected(i, str);
         });
+        if (isMap)
+            setEntryIcon(action, m, entry);
     }
 
     m->popup(point);
@@ -507,8 +528,13 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
 
     MediaLib * ml = m_model->ml();
 
+    // the two-tone icons of the entries (Figma 2459:9389)
+    const auto icon = [menu](QChar base, QChar accent) {
+        return glyphIcon(base, accent, menu);
+    };
+
     // NOTE: The Queue gets a copy of the Playlist, Play and Shuffle replace it (with Undo).
-    QAction * action = menu->addAction(qtr("Play"));
+    QAction * action = menu->addAction(icon({}, VLCIcons::playback_tt_accent), qtr("Play"));
 
     connect(action, &QAction::triggered, [ml, ids]() {
         ml->addAndPlay(ids);
@@ -519,7 +545,8 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
         const QPersistentModelIndex index = selected.first();
         const bool isFavorite = m_model->data(index, MLPlaylistListModel::PLAYLIST_IS_FAVORITE).toBool();
 
-        action = menu->addAction(isFavorite ? qtr("Remove from Favorites") : qtr("Favorite"));
+        action = menu->addAction(icon({}, VLCIcons::favorite_tt_accent),
+                                 isFavorite ? qtr("Remove from Favorites") : qtr("Favorite"));
 
         connect(action, &QAction::triggered, [model = m_model, index, isFavorite]() {
             if (index.isValid())
@@ -527,7 +554,8 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
         });
     }
 
-    action = menu->addAction(qtr("Shuffle"));
+    action = menu->addAction(icon(VLCIcons::shuffle_tt_base, VLCIcons::shuffle_tt_accent),
+                             qtr("Shuffle"));
 
     connect(action, &QAction::triggered, [ml, ids]() {
         ml->shuffleAndPlay(ids);
@@ -538,14 +566,16 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
         const MLItemId id = ids.first().value<MLItemId>();
         const QString name = m_model->data(selected.first(), MLPlaylistListModel::PLAYLIST_NAME).toString();
 
-        action = menu->addAction(qtr("Export Playlist..."));
+        action = menu->addAction(icon(VLCIcons::save_tt_base, VLCIcons::save_tt_accent),
+                                 qtr("Export Playlist..."));
 
         connect(action, &QAction::triggered, [ml, id, name]() {
             ml->playlistManager()->exportPlaylistAs(id, name);
         });
     }
 
-    action = menu->addAction(qtr("Add to Queue"));
+    action = menu->addAction(icon(VLCIcons::queue_tt_base, VLCIcons::queue_tt_accent),
+                             qtr("Add to Queue"));
 
     connect(action, &QAction::triggered, [ml, ids]() {
         ml->addToPlaylist(ids);
@@ -581,7 +611,8 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
         // Add Subtitles, To This Playlist
         const QString name = m_model->data(selected.first(), MLPlaylistListModel::PLAYLIST_NAME).toString();
 
-        action = menu->addAction(qtr("Add Subtitle Tracks..."));
+        action = menu->addAction(icon(VLCIcons::subtitles_tt_base, VLCIcons::subtitles_tt_accent),
+                                 qtr("Add Subtitle Tracks..."));
 
         connect(action, &QAction::triggered, [id = ids.first(), name]() {
             DialogsProvider::getInstance()->addPlaylistSubtitlesDialog(id, name);

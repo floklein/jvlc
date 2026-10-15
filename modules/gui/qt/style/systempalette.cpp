@@ -17,7 +17,7 @@
  *****************************************************************************/
 #include "systempalette.hpp"
 #include "themetokens.hpp"
-#include <QGuiApplication>
+#include <QApplication>
 #include <QPalette>
 #include <QStyleHints>
 #include <maininterface/mainctx.hpp>
@@ -264,6 +264,10 @@ void SystemPalette::componentComplete()
         updatePalette();
     });
 
+    // the native menus follow the interface scale
+    if (m_stylesWidgets)
+        connect(m_ctx, &MainCtx::intfScaleFactorChanged, this, &SystemPalette::updatePalette);
+
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     // follow the operating system's light/dark setting when no theme provider does
     connect(qGuiApp->styleHints(), &QStyleHints::colorSchemeChanged, this, [this]() {
@@ -350,6 +354,8 @@ void SystemPalette::updatePalette()
     m_colorMap.clear();
     m_videoBlurDarkest = 0.;
     m_videoBlurBrightest = 1.;
+    // the native menus keep the system's look under High Contrast
+    QString menuSheet;
     // High Contrast colors take precedence over any Theme, and leave the
     // Video blur unclamped
     if (m_palettePriv && m_palettePriv->update() == VLC_SUCCESS)
@@ -362,8 +368,12 @@ void SystemPalette::updatePalette()
     {
         // the provider may have set some colors before failing
         m_colorMap.clear();
-        makeThemePalette(makeThemeTokens(m_isDark, m_accent));
+        const ThemeTokens tokens = makeThemeTokens(m_isDark, m_accent);
+        makeThemePalette(tokens);
+        menuSheet = menuStyleSheet(tokens, m_ctx ? m_ctx->getIntfScaleFactor() : 1.);
     }
+    if (m_stylesWidgets)
+        styleWidgets(menuSheet);
 
     if (m_palettePriv)
     {
@@ -431,6 +441,15 @@ QColor SystemPalette::getColor(ColorContext::ColorSet colorSet, ColorContext::Co
         //nothing matches, that's probably an issue, return an ugly color
         return Qt::magenta;
     }
+}
+
+void SystemPalette::styleWidgets(const QString& menuSheet)
+{
+    // the menus are QWidgets: a style sheet draws them in the Theme, and sets
+    // their palette, from which the glyphs of their entries take their color
+    auto app = qobject_cast<QApplication*>(QCoreApplication::instance());
+    if (app && app->styleSheet() != menuSheet)
+        app->setStyleSheet(menuSheet);
 }
 
 void SystemPalette::makeThemePalette(const ThemeTokens& t)

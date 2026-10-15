@@ -42,7 +42,9 @@ Window {
     minimumWidth: Math.min(VLCStyle.dp(760, VLCStyle.scale), Screen.desktopAvailableWidth * 0.9)
     minimumHeight: Math.min(VLCStyle.dp(560, VLCStyle.scale), Screen.desktopAvailableHeight * 0.9)
 
-    color: theme.bg.primary
+    // Figma 1899:3055: the window has the background of the pages (BG/B1),
+    // key caps and fields stand on it
+    color: viewTheme.bg.primary
 
     // the Theme step's swatches picture the Light and Dark Themes whatever
     // the palette in use, so they are not palette colours
@@ -244,7 +246,8 @@ Window {
                             Layout.fillWidth: true
                             implicitHeight: VLCStyle.dp(40, VLCStyle.scale)
                             radius: VLCStyle.radius_normal
-                            color: viewTheme.bg.primary
+                            // a field, sunk into the page (Figma 1899:3055)
+                            color: viewTheme.bg.secondary
                             border.width: 1
                             border.color: theme.border
 
@@ -459,18 +462,33 @@ Window {
                                                 anchors.margins: VLCStyle.spacing_8
                                                 radius: VLCStyle.radius_normal
                                                 color: themeButton.modelData.value === ColorSchemeModel.Light ? root._lightSwatch : root._darkSwatch
-                                                clip: true
 
-                                                // System: half light, half dark
-                                                Rectangle {
+                                                // System: dark, cut by a light diagonal (Figma 1902:3670);
+                                                // drawn as a path, as clip would square the corners
+                                                Canvas {
+                                                    anchors.fill: parent
                                                     visible: themeButton.modelData.value === ColorSchemeModel.System
-                                                    width: parent.width * 1.5
-                                                    height: parent.height * 1.5
-                                                    x: parent.width * 0.35
-                                                    y: -parent.height * 0.25
-                                                    rotation: -25
-                                                    transformOrigin: Item.TopLeft
-                                                    color: root._lightSwatch
+
+                                                    onWidthChanged: requestPaint()
+                                                    onHeightChanged: requestPaint()
+
+                                                    onPaint: {
+                                                        const ctx = getContext("2d")
+                                                        const w = width
+                                                        const h = height
+                                                        const r = swatch.radius
+                                                        ctx.reset()
+                                                        ctx.fillStyle = root._lightSwatch
+                                                        ctx.beginPath()
+                                                        ctx.moveTo(w * 0.17, 0)
+                                                        ctx.lineTo(w - r, 0)
+                                                        ctx.arcTo(w, 0, w, r, r)
+                                                        ctx.lineTo(w, h - r)
+                                                        ctx.arcTo(w, h, w - r, h, r)
+                                                        ctx.lineTo(w * 0.77, h)
+                                                        ctx.closePath()
+                                                        ctx.fill()
+                                                    }
                                                 }
                                             }
                                         }
@@ -575,7 +593,7 @@ Window {
                     Layout.topMargin: VLCStyle.spacing_14
                     implicitHeight: VLCStyle.dp(56, VLCStyle.scale)
                     radius: VLCStyle.radius_normal
-                    color: viewTheme.bg.primary
+                    color: theme.bg.primary
 
                     RowLayout {
                         anchors.fill: parent

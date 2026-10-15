@@ -110,6 +110,39 @@ T.ToolBar {
                 Navigation.parentItem: root
                 Navigation.rightItem: playqueueButtonsTop
 
+                // the cone, then the VLC menu, as in the Top bar of the
+                // player (Figma 6261:15078, 970:3308)
+                Widgets.BannerCone {
+                    id: logo
+
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    sourceSize.width: VLCStyle.bannerButton_height
+                    sourceSize.height: VLCStyle.bannerButton_height
+                    color: theme.accent
+                }
+
+                Widgets.IconToolButton {
+                    id: menuBtn
+
+                    font.pixelSize: VLCStyle.icon_banner
+                    text: VLCIcons.more
+                    description: qsTr("jVLC menu")
+                    width: VLCStyle.bannerButton_width
+                    height: VLCStyle.bannerButton_height
+                    checked: contextMenu.shown
+
+                    Navigation.parentItem: navigationButtons
+                    Navigation.rightItem: navigationVisibilty
+
+                    onClicked: contextMenu.popup(this.mapToGlobal(0, height))
+
+                    Menus.QmlGlobalMenu {
+                        id: contextMenu
+                        ctx: MainCtx
+                    }
+                }
+
                 Widgets.IconToolButton {
                     id: navigationVisibilty
 
@@ -127,18 +160,11 @@ T.ToolBar {
                     onClicked: root.toggleNavigationVisibility()
 
                     Navigation.parentItem: navigationButtons
+                    Navigation.leftItem: menuBtn
                     Navigation.rightItem: playlistBtn
                 }
 
                 // NOTE: Back and forward are in the header of the library pages.
-
-                Widgets.BannerCone {
-                    id: logo
-
-                    sourceSize.width: VLCStyle.bannerButton_height
-                    sourceSize.height: VLCStyle.bannerButton_height
-                    color: theme.accent
-                }
             }
         }
 
@@ -177,31 +203,9 @@ T.ToolBar {
                     plListView: root.plListView
 
                     Navigation.parentItem: playqueueButtonsTop
-                    Navigation.rightItem: menuBtn
                     Navigation.leftItem: navigationVisibilty
 
                     onClicked:  root.togglePlayqueueVisibility()
-                }
-
-                Widgets.IconToolButton {
-                    id: menuBtn
-
-                    font.pixelSize: VLCStyle.icon_banner
-                    text: VLCIcons.more
-                    description: qsTr("jVLC menu")
-                    width: VLCStyle.bannerButton_width
-                    height: VLCStyle.bannerButton_height
-                    checked: contextMenu.shown
-
-                    Navigation.parentItem: playqueueButtonsTop
-                    Navigation.leftItem: playlistBtn
-
-                    onClicked: contextMenu.popup(this.mapToGlobal(0, height))
-
-                    Menus.QmlGlobalMenu {
-                        id: contextMenu
-                        ctx: MainCtx
-                    }
                 }
             }
         }
