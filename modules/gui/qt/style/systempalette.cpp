@@ -470,6 +470,7 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         setColor(CS, C::Decoration, C::Accent, C::Normal, t.accentMain);
         setColor(CS, C::Decoration, C::Indicator, C::Normal, t.fgA3);
         setColor(CS, C::Decoration, C::Tint, C::Normal, t.tint);
+        setColor(CS, C::Decoration, C::TintOverBlur, C::Normal, t.tintOverBlur);
     }
 
     //window banner & miniplayer

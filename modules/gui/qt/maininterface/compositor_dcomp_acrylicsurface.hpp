@@ -148,6 +148,9 @@ namespace vlc
 
 class CompositorDirectComposition;
 
+// Windows "Transparency effects", off in high contrast
+bool isTransparencyEffectsEnabled();
+
 /**
  * @brief The CompositorDCompositionAcrylicSurface class
  * Adds acrylic surface to the compositor_dcomp when the main window becomes active

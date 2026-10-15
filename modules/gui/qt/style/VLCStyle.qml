@@ -84,6 +84,10 @@ QtObject {
     readonly property real radius_large: MainCtx.dp(10, scale)  // menus
     readonly property real radius_xlarge: MainCtx.dp(14, scale) // sheet tops
 
+    // strength of the Video blur, the standard deviation of a Gaussian blur:
+    // Figma's "background blur 50"
+    readonly property real videoBlurDeviation: MainCtx.dp(25, scale)
+
     readonly property real resizeHandleWidth: (scrollBarInteractingSize / 2)
 
     // the player's right-hand panel (Queue panel, Adjustments sidebar)

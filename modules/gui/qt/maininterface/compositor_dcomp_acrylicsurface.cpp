@@ -101,6 +101,11 @@ bool isWinPreIron()
 namespace vlc
 {
 
+bool isTransparencyEffectsEnabled()
+{
+    return isTransparencyEnabled();
+}
+
 CompositorDCompositionAcrylicSurface::CompositorDCompositionAcrylicSurface(qt_intf_t *intf, CompositorDirectComposition *compositor, MainCtx *mainCtx, IDCompositionDevice *device, QObject *parent)
     : QObject(parent)
     , m_intf {intf}

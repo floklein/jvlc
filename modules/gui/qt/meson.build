@@ -935,6 +935,7 @@ qml_modules += {
         'widgets/qml/CheckedDelegate.qml',
         'widgets/qml/ComboBoxExt.qml',
         'widgets/qml/AcrylicBackground.qml',
+        'widgets/qml/TintBackground.qml',
         'widgets/qml/FloatingNotification.qml',
         'widgets/qml/AnimatedBackground.qml',
         'widgets/qml/CSDThemeButton.qml',

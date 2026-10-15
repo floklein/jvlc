@@ -180,6 +180,7 @@ static int updatePalette(vlc_qt_theme_provider_t* obj)
 
             //panels over the video are opaque
             setQtColor(obj, CS, VQTC_SECTION_DECORATION, VQTC_NAME_TINT, VQTC_STATE_NORMAL, COLOR_WINDOW);
+            setQtColor(obj, CS, VQTC_SECTION_DECORATION, VQTC_NAME_TINT_OVER_BLUR, VQTC_STATE_NORMAL, COLOR_WINDOW);
         }
 
         //set colors on all buttons

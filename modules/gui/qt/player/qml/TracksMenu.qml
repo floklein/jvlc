@@ -55,9 +55,9 @@ T.Popup {
         colorSet: ColorContext.Window
     }
 
-    background: Rectangle {
+    background: Widgets.TintBackground {
         // NOTE: The opacity should be stronger on a light background for readability.
-        color: popupTheme.tint
+        colorContext: popupTheme
 
         Rectangle {
             anchors.left: parent.left

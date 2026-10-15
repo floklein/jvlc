@@ -75,6 +75,7 @@ enum vlc_qt_theme_color_name {
     VQTC_NAME_SEPARATOR,
     VQTC_NAME_INDICATOR,
     VQTC_NAME_TINT,
+    VQTC_NAME_TINT_OVER_BLUR,
     VQTC_NAME_COUNT
 };
 

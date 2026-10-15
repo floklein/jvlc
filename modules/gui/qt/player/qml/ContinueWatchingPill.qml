@@ -124,11 +124,11 @@ FocusScope {
     }
 
     // the Theme's Tint, as the other panels over the video
-    Rectangle {
+    Widgets.TintBackground {
         anchors.fill: parent
 
         radius: VLCStyle.dp(16, VLCStyle.scale)
-        color: theme.tint
+        colorContext: theme
     }
 
     RowLayout {

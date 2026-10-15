@@ -53,6 +53,8 @@ struct ThemeTokens
 
     // translucent layer of panels over the video
     QColor tint;
+    // the lighter Tint over the Video blur
+    QColor tintOverBlur;
 
     // status colors, not part of the Figma styles
     QColor positive, neutral, negative;

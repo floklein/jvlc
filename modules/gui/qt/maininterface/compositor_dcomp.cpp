@@ -255,18 +255,16 @@ bool CompositorDirectComposition::setup()
     res = m_rootVisual->AddVisual(m_uiVisual, FALSE, NULL);
     assert(res == S_OK);
 
-    // Before signaling readiness: setupVoutWindow() needs it.
-    if (var_InheritBool(m_intf, "qt-video-blur"))
+    // Before signaling readiness: setupVoutWindow() needs it. Created even
+    // while the Video blur is off, so that it can be turned on at any time;
+    // it publishes MainCtx.videoBlurProvider while it is on.
+    try
     {
-        try
-        {
-            m_videoBlur = std::make_unique<CompositorDCompositionVideoBlur>(m_intf, m_dcompDevice);
-            m_mainCtx->setVideoBlurProvider(m_videoBlur->provider());
-        }
-        catch (const std::exception& exception)
-        {
-            msg_Warn(m_intf, "%s", exception.what());
-        }
+        m_videoBlur = std::make_unique<CompositorDCompositionVideoBlur>(m_intf, m_dcompDevice, m_mainCtx, m_quickView.get());
+    }
+    catch (const std::exception& exception)
+    {
+        msg_Warn(m_intf, "%s", exception.what());
     }
 
     m_setupState = SetupState::Success;

@@ -508,6 +508,10 @@ void MainCtx::loadPrefs(const bool callSignals)
 
     loadFromVLCOption(m_accentColor, "qt-accent-color", &MainCtx::accentColorChanged);
 
+#ifdef _WIN32
+    loadFromVLCOption(m_videoBlurOption, "qt-video-blur", &MainCtx::videoBlurOptionChanged);
+#endif
+
     const bool reduceMotionWas = reduceMotion();
 #ifdef _WIN32
     /* Windows "Animation effects" (Settings > Accessibility > Visual effects) */

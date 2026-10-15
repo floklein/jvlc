@@ -477,6 +477,17 @@ void AppSettingsModel::addInterfaceRows()
         addRow(std::move(row));
     }
 
+#ifdef _WIN32
+    /* the Video blur: only the DirectComposition compositor draws it */
+    {
+        Row row = makeRow("video-blur", "interface", window, qtr("Blur the video behind panels"));
+        row.help = qtr("Panels over the video show it blurred under a lighter tint. "
+                       "Off by itself while Windows transparency effects are off or battery saver is on.");
+        bindConfig(row, { QStringLiteral("qt-video-blur") });
+        addRow(std::move(row));
+    }
+#endif
+
     /* Playback controls, Hide UI */
     const QString controls = qtr("Playback controls");
 
@@ -630,7 +641,7 @@ void AppSettingsModel::onSettingChanged(const QString& id)
     static const char* const mirrored[] = {
         "accent-color", "video-on-top", "window-decorations",
         "auto-hide-controls", "mouse-hide-timeout", "reduce-motion",
-        "osd-shortcut-keys",
+        "osd-shortcut-keys", "video-blur",
     };
     for (const char* name : mirrored)
     {

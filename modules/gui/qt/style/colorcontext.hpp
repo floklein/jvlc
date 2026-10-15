@@ -120,7 +120,8 @@ public:
         Shadow = VQTC_NAME_SHADOW,
         Separator = VQTC_NAME_SEPARATOR,
         Indicator = VQTC_NAME_INDICATOR,
-        Tint = VQTC_NAME_TINT
+        Tint = VQTC_NAME_TINT,
+        TintOverBlur = VQTC_NAME_TINT_OVER_BLUR
     };
 
     Q_PROPERTY(SystemPalette* palette READ palette WRITE setPalette NOTIFY paletteChanged FINAL)
@@ -148,6 +149,8 @@ public:
     Q_PROPERTY(QColor accent READ accent NOTIFY colorsChanged FINAL)
     // translucent background of panels over the video
     Q_PROPERTY(QColor tint READ tint NOTIFY colorsChanged FINAL)
+    // the lighter Tint over the Video blur
+    Q_PROPERTY(QColor tintOverBlur READ tintOverBlur NOTIFY colorsChanged FINAL)
 
 
     Q_PROPERTY(bool initialized READ initialized NOTIFY initializedChanged FINAL)
@@ -171,6 +174,7 @@ public:
     QColor shadow() const;
     QColor accent() const;
     QColor tint() const;
+    QColor tintOverBlur() const;
 
     void setPalette(SystemPalette*);
     void setColorSet(ColorSet);

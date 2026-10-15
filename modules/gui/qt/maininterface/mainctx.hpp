@@ -287,9 +287,12 @@ public:
     VideoSurfaceProvider* getVideoSurfaceProvider() const;
     void setVideoSurfaceProvider(VideoSurfaceProvider* videoSurfaceProvider);
 
-    // null when the compositor can not draw the Video blur
+    // null when the compositor can not draw the Video blur, or while it is off
+    // (the setting, Windows transparency effects, battery saver)
     VideoBlurProvider* videoBlurProvider() const { return m_videoBlurProvider; }
     void setVideoBlurProvider(VideoBlurProvider* videoBlurProvider);
+    // the "Blur the video behind panels" setting (qt-video-blur)
+    bool videoBlurOption() const { return m_videoBlurOption; }
 
     int mouseHideTimeout() const { return m_mouseHideTimeout; }
 
@@ -543,6 +546,8 @@ protected:
     bool m_reduceMotionOption = false;
     bool m_systemReducedMotion = false;
 
+    bool m_videoBlurOption = true;
+
     bool m_hideUI = false;
 
     bool m_albumSections = true;
@@ -634,6 +639,7 @@ signals:
     void interfaceAlwaysOnTopChanged(bool);
     void hasEmbededVideoChanged(bool);
     void videoBlurProviderChanged();
+    void videoBlurOptionChanged();
     void showRemainingTimeChanged(bool);
     void gridViewChanged( bool );
     void hasGridListModeChanged( bool );

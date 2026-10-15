@@ -27,7 +27,9 @@
 
 #include "compositor_dcomp_videoblur.hpp"
 
+#include <QGuiApplication>
 #include <QMutexLocker>
+#include <QWindow>
 
 #include <atomic>
 #include <stdexcept>
@@ -35,6 +37,8 @@
 #include <dcomp.h>
 
 #include "compositor_dcomp_error.hpp"
+#include "compositor_dcomp_acrylicsurface.hpp"
+#include "mainctx.hpp"
 
 using Microsoft::WRL::ComPtr;
 
@@ -43,10 +47,6 @@ namespace vlc
 
 namespace
 {
-
-// Standard deviation of the Gaussian blur, in device pixels. Figma's
-// "background blur 50" is close to a standard deviation of 25.
-constexpr float VIDEO_BLUR_STANDARD_DEVIATION = 25.f;
 
 /**
  * The visual handed to the video output instead of the real video visual.
@@ -192,22 +192,22 @@ private:
     CompositorDCompositionVideoBlur *m_blur;
 };
 
-float standardDeviation()
-{
-    // Spike only: lets the blur strength be tuned without a rebuild.
-    bool ok = false;
-    const float value = qEnvironmentVariable("VLC_VIDEO_BLUR_STDDEV").toFloat(&ok);
-    return (ok && value >= 0.f) ? value : VIDEO_BLUR_STANDARD_DEVIATION;
-}
+// GUID_POWER_SAVING_STATUS: battery saver, DWORD 0 or 1
+constexpr GUID POWER_SAVING_STATUS = { 0xe00958c0, 0xc213, 0x4ace, { 0xac, 0x77, 0xfe, 0xcc, 0xed, 0x2e, 0xee, 0xa5 } };
+// GUID_ENERGY_SAVER_STATUS (Windows 11 24H2): DWORD, 0 when off
+constexpr GUID ENERGY_SAVER_STATUS = { 0x550e8400, 0xe29b, 0x41d4, { 0xa7, 0x16, 0x44, 0x66, 0x55, 0x44, 0x00, 0x00 } };
 
 }
 
-CompositorDCompositionVideoBlur::CompositorDCompositionVideoBlur(qt_intf_t *intf, IDCompositionDevice *device, QObject *parent)
+CompositorDCompositionVideoBlur::CompositorDCompositionVideoBlur(qt_intf_t *intf, IDCompositionDevice *device,
+                                                                 MainCtx *mainCtx, QWindow *window, QObject *parent)
     : QObject(parent)
     , m_intf(intf)
-    , m_standardDeviation(standardDeviation())
+    , m_mainCtx(mainCtx)
 {
     assert(device);
+    assert(mainCtx);
+    assert(window);
 
     // CreateGaussianBlurEffect() needs IDCompositionDevice3 (Windows 8.1+):
     if (FAILED(device->QueryInterface(IID_PPV_ARGS(&m_device))))
@@ -220,14 +220,84 @@ CompositorDCompositionVideoBlur::CompositorDCompositionVideoBlur(qt_intf_t *intf
             this, &CompositorDCompositionVideoBlur::onRegionChanged);
     connect(&m_provider, &VideoBlurProvider::regionRemoved,
             this, &CompositorDCompositionVideoBlur::onRegionRemoved);
+
+    // While the gate is closed, MainCtx.videoBlurProvider is null: the panels
+    // keep the plain Tint and their VideoBlur items withdraw their regions.
+    m_gate.setEnabled(m_mainCtx->videoBlurOption());
+    m_gate.setTransparencyEffects(isTransparencyEffectsEnabled());
+    updateBatterySaver();
+    connect(m_mainCtx, &MainCtx::videoBlurOptionChanged, this, [this]() {
+        m_gate.setEnabled(m_mainCtx->videoBlurOption());
+    });
+    connect(&m_gate, &VideoBlurGate::providerChanged, m_mainCtx, &MainCtx::setVideoBlurProvider);
+    m_mainCtx->setVideoBlurProvider(m_gate.provider());
+
+    m_hwnd = reinterpret_cast<HWND>(window->winId());
+    qApp->installNativeEventFilter(this);
+    // Each registration also sends the current state at once:
+    m_powerSavingNotification = RegisterPowerSettingNotification(m_hwnd, &POWER_SAVING_STATUS, DEVICE_NOTIFY_WINDOW_HANDLE);
+    m_energySaverNotification = RegisterPowerSettingNotification(m_hwnd, &ENERGY_SAVER_STATUS, DEVICE_NOTIFY_WINDOW_HANDLE);
 }
 
 CompositorDCompositionVideoBlur::~CompositorDCompositionVideoBlur()
 {
+    qApp->removeNativeEventFilter(this);
+    if (m_powerSavingNotification)
+        UnregisterPowerSettingNotification(m_powerSavingNotification);
+    if (m_energySaverNotification)
+        UnregisterPowerSettingNotification(m_energySaverNotification);
+
     QMutexLocker lock(&m_lock);
     if (m_rootVisual)
         m_rootVisual->RemoveAllVisuals();
     m_regions.clear();
+}
+
+bool CompositorDCompositionVideoBlur::nativeEventFilter(const QByteArray &, void *message, qintptr *)
+{
+    const MSG *const msg = static_cast<MSG *>(message);
+    if (msg->hwnd != m_hwnd)
+        return false;
+
+    switch (msg->message)
+    {
+    case WM_SETTINGCHANGE:
+        // Windows "Transparency effects" (and high contrast)
+        if (msg->lParam && !lstrcmpW(reinterpret_cast<LPCWSTR>(msg->lParam), L"ImmersiveColorSet"))
+            m_gate.setTransparencyEffects(isTransparencyEffectsEnabled());
+        break;
+    case WM_SYSCOLORCHANGE:
+        m_gate.setTransparencyEffects(isTransparencyEffectsEnabled());
+        break;
+    case WM_POWERBROADCAST:
+        if (msg->wParam == PBT_POWERSETTINGCHANGE && msg->lParam)
+        {
+            const auto setting = reinterpret_cast<const POWERBROADCAST_SETTING *>(msg->lParam);
+            if (setting->DataLength < sizeof(DWORD))
+                break;
+            const DWORD value = *reinterpret_cast<const DWORD *>(setting->Data);
+            if (setting->PowerSetting == POWER_SAVING_STATUS)
+                m_powerSaving = value != 0;
+            else if (setting->PowerSetting == ENERGY_SAVER_STATUS)
+                m_energySaver = value != 0;
+            else
+                break;
+            m_gate.setBatterySaver(m_powerSaving || m_energySaver);
+        }
+        else if (msg->wParam == PBT_APMPOWERSTATUSCHANGE)
+            updateBatterySaver();
+        break;
+    }
+
+    return false;
+}
+
+void CompositorDCompositionVideoBlur::updateBatterySaver()
+{
+    SYSTEM_POWER_STATUS status;
+    if (GetSystemPowerStatus(&status))
+        m_powerSaving = status.SystemStatusFlag == 1;
+    m_gate.setBatterySaver(m_powerSaving || m_energySaver);
 }
 
 IDCompositionVisual *CompositorDCompositionVideoBlur::rootVisual() const
@@ -281,14 +351,15 @@ void CompositorDCompositionVideoBlur::onRegionChanged(quintptr key, const VideoB
         {
             HR(m_device->CreateVisual(&region.clipVisual), "create video blur clip visual");
             HR(m_device->CreateRectangleClip(&region.clip), "create video blur clip");
+            HR(m_device->CreateEffectGroup(&region.fade), "create video blur fade");
             HR(m_device->CreateVisual(&region.blurVisual), "create video blur visual");
             HR(m_device->CreateGaussianBlurEffect(&region.blur), "create video blur effect");
 
             // Hard borders: the blur does not fade to transparent at the
             // edges of the video.
             HR(region.blur->SetBorderMode(D2D1_BORDER_MODE_HARD), "set video blur border mode");
-            HR(region.blur->SetStandardDeviation(m_standardDeviation), "set video blur deviation");
             HR(region.blurVisual->SetEffect(region.blur.Get()), "set video blur effect");
+            HR(region.clipVisual->SetEffect(region.fade.Get()), "set video blur fade");
             HR(region.blurVisual->SetOffsetX(m_videoPosition.x()), "set video blur offset");
             HR(region.blurVisual->SetOffsetY(m_videoPosition.y()), "set video blur offset");
             HR(region.blurVisual->SetContent(m_content.Get()), "set video blur content");
@@ -303,6 +374,10 @@ void CompositorDCompositionVideoBlur::onRegionChanged(quintptr key, const VideoB
         }
         it = m_regions.emplace(key, std::move(region)).first;
     }
+
+    // the blur fades with its panel, and its strength follows the scale
+    it->second.fade->SetOpacity(static_cast<float>(value.opacity));
+    it->second.blur->SetStandardDeviation(static_cast<float>(value.deviation));
 
     IDCompositionRectangleClip *const clip = it->second.clip.Get();
     const QRectF &rect = value.rect;

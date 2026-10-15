@@ -29,7 +29,8 @@ import VLC.Util
 FocusScope {
     id: root
 
-    // over the video (fullscreen and Hide UI): the Theme's Tint
+    // over the video (fullscreen and Hide UI): the Theme's Tint, over the
+    // Video blur where there is one
     property bool overlaid: false
 
     implicitWidth: rail.width + VLCStyle.sidePanel_width
@@ -85,10 +86,11 @@ FocusScope {
         colorSet: ColorContext.View
     }
 
-    Rectangle {
+    Widgets.TintBackground {
         anchors.fill: parent
 
-        color: root.overlaid ? theme.tint : theme.bg.primary
+        overVideo: root.overlaid
+        colorContext: theme
     }
 
     SideNavigationPane {

@@ -29,11 +29,51 @@ void VideoBlurProvider::removeRegion(const void* key)
     emit regionRemoved(reinterpret_cast<quintptr>(key));
 }
 
+VideoBlurGate::VideoBlurGate(VideoBlurProvider* provider, QObject* parent)
+    : QObject(parent)
+    , m_provider(provider)
+{
+}
+
+void VideoBlurGate::setEnabled(bool enabled)
+{
+    set(m_enabled, enabled);
+}
+
+void VideoBlurGate::setTransparencyEffects(bool enabled)
+{
+    set(m_transparencyEffects, enabled);
+}
+
+void VideoBlurGate::setBatterySaver(bool enabled)
+{
+    set(m_batterySaver, enabled);
+}
+
+VideoBlurProvider* VideoBlurGate::provider() const
+{
+    const bool open = m_enabled && m_transparencyEffects && !m_batterySaver;
+    return open ? m_provider : nullptr;
+}
+
+void VideoBlurGate::set(bool& condition, bool value)
+{
+    if (condition == value)
+        return;
+
+    VideoBlurProvider* const before = provider();
+    condition = value;
+    VideoBlurProvider* const after = provider();
+    if (after != before)
+        emit providerChanged(after);
+}
+
 VideoBlur::VideoBlur(QQuickItem* parent)
     : QQuickItem(parent)
 {
     // itemChange() is not called for the parent set by the base constructor:
     trackAncestors();
+    trackWindow(window());
 }
 
 VideoBlur::~VideoBlur()
@@ -62,6 +102,16 @@ void VideoBlur::setRadius(qreal radius)
     report();
 }
 
+void VideoBlur::setDeviation(qreal deviation)
+{
+    if (qFuzzyCompare(m_deviation, deviation))
+        return;
+
+    m_deviation = deviation;
+    emit deviationChanged();
+    report();
+}
+
 void VideoBlur::itemChange(ItemChange change, const ItemChangeData& value)
 {
     QQuickItem::itemChange(change, value);
@@ -70,6 +120,7 @@ void VideoBlur::itemChange(ItemChange change, const ItemChangeData& value)
     {
     case ItemSceneChange:
         withdraw();
+        trackWindow(value.window);
         [[fallthrough]];
     case ItemParentHasChanged:
         trackAncestors();
@@ -112,6 +163,19 @@ void VideoBlur::trackAncestors()
     }
 }
 
+void VideoBlur::trackWindow(QQuickWindow* window)
+{
+    disconnect(m_windowConnection);
+    m_windowConnection = {};
+    if (!window)
+        return;
+
+    // Transforms (the bars' reveal slide) change the scene rectangle without
+    // a signal. Checking before each frame also keeps the region in step with
+    // the frame Qt is about to draw. report() only commits a change.
+    m_windowConnection = connect(window, &QQuickWindow::afterAnimating, this, &VideoBlur::report);
+}
+
 void VideoBlur::report()
 {
     QQuickWindow* const window = this->window();
@@ -138,6 +202,8 @@ void VideoBlur::report()
     region.rect = mapRectToScene(QRectF(0., 0., width(), height()));
     region.rect = QRectF(region.rect.topLeft() * dpr, region.rect.size() * dpr);
     region.radius = m_radius * dpr;
+    region.opacity = opacity;
+    region.deviation = m_deviation * dpr;
 
     if (m_reported && region == m_lastRegion)
         return;

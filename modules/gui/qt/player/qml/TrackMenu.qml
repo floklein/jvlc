@@ -146,10 +146,10 @@ T.Popup {
         }
     }
 
-    background: Rectangle {
+    background: Widgets.TintBackground {
         radius: VLCStyle.radius_large
 
-        color: theme.tint
+        colorContext: theme
     }
 
     contentItem: ColumnLayout {

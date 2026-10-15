@@ -23,15 +23,18 @@ import VLC.Widgets as Widgets
 import VLC.Style
 import VLC.Player
 
-// The Shortcut message: "Subtitle delay: 50 ms · H", for 1.5 s
-Rectangle {
+// The Shortcut message: "Subtitle delay: 50 ms · H", for 1.5 s. Over the
+// video, it is a panel on the Tint.
+Widgets.TintBackground {
     id: root
 
-    readonly property ColorContext colorContext: ColorContext {
+    colorContext: ColorContext {
         id: theme
 
         colorSet: ColorContext.Window
     }
+
+    overVideo: MainCtx.hasEmbededVideo
 
     visible: opacity > 0
     opacity: ShortcutMessage.visible ? 1 : 0
@@ -47,7 +50,6 @@ Rectangle {
     implicitHeight: label.implicitHeight + VLCStyle.margin_xsmall * 2
 
     radius: height / 2
-    color: theme.bg.primary
 
     // a live region: screen readers read each message, the focus stays
     Accessible.role: Accessible.AlertMessage

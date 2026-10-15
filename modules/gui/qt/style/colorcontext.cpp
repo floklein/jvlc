@@ -431,3 +431,8 @@ QColor ColorContext::tint() const
 {
     return getColor(Decoration, Tint);
 }
+
+QColor ColorContext::tintOverBlur() const
+{
+    return getColor(Decoration, TintOverBlur);
+}

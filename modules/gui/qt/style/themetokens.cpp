@@ -36,6 +36,8 @@ QColor rgba(QRgb value, float alpha)
 
 // alpha of the Tint of panels over the video
 constexpr float TINT_ALPHA = 0.95f;
+// alpha of the Tint over the Video blur
+constexpr float TINT_OVER_BLUR_ALPHA = 0.75f;
 
 }
 
@@ -123,6 +125,8 @@ ThemeTokens makeThemeTokens(bool dark, const QColor& accentColor)
 
     t.tint = t.bgA3Transparent;
     t.tint.setAlphaF(TINT_ALPHA);
+    t.tintOverBlur = t.bgA3Transparent;
+    t.tintOverBlur.setAlphaF(TINT_OVER_BLUR_ALPHA);
 
     return t;
 }

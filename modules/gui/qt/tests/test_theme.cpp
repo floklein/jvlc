@@ -124,7 +124,7 @@ private slots:
             t.bgAccentBright, t.bgAccentDark,
             t.fg1, t.fg2, t.fgA1, t.fgA2, t.fgA3, t.fgA4, t.fgB1,
             t.accentMain, t.accentBright, t.accentDim, t.accentLogo,
-            t.dividerBright, t.dividerDim, t.tint,
+            t.dividerBright, t.dividerDim, t.tint, t.tintOverBlur,
             t.positive, t.neutral, t.negative,
             t.positiveBg, t.neutralBg, t.negativeBg,
             t.critical, t.shadow,
@@ -146,6 +146,21 @@ private slots:
         QFETCH(bool, dark);
         QFETCH(QString, tint);
         QCOMPARE_COLOR(makeThemeTokens(dark).tint, tint);
+    }
+
+    void testTintOverTheVideoBlurIsLighter_data()
+    {
+        QTest::addColumn<bool>("dark");
+        QTest::addColumn<QString>("tint");
+        QTest::newRow("dark") << true << withAlpha("#191919", 0.75).name(QColor::HexArgb);
+        QTest::newRow("light") << false << withAlpha("#ebebeb", 0.75).name(QColor::HexArgb);
+    }
+
+    void testTintOverTheVideoBlurIsLighter()
+    {
+        QFETCH(bool, dark);
+        QFETCH(QString, tint);
+        QCOMPARE_COLOR(makeThemeTokens(dark).tintOverBlur, tint);
     }
 
     void testDefaultAccentGivesFigmaShades_data()

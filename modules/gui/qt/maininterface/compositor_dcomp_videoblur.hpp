@@ -19,11 +19,13 @@
 #define COMPOSITOR_DCOMP_VIDEOBLUR_HPP
 
 #include <QObject>
+#include <QAbstractNativeEventFilter>
 #include <QMutex>
 #include <QPointF>
 
 #include <map>
 
+#include <windows.h>
 #include <wrl.h>
 
 #include "qt.hpp"
@@ -35,6 +37,9 @@ class IDCompositionVisual;
 class IDCompositionVisual2;
 class IDCompositionRectangleClip;
 class IDCompositionGaussianBlurEffect;
+class IDCompositionEffectGroup;
+class MainCtx;
+class QWindow;
 
 namespace vlc
 {
@@ -53,22 +58,28 @@ namespace vlc
  *                                 effect = Gaussian blur
  *
  * The clip is on the parent and the effect on the child, so the blur samples
- * the video beyond the region's edges instead of transparent pixels.
+ * the video beyond the region's edges instead of transparent pixels. The
+ * parent also fades the blur with its panel (an effect group's opacity).
  *
  * The swap chain never reaches the Qt module: `wrapVideoVisual()` returns the
  * visual to hand to the video output, which forwards every call to the real
  * video visual and also hands the content set by `SetContent()` to the blur.
+ *
+ * The provider is published as `MainCtx.videoBlurProvider` while the Video
+ * blur is on: the "qt-video-blur" setting, Windows transparency effects and
+ * battery saver decide (`VideoBlurGate`).
  */
-class CompositorDCompositionVideoBlur : public QObject
+class CompositorDCompositionVideoBlur : public QObject, public QAbstractNativeEventFilter
 {
     Q_OBJECT
 
 public:
     // Throws std::exception when DirectComposition lacks the blur effect (Windows 8).
-    CompositorDCompositionVideoBlur(qt_intf_t *intf, IDCompositionDevice *device, QObject *parent = nullptr);
+    CompositorDCompositionVideoBlur(qt_intf_t *intf, IDCompositionDevice *device,
+                                    MainCtx *mainCtx, QWindow *window, QObject *parent = nullptr);
     ~CompositorDCompositionVideoBlur() override;
 
-    VideoBlurProvider *provider() { return &m_provider; }
+    bool nativeEventFilter(const QByteArray &eventType, void *message, qintptr *result) override;
 
     IDCompositionVisual *rootVisual() const;
 
@@ -87,6 +98,7 @@ private:
     {
         Microsoft::WRL::ComPtr<IDCompositionVisual2> clipVisual;
         Microsoft::WRL::ComPtr<IDCompositionRectangleClip> clip;
+        Microsoft::WRL::ComPtr<IDCompositionEffectGroup> fade;
         Microsoft::WRL::ComPtr<IDCompositionVisual2> blurVisual;
         Microsoft::WRL::ComPtr<IDCompositionGaussianBlurEffect> blur;
     };
@@ -94,8 +106,19 @@ private:
     void onRegionChanged(quintptr key, const VideoBlurProvider::Region &region);
     void onRegionRemoved(quintptr key);
 
+    void updateBatterySaver();
+
     qt_intf_t *m_intf = nullptr;
+    MainCtx *m_mainCtx = nullptr;
+    HWND m_hwnd = nullptr;
     VideoBlurProvider m_provider;
+    VideoBlurGate m_gate {&m_provider};
+
+    // battery saver (Windows 10), energy saver (Windows 11 24H2)
+    HPOWERNOTIFY m_powerSavingNotification = nullptr;
+    HPOWERNOTIFY m_energySaverNotification = nullptr;
+    bool m_powerSaving = false;
+    bool m_energySaver = false;
 
     Microsoft::WRL::ComPtr<IDCompositionDevice3> m_device;
     Microsoft::WRL::ComPtr<IDCompositionVisual2> m_rootVisual;
@@ -106,7 +129,6 @@ private:
     std::map<quintptr, Region> m_regions;
     Microsoft::WRL::ComPtr<IUnknown> m_content;
     QPointF m_videoPosition;
-    float m_standardDeviation;
 };
 
 }

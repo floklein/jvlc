@@ -76,8 +76,11 @@ FocusScope {
             return VLCStyle.noArtAlbumCover
     }
 
-    // Only applicable in video mode:
-    property bool displayFadeRectangles: !_controlsUnderVideo && (height > (implicitFadeRectangleHeight * 3))
+    // Only applicable in video mode. With the Video blur, the bars use the
+    // Tint over the blur instead.
+    property bool displayFadeRectangles: !_controlsUnderVideo
+                                         && !MainCtx.videoBlurProvider
+                                         && (height > (implicitFadeRectangleHeight * 3))
     property real implicitFadeRectangleHeight: VLCStyle.dp(206, VLCStyle.scale)
 
     // Private
@@ -1040,49 +1043,6 @@ FocusScope {
         }
     }
 
-    // Video blur beneath the bars while they float over the video. It paints
-    // nothing in the scene: the compositor draws it under the interface.
-    component BarVideoBlur : VideoBlur {
-        required property Item bar
-        required property bool overVideo
-        // the bar's reveal slide
-        required property Translate slide
-
-        x: bar.x
-        y: bar.y + slide.y
-        width: bar.width
-        height: bar.height
-        opacity: bar.opacity
-
-        visible: bar.visible && overVideo
-
-        provider: MainCtx.videoBlurProvider
-    }
-
-    BarVideoBlur {
-        bar: topBar
-        slide: topBarReveal.translate
-        overVideo: MainCtx.hasEmbededVideo && !rootPlayer._controlsUnderVideo
-    }
-
-    BarVideoBlur {
-        bar: controlBar
-        slide: controlBarReveal.translate
-        overVideo: MainCtx.hasEmbededVideo && !rootPlayer._controlsUnderVideo
-    }
-
-    // Video blur beneath the Library pane while it slides over the video
-    VideoBlur {
-        x: libraryPaneLoader.x
-        y: libraryPaneLoader.y
-        width: libraryPaneLoader.width
-        height: libraryPaneLoader.height
-
-        visible: libraryPaneLoader.visible && MainCtx.hasEmbededVideo && rootPlayer._rightPanelOverlaid
-
-        provider: MainCtx.videoBlurProvider
-    }
-
     TopBar {
         id: topBar
 
@@ -1172,12 +1132,12 @@ FocusScope {
             visible: rootPlayer._controlsUnderVideo && MainCtx.hasEmbededVideo
         }
 
-        Rectangle {
+        Widgets.TintBackground {
             z: -1
 
             anchors.fill: parent
 
-            color: windowTheme.tint
+            colorContext: windowTheme
 
             visible: rootPlayer._panelsOverVideo
         }
@@ -1277,9 +1237,11 @@ FocusScope {
             wheelEnabled: true
 
             // the Tint over the video, the view background when docked
-            background: Rectangle {
+            background: Widgets.TintBackground {
                 radius: VLCStyle.radius_large
-                color: rootPlayer._rightPanelOverlaid ? windowTheme.tint : queuePanel.colorContext.bg.primary
+                overVideo: rootPlayer._rightPanelOverlaid
+                colorContext: windowTheme
+                baseColor: queuePanel.colorContext.bg.primary
             }
 
             Navigation.parentItem: rootPlayer
@@ -1370,9 +1332,11 @@ FocusScope {
             fsm: rightPanel
 
             // the Tint over the video, the view background when docked
-            background: Rectangle {
+            background: Widgets.TintBackground {
                 radius: VLCStyle.radius_large
-                color: rootPlayer._rightPanelOverlaid ? windowTheme.tint : adjustmentsSidebar.colorContext.bg.primary
+                overVideo: rootPlayer._rightPanelOverlaid
+                colorContext: windowTheme
+                baseColor: adjustmentsSidebar.colorContext.bg.primary
             }
 
             Navigation.parentItem: rootPlayer
@@ -1674,7 +1638,7 @@ FocusScope {
 
         onHoveredChanged: rootPlayer.lockUnlockAutoHide(hovered)
 
-        background: Rectangle {
+        background: Widgets.TintBackground {
             id: controlBarBackground
 
             visible: !MainCtx.hasEmbededVideo || rootPlayer._controlsUnderVideo || !rootPlayer.displayFadeRectangles
@@ -1691,7 +1655,8 @@ FocusScope {
                 }
             }
 
-            color: rootPlayer._panelsOverVideo ? windowTheme.tint : windowTheme.bg.primary
+            overVideo: rootPlayer._panelsOverVideo
+            colorContext: windowTheme
 
             // Figma: Divider/Dim along the top edge
             Rectangle {

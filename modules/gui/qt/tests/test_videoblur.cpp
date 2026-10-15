@@ -149,6 +149,43 @@ private slots:
         QTRY_COMPARE(m_regions.shown.size(), 1);
     }
 
+    void fadesWithThePanel()
+    {
+        m_blur->setProvider(m_provider.get());
+        QCOMPARE(m_regions.shown.first().opacity, 1.);
+
+        m_panel->setOpacity(.5);
+        QTRY_COMPARE(m_regions.shown.first().opacity, .5);
+
+        m_blur->setOpacity(.5);
+        QTRY_COMPARE(m_regions.shown.first().opacity, .25);
+    }
+
+    void reportsItsBlurStrengthInDevicePixels()
+    {
+        m_blur->setDeviation(25.);
+        m_blur->setProvider(m_provider.get());
+
+        const qreal dpr = m_window->effectiveDevicePixelRatio();
+        QCOMPARE(m_regions.shown.first().deviation, 25. * dpr);
+
+        m_blur->setDeviation(10.);
+        QTRY_COMPARE(m_regions.shown.first().deviation, 10. * dpr);
+    }
+
+    // a sliding panel moves through a transform, which no signal reports:
+    // the region follows at the next frame
+    void followsATransformedPanel()
+    {
+        m_blur->setProvider(m_provider.get());
+
+        m_panel->setTransformOrigin(QQuickItem::TopLeft);
+        m_panel->setScale(2.);
+
+        const qreal dpr = m_window->effectiveDevicePixelRatio();
+        QTRY_COMPARE(m_regions.shown.first().rect, QRectF(20. * dpr, 410. * dpr, 200. * dpr, 80. * dpr));
+    }
+
     void withdrawsWhenDestroyed()
     {
         m_blur->setProvider(m_provider.get());
@@ -157,6 +194,72 @@ private slots:
         delete m_blur;
         m_blur = nullptr;
         QVERIFY(m_regions.shown.isEmpty());
+    }
+
+    /* The Video blur shows only when the user's setting, Windows
+     * transparency effects and battery saver allow it; otherwise the panels
+     * keep the Tint. */
+    void opensWhenEverythingAllowsIt()
+    {
+        VideoBlurProvider provider;
+        VideoBlurGate gate(&provider);
+
+        QCOMPARE(gate.provider(), &provider);
+    }
+
+    void closes_data()
+    {
+        QTest::addColumn<bool>("setting");
+        QTest::addColumn<bool>("transparencyEffects");
+        QTest::addColumn<bool>("batterySaver");
+        QTest::newRow("setting off") << false << true << false;
+        QTest::newRow("transparency effects off") << true << false << false;
+        QTest::newRow("battery saver on") << true << true << true;
+    }
+
+    void closes()
+    {
+        QFETCH(bool, setting);
+        QFETCH(bool, transparencyEffects);
+        QFETCH(bool, batterySaver);
+
+        VideoBlurProvider provider;
+        VideoBlurGate gate(&provider);
+        QSignalSpy spy(&gate, &VideoBlurGate::providerChanged);
+
+        gate.setEnabled(setting);
+        gate.setTransparencyEffects(transparencyEffects);
+        gate.setBatterySaver(batterySaver);
+
+        QCOMPARE(gate.provider(), nullptr);
+        QCOMPARE(spy.count(), 1);
+    }
+
+    void reopensWhenTheConditionGoesAway()
+    {
+        VideoBlurProvider provider;
+        VideoBlurGate gate(&provider);
+        gate.setBatterySaver(true);
+        QSignalSpy spy(&gate, &VideoBlurGate::providerChanged);
+
+        gate.setBatterySaver(false);
+
+        QCOMPARE(gate.provider(), &provider);
+        QCOMPARE(spy.count(), 1);
+    }
+
+    void staysClosedWhileAnotherConditionHoldsIt()
+    {
+        VideoBlurProvider provider;
+        VideoBlurGate gate(&provider);
+        gate.setEnabled(false);
+        gate.setBatterySaver(true);
+        QSignalSpy spy(&gate, &VideoBlurGate::providerChanged);
+
+        gate.setBatterySaver(false);
+
+        QCOMPARE(gate.provider(), nullptr);
+        QCOMPARE(spy.count(), 0);
     }
 };
 

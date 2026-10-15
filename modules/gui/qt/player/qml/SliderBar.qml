@@ -342,8 +342,8 @@ T.ProgressBar {
             colorSet: ColorContext.ToolButton
         }
 
-        background: Rectangle {
-            color: popupTheme.tint
+        background: Widgets.TintBackground {
+            colorContext: popupTheme
             radius: VLCStyle.radius_xlarge
         }
 
