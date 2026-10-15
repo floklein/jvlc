@@ -189,7 +189,7 @@ static void ShowDialog   ( intf_thread_t *, int, int, intf_dialog_args_t * );
 #define QT_QML_DEBUG_TEXT N_( "set the options for qml debugger" )
 #define QT_QML_DEBUG_LONGTEXT N_( "set the options for qml debugger (see http://doc.qt.io/qt-5/qtquick-debugging.html#starting-applications)" )
 
-#define PRIVACY_TEXT N_( "Ask for network policy at start" )
+#define PRIVACY_TEXT N_( "Show the welcome screen at next start" )
 
 #define RECENTPLAY_TEXT N_( "Save the recently played items in the menu" )
 

@@ -292,14 +292,22 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
     /* Register callback for the intf-popupmenu variable */
     var_AddCallback( libvlc, "intf-popupmenu", PopupMenuCB, p_intf );
 
-    if( var_InheritBool( p_intf, "qt-privacy-ask") )
+    /* Onboarding on first start, or when asked again from Settings. While
+     * it is pending the media library does not start: it may add folders.
+     * VLC_QT_ONBOARDING=<step> shows it anyway, from that step (1 = first),
+     * without touching the user's first-start state: a hook for tests and
+     * screenshots. */
+    const bool privacyAsk = var_InheritBool( p_intf, "qt-privacy-ask" );
+    const QByteArray forcedOnboarding = qgetenv( "VLC_QT_ONBOARDING" );
+    if( privacyAsk || !forcedOnboarding.isEmpty() )
     {
+        const int step = std::max( forcedOnboarding.toInt() - 1, 0 );
         //postpone dialog call, as composition might not be ready yet
-        QMetaObject::invokeMethod(this, [](){
-            THEDP->firstRunDialog();
+        QMetaObject::invokeMethod(this, [step](){
+            THEDP->onboarding( step );
         }, Qt::QueuedConnection);
     }
-    else if (m_medialib)
+    if( !privacyAsk && m_medialib )
     {
         QMetaObject::invokeMethod(m_medialib, &MediaLib::reload, Qt::QueuedConnection);
     }

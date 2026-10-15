@@ -38,7 +38,6 @@ moc_headers = files(
     'dialogs/extensions/extensions.hpp',
     'dialogs/extensions/extensions_manager.hpp',
     'dialogs/fingerprint/chromaprint.hpp',
-    'dialogs/firstrun/firstrunwizard.hpp',
     'dialogs/help/aboutmodel.hpp',
     'dialogs/epg/programguidemodel.hpp',
     'dialogs/messages/messagesmodel.hpp',
@@ -48,6 +47,8 @@ moc_headers = files(
     'dialogs/preferences/preferences_widgets.hpp',
     'dialogs/convert/conversion_manager.hpp',
     'dialogs/convert/conversion_profile_model.hpp',
+    'dialogs/onboarding/app_onboarding_model.hpp',
+    'dialogs/onboarding/onboarding_model.hpp',
     'dialogs/settings/settings_model.hpp',
     'dialogs/settings/settings_pages.hpp',
     'dialogs/shortcuts/app_shortcuts_model.hpp',
@@ -221,8 +222,6 @@ qt_plugin_sources = files(
     'dialogs/extensions/extensions_manager.hpp',
     'dialogs/fingerprint/chromaprint.cpp',
     'dialogs/fingerprint/chromaprint.hpp',
-    'dialogs/firstrun/firstrunwizard.cpp',
-    'dialogs/firstrun/firstrunwizard.hpp',
     'dialogs/help/aboutmodel.hpp',
     'dialogs/epg/programguidemodel.cpp',
     'dialogs/epg/programguidemodel.hpp',
@@ -240,6 +239,10 @@ qt_plugin_sources = files(
     'dialogs/convert/conversion_manager.hpp',
     'dialogs/convert/conversion_profile_model.cpp',
     'dialogs/convert/conversion_profile_model.hpp',
+    'dialogs/onboarding/app_onboarding_model.cpp',
+    'dialogs/onboarding/app_onboarding_model.hpp',
+    'dialogs/onboarding/onboarding_model.cpp',
+    'dialogs/onboarding/onboarding_model.hpp',
     'dialogs/settings/settings_model.cpp',
     'dialogs/settings/settings_model.hpp',
     'dialogs/settings/settings_pages.cpp',
@@ -395,6 +398,7 @@ qt_plugin_sources = files(
     'network/podcast_feeds.cpp',
     'network/podcast_feeds.hpp',
     'style/qtthemeprovider.hpp',
+    'style/accent_colors.hpp',
     'style/colorcontext.cpp',
     'style/colorcontext.hpp',
     'style/systempalette.cpp',
@@ -593,7 +597,6 @@ endif
 ui_sources = files(
     'dialogs/extended/equalizer.ui',
     'dialogs/extended/video_effects.ui',
-    'dialogs/firstrun/firstrunwizard.ui',
 )
 
 qml_modules = []
@@ -625,6 +628,7 @@ qml_modules += {
         'dialogs/settings/qml/SettingsToggle.qml',
         'dialogs/shortcuts/qml/KeyboardShortcutsDialog.qml',
         'dialogs/shortcuts/qml/ShortcutKeyField.qml',
+        'dialogs/onboarding/qml/OnboardingWindow.qml',
         'dialogs/mediainfo/qml/MediaPropertiesDialog.qml',
         'dialogs/open/qml/OpenDiscDialog.qml',
         'dialogs/toolbar/qml/EditorDashedBorder.qml',
@@ -2006,6 +2010,29 @@ if qt6_dep.found()
             ),
             'moc_headers': files(
                 'dialogs/shortcuts/shortcuts_model.hpp',
+                'util/vlchotkeyconverter.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_onboarding_model',
+            'sources': files(
+                'tests/test_onboarding_model.cpp',
+                'dialogs/onboarding/onboarding_model.hpp',
+                'dialogs/onboarding/onboarding_model.cpp',
+                'util/vlchotkeyconverter.cpp',
+                'util/vlchotkeyconverter.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_onboarding_model.cpp'
+            ),
+            'moc_headers': files(
+                'dialogs/onboarding/onboarding_model.hpp',
                 'util/vlchotkeyconverter.hpp'
             ),
             'suite': ['qt'],

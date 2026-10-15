@@ -56,7 +56,6 @@ libqt_plugin_la_CPPFLAGS = $(AM_CPPFLAGS) $(CPPFLAGS_qt) \
 	-DQT_NO_CAST_FROM_BYTEARRAY \
 	-I$(srcdir) -I$(builddir) \
 	-I$(builddir)/dialogs/extended \
-	-I$(builddir)/dialogs/firstrun \
 	-I$(builddir)/dialogs/open \
 	-I$(builddir)/dialogs/sout
 
@@ -104,7 +103,6 @@ libqt_plugin_la_SOURCES = \
 	dialogs/extensions/extensions_manager.cpp dialogs/extensions/extensions_manager.hpp \
 	dialogs/fingerprint/chromaprint.cpp \
 	dialogs/fingerprint/chromaprint.hpp \
-	dialogs/firstrun/firstrunwizard.cpp dialogs/firstrun/firstrunwizard.hpp \
 	dialogs/help/aboutmodel.hpp \
 	dialogs/epg/programguidemodel.cpp dialogs/epg/programguidemodel.hpp \
 	dialogs/messages/messagesmodel.cpp dialogs/messages/messagesmodel.hpp \
@@ -117,6 +115,10 @@ libqt_plugin_la_SOURCES = \
 	dialogs/convert/conversion_manager.hpp \
 	dialogs/convert/conversion_profile_model.cpp \
 	dialogs/convert/conversion_profile_model.hpp \
+	dialogs/onboarding/app_onboarding_model.cpp \
+	dialogs/onboarding/app_onboarding_model.hpp \
+	dialogs/onboarding/onboarding_model.cpp \
+	dialogs/onboarding/onboarding_model.hpp \
 	dialogs/settings/settings_model.cpp \
 	dialogs/settings/settings_model.hpp \
 	dialogs/settings/settings_pages.cpp \
@@ -269,6 +271,7 @@ libqt_plugin_la_SOURCES = \
 	network/podcast_feeds.cpp \
 	network/podcast_feeds.hpp \
 	style/qtthemeprovider.hpp \
+	style/accent_colors.hpp \
 	style/colorcontext.cpp \
 	style/colorcontext.hpp \
 	style/systempalette.cpp \
@@ -415,7 +418,6 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/extensions/extensions.moc.cpp \
 	dialogs/extensions/extensions_manager.moc.cpp \
 	dialogs/fingerprint/chromaprint.moc.cpp \
-	dialogs/firstrun/firstrunwizard.moc.cpp \
 	dialogs/help/aboutmodel.moc.cpp \
 	dialogs/epg/programguidemodel.moc.cpp \
 	dialogs/messages/messagesmodel.moc.cpp \
@@ -425,6 +427,8 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/preferences/preferences_widgets.moc.cpp \
 	dialogs/convert/conversion_manager.moc.cpp \
 	dialogs/convert/conversion_profile_model.moc.cpp \
+	dialogs/onboarding/app_onboarding_model.moc.cpp \
+	dialogs/onboarding/onboarding_model.moc.cpp \
 	dialogs/settings/settings_model.moc.cpp \
 	dialogs/settings/settings_pages.moc.cpp \
 	dialogs/shortcuts/app_shortcuts_model.moc.cpp \
@@ -550,8 +554,7 @@ nodist_libqt_plugin_la_SOURCES = \
 
 nodist_libqt_plugin_la_SOURCES += \
 	dialogs/extended/ui_equalizer.h \
-	dialogs/extended/ui_video_effects.h \
-	dialogs/firstrun/ui_firstrunwizard.h
+	dialogs/extended/ui_video_effects.h
 
 
 # windows compositor
@@ -748,8 +751,7 @@ endif
 
 libqt_plugin_la_UI = \
 	dialogs/extended/equalizer.ui \
-	dialogs/extended/video_effects.ui \
-	dialogs/firstrun/firstrunwizard.ui
+	dialogs/extended/video_effects.ui
 EXTRA_DIST += $(libqt_plugin_la_UI)
 
 ui_%.h: %.ui
@@ -1037,6 +1039,7 @@ libqml_module_dialogs_a_QML = \
 	dialogs/settings/qml/SettingsToggle.qml \
 	dialogs/shortcuts/qml/KeyboardShortcutsDialog.qml \
 	dialogs/shortcuts/qml/ShortcutKeyField.qml \
+	dialogs/onboarding/qml/OnboardingWindow.qml \
 	dialogs/mediainfo/qml/MediaPropertiesDialog.qml \
 	dialogs/open/qml/OpenDiscDialog.qml \
 	dialogs/toolbar/qml/EditorDashedBorder.qml \
@@ -2343,6 +2346,27 @@ test_shortcuts_model_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_shortcuts_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_shortcuts_model
 TESTS += test_shortcuts_model
+
+# test_onboarding_model
+
+test_onboarding_model_SOURCES = \
+	tests/test_onboarding_model.cpp \
+	dialogs/onboarding/onboarding_model.cpp dialogs/onboarding/onboarding_model.hpp \
+	util/vlchotkeyconverter.cpp util/vlchotkeyconverter.hpp
+
+nodist_test_onboarding_model_SOURCES = \
+	tests/test_onboarding_model.moc \
+	dialogs/onboarding/onboarding_model.moc.cpp \
+	util/vlchotkeyconverter.moc.cpp
+
+BUILT_SOURCES += tests/test_onboarding_model.moc
+CLEANFILES += tests/test_onboarding_model.moc
+test_onboarding_model_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_onboarding_model_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_onboarding_model_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_onboarding_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_onboarding_model
+TESTS += test_onboarding_model
 
 # test_vlc_dialog_model
 

@@ -45,7 +45,6 @@
 #include "dialogs/dialogs/dialogmodel.hpp"
 #include "dialogs/extended/extended.hpp"
 #include "dialogs/plugins/plugins.hpp"
-#include "dialogs/firstrun/firstrunwizard.hpp"
 
 #include <vlc_url.h>
 
@@ -63,7 +62,6 @@
                                            N_("Open Folder") )
 
 #define ALL_DIALOG(X) \
-    X(firstRunDialog) \
     X(extendedDialog) \
     X(pluginDialog)
 
@@ -285,11 +283,9 @@ void DialogsProvider::keyboardShortcutsDialog(const QString& action)
     emit showKeyboardShortcutsDialog(action);
 }
 
-void DialogsProvider::firstRunDialog()
+void DialogsProvider::onboarding(int step)
 {
-    ensureDialog(m_firstRunDialog);
-    QVLCDialog::setWindowTransientParent(m_firstRunDialog.get(), nullptr, p_intf);
-    m_firstRunDialog->show();
+    emit showOnboarding(step);
 }
 
 void DialogsProvider::extendedDialog()

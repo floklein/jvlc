@@ -288,6 +288,31 @@ Item {
             }
         }
 
+        // Onboarding, on first start or when asked again from Settings: kept
+        // here so that it survives switching between the library and the player
+        Loader {
+            id: onboardingLoader
+
+            active: false
+            source: "qrc:///qt/qml/VLC/Dialogs/OnboardingWindow.qml"
+
+            Connections {
+                target: DialogsProvider
+
+                function onShowOnboarding(step) {
+                    onboardingLoader.active = true
+                    onboardingLoader.item.openOn(step)
+                }
+            }
+
+            Connections {
+                target: onboardingLoader.item
+                function onFinished() {
+                    Qt.callLater(() => onboardingLoader.active = false)
+                }
+            }
+        }
+
         // Properties & Metadata windows, one per media. They live here so
         // they survive switching between the player and the library.
         Connections {

@@ -677,11 +677,12 @@ modules/gui/qt/dialogs/extensions/extensions_manager.cpp
 modules/gui/qt/dialogs/extensions/extensions_manager.hpp
 modules/gui/qt/dialogs/fingerprint/chromaprint.cpp
 modules/gui/qt/dialogs/fingerprint/chromaprint.hpp
-modules/gui/qt/dialogs/firstrun/firstrunwizard.cpp
-modules/gui/qt/dialogs/firstrun/firstrunwizard.hpp
 modules/gui/qt/dialogs/mediainfo/media_properties_model.cpp
 modules/gui/qt/dialogs/mediainfo/media_properties_model.hpp
 modules/gui/qt/dialogs/mediainfo/qml/MediaPropertiesDialog.qml
+modules/gui/qt/dialogs/onboarding/app_onboarding_model.cpp
+modules/gui/qt/dialogs/onboarding/onboarding_model.cpp
+modules/gui/qt/dialogs/onboarding/qml/OnboardingWindow.qml
 modules/gui/qt/dialogs/messages/messagesmodel.cpp
 modules/gui/qt/dialogs/plugins/plugins.cpp
 modules/gui/qt/dialogs/plugins/plugins.hpp
@@ -850,6 +851,7 @@ modules/gui/qt/playlist/qml/PlaylistDetachedWindow.qml
 modules/gui/qt/playlist/qml/PlaylistPane.qml
 modules/gui/qt/qt.cpp
 modules/gui/qt/qt.hpp
+modules/gui/qt/style/accent_colors.hpp
 modules/gui/qt/util/color_scheme_model.cpp
 modules/gui/qt/util/covergenerator.cpp
 modules/gui/qt/util/covergenerator.hpp

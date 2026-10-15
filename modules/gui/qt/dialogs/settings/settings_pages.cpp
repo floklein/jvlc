@@ -25,6 +25,7 @@
 #include "maininterface/mainctx.hpp"
 #include "dialogs/dialogs_provider.hpp"
 #include "dialogs/shortcuts/app_shortcuts_model.hpp"
+#include "style/accent_colors.hpp"
 #include "util/color_scheme_model.hpp"
 #include "util/vlchotkeyconverter.hpp"
 
@@ -291,23 +292,7 @@ void AppSettingsModel::addGeneralRows()
     {
         Row row = makeRow("accent-color", "general", appearance, qtr("Accent color"), Swatches);
         row.help = qtr("The color of selected and active items.");
-        const struct { const char* value; const char* color; QString label; } swatches[] = {
-            { "default", "#d37918", qtr("Orange") },
-            { "#e15032", "#e15032", qtr("Red") },
-            { "#c49e23", "#c49e23", qtr("Yellow") },
-            { "#19a234", "#19a234", qtr("Green") },
-            { "#18aad3", "#18aad3", qtr("Cyan") },
-            { "#185dd3", "#185dd3", qtr("Blue") },
-            { "#8e42ff", "#8e42ff", qtr("Purple") },
-            { "#f052b3", "#f052b3", qtr("Pink") },
-            { "#afafaf", "#afafaf", qtr("Gray") },
-        };
-        for (const auto& swatch : swatches)
-        {
-            QVariantMap entry = choice(QString::fromLatin1(swatch.value), swatch.label);
-            entry.insert(QStringLiteral("color"), QString::fromLatin1(swatch.color));
-            row.choices.append(entry);
-        }
+        row.choices = accentColorChoices();
         bindConfig(row, { QStringLiteral("qt-accent-color") });
         addRow(std::move(row));
     }
@@ -338,6 +323,18 @@ void AppSettingsModel::addGeneralRows()
         row.help = qtr("Tell you when a file can't be opened or played. "
                        "When off, errors only go to the Messages log.");
         bindConfig(row, { QStringLiteral("qt-error-dialogs") });
+        addRow(std::move(row));
+    }
+
+    {
+        Row row = makeRow("welcome-screen", "general", startup, qtr("Show the welcome screen at next start"));
+        row.help = qtr("Shows Onboarding again: library folders, Theme, online details "
+                       "and the basic shortcuts.");
+        row.advanced = true;
+        // Onboarding turns it off once done
+        bindConfig(row, { QStringLiteral("qt-privacy-ask") });
+        // the option is on only until the first Onboarding
+        row.readDefault = []() { return QVariant(false); };
         addRow(std::move(row));
     }
 
