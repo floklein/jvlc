@@ -94,6 +94,8 @@ struct VLCTestingEnv
     std::vector<Playlist> playlists() const;
     // create a Playlist directly in the store (sends the ADDED event)
     int64_t addPlaylist(const std::string& name, const std::vector<int64_t>& media);
+    // the external subtitle files saved for the media of this MRL
+    std::vector<std::string> subtitleMatches(const std::string& mediaMrl) const;
 
     /*
      * The play history of the stub media library, newest first: media <id>

@@ -134,6 +134,8 @@ libqt_plugin_la_SOURCES = \
 	dialogs/sout/profiles.hpp \
 	dialogs/sout/stream_output.cpp \
 	dialogs/sout/stream_output.hpp \
+	dialogs/subtitles/add_subtitles_model.cpp \
+	dialogs/subtitles/add_subtitles_model.hpp \
 	dialogs/systray/systray.cpp \
 	dialogs/systray/systray.hpp \
 	dialogs/toolbar/controlbar_profile.hpp \
@@ -437,6 +439,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/shortcuts/app_shortcuts_model.moc.cpp \
 	dialogs/shortcuts/shortcuts_model.moc.cpp \
 	dialogs/sout/stream_output.moc.cpp \
+	dialogs/subtitles/add_subtitles_model.moc.cpp \
 	dialogs/systray/systray.moc.cpp \
 	dialogs/toolbar/controlbar_profile.moc.cpp \
 	dialogs/toolbar/controlbar_profile_model.moc.cpp \
@@ -1049,6 +1052,7 @@ libqml_module_dialogs_a_QML = \
 	dialogs/toolbar/qml/EditorDashedBorder.qml \
 	dialogs/open/qml/OpenNetworkDialog.qml \
 	dialogs/sout/qml/StreamCastDialog.qml \
+	dialogs/subtitles/qml/AddSubtitlesDialog.qml \
 	dialogs/toolbar/qml/EditorDNDDelegate.qml \
 	dialogs/toolbar/qml/EditorDNDView.qml\
 	dialogs/toolbar/qml/EditorDummyButton.qml \
@@ -2064,6 +2068,61 @@ test_renderer_manager_model_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_renderer_manager_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_renderer_manager_model
 TESTS += test_renderer_manager_model
+
+# test_subtitle_matches
+test_subtitle_matches_SOURCES = \
+	tests/test_subtitle_matches.cpp \
+	tests/vlc_stub_modules.cpp \
+	tests/vlc_stub_modules.hpp \
+	dialogs/subtitles/add_subtitles_model.cpp \
+	dialogs/subtitles/add_subtitles_model.hpp \
+	player/input_models.cpp \
+	player/input_models.hpp \
+	util/base_model.cpp \
+	util/base_model.hpp \
+	util/covergenerator.cpp \
+	util/vlctick.cpp \
+	medialibrary/medialib.cpp \
+	medialibrary/mlbasemodel.cpp \
+	medialibrary/mlcustomcover.cpp \
+	medialibrary/mlplaycountrank.cpp \
+	medialibrary/mlhelper.cpp \
+	medialibrary/mlplaylist.cpp \
+	medialibrary/mlplaylistlistmodel.cpp \
+	medialibrary/mlplaylistmanager.cpp \
+	medialibrary/mlplaylistmedia.cpp \
+	medialibrary/mlplaylistmodel.cpp \
+	medialibrary/mlrecenthidelist.cpp \
+	medialibrary/mlthreadpool.cpp \
+	medialibrary/mlvideo.cpp \
+	medialibrary/thumbnailcollector.cpp \
+	playlist/playlist_controller.cpp \
+	playlist/playlist_item.cpp
+nodist_test_subtitle_matches_SOURCES = \
+	tests/test_subtitle_matches.moc \
+	dialogs/subtitles/add_subtitles_model.moc.cpp \
+	player/input_models.moc.cpp \
+	util/base_model.moc.cpp \
+	util/vlctick.moc.cpp \
+	medialibrary/medialib.moc.cpp \
+	medialibrary/mlbasemodel.moc.cpp \
+	medialibrary/mlplaylistlistmodel.moc.cpp \
+	medialibrary/mlplaylistmanager.moc.cpp \
+	medialibrary/mlplaylistmodel.moc.cpp \
+	medialibrary/mlrecenthidelist.moc.cpp \
+	medialibrary/mlthreadpool.moc.cpp \
+	medialibrary/mlvideo.moc.cpp \
+	medialibrary/thumbnailcollector.moc.cpp \
+	playlist/playlist_controller.moc.cpp \
+	playlist/playlist_item.moc.cpp
+BUILT_SOURCES += tests/test_subtitle_matches.moc
+CLEANFILES += tests/test_subtitle_matches.moc
+test_subtitle_matches_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_subtitle_matches_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_subtitle_matches_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_subtitle_matches_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_subtitle_matches
+TESTS += test_subtitle_matches
 
 # test_conversion_profile_model
 

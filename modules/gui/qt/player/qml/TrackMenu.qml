@@ -304,8 +304,10 @@ T.Popup {
                         text: VLCIcons.add
                         description: qsTr("Add subtitles")
 
-                        // TODO: open the Add Subtitles dialog (#66)
-                        onClicked: DialogsProvider.loadSubtitlesFile()
+                        onClicked: {
+                            fsm.dismiss()
+                            DialogsProvider.addSubtitlesDialog("")
+                        }
                     }
                 }
 

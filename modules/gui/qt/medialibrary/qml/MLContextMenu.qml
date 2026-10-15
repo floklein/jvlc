@@ -88,6 +88,10 @@ NativeMenu {
             "text": qsTr("Add to Playlist"),
             "children": addToPlaylistItems
         }, {
+            "text": qsTr("Add Subtitle Tracks…"),
+            "action": addSubtitles,
+            "visible": _showAddSubtitles
+        }, {
             "text": qsTr("Mark as seen"),
             "action": markSeen,
             "visible": _showSeen
@@ -184,6 +188,11 @@ NativeMenu {
         return items
     }
 
+    // Add Subtitles, To This File
+    function addSubtitles(dataList, options, indexes) {
+        DialogsProvider.addSubtitlesDialog(dataList[0].mrl)
+    }
+
     function addFavorite(dataList, options, indexes) {
         model.setMediaIsFavorite(indexes[0], true)
     }
@@ -255,6 +264,13 @@ NativeMenu {
 
     function _showUnseen(dataList, options, indexes) {
         return _checkRole(dataList, "isNew", false)
+    }
+
+    // a local video file
+    function _showAddSubtitles(dataList, options, indexes) {
+        return _checkRole(dataList, "isLocal", true)
+                && _checkRole(dataList, "isVideo", true)
+                && !!dataList[0].mrl
     }
 
     function _openContainingFolder(dataList, options, indexes) {

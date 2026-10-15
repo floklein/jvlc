@@ -23,8 +23,51 @@
 #endif
 
 #include <vlc_common.h>
+#include <vlc_arrays.h>
 #include "player.h"
 #include "misc/variables.h"
+
+/* Subtitle matches: attach the external subtitle files saved for the media.
+ * The input is not started yet, so they load like the slaves of the item. */
+static void
+vlc_player_input_AttachMlSubtitles(struct vlc_player_input *input,
+                                   const vlc_ml_media_t *media)
+{
+    if (media->p_files == NULL)
+        return;
+    input_item_t *item = input_GetItem(input->thread);
+    bool first = true;
+
+    vlc_mutex_lock(&item->lock);
+    for (size_t i = 0; i < media->p_files->i_nb_items; ++i)
+    {
+        const vlc_ml_file_t *file = &media->p_files->p_items[i];
+        if (file->i_type != VLC_ML_FILE_TYPE_SUBTITLE || !file->b_external
+         || file->psz_mrl == NULL)
+            continue;
+
+        bool attached = false;
+        for (int j = 0; j < item->i_slaves && !attached; ++j)
+            attached = !strcmp(item->pp_slaves[j]->psz_uri, file->psz_mrl);
+        if (attached)
+        {
+            first = false;
+            continue;
+        }
+
+        /* the first one shows, like a subtitle file named after the video,
+         * the others are only listed; a missing file is skipped */
+        input_item_slave_t *slave =
+            input_item_slave_New(file->psz_mrl, SLAVE_TYPE_SPU,
+                                 first ? SLAVE_PRIORITY_MATCH_ALL
+                                       : SLAVE_PRIORITY_MATCH_LEFT);
+        if (slave == NULL)
+            break;
+        first = false;
+        TAB_APPEND(item->i_slaves, item->pp_slaves, slave);
+    }
+    vlc_mutex_unlock(&item->lock);
+}
 
 void
 vlc_player_input_RestoreMlStates(struct vlc_player_input* input, bool force_pos)
@@ -47,6 +90,7 @@ vlc_player_input_RestoreMlStates(struct vlc_player_input* input, bool force_pos)
     vlc_ml_media_t* media = vlc_ml_get_media_by_mrl( ml, item->psz_uri);
     if (!media)
         return;
+    vlc_player_input_AttachMlSubtitles(input, media);
     if (media->i_type != VLC_ML_MEDIA_TYPE_VIDEO ||
         vlc_ml_media_get_all_playback_pref(ml, media->i_id,
                                            &input->ml.states) != VLC_SUCCESS)

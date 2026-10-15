@@ -255,6 +255,14 @@ bool Convert( const medialibrary::IFolder* input, vlc_ml_folder_t& output );
 bool Convert( const medialibrary::IBookmark* input, vlc_ml_bookmark_t& output );
 input_item_t* MediaToInputItem( const medialibrary::IMedia* media );
 
+/* External files removed with VLC_ML_MEDIA_REMOVE_EXTERNAL_MRL. The
+ * medialibrary can't remove a file from a media, so their MRLs are kept, one
+ * per line, in the media's application specific metadata, and left out of the
+ * media files. */
+std::vector<std::string> RemovedExternalMrls( const medialibrary::IMedia& media );
+bool SetRemovedExternalMrls( medialibrary::IMedia& media,
+                             const std::vector<std::string>& mrls );
+
 template <typename To, typename ItemType, typename From>
 To* ml_convert_list( const std::vector<std::shared_ptr<From>>& input )
 {

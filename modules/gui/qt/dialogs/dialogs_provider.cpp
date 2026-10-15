@@ -46,6 +46,7 @@
 #include "dialogs/dialogs/dialogmodel.hpp"
 #include "dialogs/extended/extended.hpp"
 #include "dialogs/plugins/plugins.hpp"
+#include "dialogs/subtitles/add_subtitles_model.hpp"
 
 #include <vlc_url.h>
 
@@ -965,6 +966,26 @@ void  DialogsProvider::loadMediaFile( const es_format_category_e category, const
         if ( THEMIM->AddAssociatedMedia( category, qsUrl, true, true, false ) )
             msg_Warn( p_intf, "unable to load media from '%s', category(%d)", qtu( qsUrl ), category );
     }
+}
+
+void DialogsProvider::addSubtitlesDialog( const QString& mediaMrl )
+{
+    QString mrl = mediaMrl;
+    if( mrl.isEmpty() )
+    {
+        vlc_player_locker lock{ p_intf->p_player };
+        input_item_t *item = vlc_player_GetCurrentMedia( p_intf->p_player );
+        if( item == nullptr )
+            return;
+        mrl = qfu( item->psz_uri );
+    }
+
+    /* one dialog: the new model replaces the previous one */
+    if( m_addSubtitlesModel )
+        m_addSubtitlesModel->deleteLater();
+    MediaLib *ml = p_intf->p_mi ? p_intf->p_mi->getMediaLibrary() : nullptr;
+    m_addSubtitlesModel = new AddSubtitlesModel( p_intf, ml, mrl, this );
+    emit showAddSubtitles( m_addSubtitlesModel );
 }
 
 void DialogsProvider::loadSubtitlesFile()

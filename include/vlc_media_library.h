@@ -648,6 +648,7 @@ enum vlc_ml_control
     VLC_ML_MEDIA_REMOVE_BOOKMARK,           /**< arg1: media id; arg2: int64_t */
     VLC_ML_MEDIA_REMOVE_ALL_BOOKMARKS,      /**< arg1: media id */
     VLC_ML_MEDIA_UPDATE_BOOKMARK,           /**< arg1: media id; arg2: int64_t; arg3: const char*; arg4: const char* */
+    VLC_ML_MEDIA_REMOVE_EXTERNAL_MRL,       /**< arg1: media id; arg2: const char*; can fail */
 
     /* Playlist management */
     VLC_ML_PLAYLIST_CREATE, /**< arg1: const char*; arg2(out): vlc_ml_playlist_t**; can fail */
@@ -1188,6 +1189,16 @@ static inline int vlc_ml_media_add_external_mrl( vlc_medialibrary_t* p_ml, int64
                                                  const char* psz_mrl, int i_type )
 {
     return vlc_ml_control( p_ml, VLC_ML_MEDIA_ADD_EXTERNAL_MRL, i_media_id, psz_mrl, i_type );
+}
+
+/**
+ * Forget an external file added with vlc_ml_media_add_external_mrl(): it is no
+ * longer listed in the media files. The file itself is left untouched.
+ */
+static inline int vlc_ml_media_remove_external_mrl( vlc_medialibrary_t* p_ml, int64_t i_media_id,
+                                                    const char* psz_mrl )
+{
+    return vlc_ml_control( p_ml, VLC_ML_MEDIA_REMOVE_EXTERNAL_MRL, i_media_id, psz_mrl );
 }
 
 static inline int vlc_ml_media_set_type( vlc_medialibrary_t* p_ml, int64_t i_media_id,

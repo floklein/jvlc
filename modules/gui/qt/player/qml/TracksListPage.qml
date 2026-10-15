@@ -261,7 +261,7 @@ RowLayout {
 
         onTriggered: {
             if (action === QmlSubtitleMenu.Open) {
-                DialogsProvider.loadSubtitlesFile()
+                DialogsProvider.addSubtitlesDialog("")
             }
             else if (action === QmlSubtitleMenu.Synchronize) {
                 trackMenuController.requestSubtitlePage()

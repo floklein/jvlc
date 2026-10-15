@@ -461,6 +461,29 @@ Item {
             onLoaded: item.rootWindow = viewLoader
         }
 
+        // Add Subtitles, from the Track menu, the VLC menu or a file menu;
+        // kept here so that it survives switching between the library and
+        // the player
+        Loader {
+            id: addSubtitlesLoader
+
+            anchors.fill: parent
+
+            active: false
+            source: "qrc:///qt/qml/VLC/Dialogs/AddSubtitlesDialog.qml"
+
+            onLoaded: item.rootWindow = viewLoader
+
+            Connections {
+                target: DialogsProvider
+
+                function onShowAddSubtitles(model) {
+                    addSubtitlesLoader.active = true
+                    // a Popup created by a Loader doesn't open in the same iteration
+                    Qt.callLater(() => addSubtitlesLoader.item?.openWith(model))
+                }
+            }
+        }
         Loader {
             asynchronous: true
             source: "qrc:///qt/qml/VLC/Menus/GlobalShortcuts.qml"

@@ -19,12 +19,43 @@
 
 #include "player/player_controller.hpp"
 
+#include <vlc_arrays.h>
+
 #include <algorithm>
 #include <cstring>
+
+#include <QCryptographicHash>
 
 //***************************
 //  track list model
 //***************************
+
+/* Take out of the item the slave whose tracks have this string id (see
+ * isExternalTrack()), so that it doesn't come back when the item plays again.
+ * Returns the slave MRL. */
+static QString takeSlave(input_item_t *item, const QString &strId)
+{
+    const QString source = strId.section('/', 0, 0);
+    QString mrl;
+
+    vlc_mutex_locker lock{ &item->lock };
+    for (int i = 0; i < item->i_slaves; ++i)
+    {
+        input_item_slave_t *slave = item->pp_slaves[i];
+
+        /* the MD5 of the MRL, as InputSourceNew() makes it */
+        const QByteArray hash = QCryptographicHash::hash(QByteArray(slave->psz_uri),
+                                                         QCryptographicHash::Md5).toHex();
+        if (source != QLatin1StringView(hash))
+            continue;
+
+        mrl = qfu(slave->psz_uri);
+        TAB_ERASE(item->i_slaves, item->pp_slaves, i);
+        input_item_slave_Delete(slave);
+        break;
+    }
+    return mrl;
+}
 
 /* The tracks of an associated media (an input slave, e.g. a subtitle file)
  * have string ids starting with the hash of their source, while those of the
@@ -194,10 +225,18 @@ bool TrackListModel::remove(int row)
     if (es_id == m_secondary)
         setSecondary(nullptr);
 
-    if (m_data[row].m_selected)
+    QString mediaMrl;
+    QString sourceMrl;
     {
         vlc_player_locker lock{ m_player };
-        vlc_player_UnselectEsId(m_player, es_id);
+        if (m_data[row].m_selected)
+            vlc_player_UnselectEsId(m_player, es_id);
+        input_item_t *item = vlc_player_GetCurrentMedia(m_player);
+        if (item != nullptr)
+        {
+            mediaMrl = qfu(item->psz_uri);
+            sourceMrl = takeSlave(item, strId);
+        }
     }
 
     m_removed.append(strId);
@@ -208,7 +247,7 @@ bool TrackListModel::remove(int row)
     emit countChanged();
     updateHasSelection();
 
-    emit externalTrackRemoved(strId);
+    emit externalTrackRemoved(strId, mediaMrl, sourceMrl);
     return true;
 }
 

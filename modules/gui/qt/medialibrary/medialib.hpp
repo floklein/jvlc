@@ -68,6 +68,12 @@ public:
 
     Q_INVOKABLE void reload();
 
+    // Subtitle matches: external subtitle files remembered for a media and
+    // attached whenever it plays. The MRLs are those VLC plays.
+    Q_INVOKABLE void addSubtitleMatches(const QString& mediaMrl, const QStringList& subtitleMrls);
+    // forget a match, the file is kept
+    Q_INVOKABLE void removeSubtitleMatch(const QString& mediaMrl, const QString& subtitleMrl);
+
     Q_INVOKABLE void mlInputItem(const QVector<MLItemId>& itemIdVector, QJSValue callback);
 
     // New Playlist, Add to Playlist and Export
@@ -185,6 +191,7 @@ signals:
     void discoveryEntryPointChanged( QString entryPoint );
     void discoveryPendingChanged( bool state );
     void idleChanged();
+    void subtitleMatchesChanged(const QString& mediaMrl);
 
 private:
     static void onMediaLibraryEvent( void* data, const vlc_ml_event_t* event );

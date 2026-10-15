@@ -139,6 +139,8 @@ struct StubMediaLibrary
     // external media: id -> mrl
     std::map<int64_t, std::string> external;
     int64_t nextExternalId = 1000;
+    // external subtitle files of a media (Subtitle matches): id -> mrls
+    std::map<int64_t, std::vector<std::string>> subtitles;
     std::vector<VLCTestingEnv::HistoryEntry> history;
     int historyClears = 0;
 };
@@ -175,6 +177,36 @@ void fillMedia(vlc_ml_media_t* out, int64_t id)
     /* the medialibrary always gives the lists, even empty */
     out->p_files = static_cast<vlc_ml_file_list_t*>(calloc(1, sizeof(vlc_ml_file_list_t)));
     out->p_tracks = static_cast<vlc_ml_media_track_list_t*>(calloc(1, sizeof(vlc_ml_media_track_list_t)));
+}
+
+/* the main file and the external subtitle files of a media */
+void fillFiles(vlc_ml_media_t* out, int64_t id)
+{
+    auto subtitles = stubML.subtitles.find(id);
+    const size_t count = subtitles == stubML.subtitles.end() ? 0 : subtitles->second.size();
+    auto it = stubML.external.find(id);
+    const bool hasMain = it != stubML.external.end();
+
+    free(out->p_files);
+    out->p_files = static_cast<vlc_ml_file_list_t*>(
+        calloc(1, sizeof(vlc_ml_file_list_t) + (count + 1) * sizeof(vlc_ml_file_t)));
+    size_t n = 0;
+    if (hasMain)
+    {
+        vlc_ml_file_t& file = out->p_files->p_items[n++];
+        file.psz_mrl = strdup(it->second.c_str());
+        file.i_type = VLC_ML_FILE_TYPE_MAIN;
+        file.b_present = true;
+    }
+    for (size_t i = 0; i < count; ++i)
+    {
+        vlc_ml_file_t& file = out->p_files->p_items[n++];
+        file.psz_mrl = strdup(subtitles->second[i].c_str());
+        file.i_type = VLC_ML_FILE_TYPE_SUBTITLE;
+        file.b_external = true;
+        file.b_present = true;
+    }
+    out->p_files->i_nb_items = n;
 }
 
 void sendEvent(int type, int64_t id, const VLCTestingEnv::Playlist* created = nullptr)
@@ -417,6 +449,7 @@ static void* MLGet( vlc_medialibrary_module_t*, int query, va_list args )
             {
                 auto out = static_cast<vlc_ml_media_t*>(malloc(sizeof(vlc_ml_media_t)));
                 fillMedia(out, it.first);
+                fillFiles(out, it.first);
                 return out;
             }
         }
@@ -728,6 +761,29 @@ static int MLControl( vlc_medialibrary_module_t*, int query, va_list args )
         fillMedia(*out, id);
         return VLC_SUCCESS;
     }
+    case VLC_ML_MEDIA_ADD_EXTERNAL_MRL:
+    {
+        int64_t id = va_arg(args, int64_t);
+        const char* mrl = va_arg(args, const char*);
+        int type = va_arg(args, int);
+        if (stubML.external.count(id) == 0 || type != VLC_ML_FILE_TYPE_SUBTITLE)
+            return VLC_EGENERIC;
+        std::vector<std::string>& files = stubML.subtitles[id];
+        if (std::find(files.begin(), files.end(), mrl) == files.end())
+            files.push_back(mrl);
+        return VLC_SUCCESS;
+    }
+    case VLC_ML_MEDIA_REMOVE_EXTERNAL_MRL:
+    {
+        int64_t id = va_arg(args, int64_t);
+        const char* mrl = va_arg(args, const char*);
+        std::vector<std::string>& files = stubML.subtitles[id];
+        auto it = std::find(files.begin(), files.end(), mrl);
+        if (it == files.end())
+            return VLC_EGENERIC;
+        files.erase(it);
+        return VLC_SUCCESS;
+    }
     case VLC_ML_CLEAR_HISTORY:
     {
         stubML.history.clear();
@@ -996,6 +1052,7 @@ void VLCTestingEnv::clearMediaLibrary()
     std::lock_guard<std::mutex> guard(stubML.lock);
     stubML.playlists.clear();
     stubML.external.clear();
+    stubML.subtitles.clear();
     stubML.nextExternalId = 1000;
     stubML.history.clear();
     stubML.historyClears = 0;
@@ -1014,6 +1071,20 @@ int VLCTestingEnv::historyClears() const
 {
     std::lock_guard<std::mutex> guard(stubML.lock);
     return stubML.historyClears;
+}
+
+std::vector<std::string> VLCTestingEnv::subtitleMatches(const std::string& mediaMrl) const
+{
+    std::lock_guard<std::mutex> guard(stubML.lock);
+    for (const auto& it : stubML.external)
+    {
+        if (it.second != mediaMrl)
+            continue;
+        auto subtitles = stubML.subtitles.find(it.first);
+        if (subtitles != stubML.subtitles.end())
+            return subtitles->second;
+    }
+    return {};
 }
 
 std::vector<VLCTestingEnv::Playlist> VLCTestingEnv::playlists() const

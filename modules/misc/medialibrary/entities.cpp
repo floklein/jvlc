@@ -42,6 +42,7 @@
 #include <medialibrary/filesystem/IDevice.h>
 #include <medialibrary/filesystem/Errors.h>
 #include <medialibrary/IBookmark.h>
+#include <medialibrary/IMetadata.h>
 
 #include <algorithm>
 
@@ -263,6 +264,31 @@ bool Convert( const medialibrary::IMedia* input, vlc_ml_media_t& output )
         return false;
 
     auto files = input->files();
+    /* leave out the removed external files; only look them up when there is
+     * an external file, as it costs a request */
+    const bool hasExternal = std::any_of( files.cbegin(), files.cend(),
+        []( const medialibrary::FilePtr& f ) { return f->isExternal(); } );
+    if ( hasExternal )
+    {
+        const auto removed = RemovedExternalMrls( *input );
+        if ( removed.empty() == false )
+        {
+            files.erase( std::remove_if( files.begin(), files.end(),
+                [&removed]( const medialibrary::FilePtr& f ) {
+                    if ( f->isExternal() == false )
+                        return false;
+                    try
+                    {
+                        return std::find( removed.cbegin(), removed.cend(),
+                                          f->mrl() ) != removed.cend();
+                    }
+                    catch ( const medialibrary::fs::errors::DeviceRemoved& )
+                    {
+                        return false;
+                    }
+                } ), files.end() );
+        }
+    }
     output.p_files = ml_convert_list<vlc_ml_file_list_t, vlc_ml_file_t>( files );
     if ( output.p_files == nullptr )
         return false;
@@ -627,4 +653,41 @@ input_item_t* MediaToInputItem( const medialibrary::IMedia* media )
     }
 
     return inputItem.release();
+}
+
+std::vector<std::string> RemovedExternalMrls( const medialibrary::IMedia& media )
+{
+    std::vector<std::string> mrls;
+    const auto& meta = media.metadata(
+                medialibrary::IMedia::MetadataType::ApplicationSpecific );
+    if ( meta.isSet() == false )
+        return mrls;
+    const std::string& value = meta.asStr();
+    size_t start = 0;
+    while ( start < value.size() )
+    {
+        size_t end = value.find( '\n', start );
+        if ( end == std::string::npos )
+            end = value.size();
+        if ( end > start )
+            mrls.emplace_back( value, start, end - start );
+        start = end + 1;
+    }
+    return mrls;
+}
+
+bool SetRemovedExternalMrls( medialibrary::IMedia& media,
+                             const std::vector<std::string>& mrls )
+{
+    using MT = medialibrary::IMedia::MetadataType;
+    if ( mrls.empty() )
+        return media.unsetMetadata( MT::ApplicationSpecific );
+    std::string value;
+    for ( const auto& mrl : mrls )
+    {
+        if ( value.empty() == false )
+            value += '\n';
+        value += mrl;
+    }
+    return media.setMetadata( MT::ApplicationSpecific, value );
 }

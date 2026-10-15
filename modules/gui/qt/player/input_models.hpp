@@ -1,4 +1,4 @@
-﻿/*****************************************************************************
+/*****************************************************************************
  * input_models.hpp
  *****************************************************************************
  * Copyright (C) 2018 VLC authors and VideoLAN
@@ -93,7 +93,9 @@ public:
     Q_INVOKABLE void unselectSecondary();
     // "None": unselect every track of the category
     Q_INVOKABLE void unselectAll();
-    // remove an external track from the list, the file is kept
+    // remove an external track from the list and from the media, the file is
+    // kept; externalTrackRemoved() gives the file so that its Subtitle match
+    // can be forgotten
     Q_INVOKABLE bool remove(int row);
 
 public slots:
@@ -103,7 +105,8 @@ signals:
     void countChanged();
     void multiSelectChanged(bool multiSelect);
     void hasSelectionChanged();
-    void externalTrackRemoved(const QString& trackId);
+    void externalTrackRemoved(const QString& trackId, const QString& mediaMrl,
+                              const QString& sourceMrl);
 
 private:
     int rowOf(const vlc_es_id_t *trackid) const;

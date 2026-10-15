@@ -293,6 +293,50 @@ void MediaLib::reload()
     });
 }
 
+void MediaLib::addSubtitleMatches(const QString& mediaMrl, const QStringList& subtitleMrls)
+{
+    if (mediaMrl.isEmpty() || subtitleMrls.isEmpty())
+        return;
+
+    runOnMLThread(this,
+    //ML thread
+    [media = mediaMrl.toStdString(), subtitles = subtitleMrls](vlc_medialibrary_t* ml){
+        /* a file outside the library gets a library entry */
+        ml_unique_ptr<vlc_ml_media_t> entry{ vlc_ml_get_media_by_mrl(ml, media.c_str()) };
+        if (!entry)
+            entry.reset(vlc_ml_new_external_media(ml, media.c_str()));
+        if (!entry)
+            return;
+        for (const QString& subtitle : subtitles)
+            vlc_ml_media_add_external_mrl(ml, entry->i_id, qtu(subtitle),
+                                          VLC_ML_FILE_TYPE_SUBTITLE);
+    },
+    //UI thread
+    [this, mediaMrl](){
+        emit subtitleMatchesChanged(mediaMrl);
+    },
+    "subtitle-matches");
+}
+
+void MediaLib::removeSubtitleMatch(const QString& mediaMrl, const QString& subtitleMrl)
+{
+    if (mediaMrl.isEmpty() || subtitleMrl.isEmpty())
+        return;
+
+    runOnMLThread(this,
+    //ML thread
+    [media = mediaMrl.toStdString(), subtitle = subtitleMrl.toStdString()](vlc_medialibrary_t* ml){
+        ml_unique_ptr<vlc_ml_media_t> entry{ vlc_ml_get_media_by_mrl(ml, media.c_str()) };
+        if (entry)
+            vlc_ml_media_remove_external_mrl(ml, entry->i_id, subtitle.c_str());
+    },
+    //UI thread
+    [this, mediaMrl](){
+        emit subtitleMatchesChanged(mediaMrl);
+    },
+    "subtitle-matches");
+}
+
 void MediaLib::mlInputItem(const QVector<MLItemId>& itemIdVector, QJSValue callback)
 {
     if (!callback.isCallable()) // invalid argument

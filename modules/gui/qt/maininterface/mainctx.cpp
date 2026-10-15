@@ -237,6 +237,13 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
     b_hasMedialibrary = (ml != NULL);
     if (b_hasMedialibrary) {
         m_medialib = new MediaLib(p_intf, p_intf->p_mainPlaylistController);
+
+        /* removing an external subtitle track forgets its Subtitle match */
+        connect(THEMIM->getSubtitleTracks(), &TrackListModel::externalTrackRemoved,
+                m_medialib, [ml = m_medialib](const QString&, const QString& media,
+                                              const QString& source) {
+            ml->removeSubtitleMatch(media, source);
+        });
     }
 
     /* the Saved streams and Network Playlists of the Network section */

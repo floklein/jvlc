@@ -42,6 +42,7 @@
 #include <medialibrary/IPlaylist.h>
 #include <medialibrary/IBookmark.h>
 #include <medialibrary/IFolder.h>
+#include <medialibrary/IFile.h>
 #include <medialibrary/filesystem/Errors.h>
 
 #include <algorithm>
@@ -682,6 +683,7 @@ int MediaLibrary::Control( int query, va_list args )
         case VLC_ML_MEDIA_REMOVE_BOOKMARK:
         case VLC_ML_MEDIA_REMOVE_ALL_BOOKMARKS:
         case VLC_ML_MEDIA_UPDATE_BOOKMARK:
+        case VLC_ML_MEDIA_REMOVE_EXTERNAL_MRL:
         {
             auto priorityAccess = m_ml->acquirePriorityAccess();
 
@@ -1916,6 +1918,25 @@ int MediaLibrary::setMeta( medialibrary::IMedia& media,
     return VLC_SUCCESS;
 }
 
+/* whether an external file of this MRL belongs to the media, removed or not */
+static bool findExternalFile( const medialibrary::IMedia& media, const char* mrl )
+{
+    for ( const auto& file : media.files() )
+    {
+        if ( file->isExternal() == false )
+            continue;
+        try
+        {
+            if ( file->mrl() == mrl )
+                return true;
+        }
+        catch ( const medialibrary::fs::errors::DeviceRemoved& )
+        {
+        }
+    }
+    return false;
+}
+
 int MediaLibrary::controlMedia( int query, va_list args )
 {
     auto mediaId = va_arg( args, int64_t );
@@ -1983,9 +2004,30 @@ int MediaLibrary::controlMedia( int query, va_list args )
                 default:
                     vlc_assert_unreachable();
             }
+            /* a removed file is still known: list it again */
+            auto removed = RemovedExternalMrls( *m );
+            auto it = std::find( removed.begin(), removed.end(), mrl );
+            if ( it != removed.end() )
+            {
+                removed.erase( it );
+                return SetRemovedExternalMrls( *m, removed ) ? VLC_SUCCESS : VLC_EGENERIC;
+            }
+            if ( findExternalFile( *m, mrl ) )
+                return VLC_SUCCESS;
             if ( m->addExternalMrl( mrl, mlType ) == nullptr )
                 return VLC_EGENERIC;
             return VLC_SUCCESS;
+        }
+        case VLC_ML_MEDIA_REMOVE_EXTERNAL_MRL:
+        {
+            auto mrl = va_arg( args, const char* );
+            if ( mrl == nullptr || findExternalFile( *m, mrl ) == false )
+                return VLC_EGENERIC;
+            auto removed = RemovedExternalMrls( *m );
+            if ( std::find( removed.begin(), removed.end(), mrl ) != removed.end() )
+                return VLC_EGENERIC;
+            removed.emplace_back( mrl );
+            return SetRemovedExternalMrls( *m, removed ) ? VLC_SUCCESS : VLC_EGENERIC;
         }
         case VLC_ML_MEDIA_SET_TYPE:
         {

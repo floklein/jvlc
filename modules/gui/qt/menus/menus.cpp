@@ -441,7 +441,7 @@ void VLCMenuBar::SubtitleMenu( qt_intf_t *p_intf, QMenu *current )
     addSubmenu( current, qtr( "Subtitle &Track" ), THEMIM->getSubtitleTracks(),
                 QActionGroup::ExclusionPolicy::ExclusiveOptional );
     addEntry( p_intf, current, qtr( "&Add Subtitles..." ), nullptr,
-              []() { THEDP->loadSubtitlesFile(); } );
+              []() { THEDP->addSubtitlesDialog(); } );
     current->addSeparator();
     addEntry( p_intf, current, qtr( "&Show / Hide Subtitles" ), "subtitle-toggle",
               [p_intf]() { triggerAction( p_intf, "subtitle-toggle" ); } );
