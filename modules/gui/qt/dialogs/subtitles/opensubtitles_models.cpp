@@ -168,7 +168,8 @@ QString OpenSubtitlesSource::destinationFor(const QString &mediaMrl) const
     }
     else
     {
-        base = QFileInfo(QUrl(mediaMrl).path()).completeBaseName();
+        /* a stream's URL names the file in the cache folder */
+        base = QFileInfo(safeFileName(QUrl(mediaMrl).path())).completeBaseName();
     }
     if (base.isEmpty())
         base = QStringLiteral("subtitle");

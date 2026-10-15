@@ -148,6 +148,8 @@ public:
     /* the downloads left; POST /download refuses at 0 */
     int remaining = 5;
     int requests = 0;
+    /* the file_name POST /download answers, if not "subtitle-<id>.srt" */
+    QString downloadFileName;
     /* the account of POST /login */
     QString user = QStringLiteral("jane");
     QString password = QStringLiteral("secret");
@@ -367,7 +369,8 @@ private:
             const int id = r.json.value("file_id").toInt();
             return { 200, json({
                 { "link", base() + QStringLiteral("/files/%1.srt").arg(id) },
-                { "file_name", QStringLiteral("subtitle-%1.srt").arg(id) },
+                { "file_name", downloadFileName.isEmpty() ? QStringLiteral("subtitle-%1.srt").arg(id)
+                                                          : downloadFileName },
                 { "requests", requests }, { "remaining", remaining },
                 { "reset_time_utc", QDateTime::currentDateTimeUtc().addDays(1).toString(Qt::ISODate) },
             }) };
@@ -641,6 +644,46 @@ private slots:
         QCOMPARE(model.quotaText(), QStringLiteral("4 of 5 downloads left today"));
     }
 
+    void testSaveKeepsASubtitleExtension_data()
+    {
+        QTest::addColumn<QString>("fileName");
+        QTest::addColumn<QString>("saved");
+        QTest::newRow("executable") << "evil.exe" << "movie.fr.srt";
+        QTest::newRow("shortcut") << "evil.srt.lnk" << "movie.fr.srt";
+        QTest::newRow("path") << "../../evil.bat" << "movie.fr.srt";
+        QTest::newRow("no extension") << "evil" << "movie.fr.srt";
+        QTest::newRow("upper case") << "Movie.VTT" << "movie.fr.vtt";
+    }
+
+    void testSaveKeepsASubtitleExtension()
+    {
+        QFETCH(QString, fileName);
+        QFETCH(QString, saved);
+        const QString video = writeVideo("Show/movie.mkv");
+        m_api->downloadFileName = fileName;
+        m_api->subtitles = [](const MockApi::Request &) {
+            return QJsonArray{ MockApi::result(5, "movie", "fr", 1, true) };
+        };
+
+        auto client = makeClient();
+        OpenSubtitlesModel model(m_env->intf, m_medialib.get(), client.get(), toMrl(video));
+        model.search();
+        QTRY_COMPARE(model.count(), 1);
+        model.toggle(0);
+        QSignalSpy savedSpy(&model, &OpenSubtitlesModel::saved);
+        model.save();
+        QTRY_COMPARE(savedSpy.count(), 1);
+
+        const QString subtitle = toMrl(m_dir->filePath("Show/" + saved));
+        QTRY_COMPARE(savedMatches(toMrl(video)), QStringList({ subtitle }));
+        QVERIFY(fileContent(subtitle).contains("subtitle 5"));
+        /* nothing else was written, here or above */
+        QStringList files{ "movie.mkv", saved };
+        files.sort();
+        QCOMPARE(QDir(m_dir->filePath("Show")).entryList(QDir::Files, QDir::Name), files);
+        QCOMPARE(QDir(m_dir->path()).entryList({ "evil*", "movie*" }, QDir::Files), QStringList());
+    }
+
     void testSaveForAStreamGoesToTheCacheAndShows()
     {
         const QString media = "stubtracks://1";
@@ -892,6 +935,66 @@ private slots:
         QTRY_COMPARE(savedMatches(toMrl(video)), QStringList({ copied }));
         QVERIFY(fileContent(copied).contains("first"));
         QVERIFY(!QFile::exists(m_dir->filePath("Show/Show S01E02.srt")));
+    }
+
+    void testSafeFileNames_data()
+    {
+        QTest::addColumn<QString>("name");
+        QTest::addColumn<QString>("safe");
+        QTest::newRow("plain") << "Show S01E01.srt" << "Show S01E01.srt";
+        QTest::newRow("up") << "../x.srt" << "x.srt";
+        QTest::newRow("up, backslash") << "..\\..\\x.srt" << "x.srt";
+        QTest::newRow("absolute") << "/etc/x.srt" << "x.srt";
+        QTest::newRow("drive") << "C:\\Windows\\x.srt" << "x.srt";
+        QTest::newRow("stream") << "x.srt:evil.exe" << "x.srt_evil.exe";
+        QTest::newRow("dots") << ".." << "";
+        QTest::newRow("folder") << "subs/" << "";
+    }
+
+    void testSafeFileNames()
+    {
+        QFETCH(QString, name);
+        QFETCH(QString, safe);
+        QCOMPARE(safeFileName(name), safe);
+    }
+
+    void testFromLinkKeepsZipEntriesInTheFolder()
+    {
+        const QString video = writeVideo("Show/movie.mkv");
+        m_api->links.insert("evil.zip", makeZip({
+            { "../escaped.srt", srt("escaped") },
+            { "..\\back.srt", srt("back") },
+            { "run.exe", "MZ" },
+            { "movie.srt.lnk", "shortcut" },
+            { "movie.srt", srt("fine") },
+        }));
+
+        AddSubtitlesModel model(m_env->intf, m_medialib.get(), toMrl(video));
+        model.addLink(m_api->base() + "/links/evil.zip");
+        QTRY_VERIFY(!model.fetching());
+        QCOMPARE(model.linkError(), QString());
+
+        /* entries that lead up are flattened (or dropped by the archive
+         * reader); the others aren't subtitles */
+        const QStringList listed = names(model, AddSubtitlesModel::NameRole);
+        QVERIFY(listed.contains("movie.srt"));
+        for (const QString &name : listed)
+            QVERIFY2(name == "movie.srt" || name == "escaped.srt" || name == "back.srt",
+                     qPrintable(name));
+
+        for (int i = 0; i < model.rowCount(); ++i)
+            if (!model.data(model.index(i), AddSubtitlesModel::CheckedRole).toBool())
+                model.toggle(i);
+        model.save();
+        QStringList expected;
+        for (const QString &name : listed)
+            expected.push_back(toMrl(m_dir->filePath("Show/" + name)));
+        expected.sort();
+        QTRY_COMPARE([&] { QStringList s = savedMatches(toMrl(video)); s.sort(); return s; }(), expected);
+
+        /* nothing landed above the video's folder, nor a non-subtitle */
+        QCOMPARE(QDir(m_dir->path()).entryList({ "*.srt", "*.exe", "*.lnk" }, QDir::Files), QStringList());
+        QCOMPARE(QDir(m_dir->filePath("Show")).entryList({ "*.exe", "*.lnk" }, QDir::Files), QStringList());
     }
 
 private:

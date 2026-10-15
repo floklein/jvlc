@@ -42,6 +42,25 @@ class QTemporaryDir;
 void attachSubtitles(qt_intf_t *intf, MediaLib *ml, const QString &mediaMrl,
                      const QStringList &subtitleMrls);
 
+/* Names from a server, a link or an archive decide where a download is
+ * saved (From Link… and OpenSubtitles): these keep it a subtitle file inside
+ * the chosen folder. */
+namespace opensubtitles {
+
+/* the extensions a downloaded subtitle may be saved with, lower case */
+bool isDownloadExtension(const QString &suffix);
+
+/* the extension to save a download named so with: its suffix in lower case
+ * if it's a subtitle one, else "srt" ("evil.exe" gives "srt") */
+QString downloadSuffix(const QString &fileName);
+
+/* the last path component of a name, without the characters a file name
+ * can't hold on Windows; empty if nothing is left ("../x.srt" gives
+ * "x.srt", ".." gives "") */
+QString safeFileName(const QString &name);
+
+} // namespace opensubtitles
+
 /**
  * Add Subtitles, To This File, From Computer: the subtitle files next to the
  * video and in its "Subs" folder, plus the files picked with Browse…, to

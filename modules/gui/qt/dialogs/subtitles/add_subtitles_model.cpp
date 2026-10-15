@@ -127,9 +127,11 @@ QVector<QPair<QString, QString>> listArchive(vlc_object_t* obj, const QString& a
             for (int i = 0; i < parent->i_children; ++i)
             {
                 input_item_node_t* child = parent->pp_children[i];
-                const QString name = qfu(child->p_item->psz_name);
-                if (subtitleExtensions().contains(QFileInfo(name).suffix().toLower()))
-                    files.push_back({ QFileInfo(name).fileName(), qfu(child->p_item->psz_uri) });
+                /* an entry's name can't lead out of the folder, nor be
+                 * anything but a subtitle */
+                const QString name = opensubtitles::safeFileName(qfu(child->p_item->psz_name));
+                if (opensubtitles::isDownloadExtension(QFileInfo(name).suffix().toLower()))
+                    files.push_back({ name, qfu(child->p_item->psz_uri) });
                 collect(child);
             }
         };
@@ -332,7 +334,7 @@ void AddSubtitlesModel::addLink(const QString& link)
         return;
     }
 
-    const QString name = url.fileName();
+    const QString name = opensubtitles::safeFileName(url.fileName());
     const QString suffix = QFileInfo(name).suffix().toLower();
     const bool zip = suffix == QLatin1String("zip");
     if (!zip && !linkExtensions().contains(suffix))
@@ -409,11 +411,16 @@ QString AddSubtitlesModel::copyFetched(const Row& row)
     if (folder.isEmpty() || !QDir().mkpath(folder))
         return {};
 
-    const QFileInfo info(row.name);
-    QString path = QDir(folder).filePath(info.fileName());
+    /* the name comes from a link or an archive: kept a subtitle file, in
+     * the folder */
+    const QString name = opensubtitles::safeFileName(row.name);
+    QString base = QFileInfo(name).completeBaseName();
+    if (base.isEmpty())
+        base = QStringLiteral("subtitle");
+    const QString suffix = opensubtitles::downloadSuffix(name);
+    QString path = QDir(folder).filePath(base + QLatin1Char('.') + suffix);
     for (int i = 2; QFileInfo::exists(path); ++i)
-        path = QDir(folder).filePath(QStringLiteral("%1 (%2).%3")
-                                         .arg(info.completeBaseName()).arg(i).arg(info.suffix()));
+        path = QDir(folder).filePath(QStringLiteral("%1 (%2).%3").arg(base).arg(i).arg(suffix));
 
     /* through a stream: the file may be inside a .zip */
     stream_t* stream = vlc_stream_NewMRL(m_intf, qtu(row.mrl));
@@ -449,6 +456,39 @@ void AddSubtitlesModel::save()
     }
     attachSubtitles(m_intf, m_ml, m_media, chosen);
 }
+
+namespace opensubtitles {
+
+bool isDownloadExtension(const QString& suffix)
+{
+    static const QStringList extensions = {
+        QStringLiteral("srt"), QStringLiteral("vtt"), QStringLiteral("ass"), QStringLiteral("ssa"),
+        QStringLiteral("sub"), QStringLiteral("smi"), QStringLiteral("idx"),
+    };
+    return extensions.contains(suffix);
+}
+
+QString downloadSuffix(const QString& fileName)
+{
+    const QString suffix = QFileInfo(safeFileName(fileName)).suffix().toLower();
+    return isDownloadExtension(suffix) ? suffix : QStringLiteral("srt");
+}
+
+QString safeFileName(const QString& name)
+{
+    const qsizetype slash = std::max(name.lastIndexOf(QLatin1Char('/')),
+                                     name.lastIndexOf(QLatin1Char('\\')));
+    QString leaf = name.mid(slash + 1);
+    for (QChar& c : leaf)
+        if (c.unicode() < 0x20 || QStringView(u"<>:\"|?*").contains(c))
+            c = QLatin1Char('_');
+    /* Windows drops trailing dots and spaces: ".." would be left */
+    while (leaf.endsWith(QLatin1Char('.')) || leaf.endsWith(QLatin1Char(' ')))
+        leaf.chop(1);
+    return leaf.trimmed();
+}
+
+} // namespace opensubtitles
 
 void attachSubtitles(qt_intf_t* intf, MediaLib* ml, const QString& mediaMrl,
                      const QStringList& chosen)

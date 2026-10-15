@@ -16,6 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 #include "opensubtitles.hpp"
+#include "add_subtitles_model.hpp"
 #include "http_request.hpp"
 
 /* OPENSUBTITLES_API_KEY and OPENSUBTITLES_API_URL, from the build options */
@@ -674,11 +675,10 @@ void Client::download(const QString &fileId, const QString &destination, Downloa
                 error = qtr("The subtitle couldn't be downloaded.");
             else
             {
-                /* the extension of the subtitle, a name not taken yet */
+                /* the extension of the subtitle, a name not taken yet; the
+                 * server's name can't make it anything but a subtitle */
                 const QFileInfo target(destination);
-                QString suffix = QFileInfo(json.value(QStringLiteral("file_name")).toString()).suffix();
-                if (suffix.isEmpty())
-                    suffix = QStringLiteral("srt");
+                const QString suffix = downloadSuffix(json.value(QStringLiteral("file_name")).toString());
                 const QString base = target.dir().filePath(target.completeBaseName());
                 path = base + QLatin1Char('.') + suffix;
                 for (int i = 2; QFileInfo::exists(path); ++i)
