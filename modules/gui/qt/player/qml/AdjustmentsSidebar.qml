@@ -50,6 +50,14 @@ T.Pane {
         tabBar.itemAt(root.fsm.tabs.indexOf(root.fsm.currentTab))?.forceActiveFocus(Qt.TabFocusReason)
     }
 
+    // every tab back to its defaults, except the default languages
+    function resetAll() {
+        Player.videoAdjustments.resetAll()
+        Player.audioAdjustments.resetAll()
+        if (Player.rate !== 1)
+            Player.rate = 1
+    }
+
     function _tabInfo(tab) {
         switch (tab) {
         case RightPanelFSM.Playback:
@@ -127,6 +135,8 @@ T.Pane {
                     return playbackTab
                 case RightPanelFSM.Video:
                     return videoTab
+                case RightPanelFSM.Audio:
+                    return audioTab
                 default:
                     return pendingTab
                 }
@@ -150,8 +160,17 @@ T.Pane {
                 }
             }
 
-            // The Audio and Subtitles tabs are built by later tickets (#51,
-            // #53): until then they open the old dialog
+            Component {
+                id: audioTab
+
+                AdjustmentsAudioTab {
+                    Navigation.parentItem: root
+                    Navigation.upItem: tabBar.itemAt(root.fsm.tabs.indexOf(root.fsm.currentTab))
+                }
+            }
+
+            // The Subtitles tab is built by a later ticket (#53): until then
+            // it opens the old dialog
             Component {
                 id: pendingTab
 
@@ -197,6 +216,28 @@ T.Pane {
                         }
                     }
                 }
+            }
+        }
+
+        // Figma "Frame 68": the footer (the Preset selector comes with #56)
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: resetAllButton.implicitHeight + 2 * VLCStyle.spacing_10
+
+            color: theme.bg.secondary
+            radius: VLCStyle.radius_xxsmall
+
+            Widgets.TextToolButton {
+                id: resetAllButton
+
+                anchors.centerIn: parent
+
+                text: qsTr("Reset All Adjustments")
+
+                onClicked: root.resetAll()
+
+                Navigation.parentItem: root
+                Navigation.upItem: tabContent.item
             }
         }
     }

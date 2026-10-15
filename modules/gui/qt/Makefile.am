@@ -287,6 +287,8 @@ libqt_plugin_la_SOURCES = \
 	player/input_models.cpp player/input_models.hpp \
 	player/delay_estimator.cpp \
 	player/delay_estimator.hpp \
+	player/audio_adjustments.cpp player/audio_adjustments.hpp \
+	player/equalizer_curve.cpp player/equalizer_curve.hpp \
 	player/seek_thumbnailer.cpp player/seek_thumbnailer.hpp \
 	player/shortcut_message.cpp player/shortcut_message.hpp \
 	player/player_controller.cpp player/player_controller.hpp player/player_controller_p.hpp \
@@ -504,6 +506,8 @@ nodist_libqt_plugin_la_SOURCES = \
 	style/systempalette.moc.cpp \
 	style/vlcicons.moc.cpp \
 	player/delay_estimator.moc.cpp \
+	player/audio_adjustments.moc.cpp \
+	player/equalizer_curve.moc.cpp \
 	player/input_models.moc.cpp \
 	player/seek_thumbnailer.moc.cpp \
 	player/shortcut_message.moc.cpp \
@@ -1195,6 +1199,7 @@ libqml_module_player_a_QML = \
 	player/qml/TopBar.qml \
 	player/qml/TrackMenu.qml \
 	player/qml/AdjustmentsSidebar.qml \
+	player/qml/AdjustmentsAudioTab.qml \
 	player/qml/AdjustmentsPlaybackTab.qml \
 	player/qml/AdjustmentsVideoTab.qml \
 	player/qml/StatisticsOverlay.qml \
@@ -2372,6 +2377,25 @@ test_video_tab_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_video_tab_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_video_tab
 TESTS += test_video_tab
+
+# test_audio_tab
+
+test_audio_tab_SOURCES = \
+	tests/test_audio_tab.cpp \
+	player/audio_adjustments.cpp player/audio_adjustments.hpp
+
+nodist_test_audio_tab_SOURCES = \
+	tests/test_audio_tab.moc \
+	player/audio_adjustments.moc.cpp
+
+BUILT_SOURCES += tests/test_audio_tab.moc
+CLEANFILES += tests/test_audio_tab.moc
+test_audio_tab_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_audio_tab_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_audio_tab_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_audio_tab_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_audio_tab
+TESTS += test_audio_tab
 
 # test_shortcut_message
 

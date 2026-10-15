@@ -29,6 +29,7 @@
 #include "player/playback_statistics.hpp"
 #include "player/video_adjustments.hpp"
 #include "player/player_video_outputs.hpp"
+#include "player/audio_adjustments.hpp"
 
 #include <vlc_actions.h>           /* ACTION_ID */
 #include <vlc_url.h>            /* vlc_uri_decode */
@@ -1329,6 +1330,9 @@ PlayerController::PlayerController( qt_intf_t *_p_intf )
     connect( this, &PlayerController::inputChanged,
              d_ptr->m_statistics, &PlaybackStatistics::reset );
 
+    // The Audio tab
+    d_ptr->m_audioAdjustments = new AudioAdjustments( d_ptr->m_player, this );
+
     // The sleep timer: it pauses after a duration; at the end of an item,
     // the player pauses by itself on the last frame
     d_ptr->m_sleepTimer = new SleepTimer( this );
@@ -2409,6 +2413,12 @@ PlaybackStatistics* PlayerController::getStatistics()
 {
     Q_D(PlayerController);
     return d->m_statistics;
+}
+
+AudioAdjustments* PlayerController::getAudioAdjustments()
+{
+    Q_D(PlayerController);
+    return d->m_audioAdjustments;
 }
 
 void PlayerController::updateSleepTimerQueue()

@@ -117,6 +117,8 @@ moc_headers = files(
     'style/colorcontext.hpp',
     'player/input_models.hpp',
     'player/delay_estimator.hpp',
+    'player/audio_adjustments.hpp',
+    'player/equalizer_curve.hpp',
     'player/seek_thumbnailer.hpp',
     'player/shortcut_message.hpp',
     'player/player_controller.hpp',
@@ -417,6 +419,10 @@ qt_plugin_sources = files(
     'style/defaultthemeproviders.hpp',
     'player/input_models.cpp',
     'player/delay_estimator.cpp',
+    'player/audio_adjustments.cpp',
+    'player/audio_adjustments.hpp',
+    'player/equalizer_curve.cpp',
+    'player/equalizer_curve.hpp',
     'player/seek_thumbnailer.cpp',
     'player/seek_thumbnailer.hpp',
     'player/shortcut_message.cpp',
@@ -781,6 +787,7 @@ qml_modules += {
        'player/qml/TrackMenu.qml',
        'player/qml/AdjustmentsSidebar.qml',
        'player/qml/AdjustmentsVideoTab.qml',
+       'player/qml/AdjustmentsAudioTab.qml',
        'player/qml/AdjustmentsPlaybackTab.qml',
        'player/qml/StatisticsOverlay.qml',
        'player/qml/TracksMenu.qml',
@@ -1935,6 +1942,28 @@ if qt6_dep.found()
             'link_with': [libvlccore],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_audio_tab',
+            'sources': files(
+                'tests/test_audio_tab.cpp',
+                'player/audio_adjustments.cpp',
+                'player/audio_adjustments.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_audio_tab.cpp'
+            ),
+            'moc_headers': files(
+                'player/audio_adjustments.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep],
+            'module_depends': ['adummy', 'equalizer', 'compressor', 'spatializer',
+                               'stereo_widen', 'scaletempo_pitch']
         }
 
         vlc_tests += {

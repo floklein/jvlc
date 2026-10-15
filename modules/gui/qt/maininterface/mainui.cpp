@@ -39,6 +39,8 @@
 #include "player/waveform_bars.hpp"
 #include "player/sleep_timer.hpp"
 #include "player/playback_statistics.hpp"
+#include "player/audio_adjustments.hpp"
+#include "player/equalizer_curve.hpp"
 #include "player/seek_thumbnailer.hpp"
 #include "player/shortcut_message.hpp"
 
@@ -375,6 +377,8 @@ void MainUI::registerQMLTypes()
         qmlRegisterUncreatableType<SleepTimer>(uri, versionMajor, versionMinor, "SleepTimer", "the sleep timer of the player");
         qmlRegisterUncreatableType<PlaybackStatistics>(uri, versionMajor, versionMinor, "PlaybackStatistics", "the statistics of the current media");
         qmlRegisterType<WaveformBars>(uri, versionMajor, versionMinor, "WaveformBars");
+        qmlRegisterUncreatableType<AudioAdjustments>(uri, versionMajor, versionMinor, "AudioAdjustments", "the Audio tab, see Player.audioAdjustments");
+        qmlRegisterType<EqualizerCurve>(uri, versionMajor, versionMinor, "EqualizerCurve");
         qmlRegisterType<SeekThumbnailer>(uri, versionMajor, versionMinor, "SeekThumbnailer");
         qmlRegisterUncreatableType<VideoAdjustments>(uri, versionMajor, versionMinor, "VideoAdjustments", "the Video tab of the Adjustments sidebar, see Player.videoAdjustments");
         qmlRegisterSingletonInstance<ShortcutMessage>(uri, versionMajor, versionMinor, "ShortcutMessage", m_mainCtx->shortcutMessage());

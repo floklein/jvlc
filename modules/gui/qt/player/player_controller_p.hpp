@@ -203,6 +203,7 @@ public:
     SleepTimer* m_sleepTimer = nullptr;
     VideoAdjustments* m_videoAdjustments = nullptr;
     PlaybackStatistics* m_statistics = nullptr;
+    AudioAdjustments* m_audioAdjustments = nullptr;
 
     // meta
     QString m_title;
