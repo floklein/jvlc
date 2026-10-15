@@ -293,6 +293,53 @@ void MediaLib::reload()
     });
 }
 
+void MediaLib::setMediaWatched(const QVariantList& itemIdList, bool watched)
+{
+    std::vector<int64_t> ids;
+    for (const QVariant& id : itemIdList)
+        if (id.canConvert<MLItemId>() && id.value<MLItemId>().type == VLC_ML_PARENT_UNKNOWN)
+            ids.push_back(id.value<MLItemId>().id);
+    if (ids.empty())
+        return;
+
+    runOnMLThread(this,
+    //ML thread
+    [ids, watched](vlc_medialibrary_t* ml){
+        for (int64_t id : ids)
+        {
+            ml_unique_ptr<vlc_ml_media_t> media{ vlc_ml_get_media(ml, id) };
+            if (!media)
+                continue;
+            const bool isWatched = media->i_playcount > 0 && media->f_progress <= 0.f;
+            const bool inProgress = media->f_progress > 0.f;
+            if (watched && inProgress)
+                // played to its end: the progress goes too
+                vlc_ml_media_update_progress(ml, id, 1.0);
+            else if (watched && !isWatched)
+                vlc_ml_media_set_played(ml, id, true);
+            else if (!watched && (isWatched || inProgress))
+                vlc_ml_media_set_played(ml, id, false);
+        }
+    });
+}
+
+void MediaLib::setMediaFavorite(const QVariantList& itemIdList, bool favorite)
+{
+    std::vector<int64_t> ids;
+    for (const QVariant& id : itemIdList)
+        if (id.canConvert<MLItemId>() && id.value<MLItemId>().type == VLC_ML_PARENT_UNKNOWN)
+            ids.push_back(id.value<MLItemId>().id);
+    if (ids.empty())
+        return;
+
+    runOnMLThread(this,
+    //ML thread
+    [ids, favorite](vlc_medialibrary_t* ml){
+        for (int64_t id : ids)
+            vlc_ml_media_set_favorite(ml, id, favorite);
+    });
+}
+
 void MediaLib::addSubtitleMatches(const QString& mediaMrl, const QStringList& subtitleMrls)
 {
     if (mediaMrl.isEmpty() || subtitleMrls.isEmpty())
@@ -316,6 +363,26 @@ void MediaLib::addSubtitleMatches(const QString& mediaMrl, const QStringList& su
         emit subtitleMatchesChanged(mediaMrl);
     },
     "subtitle-matches");
+}
+
+void MediaLib::addAudioTracks(const QString& mediaMrl, const QStringList& audioMrls)
+{
+    if (mediaMrl.isEmpty() || audioMrls.isEmpty())
+        return;
+
+    runOnMLThread(this,
+    //ML thread
+    [media = mediaMrl.toStdString(), audios = audioMrls](vlc_medialibrary_t* ml){
+        /* a file outside the library gets a library entry */
+        ml_unique_ptr<vlc_ml_media_t> entry{ vlc_ml_get_media_by_mrl(ml, media.c_str()) };
+        if (!entry)
+            entry.reset(vlc_ml_new_external_media(ml, media.c_str()));
+        if (!entry)
+            return;
+        for (const QString& audio : audios)
+            vlc_ml_media_add_external_mrl(ml, entry->i_id, qtu(audio),
+                                          VLC_ML_FILE_TYPE_SOUNDTRACK);
+    });
 }
 
 void MediaLib::removeSubtitleMatch(const QString& mediaMrl, const QString& subtitleMrl)

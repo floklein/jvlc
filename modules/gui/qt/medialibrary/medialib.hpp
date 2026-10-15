@@ -68,11 +68,20 @@ public:
 
     Q_INVOKABLE void reload();
 
+    // Mark as Watched / Unwatched of the file menu: a watched media isn't
+    // played once more, unwatching one also forgets its progress
+    Q_INVOKABLE void setMediaWatched(const QVariantList &itemIdList, bool watched);
+    // Favorite of the file menu, for the views whose model can't do it
+    Q_INVOKABLE void setMediaFavorite(const QVariantList &itemIdList, bool favorite);
+
     // Subtitle matches: external subtitle files remembered for a media and
     // attached whenever it plays. The MRLs are those VLC plays.
     Q_INVOKABLE void addSubtitleMatches(const QString& mediaMrl, const QStringList& subtitleMrls);
     // forget a match, the file is kept
     Q_INVOKABLE void removeSubtitleMatch(const QString& mediaMrl, const QString& subtitleMrl);
+    // Add Audio Track: external audio files remembered for a media and
+    // attached whenever it plays
+    Q_INVOKABLE void addAudioTracks(const QString& mediaMrl, const QStringList& audioMrls);
 
     Q_INVOKABLE void mlInputItem(const QVector<MLItemId>& itemIdVector, QJSValue callback);
 

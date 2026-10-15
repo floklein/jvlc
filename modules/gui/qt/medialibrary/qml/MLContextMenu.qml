@@ -21,10 +21,21 @@ import QtQml
 import VLC.MainInterface
 import VLC.MediaLibrary
 import VLC.Dialogs
+import VLC.Player
 
 import VLC.Util
 
-// @brief - a generic ML context menu
+// @brief - the menu of the items of the library:
+// - a folder (of Videos, Songs or Home's Frequently Visited Folders) gets the
+//   folder menu: Play, Shuffle, Add to Queue, Play next, Preset ▸, Pin to
+//   Sidebar, Mark as Watched / Unwatched, Add Subtitles to This Folder…,
+//   Show in File Explorer, Properties, then Remove from Library (a folder the
+//   user added) or Exclude from Library (a subfolder);
+// - files get the file menu: Play, Play next, Add to Queue, Add to Playlist ▸,
+//   Mark as Watched / Unwatched, Favorite, Add Subtitle Tracks…, Add Audio
+//   Track…, Stream & Cast…, Convert…, Show in File Explorer, Go to Source,
+//   Properties & Metadata, then Remove from Recent / Playlist where it applies;
+// - other items (albums, artists, genres...) get the group actions.
 NativeMenu {
     id: root
 
@@ -35,6 +46,7 @@ NativeMenu {
     property string idDataRole: "id"
     property string albumIdDataRole: "album_id"
 
+    // applies to the albums, artists and genres, not to files
     property bool showPlayAsAudioAction: false
 
     // This is only applicable when the model is `MLAudioModel`:
@@ -53,37 +65,29 @@ NativeMenu {
 
     // Settings
 
-    actions: [{
+    actions: [
+        // the folder menu
+        {
             "text": qsTr("Play"),
-            "action": addAndPlay
+            "action": (dataList) => FolderActions.play(_folderId(dataList), _folderType()),
+            "visible": _isFolder
         }, {
-            "text": qsTr("Play as audio"),
-            "action": playAsAudio,
-            "visible": root.showPlayAsAudioAction
-        }, {
-            "text": qsTr("Play as album"),
-            "action": playAsAlbum,
-            "visible": root.showPlayAsAlbumAction &&
-                       (root.model instanceof MLAudioModel)
-        }, {
-            "text": qsTr("Play next"),
-            "action": playNext
+            "text": qsTr("Shuffle"),
+            "action": (dataList) => FolderActions.shuffle(_folderId(dataList), _folderType()),
+            "visible": _isFolder
         }, {
             "text": qsTr("Add to Queue"),
-            "action": enqueue
+            "action": (dataList) => FolderActions.addToQueue(_folderId(dataList), _folderType()),
+            "visible": _isFolder
         }, {
-            "text": qsTr("Add album to Queue"),
-            "action": enqueueAsAlbum,
-            "visible": root.showPlayAsAlbumAction &&
-                       (root.model instanceof MLAudioModel)
+            "text": qsTr("Play next"),
+            "action": (dataList) => FolderActions.playNext(_folderId(dataList), _folderType()),
+            "visible": _isFolder
         }, {
-            "text": qsTr("Favorite"),
-            "action": addFavorite,
-            "visible": _showAddFavorite
-        }, {
-            "text": qsTr("Remove from Favorites"),
-            "action": removeFavorite,
-            "visible": _showRemoveFavorite
+            "text": qsTr("Preset"),
+            "children": presetItems,
+            "visible": (dataList) => _isFolder(dataList) && _folderPath(dataList) !== ""
+                                     && _folderType() !== FolderActions.Songs
         }, {
             "text": qsTr("Pin to Sidebar"),
             "action": pinFolder,
@@ -93,61 +97,185 @@ NativeMenu {
             "action": unpinFolder,
             "visible": _showUnpinFolder
         }, {
-            "text": qsTr("Add to Playlist"),
-            "children": addToPlaylistItems
+            "text": qsTr("Mark as Watched"),
+            "action": (dataList) => FolderActions.setWatched(_folderId(dataList), _folderType(), true),
+            "visible": (dataList) => _canMarkFolder(dataList) && dataList[0].folder.unwatched > 0
         }, {
-            "text": qsTr("Add Subtitle Tracks…"),
-            "action": addSubtitles,
-            "visible": _showAddSubtitles
+            "text": qsTr("Mark as Unwatched"),
+            "action": (dataList) => FolderActions.setWatched(_folderId(dataList), _folderType(), false),
+            "visible": (dataList) => _canMarkFolder(dataList) && dataList[0].folder.unwatched === 0
         }, {
             "text": qsTr("Add Subtitles to This Folder…"),
-            "action": addFolderSubtitles,
-            "visible": _showAddFolderSubtitles
+            "action": (dataList) => DialogsProvider.addFolderSubtitlesDialog(_folderMrl(dataList)),
+            "visible": (dataList) => _isFolder(dataList) && _folderPath(dataList) !== ""
+                                     && _folderType() !== FolderActions.Songs
         }, {
-            "text": qsTr("Mark as seen"),
-            "action": markSeen,
-            "visible": _showSeen
+            "separator": true,
+            "visible": _isFolder
         }, {
-            "text": qsTr("Mark as unseen"),
-            "action": markUnseen,
-            "visible": _showUnseen
+            "text": _showInFileManagerText,
+            "action": (dataList) => Qt.openUrlExternally(_folderMrl(dataList)),
+            "visible": (dataList) => _isFolder(dataList) && _folderPath(dataList) !== ""
+        }, {
+            "text": qsTr("Properties"),
+            "action": (dataList) => FolderActions.showProperties(_folderId(dataList), _folderType()),
+            "visible": _isFolder
+        }, {
+            "separator": true,
+            "visible": _isFolder
+        }, {
+            "text": qsTr("Remove from Library"),
+            "action": (dataList) => FolderActions.requestRemoval(dataList[0].folder),
+            "visible": (dataList) => _isFolder(dataList) && dataList[0].folder?.added === true
+        }, {
+            "text": qsTr("Exclude from Library"),
+            "action": (dataList) => FolderActions.requestRemoval(dataList[0].folder),
+            "visible": (dataList) => _isFolder(dataList) && dataList[0].folder?.added === false
+        },
+
+        // the file menu
+        {
+            "text": qsTr("Play"),
+            "action": addAndPlay,
+            "visible": _isFiles
+        }, {
+            "text": qsTr("Play next"),
+            "action": playNext,
+            "visible": _isFiles
+        }, {
+            "text": qsTr("Add to Queue"),
+            "action": enqueue,
+            "visible": _isFiles
+        }, {
+            "text": qsTr("Add to Playlist"),
+            "children": addToPlaylistItems,
+            "visible": _isFiles
+        }, {
+            "text": qsTr("Mark as Watched"),
+            "action": (dataList) => MediaLib.setMediaWatched(_mlIDList(dataList), true),
+            "visible": (dataList) => _areVideos(dataList) && !dataList.every(_isWatched)
+        }, {
+            "text": qsTr("Mark as Unwatched"),
+            "action": (dataList) => MediaLib.setMediaWatched(_mlIDList(dataList), false),
+            "visible": (dataList) => _areVideos(dataList) && dataList.every(_isWatched)
+        }, {
+            "text": qsTr("Favorite"),
+            "action": addFavorite,
+            "visible": (dataList) => _isFiles(dataList) && _checkRole(dataList, "isFavorite", false)
+        }, {
+            "text": qsTr("Remove from Favorites"),
+            "action": removeFavorite,
+            "visible": (dataList) => _isFiles(dataList) && _checkRole(dataList, "isFavorite", true)
+        }, {
+            "text": qsTr("Add Subtitle Tracks…"),
+            "action": (dataList) => DialogsProvider.addSubtitlesDialog(dataList[0].mrl),
+            "visible": _isLocalVideo
+        }, {
+            "text": qsTr("Add Audio Track…"),
+            "action": (dataList) => DialogsProvider.addAudioTrackDialog(dataList[0].mrl),
+            "visible": _isLocalVideo
+        }, {
+            "text": qsTr("Stream & Cast…"),
+            "action": (dataList) => DialogsProvider.streamAndCastMediaDialog(dataList[0].mrl, dataList[0].title),
+            "visible": (dataList) => _isFiles(dataList) && dataList.length === 1
+        }, {
+            "text": qsTr("Convert…"),
+            "action": (dataList) => DialogsProvider.convertDialog(dataList.map((data) => data.mrl)),
+            "visible": _isFiles
+        }, {
+            "separator": true,
+            "visible": _isFiles
+        }, {
+            "text": _showInFileManagerText,
+            "action": (dataList) => Qt.openUrlExternally(_parentUrl(dataList[0].mrl)),
+            "visible": _isLocalFile
+        }, {
+            "text": qsTr("Go to Source"),
+            "action": goToSource,
+            "visible": (dataList) => _isLocalFile(dataList) && !_isFolderTree()
+        }, {
+            "text": qsTr("Properties & Metadata"),
+            "action": (dataList) => DialogsProvider.mediaInfoDialog(dataList[0][idDataRole]),
+            "visible": (dataList) => _isFiles(dataList) && dataList.length === 1
+                                     && !(dataList[0][idDataRole].hasParent())
+        }, {
+            "separator": true,
+            "visible": _isFiles
         }, {
             "text": qsTr("Remove from Recent"),
             "action": removeFromRecent,
-            "visible": root.model instanceof MLRecentMediaModel
+            "visible": (dataList) => _isFiles(dataList) && root.model instanceof MLRecentMediaModel
         }, {
-            "text": qsTr("Open Containing Folder"),
-            "action": openContainingFolder,
-            "visible": _openContainingFolder
+            "text": qsTr("Remove from Playlist"),
+            "action": (dataList, options, indexes) => root.model.remove(indexes),
+            "visible": (dataList) => _isFiles(dataList) && root.model instanceof MLPlaylistModel
+        },
+
+        // the other items: albums, artists, genres...
+        {
+            "text": qsTr("Play"),
+            "action": addAndPlay,
+            "visible": _isOther
+        }, {
+            "text": qsTr("Play as audio"),
+            "action": playAsAudio,
+            "visible": (dataList) => _isOther(dataList) && root.showPlayAsAudioAction
+        }, {
+            "text": qsTr("Play as album"),
+            "action": playAsAlbum,
+            "visible": (dataList) => _isOther(dataList) && root.showPlayAsAlbumAction
+                                     && (root.model instanceof MLAudioModel)
+        }, {
+            "text": qsTr("Play next"),
+            "action": playNext,
+            "visible": _isOther
+        }, {
+            "text": qsTr("Add to Queue"),
+            "action": enqueue,
+            "visible": _isOther
+        }, {
+            "text": qsTr("Add album to Queue"),
+            "action": enqueueAsAlbum,
+            "visible": (dataList) => _isOther(dataList) && root.showPlayAsAlbumAction
+                                     && (root.model instanceof MLAudioModel)
+        }, {
+            "text": qsTr("Favorite"),
+            "action": addFavorite,
+            "visible": (dataList) => _isOther(dataList) && _checkRole(dataList, "isFavorite", false)
+        }, {
+            "text": qsTr("Remove from Favorites"),
+            "action": removeFavorite,
+            "visible": (dataList) => _isOther(dataList) && _checkRole(dataList, "isFavorite", true)
+        }, {
+            "text": qsTr("Add to Playlist"),
+            "children": addToPlaylistItems,
+            "visible": _isOther
         }, {
             "text": qsTr("Delete"),
             "action": deleteStream,
-            "visible": _deleteStream
+            "visible": (dataList) => _isOther(dataList) && _checkRole(dataList, "isDeletable", true)
         }, {
             "text": qsTr("Information"),
             "action": _signalShowInformation,
-            "visible": showInformationAvailable
-        },{
-            "text": qsTr("Delete File From System"),
-            "action": deleteFileFromSource,
-            "visible": _deleteFileFromSource
-        },{
-            "text": qsTr("Media Information"),
-            "action": function(dataList, options, indexes) {
-                DialogsProvider.mediaInfoDialog(dataList[0][idDataRole])
-            },
-            "visible": function(dataList, options, indexes) {
-                return (dataList.length === 1)
-                        && !(dataList[0][idDataRole].hasParent())
-            }
+            "visible": (dataList, options, indexes) => _isOther(dataList)
+                                                       && showInformationAvailable(dataList, options, indexes)
         }
     ]
 
     // Events
 
+    // a folder's menu also needs its description (what it holds, whether it
+    // was added by the user...), from the media library
     onRequestData: (requestID, indexes) => {
         model.getData(indexes, function (data) {
-            setData(requestID, data)
+            if (data.length !== 1 || !root._rowIsFolder(data[0])) {
+                setData(requestID, data)
+                return
+            }
+
+            FolderActions.describe(data[0][root.idDataRole], root._folderType(), (folder) => {
+                setData(requestID, [Object.assign({}, data[0], { "folder": folder })])
+            })
         })
     }
 
@@ -200,22 +328,47 @@ NativeMenu {
         return items
     }
 
-    // Add Subtitles, To This File
-    function addSubtitles(dataList, options, indexes) {
-        DialogsProvider.addSubtitlesDialog(dataList[0].mrl)
-    }
+    // The folder's "Preset ▸" submenu: Default, the Presets, "+ New Preset…".
+    // The check marks the Preset its files use, its own or a parent's.
+    function presetItems(dataList, options, indexes) {
+        const folder = _folderPath(dataList)
+        const presets = Presets.model
+        const current = presets.presetOf(folder)
 
-    // Add Subtitles, To This Folder
-    function addFolderSubtitles(dataList, options, indexes) {
-        DialogsProvider.addFolderSubtitlesDialog(dataList[0].mrl)
+        const items = [{
+            "text": qsTr("Default"),
+            "checked": current === "",
+            "action": () => {
+                // follow the parent folders again, unless they have a Preset
+                presets.detach(folder)
+                if (presets.presetOf(folder) !== "")
+                    presets.attach(folder, "")
+            }
+        }]
+
+        for (let row = 0; row < presets.count; ++row) {
+            const index = presets.index(row, 0)
+            const id = presets.data(index, PresetsModel.ID)
+            items.push({
+                "text": presets.data(index, PresetsModel.NAME),
+                "checked": id === current,
+                "action": () => presets.attach(folder, id)
+            })
+        }
+
+        items.push({ "separator": true }, {
+            "text": qsTr("+ New Preset…"),
+            "action": () => FolderActions.requestNewPreset(folder, dataList[0].folder.name)
+        })
+        return items
     }
 
     function addFavorite(dataList, options, indexes) {
-        model.setMediaIsFavorite(indexes[0], true)
+        _setFavorite(dataList, indexes, true)
     }
 
     function removeFavorite(dataList, options, indexes) {
-        model.setMediaIsFavorite(indexes[0], false)
+        _setFavorite(dataList, indexes, false)
     }
 
     function pinFolder(dataList, options, indexes) {
@@ -226,36 +379,21 @@ NativeMenu {
         Pins.unpin(Pins.FOLDER, dataList[0][idDataRole].toString())
     }
 
-    function markSeen(dataList, options, indexes) {
-        model.setItemPlayed(indexes[0], true)
-    }
-
-    function markUnseen(dataList, options, indexes) {
-        model.setItemPlayed(indexes[0], false)
-    }
-
     // hides them from Recent, their watched state and progress stay
     function removeFromRecent(dataList, options, indexes) {
         model.removeFromRecent(indexes)
     }
 
-    function openContainingFolder(dataList, options, indexes) {
-        const parentDir = model.getParentURL(indexes[0]);
-
-        Qt.openUrlExternally(parentDir)
+    // opens the file's folder in the library
+    function goToSource(dataList, options, indexes) {
+        _sourceFolder.isVideo = dataList[0].isVideo !== false
+        _sourceFolder.pending = true
+        _sourceFolder.url = dataList[0].mrl
+        _goToSourceWhenFound()
     }
 
     function deleteStream(dataList, options, indexes) {
         model.deleteStream(dataList[0][idDataRole])
-    }
-
-    function deleteFileFromSource(dataList, options, indexes) {
-        let confirm = DialogsProvider.questionDialog(qsTr("Are you sure you want to delete this file?"));
-        
-        if (confirm) {
-            model.deleteFileFromSource(indexes[0]);
-            console.log("File Deleted !!");
-        }
     }
 
     function showInformationAvailable(dataList, options, indexes) {
@@ -264,6 +402,27 @@ NativeMenu {
     }
 
     // Private
+
+    readonly property string _showInFileManagerText: (Qt.platform.os === "windows")
+                                                     ? qsTr("Show in File Explorer")
+                                                     : qsTr("Show in File Manager")
+
+    readonly property MLMediaFolder _sourceFolder: MLMediaFolder {
+        // Go to Source is waiting for the folder
+        property bool pending: false
+        property bool isVideo: true
+
+        ml: MediaLib
+
+        onLoadingChanged: root._goToSourceWhenFound()
+    }
+
+    function _goToSourceWhenFound() {
+        if (!_sourceFolder.pending || _sourceFolder.loading)
+            return
+        _sourceFolder.pending = false
+        LibraryPages.showFolder(_sourceFolder.folderId, _sourceFolder.isVideo, Qt.OtherFocusReason)
+    }
 
     function _checkRole(dataList, role, expected) {
         if (dataList.length !== 1)
@@ -275,18 +434,46 @@ NativeMenu {
         return (dataList[0][role] === expected)
     }
 
-    function _showAddFavorite(dataList, options, indexes) {
-        return _checkRole(dataList, "isFavorite", false)
+    // the type of media of the folders: the videos in Videos, the songs in
+    // Songs
+    function _folderType() {
+        if (root.model instanceof MLMusicFolderTreeModel)
+            return FolderActions.Songs
+        if (root.model instanceof MLFolderTreeModel || root.model instanceof MLVideoFoldersModel)
+            return FolderActions.Videos
+        return FolderActions.AnyMedia
     }
 
-    function _showRemoveFavorite(dataList, options, indexes) {
-        return _checkRole(dataList, "isFavorite", true)
+    // the view is a level of a folder tree, where files are at their source
+    function _isFolderTree() {
+        return root.model instanceof MLFolderTreeModel || root.model instanceof MLMusicFolderTreeModel
     }
 
-    // a folder of the Videos tree or of Home's Frequently Visited Folders
+    // a folder of a tree or of Home's Frequently Visited Folders
+    function _rowIsFolder(data) {
+        return data.isFolder === true || root.model instanceof MLVideoFoldersModel
+    }
+
     function _isFolder(dataList) {
-        return dataList.length === 1
-                && (dataList[0].isFolder === true || root.model instanceof MLVideoFoldersModel)
+        return dataList.length === 1 && _rowIsFolder(dataList[0])
+    }
+
+    function _folderId(dataList) {
+        return dataList[0][idDataRole]
+    }
+
+    function _folderMrl(dataList) {
+        return dataList[0].folder?.mrl ?? dataList[0].mrl ?? ""
+    }
+
+    // the folder on disk, empty if it isn't local
+    function _folderPath(dataList) {
+        return dataList[0].folder?.path ?? ""
+    }
+
+    function _canMarkFolder(dataList) {
+        return _isFolder(dataList) && _folderType() !== FolderActions.Songs
+                && (dataList[0].folder?.media ?? 0) > 0
     }
 
     function _showPinFolder(dataList, options, indexes) {
@@ -297,37 +484,44 @@ NativeMenu {
         return _isFolder(dataList) && Pins.isPinned(Pins.FOLDER, dataList[0][idDataRole].toString())
     }
 
-    function _showSeen(dataList, options, indexes) {
-        return _checkRole(dataList, "isNew", true)
+    // media files: rows with an MRL that aren't folders
+    function _isFiles(dataList) {
+        return dataList.length > 0
+                && dataList.every((data) => !_rowIsFolder(data) && ("mrl" in data) && !!data.mrl)
     }
 
-    function _showUnseen(dataList, options, indexes) {
-        return _checkRole(dataList, "isNew", false)
+    function _isOther(dataList) {
+        return dataList.length > 0 && !_isFolder(dataList) && !_isFiles(dataList)
     }
 
-    // a local video file
-    function _showAddSubtitles(dataList, options, indexes) {
-        return _checkRole(dataList, "isLocal", true)
-                && _checkRole(dataList, "isVideo", true)
-                && !!dataList[0].mrl
+    function _areVideos(dataList) {
+        return _isFiles(dataList) && dataList.every((data) => data.isVideo === true)
     }
 
-    // one folder of the folder tree
-    function _showAddFolderSubtitles(dataList, options, indexes) {
-        return dataList.length === 1 && dataList[0].isFolder === true
-                && !!dataList[0].mrl
+    // played to the end at least once, and not started again
+    function _isWatched(data) {
+        return (data.playcount ?? 0) > 0 && !((data.progress ?? 0) > 0)
     }
 
-    function _openContainingFolder(dataList, options, indexes) {
-        return _checkRole(dataList, "isLocal", true)
+    function _isLocalFile(dataList) {
+        return _isFiles(dataList) && dataList.length === 1 && dataList[0].isLocal === true
     }
 
-    function _deleteStream(dataList,options, indexes) {
-        return _checkRole(dataList, "isDeletable", true)
+    function _isLocalVideo(dataList) {
+        return _isLocalFile(dataList) && dataList[0].isVideo === true
     }
 
-    function _deleteFileFromSource(dataList, options, indexes) {
-        return  _checkRole(dataList, "isDeletableFile", true)
+    // the folder of a file's MRL
+    function _parentUrl(mrl) {
+        return mrl.substring(0, mrl.lastIndexOf("/") + 1)
+    }
+
+    function _setFavorite(dataList, indexes, favorite) {
+        // a media model shows the change at once
+        if (typeof root.model.setMediaIsFavorite === "function")
+            root.model.setMediaIsFavorite(indexes[0], favorite)
+        else
+            MediaLib.setMediaFavorite(_mlIDList(dataList), favorite)
     }
 
     function _signalShowInformation(dataList, options) {

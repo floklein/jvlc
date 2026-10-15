@@ -88,6 +88,14 @@ public:
     bool start(Source source, const Settings &settings);
     Q_INVOKABLE bool start(Source source, Protocol protocol, const QString &address,
                            int port, const QString &profile, bool alsoPlayHere);
+    /** Streams this media only (Stream & Cast opened on a file): it goes
+     *  after the current item of the Queue */
+    bool startMedia(const QString &mrl, const Settings &settings);
+    Q_INVOKABLE bool startMedia(const QString &mrl, Protocol protocol, const QString &address,
+                                int port, const QString &profile, bool alsoPlayHere);
+    /** Plays this media after the current item of the Queue, without a
+     *  stream (casting a file: it plays on the device) */
+    Q_INVOKABLE bool playMedia(const QString &mrl);
     /** Stops the stream and the playback */
     Q_INVOKABLE void stop();
 
@@ -100,6 +108,8 @@ signals:
     void streamingChanged();
 
 private:
+    /* streams the source, or the media of this MRL if not empty */
+    bool startAt(Source source, const QString &mrl, const Settings &settings);
     void onPlayerStateChanged(vlc_player_state state, unsigned generation);
     void onRendererChanged(bool casting);
     /* ends the stream, without touching the playback */

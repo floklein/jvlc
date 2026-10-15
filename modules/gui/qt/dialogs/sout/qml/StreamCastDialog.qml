@@ -37,7 +37,17 @@ WindowDialog {
 
     property int currentTab: DialogsProvider.CAST_TAB
 
+    // opened on a file of the library (its file menu): streaming or casting
+    // plays that file, after the current item of the Queue
+    property string mediaMrl: ""
+    property string mediaName: ""
+
     readonly property var rendererManager: Player.rendererManager
+
+    onVisibleChanged: {
+        if (!visible)
+            mediaMrl = ""
+    }
 
     title: qsTr("Stream & Cast")
 
@@ -260,8 +270,15 @@ WindowDialog {
                                 iconText: VLCIcons.renderer
                                 current: model.selected
 
-                                // moves the playback to the device
-                                onPicked: device.model.selected = true
+                                // moves the playback to the device, or
+                                // plays the file there
+                                onPicked: {
+                                    device.model.selected = true
+                                    if (root.mediaMrl !== "") {
+                                        StreamOutput.playMedia(root.mediaMrl)
+                                        root.mediaMrl = ""
+                                    }
+                                }
                             }
                         }
 
@@ -286,7 +303,9 @@ WindowDialog {
 
                     HintLabel {
                         Layout.fillWidth: true
-                        text: qsTr("Picking a device moves the playback there. A cast button in the Control bar stops casting.")
+                        text: root.mediaMrl !== ""
+                              ? qsTr("Picking a device plays %1 there. A cast button in the Control bar stops casting.").arg(root.mediaName)
+                              : qsTr("Picking a device moves the playback there. A cast button in the Control bar stops casting.")
                     }
                 }
 
@@ -298,10 +317,19 @@ WindowDialog {
 
                     readonly property int protocol: root._protocols[protocolBox.currentIndex].value
                     readonly property bool canStart: StreamOutput.isValid(protocol, addressField.text, portBox.value)
-                                                     && (sourceQueue.checked ? !MainPlaylistController.empty
-                                                                             : Player.isStarted)
+                                                     && (sourceMedia.checked ? root.mediaMrl !== ""
+                                                         : sourceQueue.checked ? !MainPlaylistController.empty
+                                                         : Player.isStarted)
 
                     function start() {
+                        if (sourceMedia.checked) {
+                            if (StreamOutput.startMedia(root.mediaMrl, protocol, addressField.text, portBox.value,
+                                                        profileModel.selectedValue, alsoPlayHere.checked)) {
+                                root.mediaMrl = ""
+                                sourceCurrent.checked = true
+                            }
+                            return
+                        }
                         const source = sourceQueue.checked ? StreamOutput.Queue : StreamOutput.CurrentItem
                         StreamOutput.start(source, protocol, addressField.text, portBox.value,
                                            profileModel.selectedValue, alsoPlayHere.checked)
@@ -317,12 +345,36 @@ WindowDialog {
 
                         ButtonGroup { id: sourceGroup }
 
+                        // opened on another file, or the file was streamed
+                        Connections {
+                            target: root
+
+                            function onMediaMrlChanged() {
+                                if (root.mediaMrl !== "")
+                                    sourceMedia.checked = true
+                                else if (sourceMedia.checked)
+                                    sourceCurrent.checked = true
+                            }
+                        }
+
+                        // the file the dialog was opened on
+                        Widgets.RadioButtonExt {
+                            id: sourceMedia
+
+                            Layout.maximumWidth: VLCStyle.dp(200, VLCStyle.scale)
+
+                            ButtonGroup.group: sourceGroup
+                            text: root.mediaName !== "" ? root.mediaName : qsTr("This file")
+                            visible: root.mediaMrl !== ""
+                            checked: root.mediaMrl !== ""
+                        }
+
                         Widgets.RadioButtonExt {
                             id: sourceCurrent
 
                             ButtonGroup.group: sourceGroup
                             text: qsTr("Current item")
-                            checked: true
+                            checked: root.mediaMrl === ""
                             enabled: Player.isStarted
                         }
 

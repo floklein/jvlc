@@ -21,6 +21,7 @@
 #endif
 
 #include "../medialibrary/mlbasemodel.hpp"
+#include "../medialibrary/mlfolderactions.hpp"
 #include "../medialibrary/mlfoldertreemodel.hpp"
 #include "../medialibrary/mlmediafolder.hpp"
 #include "../medialibrary/mlmusicfoldertreemodel.hpp"
@@ -227,6 +228,9 @@ private slots:
         m_medialib.reset();
         m_env->mlFolders.clear();
         m_env->mlMedia.clear();
+        m_env->mlRemovedFolders.clear();
+        m_env->mlBannedFolders.clear();
+        m_env->mlReloadedFolders.clear();
         resetQueue();
     }
 
@@ -801,7 +805,200 @@ private slots:
         QCOMPARE(currentIndex(), 0);
     }
 
+    // The folder menu
+
+    void testFolderPlayTakesItsSubfoldersInTreeOrder()
+    {
+        setUpShow();
+        PlaylistController controller(m_env->intf->p_playlist);
+        m_queueMedialib = std::make_unique<MediaLib>(m_env->intf, &controller);
+        MLFolderActions actions(m_queueMedialib.get());
+
+        actions.play(MLItemId(1, VLC_ML_PARENT_FOLDER), MLFolderActions::Videos);
+
+        // Extras, S2 and S10 by title, then the show's own videos; no song
+        QTRY_COMPARE(queueNames(), QStringList({"ml:15", "ml:12", "ml:11", "ml:10", "ml:13"}));
+        QCOMPARE(currentIndex(), 0);
+    }
+
+    void testFolderPlayOfASubfolder()
+    {
+        setUpShow();
+        PlaylistController controller(m_env->intf->p_playlist);
+        m_queueMedialib = std::make_unique<MediaLib>(m_env->intf, &controller);
+        MLFolderActions actions(m_queueMedialib.get());
+
+        actions.play(MLItemId(2, VLC_ML_PARENT_FOLDER), MLFolderActions::Videos);
+
+        QTRY_COMPARE(queueNames(), QStringList({"ml:12", "ml:11"}));
+    }
+
+    void testFolderPlayOfSongs()
+    {
+        setUpShow();
+        PlaylistController controller(m_env->intf->p_playlist);
+        m_queueMedialib = std::make_unique<MediaLib>(m_env->intf, &controller);
+        MLFolderActions actions(m_queueMedialib.get());
+
+        actions.play(MLItemId(1, VLC_ML_PARENT_FOLDER), MLFolderActions::Songs);
+
+        QTRY_COMPARE(queueNames(), QStringList({"ml:14"}));
+    }
+
+    void testFolderShuffle()
+    {
+        setUpShow();
+        PlaylistController controller(m_env->intf->p_playlist);
+        m_queueMedialib = std::make_unique<MediaLib>(m_env->intf, &controller);
+        MLFolderActions actions(m_queueMedialib.get());
+        controller.append(QVariantList{QStringLiteral("vlc://pause:600")});
+
+        actions.shuffle(MLItemId(1, VLC_ML_PARENT_FOLDER), MLFolderActions::Videos);
+
+        QTRY_COMPARE(queueNames().size(), 5);
+        QStringList sorted = queueNames();
+        sorted.sort();
+        QCOMPARE(sorted, QStringList({"ml:10", "ml:11", "ml:12", "ml:13", "ml:15"}));
+        // like Play, it replaces the Queue
+        QVERIFY(controller.canUndoReplace());
+    }
+
+    void testFolderAddToQueueAndPlayNext()
+    {
+        setUpShow();
+        PlaylistController controller(m_env->intf->p_playlist);
+        m_queueMedialib = std::make_unique<MediaLib>(m_env->intf, &controller);
+        MLFolderActions actions(m_queueMedialib.get());
+        controller.append(QVariantList{QStringLiteral("vlc://pause:600"), QStringLiteral("vlc://pause:601")});
+        controller.goTo(0);
+
+        actions.addToQueue(MLItemId(2, VLC_ML_PARENT_FOLDER), MLFolderActions::Videos);
+        QTRY_COMPARE(queueNames().size(), 4);
+        QCOMPARE(queueNames().mid(2), QStringList({"ml:12", "ml:11"}));
+
+        actions.playNext(MLItemId(3, VLC_ML_PARENT_FOLDER), MLFolderActions::Videos);
+        QTRY_COMPARE(queueNames().size(), 5);
+        QCOMPARE(queueNames().at(1), QStringLiteral("ml:10"));
+        QCOMPARE(currentIndex(), 0);
+    }
+
+    void testFolderDescription()
+    {
+        setUpShow();
+        MLFolderActions actions(m_medialib.get());
+
+        const QVariantMap show = describe(actions, 1, MLFolderActions::Videos);
+        QCOMPARE(show.value("name").toString(), QStringLiteral("The Wand"));
+        QCOMPARE(show.value("mrl").toString(), QStringLiteral("file:///library/The%20Wand/"));
+        // a folder the user added
+        QCOMPARE(show.value("added").toBool(), true);
+        QCOMPARE(show.value("media").toInt(), 5);
+        QCOMPARE(show.value("folders").toInt(), 3);
+        // S2 E2 was watched, S10 E1 is in progress
+        QCOMPARE(show.value("watched").toInt(), 1);
+        QCOMPARE(show.value("unwatched").toInt(), 4);
+        QCOMPARE(show.value("duration").toLongLong(), 5 * 60000LL);
+
+        const QVariantMap season = describe(actions, 2, MLFolderActions::Videos);
+        QCOMPARE(season.value("name").toString(), QStringLiteral("S2"));
+        QCOMPARE(season.value("added").toBool(), false);
+        QCOMPARE(season.value("media").toInt(), 2);
+        QCOMPARE(season.value("folders").toInt(), 0);
+
+        QCOMPARE(describe(actions, 1, MLFolderActions::Songs).value("media").toInt(), 1);
+    }
+
+    void testFolderMarkWatchedAndUnwatched()
+    {
+        setUpShow();
+        MLFolderActions actions(m_medialib.get());
+
+        actions.setWatched(MLItemId(1, VLC_ML_PARENT_FOLDER), MLFolderActions::Videos, true);
+        QTRY_COMPARE(describe(actions, 1, MLFolderActions::Videos).value("unwatched").toInt(), 0);
+        QCOMPARE(describe(actions, 1, MLFolderActions::Videos).value("watched").toInt(), 5);
+        // the song is left alone
+        QCOMPARE(describe(actions, 1, MLFolderActions::Songs).value("watched").toInt(), 0);
+
+        actions.setWatched(MLItemId(2, VLC_ML_PARENT_FOLDER), MLFolderActions::Videos, false);
+        QTRY_COMPARE(describe(actions, 1, MLFolderActions::Videos).value("unwatched").toInt(), 2);
+    }
+
+    // The file menu
+
+    void testFileMarkWatchedAndUnwatched()
+    {
+        setUpShow();
+        const auto media = [](int64_t id) { return QVariant::fromValue(MLItemId(id, VLC_ML_PARENT_UNKNOWN)); };
+        const auto plays = [this](int64_t id) {
+            for (const auto &m : m_env->mlMedia)
+                if (m.id == id)
+                    return m.playCount;
+            return 0u;
+        };
+
+        // a watched file isn't played once more
+        m_medialib->setMediaWatched({ media(11), media(12) }, true);
+        QTRY_COMPARE(plays(12), 1u);
+        QCOMPARE(plays(11), 1u);
+
+        // a file in progress is watched to its end
+        const auto progress = [this](int64_t id) {
+            for (const auto &m : m_env->mlMedia)
+                if (m.id == id)
+                    return m.progress;
+            return 0.;
+        };
+        m_medialib->setMediaWatched({ media(10) }, true);
+        QTRY_COMPARE(plays(10), 1u);
+        QVERIFY(progress(10) <= 0.);
+
+        m_medialib->setMediaWatched({ media(10), media(12) }, false);
+        QTRY_COMPARE(plays(12), 0u);
+        QTRY_COMPARE(plays(10), 0u);
+    }
+
+    void testRemoveExcludeAndRescanFolders()
+    {
+        setUpShow();
+        MLFolderActions actions(m_medialib.get());
+
+        actions.removeFromLibrary(QStringLiteral("file:///library/The%20Wand/"));
+        actions.excludeFromLibrary(QStringLiteral("file:///library/The%20Wand/Extras/"));
+        actions.rescan(QStringLiteral("file:///library/The%20Wand/S2/"));
+
+        QTRY_COMPARE(m_env->mlRemovedFolders, QStringList({"file:///library/The%20Wand/"}));
+        QTRY_COMPARE(m_env->mlBannedFolders, QStringList({"file:///library/The%20Wand/Extras/"}));
+        QTRY_COMPARE(m_env->mlReloadedFolders, QStringList({"file:///library/The%20Wand/S2/"}));
+    }
+
 private:
+    // a show added to the library, with seasons and extras, a trailer and a
+    // song of its own
+    void setUpShow()
+    {
+        m_env->mlFolders = {
+            {1, 0, "The Wand"}, {2, 1, "S2"}, {3, 1, "S10"}, {4, 1, "Extras"},
+        };
+        m_env->mlMedia = {
+            //id, folder, title, progress, plays, type
+            {10, 3, "The Wand S10E01", 0.5, 0},
+            {11, 2, "The Wand S02E02", -1., 1},
+            {12, 2, "The Wand S02E01"},
+            {13, 1, "Trailer"},
+            {14, 1, "Theme", -1., 0, VLC_ML_MEDIA_TYPE_AUDIO},
+            {15, 4, "Interview"},
+        };
+    }
+
+    QVariantMap describe(MLFolderActions &actions, int64_t folder, MLFolderActions::MediaType type)
+    {
+        std::optional<QVariantMap> result;
+        actions.describe(MLItemId(folder, VLC_ML_PARENT_FOLDER), type,
+                         [&result](const QVariantMap &description) { result = description; });
+        [&] { QVERIFY(QTest::qWaitFor([&]() { return result.has_value(); })); }();
+        return result.value_or(QVariantMap{});
+    }
+
     // an album folder, with a subfolder and tracks added in the order of
     // their ids
     void setUpSongs()

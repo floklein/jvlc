@@ -281,6 +281,18 @@ Item {
                     const dialog = streamCastDialogLoader.item
                     if (tab >= 0)
                         dialog.currentTab = tab
+                    dialog.mediaMrl = ""
+                    dialog.open()
+                    dialog.raise()
+                    dialog.requestActivate()
+                }
+
+                // from a file menu of the library
+                function onShowStreamAndCastMedia(mrl, name) {
+                    streamCastDialogLoader.active = true
+                    const dialog = streamCastDialogLoader.item
+                    dialog.mediaName = name
+                    dialog.mediaMrl = mrl
                     dialog.open()
                     dialog.raise()
                     dialog.requestActivate()
@@ -468,6 +480,17 @@ Item {
 
             active: MainCtx.mediaLibraryAvailable
             source: "qrc:///qt/qml/VLC/MediaLibrary/PlaylistDialogs.qml"
+
+            onLoaded: item.rootWindow = viewLoader
+        }
+
+        // The folder menus' Properties, Remove or Exclude from Library and
+        // New Preset
+        Loader {
+            anchors.fill: parent
+
+            active: MainCtx.mediaLibraryAvailable
+            source: "qrc:///qt/qml/VLC/MediaLibrary/FolderDialogs.qml"
 
             onLoaded: item.rootWindow = viewLoader
         }

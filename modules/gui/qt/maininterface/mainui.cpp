@@ -22,6 +22,7 @@
 #include "medialibrary/mlfoldersmodel.hpp"
 #include "medialibrary/mlfoldertreemodel.hpp"
 #include "medialibrary/mlmediafolder.hpp"
+#include "medialibrary/mlfolderactions.hpp"
 #include "medialibrary/mlmusicfoldertreemodel.hpp"
 #include "medialibrary/mlvideofoldersmodel.hpp"
 #include "medialibrary/mlplaylistlistmodel.hpp"
@@ -558,6 +559,8 @@ void MainUI::registerQMLTypes()
         assert(m_mainCtx->getMediaLibrary());
         qmlRegisterSingletonInstance<MediaLib>(uri, versionMajor, versionMinor, "MediaLib", m_mainCtx->getMediaLibrary());
         qmlRegisterSingletonInstance<MLPlaylistManager>(uri, versionMajor, versionMinor, "PlaylistManager", m_mainCtx->getMediaLibrary()->playlistManager());
+        qmlRegisterSingletonInstance<MLFolderActions>(uri, versionMajor, versionMinor, "FolderActions",
+                                                      new MLFolderActions(m_mainCtx->getMediaLibrary(), this));
 
         qmlRegisterUncreatableType<MLItemId>( uri, versionMajor, versionMinor, "mediaId", "");
         qmlRegisterUncreatableType<MLBaseModel>( uri, versionMajor, versionMinor, "MLBaseModel", "ML Base Model is uncreatable." );
@@ -585,7 +588,6 @@ void MainUI::registerQMLTypes()
         qmlRegisterType<MLRecentMediaModel>( uri, versionMajor, versionMinor, "MLRecentMediaModel" );
 
         qmlRegisterType<PlaylistListContextMenu>( uri, versionMajor, versionMinor, "PlaylistListContextMenu" );
-        qmlRegisterType<PlaylistMediaContextMenu>( uri, versionMajor, versionMinor, "PlaylistMediaContextMenu" );
 
         qmlRegisterModule(uri, versionMajor, versionMinor);
         qmlProtectModule(uri, versionMajor);

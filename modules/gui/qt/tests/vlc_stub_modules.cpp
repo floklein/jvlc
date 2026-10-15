@@ -141,6 +141,8 @@ struct StubMediaLibrary
     int64_t nextExternalId = 1000;
     // external subtitle files of a media (Subtitle matches): id -> mrls
     std::map<int64_t, std::vector<std::string>> subtitles;
+    // external audio files of a media (Add Audio Track): id -> mrls
+    std::map<int64_t, std::vector<std::string>> soundtracks;
     std::vector<VLCTestingEnv::HistoryEntry> history;
     int historyClears = 0;
 };
@@ -180,17 +182,23 @@ void fillMedia(vlc_ml_media_t* out, int64_t id)
     out->p_tracks = static_cast<vlc_ml_media_track_list_t*>(calloc(1, sizeof(vlc_ml_media_track_list_t)));
 }
 
-/* the main file and the external subtitle files of a media */
+/* the main file and the external subtitle and audio files of a media */
 void fillFiles(vlc_ml_media_t* out, int64_t id)
 {
+    static const std::vector<std::string> none;
     auto subtitles = stubML.subtitles.find(id);
-    const size_t count = subtitles == stubML.subtitles.end() ? 0 : subtitles->second.size();
+    const std::vector<std::string>& subtitleMrls =
+        subtitles == stubML.subtitles.end() ? none : subtitles->second;
+    auto soundtracks = stubML.soundtracks.find(id);
+    const std::vector<std::string>& soundtrackMrls =
+        soundtracks == stubML.soundtracks.end() ? none : soundtracks->second;
     auto it = stubML.external.find(id);
     const bool hasMain = it != stubML.external.end();
 
     free(out->p_files);
     out->p_files = static_cast<vlc_ml_file_list_t*>(
-        calloc(1, sizeof(vlc_ml_file_list_t) + (count + 1) * sizeof(vlc_ml_file_t)));
+        calloc(1, sizeof(vlc_ml_file_list_t)
+                  + (subtitleMrls.size() + soundtrackMrls.size() + 1) * sizeof(vlc_ml_file_t)));
     size_t n = 0;
     if (hasMain)
     {
@@ -199,14 +207,18 @@ void fillFiles(vlc_ml_media_t* out, int64_t id)
         file.i_type = VLC_ML_FILE_TYPE_MAIN;
         file.b_present = true;
     }
-    for (size_t i = 0; i < count; ++i)
-    {
-        vlc_ml_file_t& file = out->p_files->p_items[n++];
-        file.psz_mrl = strdup(subtitles->second[i].c_str());
-        file.i_type = VLC_ML_FILE_TYPE_SUBTITLE;
-        file.b_external = true;
-        file.b_present = true;
-    }
+    auto addExternal = [out, &n](const std::vector<std::string>& mrls, vlc_ml_file_type_t type) {
+        for (const std::string& mrl : mrls)
+        {
+            vlc_ml_file_t& file = out->p_files->p_items[n++];
+            file.psz_mrl = strdup(mrl.c_str());
+            file.i_type = type;
+            file.b_external = true;
+            file.b_present = true;
+        }
+    };
+    addExternal(subtitleMrls, VLC_ML_FILE_TYPE_SUBTITLE);
+    addExternal(soundtrackMrls, VLC_ML_FILE_TYPE_SOUNDTRACK);
     out->p_files->i_nb_items = n;
 }
 
@@ -586,7 +598,17 @@ static int MLList( vlc_medialibrary_module_t*, int query,
     {
         if (query == VLC_ML_LIST_MEDIA_OF || query == VLC_ML_COUNT_MEDIA_OF)
         {
-            if (va_arg(args, int) != VLC_ML_PARENT_PLAYLIST)
+            const int parentType = va_arg(args, int);
+            if (parentType == VLC_ML_PARENT_FOLDER)
+            {
+                // the media of every type in the folder itself
+                const int64_t parentId = va_arg(args, int64_t);
+                for (const FakeMedia& item : testenv->mlMedia)
+                    if (item.folderId == parentId)
+                        media.push_back(&item);
+                return outputMedia(query == VLC_ML_LIST_MEDIA_OF, media, args);
+            }
+            if (parentType != VLC_ML_PARENT_PLAYLIST)
                 return VLC_EGENERIC;
         }
         const VLCTestingEnv::Playlist* playlist = findPlaylist(va_arg(args, int64_t));
@@ -803,9 +825,11 @@ static int MLControl( vlc_medialibrary_module_t*, int query, va_list args )
         int64_t id = va_arg(args, int64_t);
         const char* mrl = va_arg(args, const char*);
         int type = va_arg(args, int);
-        if (stubML.external.count(id) == 0 || type != VLC_ML_FILE_TYPE_SUBTITLE)
+        if (stubML.external.count(id) == 0
+         || (type != VLC_ML_FILE_TYPE_SUBTITLE && type != VLC_ML_FILE_TYPE_SOUNDTRACK))
             return VLC_EGENERIC;
-        std::vector<std::string>& files = stubML.subtitles[id];
+        std::vector<std::string>& files = type == VLC_ML_FILE_TYPE_SUBTITLE
+                                        ? stubML.subtitles[id] : stubML.soundtracks[id];
         if (std::find(files.begin(), files.end(), mrl) == files.end())
             files.push_back(mrl);
         return VLC_SUCCESS;
@@ -814,11 +838,68 @@ static int MLControl( vlc_medialibrary_module_t*, int query, va_list args )
     {
         int64_t id = va_arg(args, int64_t);
         const char* mrl = va_arg(args, const char*);
-        std::vector<std::string>& files = stubML.subtitles[id];
-        auto it = std::find(files.begin(), files.end(), mrl);
-        if (it == files.end())
-            return VLC_EGENERIC;
-        files.erase(it);
+        for (auto* store : { &stubML.subtitles, &stubML.soundtracks })
+        {
+            std::vector<std::string>& files = (*store)[id];
+            auto it = std::find(files.begin(), files.end(), mrl);
+            if (it == files.end())
+                continue;
+            files.erase(it);
+            return VLC_SUCCESS;
+        }
+        return VLC_EGENERIC;
+    }
+    case VLC_ML_MEDIA_SET_PLAYED:
+    {
+        const int64_t id = va_arg(args, int64_t);
+        const bool played = va_arg(args, int);
+        for (FakeMedia& media : testenv->mlMedia)
+        {
+            if (media.id != id)
+                continue;
+            /* like the medialibrary: a play more (the progress stays), or
+             * out of the history */
+            if (played)
+                media.playCount++;
+            else
+            {
+                media.playCount = 0;
+                media.progress = -1.;
+            }
+            return VLC_SUCCESS;
+        }
+        return VLC_EGENERIC;
+    }
+    case VLC_ML_MEDIA_UPDATE_PROGRESS:
+    {
+        const int64_t id = va_arg(args, int64_t);
+        const double progress = va_arg(args, double);
+        for (FakeMedia& media : testenv->mlMedia)
+        {
+            if (media.id != id)
+                continue;
+            /* like the medialibrary: the last 5% end the playback */
+            if (progress >= 0.95)
+            {
+                media.playCount++;
+                media.progress = -1.;
+            }
+            else
+                media.progress = progress < 0.05 ? -1. : progress;
+            return VLC_SUCCESS;
+        }
+        return VLC_EGENERIC;
+    }
+    case VLC_ML_REMOVE_FOLDER:
+        testenv->mlRemovedFolders.push_back(qfu(va_arg(args, const char*)));
+        return VLC_SUCCESS;
+    case VLC_ML_BAN_FOLDER:
+        testenv->mlBannedFolders.push_back(qfu(va_arg(args, const char*)));
+        return VLC_SUCCESS;
+    case VLC_ML_RELOAD_FOLDER:
+    {
+        const char* mrl = va_arg(args, const char*);
+        testenv->mlReloadedFolders.push_back(mrl ? qfu(mrl) : QString());
         return VLC_SUCCESS;
     }
     case VLC_ML_CLEAR_HISTORY:
@@ -1090,6 +1171,7 @@ void VLCTestingEnv::clearMediaLibrary()
     stubML.playlists.clear();
     stubML.external.clear();
     stubML.subtitles.clear();
+    stubML.soundtracks.clear();
     stubML.nextExternalId = 1000;
     stubML.history.clear();
     stubML.historyClears = 0;
@@ -1110,18 +1192,29 @@ int VLCTestingEnv::historyClears() const
     return stubML.historyClears;
 }
 
-std::vector<std::string> VLCTestingEnv::subtitleMatches(const std::string& mediaMrl) const
+static std::vector<std::string> externalFiles(const std::map<int64_t, std::vector<std::string>>& store,
+                                              const std::string& mediaMrl)
 {
     std::lock_guard<std::mutex> guard(stubML.lock);
     for (const auto& it : stubML.external)
     {
         if (it.second != mediaMrl)
             continue;
-        auto subtitles = stubML.subtitles.find(it.first);
-        if (subtitles != stubML.subtitles.end())
-            return subtitles->second;
+        auto files = store.find(it.first);
+        if (files != store.end())
+            return files->second;
     }
     return {};
+}
+
+std::vector<std::string> VLCTestingEnv::subtitleMatches(const std::string& mediaMrl) const
+{
+    return externalFiles(stubML.subtitles, mediaMrl);
+}
+
+std::vector<std::string> VLCTestingEnv::audioTrackMatches(const std::string& mediaMrl) const
+{
+    return externalFiles(stubML.soundtracks, mediaMrl);
 }
 
 std::vector<VLCTestingEnv::Playlist> VLCTestingEnv::playlists() const

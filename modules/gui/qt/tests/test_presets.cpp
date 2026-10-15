@@ -165,6 +165,17 @@ private slots:
         QVERIFY(m_model->resolve(QStringLiteral("/movies")).folder.isEmpty());
     }
 
+    void testAFolderMenuShowsThePresetInEffect()
+    {
+        const QString show = m_model->create(QStringLiteral("Show"));
+        m_model->attach(QStringLiteral("/shows/The Wand"), show);
+
+        // the folder menu's Preset ▸ checks the one its files would use
+        QCOMPARE(m_model->presetOf(QStringLiteral("/shows/The Wand/S01")), show);
+        QCOMPARE(m_model->presetOf(QStringLiteral("/shows/The Wand")), show);
+        QCOMPARE(m_model->presetOf(QStringLiteral("/movies")), QString());
+    }
+
     void testDefaultOnASubfolderStopsTheShowsPreset()
     {
         const QString show = m_model->create(QStringLiteral("Show"));

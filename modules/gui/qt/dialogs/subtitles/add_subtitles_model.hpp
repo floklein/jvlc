@@ -42,6 +42,11 @@ class QTemporaryDir;
 void attachSubtitles(qt_intf_t *intf, MediaLib *ml, const QString &mediaMrl,
                      const QStringList &subtitleMrls);
 
+/* Add Audio Track: remember the audio MRLs for the media (if ml isn't null)
+ * and, when the media is playing, attach them and play the first one */
+void attachAudioTracks(qt_intf_t *intf, MediaLib *ml, const QString &mediaMrl,
+                       const QStringList &audioMrls);
+
 /* Names from a server, a link or an archive decide where a download is
  * saved (From Link… and OpenSubtitles): these keep it a subtitle file inside
  * the chosen folder. */

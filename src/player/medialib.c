@@ -27,8 +27,9 @@
 #include "player.h"
 #include "misc/variables.h"
 
-/* Subtitle matches: attach the external subtitle files saved for the media.
- * The input is not started yet, so they load like the slaves of the item. */
+/* Subtitle matches and added audio tracks: attach the external subtitle and
+ * audio files saved for the media. The input is not started yet, so they
+ * load like the slaves of the item. */
 static void
 vlc_player_input_AttachMlSubtitles(struct vlc_player_input *input,
                                    const vlc_ml_media_t *media)
@@ -42,8 +43,28 @@ vlc_player_input_AttachMlSubtitles(struct vlc_player_input *input,
     for (size_t i = 0; i < media->p_files->i_nb_items; ++i)
     {
         const vlc_ml_file_t *file = &media->p_files->p_items[i];
-        if (file->i_type != VLC_ML_FILE_TYPE_SUBTITLE || !file->b_external
-         || file->psz_mrl == NULL)
+        if (!file->b_external || file->psz_mrl == NULL)
+            continue;
+
+        if (file->i_type == VLC_ML_FILE_TYPE_SOUNDTRACK)
+        {
+            /* an added audio track is listed; the track selection picks it
+             * like any other */
+            bool attached = false;
+            for (int j = 0; j < item->i_slaves && !attached; ++j)
+                attached = !strcmp(item->pp_slaves[j]->psz_uri, file->psz_mrl);
+            if (attached)
+                continue;
+            input_item_slave_t *slave =
+                input_item_slave_New(file->psz_mrl, SLAVE_TYPE_GENERIC,
+                                     SLAVE_PRIORITY_MATCH_LEFT);
+            if (slave == NULL)
+                break;
+            TAB_APPEND(item->i_slaves, item->pp_slaves, slave);
+            continue;
+        }
+
+        if (file->i_type != VLC_ML_FILE_TYPE_SUBTITLE)
             continue;
 
         bool attached = false;

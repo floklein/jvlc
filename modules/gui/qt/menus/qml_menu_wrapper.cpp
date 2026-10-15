@@ -20,7 +20,6 @@
 #include "medialibrary/medialib.hpp"
 #include "medialibrary/mlplaylistlistmodel.hpp"
 #include "medialibrary/mlplaylistmanager.hpp"
-#include "medialibrary/mlplaylistmodel.hpp"
 #include "medialibrary/mlbookmarkmodel.hpp"
 #include "network/networkdevicemodel.hpp"
 #include "network/networkmediamodel.hpp"
@@ -34,7 +33,6 @@
 
 // Qt includes
 #include <QPainter>
-#include <QSignalMapper>
 #include <QScreen>
 #include <QActionGroup>
 #include <QAbstractProxyModel>
@@ -81,7 +79,8 @@ void StringListMenu::popup(const QPoint &point, const QVariantList &stringList)
 
     for (int i = 0; i != stringList.size(); ++i)
     {
-        // NOTE: An entry {text, children} is a submenu, an empty child a separator.
+        // NOTE: An entry {text, children} is a submenu, an empty child a
+        //       separator; a child {text, checked} has a check mark.
         if (stringList[i].typeId() == QMetaType::QVariantMap)
         {
             const QVariantMap entry = stringList[i].toMap();
@@ -89,7 +88,9 @@ void StringListMenu::popup(const QPoint &point, const QVariantList &stringList)
             const QVariantList children = entry.value("children").toList();
             for (int j = 0; j != children.size(); ++j)
             {
-                QString child = children[j].toString();
+                const bool checkable = children[j].typeId() == QMetaType::QVariantMap;
+                QString child = checkable ? children[j].toMap().value("text").toString()
+                                          : children[j].toString();
                 if (child.isEmpty())
                 {
                     submenu->addSeparator();
@@ -97,16 +98,30 @@ void StringListMenu::popup(const QPoint &point, const QVariantList &stringList)
                 }
                 // children may be user text (Playlist names): no mnemonic
                 child.replace('&', QLatin1String("&&"));
-                submenu->addAction(child, this, [this, i, j]()
+                QAction *action = submenu->addAction(child, this, [this, i, j]()
                 {
                     emit childSelected(i, j);
                 });
+                if (checkable)
+                {
+                    action->setCheckable(true);
+                    action->setChecked(children[j].toMap().value("checked").toBool());
+                }
             }
             continue;
         }
 
         const auto str = stringList[i].toString();
-        m->addAction(str, this, [this, i, str]()
+        // an empty entry is a separator
+        if (str.isEmpty())
+        {
+            m->addSeparator();
+            continue;
+        }
+        // entries are text ("Stream & Cast…", user names): no mnemonic
+        QString label = str;
+        label.replace('&', QLatin1String("&&"));
+        m->addAction(label, this, [this, i, str]()
         {
             emit selected(i, str);
         });
@@ -597,79 +612,6 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
 }
 
 //=================================================================================================
-// PlaylistMediaContextMenu
-//=================================================================================================
-
-
-void PlaylistMediaContextMenu::popup(const QModelIndexList & selected, QPoint pos,
-                                     QVariantMap options)
-{
-    assert(m_ctx);
-
-    if (!m_model)
-        return;
-
-    QVariantList ids;
-
-    for (const QModelIndex& modelIndex : selected)
-        ids.push_back(m_model->data(modelIndex, MLPlaylistModel::MEDIA_ID));
-
-    auto menu =newMenu();
-
-    MediaLib * ml = m_model->ml();
-
-    QAction * action = menu->addAction(qtr("Play"));
-
-    connect(action, &QAction::triggered, [ml, ids]() {
-        ml->addAndPlay(ids);
-    });
-
-    action = menu->addAction(qtr("Play next"));
-
-    connect(action, &QAction::triggered, [ml, ids]() {
-        ml->playNext(ids);
-    });
-
-    action = menu->addAction(qtr("Add to Queue"));
-
-    connect(action, &QAction::triggered, [ml, ids]() {
-        ml->addToPlaylist(ids);
-    });
-
-    ml->playlistManager()->addToPlaylistMenu(menu, ids);
-
-    action = menu->addAction(qtr("Play as audio"));
-
-    connect(action, &QAction::triggered, [ml, ids]() {
-        ml->addAndPlay(ids, {":no-video"});
-    });
-
-    if (options.contains("information") && options["information"].typeId() == QMetaType::Int) {
-        action = menu->addAction(qtr("Information"));
-
-        QSignalMapper * mapper = new QSignalMapper(menu);
-
-        connect(action, &QAction::triggered, mapper, QOverload<>::of(&QSignalMapper::map));
-
-        mapper->setMapping(action, options["information"].toInt());
-        connect(mapper, &QSignalMapper::mappedInt,
-                this, &PlaylistMediaContextMenu::showMediaInformation);
-    }
-
-    menu->addSeparator();
-
-    action = menu->addAction(qtr("Remove from Playlist"));
-
-    action->setIcon(QIcon(":/menu/remove.svg"));
-
-    connect(action, &QAction::triggered, [this, selected]() {
-        m_model->remove(selected);
-    });
-
-    menu->popup(pos);
-}
-
-//=================================================================================================
 
 void NetworkMediaContextMenu::popup(const QModelIndexList& selected, QPoint pos)
 {
@@ -867,6 +809,13 @@ void PlaylistContextMenu::popup(int selectedIndex, QPoint pos )
                 ml->playlistManager()->saveQueueAsPlaylist();
             });
         }
+
+        // streams the current item or the whole Queue, or casts them
+        action = m_menu->addAction( qtr("Stream & Cast...") );
+        action->setEnabled(m_model->rowCount() > 0);
+        connect(action, &QAction::triggered, []( ) {
+            DialogsProvider::getInstance()->streamAndCastDialog();
+        });
     }
 
     m_menu->popup(pos);

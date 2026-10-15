@@ -200,7 +200,54 @@ bool StreamOutput::start(Source source, Protocol protocol, const QString &addres
     return start(source, settings);
 }
 
+bool StreamOutput::startMedia(const QString &mrl, Protocol protocol, const QString &address,
+                              int port, const QString &profile, bool alsoPlayHere)
+{
+    Settings settings;
+    settings.protocol = protocol;
+    settings.address = address.trimmed();
+    settings.port = port;
+    settings.profile = profile;
+    settings.alsoPlayHere = alsoPlayHere;
+    return startMedia(mrl, settings);
+}
+
 bool StreamOutput::start(Source source, const Settings &settings)
+{
+    return startAt(source, {}, settings);
+}
+
+bool StreamOutput::startMedia(const QString &mrl, const Settings &settings)
+{
+    if (mrl.isEmpty())
+        return false;
+    return startAt(CurrentItem, mrl, settings);
+}
+
+/* puts the media after the current item of the Queue (first if there is
+ * none); returns its index, or -1. The playlist is locked. */
+static ssize_t insertAfterCurrent(vlc_playlist_t *playlist, const QString &mrl)
+{
+    input_item_t *media = input_item_New(qtu(mrl), nullptr);
+    if (media == nullptr)
+        return -1;
+    const ssize_t index = vlc_playlist_GetCurrentIndex(playlist) + 1;
+    const int ret = vlc_playlist_InsertOne(playlist, index, media);
+    input_item_Release(media);
+    return ret == VLC_SUCCESS ? index : -1;
+}
+
+bool StreamOutput::playMedia(const QString &mrl)
+{
+    if (mrl.isEmpty())
+        return false;
+
+    vlc_playlist_locker locker(m_playlist);
+    const ssize_t index = insertAfterCurrent(m_playlist, mrl);
+    return index >= 0 && vlc_playlist_PlayAt(m_playlist, index) == VLC_SUCCESS;
+}
+
+bool StreamOutput::startAt(Source source, const QString &mrl, const Settings &settings)
 {
     const QString chain = soutChain(settings);
     if (chain.isEmpty())
@@ -209,9 +256,13 @@ bool StreamOutput::start(Source source, const Settings &settings)
     {
         vlc_playlist_locker locker(m_playlist);
 
-        if (vlc_playlist_Count(m_playlist) == 0)
+        ssize_t index;
+        if (!mrl.isEmpty())
+            index = insertAfterCurrent(m_playlist, mrl);
+        else if (vlc_playlist_Count(m_playlist) == 0)
             return false;
-        const ssize_t index = source == Queue ? 0 : vlc_playlist_GetCurrentIndex(m_playlist);
+        else
+            index = source == Queue ? 0 : vlc_playlist_GetCurrentIndex(m_playlist);
         if (index < 0)
             return false;
 

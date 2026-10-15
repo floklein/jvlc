@@ -40,7 +40,6 @@ class QAbstractProxyModel;
 
 class MediaLib;
 class MLPlaylistListModel;
-class MLPlaylistModel;
 class NetworkDeviceModel;
 class NetworkMediaModel;
 class MainCtx;
@@ -262,18 +261,6 @@ public:
 
 private:
     std::unique_ptr<QMenu> m_menu;
-};
-
-class PlaylistMediaContextMenu : public BasicMenuContainer {
-    Q_OBJECT
-    SIMPLE_MENU_PROPERTY(MLPlaylistModel *, model, nullptr)
-public:
-    using BasicMenuContainer::BasicMenuContainer;
-
-public slots:
-    void popup(const QModelIndexList & selected, QPoint pos, QVariantMap options = {});
-signals:
-    void showMediaInformation(int index);
 };
 
 class NetworkMediaContextMenu : public BasicMenuContainer {

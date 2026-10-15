@@ -59,16 +59,39 @@ Widgets.PageExt {
     ]
 
     headerActions: Component {
-        Widgets.IconToolButton {
-            font.pixelSize: VLCStyle.icon_banner
-            width: VLCStyle.bannerButton_width
-            height: VLCStyle.bannerButton_height
+        Row {
+            Widgets.IconToolButton {
+                font.pixelSize: VLCStyle.icon_banner
+                width: VLCStyle.bannerButton_width
+                height: VLCStyle.bannerButton_height
 
-            text: VLCIcons.add
-            description: qsTr("Add a folder to the library")
+                text: VLCIcons.add
+                description: qsTr("Add a folder to the library")
 
-            onClicked: DialogsProvider.addLibraryFolderDialog()
+                onClicked: DialogsProvider.addLibraryFolderDialog()
+            }
+
+            Widgets.IconToolButton {
+                font.pixelSize: VLCStyle.icon_banner
+                width: VLCStyle.bannerButton_width
+                height: VLCStyle.bannerButton_height
+
+                text: VLCIcons.more
+                description: qsTr("Folder menu")
+
+                checked: pageMenu.visible
+
+                onClicked: pageMenu.popup([], mapToGlobal(0, height))
+            }
         }
+    }
+
+    // the page "…" menu
+    FolderPageMenu {
+        id: pageMenu
+
+        folderId: root.parentId
+        type: FolderActions.Songs
     }
 
     // Functions

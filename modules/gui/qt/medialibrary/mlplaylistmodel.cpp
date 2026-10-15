@@ -22,6 +22,8 @@
 
 #include "mlplaylistmodel.hpp"
 
+#include <QUrl>
+
 // Util includes
 #include "util/shared_input_item.hpp"
 #include "util/vlctick.hpp"
@@ -307,7 +309,10 @@ QHash<int, QByteArray> MLPlaylistModel::roleNames() const /* override */
         { MEDIA_DISPLAY_MRL,        QByteArrayLiteral("display_mrl")        },
         { MEDIA_AUDIO_TRACK,        QByteArrayLiteral("audioDesc")          },
         { MEDIA_VIDEO_TRACK,        QByteArrayLiteral("videoDesc")          },
-        { MEDIA_TITLE_FIRST_SYMBOL, QByteArrayLiteral("title_first_symbol") }
+        { MEDIA_TITLE_FIRST_SYMBOL, QByteArrayLiteral("title_first_symbol") },
+        { MEDIA_IS_VIDEO,           QByteArrayLiteral("isVideo")            },
+        { MEDIA_IS_FAVORITE,        QByteArrayLiteral("isFavorite")         },
+        { MEDIA_IS_LOCAL,           QByteArrayLiteral("isLocal")            }
     };
 }
 
@@ -358,6 +363,12 @@ QVariant MLPlaylistModel::itemRoleData(const MLItem *item, int role) const /* ov
             return QVariant::fromValue(media->getAudio());
         case MEDIA_TITLE_FIRST_SYMBOL:
             return QVariant::fromValue(getFirstSymbol(media->title()));
+        case MEDIA_IS_VIDEO:
+            return QVariant::fromValue(media->type() != VLC_ML_MEDIA_TYPE_AUDIO);
+        case MEDIA_IS_FAVORITE:
+            return QVariant::fromValue(media->isFavorite());
+        case MEDIA_IS_LOCAL:
+            return QVariant::fromValue(QUrl(media->mrl()).isLocalFile());
         default:
             return QVariant();
     }

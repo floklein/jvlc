@@ -242,6 +242,8 @@ libqt_plugin_la_SOURCES = \
 	medialibrary/mlfoldertreemodel.hpp \
 	medialibrary/mlmediafolder.cpp \
 	medialibrary/mlmediafolder.hpp \
+	medialibrary/mlfolderactions.cpp \
+	medialibrary/mlfolderactions.hpp \
 	medialibrary/mlmusicfoldertreemodel.cpp \
 	medialibrary/mlmusicfoldertreemodel.hpp \
 	medialibrary/mlmediamodel.cpp \
@@ -510,6 +512,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	medialibrary/mlvideofoldersmodel.moc.cpp \
 	medialibrary/mlfoldertreemodel.moc.cpp \
 	medialibrary/mlmediafolder.moc.cpp \
+	medialibrary/mlfolderactions.moc.cpp \
 	medialibrary/mlmusicfoldertreemodel.moc.cpp \
 	medialibrary/thumbnailcollector.moc.cpp \
 	menus/custom_menus.moc.cpp \
@@ -1146,6 +1149,8 @@ libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/PlaylistPicker.qml \
 	medialibrary/qml/PlaylistDialogs.qml \
 	medialibrary/qml/AddPinDialog.qml \
+	medialibrary/qml/FolderDialogs.qml \
+	medialibrary/qml/FolderPageMenu.qml \
 	medialibrary/qml/PlaylistMedia.qml \
 	medialibrary/qml/PlaylistMediaDisplay.qml \
 	medialibrary/qml/PlaylistsDisplay.qml \
@@ -1914,6 +1919,7 @@ test_ml_model_SOURCES = \
 	medialibrary/mlthreadpool.hpp medialibrary/mlthreadpool.cpp \
 	medialibrary/mlfoldertreemodel.hpp medialibrary/mlfoldertreemodel.cpp \
 	medialibrary/mlmediafolder.hpp medialibrary/mlmediafolder.cpp \
+	medialibrary/mlfolderactions.hpp medialibrary/mlfolderactions.cpp \
 	medialibrary/mlmusicfoldertreemodel.hpp medialibrary/mlmusicfoldertreemodel.cpp \
 	medialibrary/mlaudiomodel.hpp medialibrary/mlaudiomodel.cpp \
 	medialibrary/mlvideomodel.hpp medialibrary/mlvideomodel.cpp \
@@ -1940,6 +1946,7 @@ nodist_test_ml_model_SOURCES = \
 	medialibrary/mlbasemodel.moc.cpp \
 	medialibrary/mlfoldertreemodel.moc.cpp \
 	medialibrary/mlmediafolder.moc.cpp \
+	medialibrary/mlfolderactions.moc.cpp \
 	medialibrary/mlmusicfoldertreemodel.moc.cpp \
 	medialibrary/mlaudiomodel.moc.cpp \
 	medialibrary/mlvideomodel.moc.cpp \

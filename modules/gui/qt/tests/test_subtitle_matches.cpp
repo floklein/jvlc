@@ -52,8 +52,8 @@ using vlc::playlist::PlaylistController;
 class TrackFeeder
 {
 public:
-    TrackFeeder(vlc_player_t *player, TrackListModel *model)
-        : m_player(player), m_model(model)
+    TrackFeeder(vlc_player_t *player, TrackListModel *model, es_format_category_e cat = SPU_ES)
+        : m_player(player), m_model(model), m_cat(cat)
     {
         static const struct vlc_player_cbs cbs = [] {
             struct vlc_player_cbs c{};
@@ -76,7 +76,7 @@ private:
                                    const struct vlc_player_track *track, void *data)
     {
         auto that = static_cast<TrackFeeder *>(data);
-        if (track->fmt.i_cat != SPU_ES)
+        if (track->fmt.i_cat != that->m_cat)
             return;
         std::shared_ptr<vlc_player_track> dup{ vlc_player_track_Dup(track),
                                                vlc_player_track_Delete };
@@ -105,6 +105,7 @@ private:
     vlc_player_t *m_player;
     TrackListModel *m_model;
     vlc_player_listener_id *m_listener = nullptr;
+    es_format_category_e m_cat;
 };
 
 static QString toMrl(const QString &path)
@@ -158,6 +159,7 @@ private:
         }
         QTRY_VERIFY(!hasMedia());
         QTRY_COMPARE(m_tracks->getCount(), 0);
+        QTRY_COMPARE(m_audioTracks->getCount(), 0);
     }
 
     /* stop and play the same media again, as the Queue does */
@@ -168,6 +170,7 @@ private:
             vlc_player_Stop(player());
         }
         QTRY_COMPARE(m_tracks->getCount(), 0);
+        QTRY_COMPARE(m_audioTracks->getCount(), 0);
         QTRY_VERIFY(!isStarted());
         {
             vlc_player_locker locker{ player() };
@@ -252,6 +255,58 @@ private:
         return list;
     }
 
+    /* a WAV file of silence in the test folder, long enough to stay
+     * listed while a test runs */
+    QString writeWav(const QString &relativePath)
+    {
+        const QString path = m_dir->filePath(relativePath);
+        QFile wav(path);
+        if (!wav.open(QIODevice::WriteOnly))
+            return {};
+        const quint32 rate = 8000;
+        const quint32 size = rate * 30; /* 30 s, 8-bit mono */
+        auto le32 = [&wav](quint32 v) {
+            const char b[4] = { char(v), char(v >> 8), char(v >> 16), char(v >> 24) };
+            wav.write(b, 4);
+        };
+        auto le16 = [&wav](quint16 v) {
+            const char b[2] = { char(v), char(v >> 8) };
+            wav.write(b, 2);
+        };
+        wav.write("RIFF", 4); le32(36 + size); wav.write("WAVE", 4);
+        wav.write("fmt ", 4); le32(16); le16(1); le16(1); le32(rate); le32(rate); le16(1); le16(8);
+        wav.write("data", 4); le32(size);
+        wav.write(QByteArray(size, char(0x80)));
+        wav.close();
+        return path;
+    }
+
+    int audioExternalCount() const
+    {
+        int count = 0;
+        for (int i = 0; i < m_audioTracks->rowCount(); ++i)
+            if (m_audioTracks->data(m_audioTracks->index(i), TrackListModel::ExternalRole).toBool())
+                ++count;
+        return count;
+    }
+
+    bool audioExternalShown() const
+    {
+        for (int i = 0; i < m_audioTracks->rowCount(); ++i)
+            if (m_audioTracks->data(m_audioTracks->index(i), TrackListModel::ExternalRole).toBool()
+             && m_audioTracks->data(m_audioTracks->index(i), Qt::CheckStateRole).toBool())
+                return true;
+        return false;
+    }
+
+    QStringList savedAudioTracks(const QString &mediaMrl) const
+    {
+        QStringList list;
+        for (const std::string &mrl : m_env->audioTrackMatches(qtu(mediaMrl)))
+            list.push_back(qfu(mrl.c_str()));
+        return list;
+    }
+
 private slots:
     void initTestCase()
     {
@@ -274,11 +329,15 @@ private slots:
         m_medialib = std::make_unique<MediaLib>(m_env->intf, m_controller.get());
         m_tracks = std::make_unique<TrackListModel>(player());
         m_feeder = std::make_unique<TrackFeeder>(player(), m_tracks.get());
+        m_audioTracks = std::make_unique<TrackListModel>(player());
+        m_audioFeeder = std::make_unique<TrackFeeder>(player(), m_audioTracks.get(), AUDIO_ES);
     }
 
     void cleanup()
     {
         stop();
+        m_audioFeeder.reset();
+        m_audioTracks.reset();
         m_feeder.reset();
         m_tracks.reset();
         m_medialib.reset();
@@ -461,6 +520,53 @@ private slots:
         QCOMPARE(externalCount(), 0);
     }
 
+    // Add Audio Track, To This File
+
+    void testAddAudioTrackAttachesAndPlaysIt()
+    {
+        const QString media = "stubtracks://1";
+        play(media);
+        QTRY_COMPARE(m_tracks->getCount(), 1);
+
+        const QString dub = toMrl(writeWav("dub.wav"));
+        attachAudioTracks(m_env->intf, m_medialib.get(), media, { dub });
+
+        /* it plays now, and every time the file plays */
+        QTRY_COMPARE(audioExternalCount(), 1);
+        QTRY_VERIFY(audioExternalShown());
+        QTRY_COMPARE(savedAudioTracks(media), QStringList({ dub }));
+        QCOMPARE(savedMatches(media), QStringList());
+    }
+
+    void testAddAudioTrackForAMediaNotPlaying()
+    {
+        const QString video = m_dir->filePath("later.mkv");
+        QFile(video).open(QIODevice::WriteOnly);
+        const QString dub = toMrl(writeWav("later.wav"));
+
+        attachAudioTracks(m_env->intf, m_medialib.get(), toMrl(video), { dub });
+
+        QTRY_COMPARE(savedAudioTracks(toMrl(video)), QStringList({ dub }));
+        QCOMPARE(m_audioTracks->getCount(), 0);
+    }
+
+    void testSavedAudioTracksLoadWhenTheMediaPlays()
+    {
+        const QString media = "stubtracks://1";
+        const QString dub = toMrl(writeWav("dub.wav"));
+        m_medialib->addAudioTracks(media, { dub });
+        QTRY_COMPARE(savedAudioTracks(media), QStringList({ dub }));
+
+        play(media);
+        QTRY_COMPARE(audioExternalCount(), 1);
+
+        /* playing it again doesn't load it twice */
+        restart();
+        QTRY_COMPARE(audioExternalCount(), 1);
+        QTest::qWait(100);
+        QCOMPARE(audioExternalCount(), 1);
+    }
+
 private:
     std::unique_ptr<VLCTestingEnv> m_env;
     std::unique_ptr<QTemporaryDir> m_dir;
@@ -468,6 +574,8 @@ private:
     std::unique_ptr<MediaLib> m_medialib;
     std::unique_ptr<TrackListModel> m_tracks;
     std::unique_ptr<TrackFeeder> m_feeder;
+    std::unique_ptr<TrackListModel> m_audioTracks;
+    std::unique_ptr<TrackFeeder> m_audioFeeder;
 };
 
 QTEST_GUILESS_MAIN(TestSubtitleMatches)

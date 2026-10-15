@@ -903,6 +903,18 @@ void DialogsProvider::openAndStreamingDialogs()
     streamAndCastDialog();
 }
 
+void DialogsProvider::streamAndCastMediaDialog( const QString& mrl, const QString& name )
+{
+    if( mrl.isEmpty() )
+        return;
+    emit showStreamAndCastMedia( mrl, name );
+}
+
+void DialogsProvider::convertDialog( const QStringList& mrls )
+{
+    emit showConvertDialog( mrls );
+}
+
 void DialogsProvider::openAndTranscodingDialogs()
 {
     /* Convert the current file, if any */
@@ -1024,6 +1036,26 @@ void DialogsProvider::addPlaylistSubtitlesDialog( const QVariant& playlistId, co
     m_subtitleMatchModel->loadPlaylist( playlistId.value<MLItemId>(), name );
     addOpenSubtitlesToMatches( m_subtitleMatchModel );
     emit showSubtitleMatches( m_subtitleMatchModel );
+}
+
+void DialogsProvider::addAudioTrackDialog( const QString& mediaMrl )
+{
+    if( mediaMrl.isEmpty() )
+        return;
+
+    /* the picker starts in the folder of the file */
+    QUrl folder( mediaMrl );
+    if( folder.isLocalFile() )
+        folder = folder.adjusted( QUrl::RemoveFilename );
+    else
+        folder.clear();
+
+    const QStringList audios = showSimpleOpen( qtr( "Add Audio Track" ), EXT_FILTER_AUDIO, folder );
+    if( audios.isEmpty() )
+        return;
+
+    MediaLib *ml = p_intf->p_mi ? p_intf->p_mi->getMediaLibrary() : nullptr;
+    attachAudioTracks( p_intf, ml, mediaMrl, audios );
 }
 
 void DialogsProvider::loadSubtitlesFile()

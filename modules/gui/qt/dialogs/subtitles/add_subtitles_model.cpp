@@ -526,3 +526,30 @@ void attachSubtitles(qt_intf_t* intf, MediaLib* ml, const QString& mediaMrl,
             msg_Warn(intf, "unable to add the subtitles '%s'", qtu(mrl));
     }
 }
+
+void attachAudioTracks(qt_intf_t* intf, MediaLib* ml, const QString& mediaMrl,
+                       const QStringList& chosen)
+{
+    if (chosen.isEmpty())
+        return;
+
+    if (ml)
+        ml->addAudioTracks(mediaMrl, chosen);
+
+    /* the file is playing: attach them now, the first one plays */
+    vlc_player_t* player = intf->p_player;
+    vlc_player_locker lock{ player };
+    input_item_t* item = vlc_player_GetCurrentMedia(player);
+    if (item == nullptr || qfu(item->psz_uri) != mediaMrl)
+        return;
+
+    bool first = true;
+    for (const QString& mrl : chosen)
+    {
+        if (vlc_player_AddAssociatedMedia(player, AUDIO_ES, qtu(mrl), first,
+                                          false, false) == VLC_SUCCESS)
+            first = false;
+        else
+            msg_Warn(intf, "unable to add the audio track '%s'", qtu(mrl));
+    }
+}

@@ -52,17 +52,19 @@ QtObject {
         }
     ]
 
-    // Opens the library at the folder of the playing file (its MLItemId, from
-    // MLMediaFolder): in the Videos folder tree for a video, at its top when
-    // the folder is not in the library; in Music for anything else.
+    // Opens the library at the folder of a file (its MLItemId, from
+    // MLMediaFolder): the folder button and Go to Source. A video opens in
+    // the Videos folder tree, anything else in the Songs one; at their top
+    // when the folder is not in the library.
     function showFolder(folderId, isVideo : bool, focusReason : int) {
         // Back leads Home from there
         if (History.viewPath.length === 0)
             History.update(["home"])
 
+        const found = folderId && folderId.isValid()
         if (!isVideo)
-            History.push(["music"], {}, focusReason)
-        else if (folderId && folderId.isValid())
+            History.push(["music", "tracks"], found ? { parentId: folderId } : {}, focusReason)
+        else if (found)
             History.push(["video", "folders"], { parentId: folderId }, focusReason)
         else
             History.push(["video", "folders"], {}, focusReason)

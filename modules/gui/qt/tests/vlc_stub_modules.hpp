@@ -39,6 +39,7 @@
 #include <vector>
 
 #include <QString>
+#include <QStringList>
 
 #include "qt.hpp"
 
@@ -100,6 +101,8 @@ struct VLCTestingEnv
     bool playlistFavorite(int64_t id) const;
     // the external subtitle files saved for the media of this MRL
     std::vector<std::string> subtitleMatches(const std::string& mediaMrl) const;
+    // the external audio files saved for the media of this MRL
+    std::vector<std::string> audioTrackMatches(const std::string& mediaMrl) const;
 
     /*
      * The play history of the stub media library, newest first: media <id>
@@ -158,6 +161,12 @@ struct VLCTestingEnv
     };
     std::vector<FakeFolder> mlFolders;
     std::vector<FakeMedia> mlMedia;
+
+    //the MRLs of the folders removed from the library, excluded from it
+    //(banned) and rescanned ("" for the whole library), in call order
+    QStringList mlRemovedFolders;
+    QStringList mlBannedFolders;
+    QStringList mlReloadedFolders;
 };
 
 #endif /* QT_VLC_STUB_MODULES */

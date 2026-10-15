@@ -106,6 +106,8 @@ public:
     std::optional<QString> link(const QString& folder) const;
     /// the nearest link from the folder up to the root
     Resolution resolve(const QString& folder) const;
+    /// the id of the Preset the files of a folder use, empty for Default
+    Q_INVOKABLE QString presetOf(const QString& folder) const { return resolve(folder).id; }
     Q_INVOKABLE QStringList folders(const QString& id) const;
 
     /// a path as links store it: "/" separators, no trailing one

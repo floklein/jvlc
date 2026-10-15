@@ -246,7 +246,11 @@ public slots:
     void openAndStreamingDialogs();
     /* Stream & Cast, on a tab (StreamAndCastTab) or on the last one shown */
     void streamAndCastDialog( int tab = -1 );
+    /* Stream & Cast, on a file of the library: it streams or casts that file */
+    void streamAndCastMediaDialog( const QString& mrl, const QString& name );
     void openAndTranscodingDialogs();
+    /* Convert, with these media */
+    void convertDialog( const QStringList& mrls );
 
     void savePlayingToPlaylist();
 
@@ -256,6 +260,9 @@ public slots:
     void addFolderSubtitlesDialog( const QString& folder );
     /* Add Subtitles, To This Playlist */
     void addPlaylistSubtitlesDialog( const QVariant& playlistId, const QString& name );
+    /* Add Audio Track: pick audio files and attach them to the media of this
+     * MRL, now if it plays and whenever it plays */
+    void addAudioTrackDialog( const QString& mediaMrl );
     void loadSubtitlesFile();
     void loadAudioFile();
     void loadVideoFile();
@@ -282,6 +289,8 @@ signals:
     void showConvertDialog(const QStringList& mrls);
     /* opens Stream & Cast on a tab (StreamAndCastTab), -1 for the last one */
     void showStreamAndCastDialog(int tab);
+    /* opens Stream & Cast on a file, named name */
+    void showStreamAndCastMedia(const QString& mrl, const QString& name);
     /* Shows the Properties & Metadata window of a media. The live window,
      * which follows the player, toggles when shown again on the same tab */
     void showMediaProperties( MediaPropertiesModel *model, int tab );

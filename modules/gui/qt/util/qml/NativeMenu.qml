@@ -38,8 +38,12 @@ QtObject {
         "visible" - (Boolean or function(dataList,options, indexes) -> Boolean) (optional) a boolean value or function which
                     controls whether the action is shown in the menu following 'popup' call
 
-        "children" - (function(dataList, options, indexes) -> [{text, action} or {separator: true}]) (optional)
-                     makes the action a submenu of these items, in place of "action"
+        "children" - (function(dataList, options, indexes) -> [{text, action, checked} or {separator: true}]) (optional)
+                     makes the action a submenu of these items, in place of "action"; a child
+                     with a "checked" boolean has a check mark when it is true
+
+        "separator" - (Boolean) (optional) the entry is a line between groups; a line is never
+                      shown first, last or next to another one
 
        e.g see MLContextMenu.qml
     **/
@@ -93,13 +97,29 @@ QtObject {
             if (!action.hasOwnProperty("visible")
                     || (typeof action.visible === "boolean" && action.visible)
                     || (typeof action.visible === "function" && action.visible(_dataList, _options, _indexes))) {
+                if (action.separator === true) {
+                    // no line first or after another one
+                    if (_effectiveActions.length > 0
+                            && _effectiveActions[_effectiveActions.length - 1].separator !== true) {
+                        _effectiveActions.push(action)
+                        textStrings.push("")
+                    }
+                    continue
+                }
+
                 if (typeof action.children === "function") {
-                    // a submenu: [{text, action} or {separator: true}]
+                    // a submenu: [{text, action, checked} or {separator: true}]
                     const children = action.children(_dataList, _options, _indexes)
                     _effectiveActions.push({ "text": action.text, "children": children })
                     textStrings.push({
                         "text": action.text,
-                        "children": children.map((child) => child.separator ? "" : child.text)
+                        "children": children.map((child) => {
+                            if (child.separator)
+                                return ""
+                            if (typeof child.checked === "boolean")
+                                return { "text": child.text, "checked": child.checked }
+                            return child.text
+                        })
                     })
                     continue
                 }
@@ -107,6 +127,13 @@ QtObject {
                 _effectiveActions.push(action)
                 textStrings.push(action.text)
             }
+        }
+
+        // no line last
+        if (_effectiveActions.length > 0
+                && _effectiveActions[_effectiveActions.length - 1].separator === true) {
+            _effectiveActions.pop()
+            textStrings.pop()
         }
 
         menu.popup(_popupPoint, textStrings)

@@ -90,6 +90,18 @@ private:
         return vlc_player_IsStarted(player());
     }
 
+    QStringList queueMrls() const
+    {
+        vlc_playlist_locker locker(playlist());
+        QStringList mrls;
+        for (size_t i = 0; i < vlc_playlist_Count(playlist()); ++i)
+        {
+            input_item_t *media = vlc_playlist_item_GetMedia(vlc_playlist_Get(playlist(), i));
+            mrls.push_back(qfu(media->psz_uri));
+        }
+        return mrls;
+    }
+
     /* Fill the Queue with a, b and c, with b as the current item */
     void fillQueue(const char *mrlOfB = LONG_MRL)
     {
@@ -287,6 +299,67 @@ private slots:
         QCOMPARE(playerSout(), QString());
         QCOMPARE(currentIndex(), 1);
         QVERIFY(!isStarted());
+    }
+
+    // Stream & Cast opened on a file of the library
+
+    void testStreamAFile()
+    {
+        fillQueue();
+
+        QVERIFY(m_stream->startMedia(QStringLiteral("vlc://pause:601"), http()));
+
+        QVERIFY(m_stream->isStreaming());
+        QCOMPARE(playerSout(), QString("#http{mux=ts,dst=:8080/}"));
+        /* the file goes after the current item, and only it streams */
+        QCOMPARE(queueMrls(), QStringList({ LONG_MRL, LONG_MRL, "vlc://pause:601", LONG_MRL }));
+        QCOMPARE(currentIndex(), 2);
+        QTRY_VERIFY(isStarted());
+    }
+
+    void testStreamAFileStopsAtItsEnd()
+    {
+        fillQueue();
+        QVERIFY(m_stream->startMedia(QStringLiteral("vlc://pause:0.5"), http()));
+
+        QTRY_VERIFY_WITH_TIMEOUT(!m_stream->isStreaming(), 10000);
+        QCOMPARE(currentIndex(), 2);
+        QVERIFY(!isStarted());
+    }
+
+    void testStreamAFileWithAnEmptyQueue()
+    {
+        QVERIFY(m_stream->startMedia(QStringLiteral("vlc://pause:601"), http()));
+
+        QCOMPARE(queueMrls(), QStringList({ "vlc://pause:601" }));
+        QCOMPARE(currentIndex(), 0);
+        QTRY_VERIFY(isStarted());
+    }
+
+    void testStreamAFileWithInvalidSettings()
+    {
+        fillQueue();
+        StreamOutput::Settings settings;
+        settings.protocol = StreamOutput::SRT;
+        settings.port = 7001;
+
+        QVERIFY(!m_stream->startMedia(QStringLiteral("vlc://pause:601"), settings));
+        QCOMPARE(queueMrls().size(), 3);
+        QCOMPARE(currentIndex(), 1);
+    }
+
+    void testPlayAFile()
+    {
+        /* Cast: the file plays after the current item, on the device */
+        fillQueue();
+
+        QVERIFY(m_stream->playMedia(QStringLiteral("vlc://pause:601")));
+
+        QVERIFY(!m_stream->isStreaming());
+        QCOMPARE(playerSout(), QString());
+        QCOMPARE(queueMrls(), QStringList({ LONG_MRL, LONG_MRL, "vlc://pause:601", LONG_MRL }));
+        QCOMPARE(currentIndex(), 2);
+        QTRY_VERIFY(isStarted());
     }
 
     void testNothingToStream()

@@ -161,15 +161,11 @@ Widgets.PageExt {
         }
 
 
-        PlaylistMediaContextMenu {
+        // the file menu, with Remove from Playlist
+        MLContextMenu {
             id: contextMenu
 
             model: root.model
-            ctx: MainCtx
-
-           function tableView_popup(index, selectedIndexes, globalPos) {
-               popup(selectedIndexes, globalPos)
-           }
         }
 
         PlaylistMedia
