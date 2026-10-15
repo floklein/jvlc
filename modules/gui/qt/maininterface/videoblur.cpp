@@ -112,6 +112,26 @@ void VideoBlur::setDeviation(qreal deviation)
     report();
 }
 
+void VideoBlur::setDarkest(qreal darkest)
+{
+    if (qFuzzyCompare(m_darkest + 1., darkest + 1.))
+        return;
+
+    m_darkest = darkest;
+    emit darkestChanged();
+    report();
+}
+
+void VideoBlur::setBrightest(qreal brightest)
+{
+    if (qFuzzyCompare(m_brightest + 1., brightest + 1.))
+        return;
+
+    m_brightest = brightest;
+    emit brightestChanged();
+    report();
+}
+
 void VideoBlur::itemChange(ItemChange change, const ItemChangeData& value)
 {
     QQuickItem::itemChange(change, value);
@@ -204,6 +224,8 @@ void VideoBlur::report()
     region.radius = m_radius * dpr;
     region.opacity = opacity;
     region.deviation = m_deviation * dpr;
+    region.darkest = m_darkest;
+    region.brightest = m_brightest;
 
     if (m_reported && region == m_lastRegion)
         return;

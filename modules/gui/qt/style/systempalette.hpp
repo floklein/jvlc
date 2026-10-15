@@ -100,6 +100,9 @@ public:
     Q_PROPERTY(MainCtx* ctx READ getCtx WRITE setCtx NOTIFY ctxChanged FINAL)
     Q_PROPERTY(ColorSchemeModel::ColorScheme  source READ source WRITE setSource NOTIFY sourceChanged FINAL)
     Q_PROPERTY(bool isDark MEMBER m_isDark NOTIFY paletteChanged FINAL)
+    // the range the Video blur is clamped to under this palette's Tint
+    Q_PROPERTY(qreal videoBlurDarkest MEMBER m_videoBlurDarkest NOTIFY paletteChanged FINAL)
+    Q_PROPERTY(qreal videoBlurBrightest MEMBER m_videoBlurBrightest NOTIFY paletteChanged FINAL)
     Q_PROPERTY(bool hasCSDImage READ hasCSDImage NOTIFY hasCSDImageChanged FINAL)
     Q_PROPERTY(CSDMetrics* csdMetrics READ getCSDMetrics NOTIFY CSDMetricsChanged FINAL)
 
@@ -146,6 +149,8 @@ private:
     ColorSchemeModel::ColorScheme m_source = ColorSchemeModel::ColorScheme::Light;
     bool m_isDark = false;
     bool m_hasCSDImage = false;
+    qreal m_videoBlurDarkest = 0.;
+    qreal m_videoBlurBrightest = 1.;
 
     // user's Accent color, invalid for the default one
     QColor m_accent;

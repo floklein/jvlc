@@ -130,6 +130,38 @@ FocusScope {
         else if (pending >= 0)
             rightPanel.openAdjustments(pending)
     }
+
+    // test hook for screenshots (VLC_QT_TEST_SHOW_BARS): once the video
+    // plays, the bars show and stay, also in Hide UI, and a panel may open
+    Timer {
+        interval: 1000
+        running: MainCtx.testShowBars !== ""
+                 && MainCtx.hasEmbededVideo
+                 && Player.playingState === Player.PLAYING_STATE_PLAYING
+        onTriggered: rootPlayer._testShowBars()
+    }
+
+    property bool _testBarsShown: false
+
+    function _testShowBars() {
+        if (_testBarsShown)
+            return
+        _testBarsShown = true
+
+        lockUnlockAutoHide(true)
+        switch (MainCtx.testShowBars) {
+        case "queue":
+            playlistVisibility.togglePlaylistVisibility()
+            break
+        case "adjustments":
+            rightPanel.toggleAdjustments()
+            break
+        case "library":
+            LibraryPages.paneOpen = true
+            break
+        }
+    }
+
     Component.onDestruction: {
         MainCtx.preferHotkeys = false
         MainCtx.adjustmentsOpened = false

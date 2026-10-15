@@ -165,8 +165,22 @@ private slots:
         const ThemeTokens t = makeThemeTokens(dark);
         QCOMPARE(t.tintOverBlur.rgb(), t.tint.rgb());
         QVERIFY(t.tintOverBlur.alphaF() < t.tint.alphaF());
-        // about 75%, more where the text would not read over a bright video
-        QVERIFY(t.tintOverBlur.alphaF() >= 0.75f);
+        // about 75%: the clamped video keeps the text readable
+        QVERIFY2(t.tintOverBlur.alphaF() > 0.745f && t.tintOverBlur.alphaF() < 0.765f,
+                 qPrintable(QString::number(t.tintOverBlur.alphaF())));
+    }
+
+    // the blurred video is kept from getting too bright under the dark
+    // Theme's Tint, and too dark under the light one's
+    void testVideoBlurIsClampedPerTheme()
+    {
+        const ThemeTokens dark = makeThemeTokens(true);
+        QCOMPARE(dark.videoBlurDarkest, 0.);
+        QVERIFY(dark.videoBlurBrightest > 0.25 && dark.videoBlurBrightest < 0.5);
+
+        const ThemeTokens light = makeThemeTokens(false);
+        QVERIFY(light.videoBlurDarkest > 0.1 && light.videoBlurDarkest < 0.5);
+        QCOMPARE(light.videoBlurBrightest, 1.);
     }
 
     // WCAG 2.2 contrast ratios (https://www.w3.org/TR/WCAG22/#dfn-contrast-ratio)
@@ -224,15 +238,22 @@ private slots:
         const QColor black("#000000");
         const QColor white("#ffffff");
 
-        struct Surface { const char* name; QColor color; };
-        const Surface surfaces[] = {
+        struct Surface { QByteArray name; QColor color; };
+        QList<Surface> surfaces = {
             { "A1", t.bgA1 }, { "A2", t.bgA2 }, { "A3", t.bgA3 }, { "A4", t.bgA4 },
             { "A5", t.bgA5 }, { "B1", t.bgB1 }, { "B2", t.bgB2 },
             { "Tint over a black video", composite(t.tint, black) },
             { "Tint over a white video", composite(t.tint, white) },
-            { "blur Tint over a black video", composite(t.tintOverBlur, black) },
-            { "blur Tint over a white video", composite(t.tintOverBlur, white) },
         };
+        // the Video blur is clamped to [darkest, brightest]: from the darkest
+        // to the brightest clamped video, in steps
+        for (int step = 0; step <= 10; ++step)
+        {
+            const double level = t.videoBlurDarkest
+                + (t.videoBlurBrightest - t.videoBlurDarkest) * step / 10.;
+            surfaces.append({ "blur Tint over a clamped video at " + QByteArray::number(level),
+                              composite(t.tintOverBlur, QColor::fromRgbF(level, level, level)) });
+        }
         struct Ink { const char* name; QColor color; double ratio; };
         const Ink inks[] = {
             { "FG/1", t.fg1, 4.5 }, { "FG/2", t.fg2, 4.5 },
@@ -246,11 +267,11 @@ private slots:
             {
                 // accent text over the Video blur is only drawn as icons,
                 // checked states and focus rings
-                const bool blur = QByteArray(s.name).startsWith("blur");
+                const bool blur = s.name.startsWith("blur");
                 const double ratio = (blur && ink.color == t.accentText) ? 3.0 : ink.ratio;
                 const double actual = contrastRatio(ink.color, s.color);
                 QVERIFY2(actual >= ratio,
-                         qPrintable(QString("%1 on %2: %3").arg(ink.name, s.name).arg(actual)));
+                         qPrintable(QString("%1 on %2: %3").arg(ink.name, QString(s.name)).arg(actual)));
             }
 
         // accent buttons

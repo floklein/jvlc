@@ -173,6 +173,22 @@ private slots:
         QTRY_COMPARE(m_regions.shown.first().deviation, 10. * dpr);
     }
 
+    // the panel's Theme decides how far the blurred video is clamped
+    void reportsTheClampedRangeOfTheVideo()
+    {
+        m_blur->setProvider(m_provider.get());
+        QCOMPARE(m_regions.shown.first().darkest, 0.);
+        QCOMPARE(m_regions.shown.first().brightest, 1.);
+
+        m_blur->setBrightest(.32);
+        QTRY_COMPARE(m_regions.shown.first().brightest, .32);
+
+        m_blur->setDarkest(.24);
+        m_blur->setBrightest(1.);
+        QTRY_COMPARE(m_regions.shown.first().darkest, .24);
+        QTRY_COMPARE(m_regions.shown.first().brightest, 1.);
+    }
+
     // a sliding panel moves through a transform, which no signal reports:
     // the region follows at the next frame
     void followsATransformedPanel()

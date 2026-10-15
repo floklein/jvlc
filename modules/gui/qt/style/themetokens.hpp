@@ -61,8 +61,13 @@ struct ThemeTokens
 
     // translucent layer of panels over the video
     QColor tint;
+    // The Video blur maps each color channel of the blurred video, from 0 to
+    // 1, linearly into [videoBlurDarkest, videoBlurBrightest]: the dark
+    // Theme keeps it from getting too bright, the light one too dark.
+    double videoBlurDarkest = 0.;
+    double videoBlurBrightest = 1.;
     // the lighter Tint over the Video blur, opaque enough for the text to
-    // read over a bright video
+    // read over the brightest and the darkest clamped video
     QColor tintOverBlur;
     // the dark scrim drawn behind the bars right over the video
     QColor scrim;

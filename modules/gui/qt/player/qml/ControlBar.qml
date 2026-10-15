@@ -445,7 +445,9 @@ T.Pane {
 
             spacing: playerControlLayout.spacing
 
-            visible: playerControlLayout.visible || castButtonLoader.active
+            // not playerControlLayout.visible: that is false while the bar is
+            // hidden (Hide UI starts so), and the row would then never show again
+            visible: (!playerControlLayout.model?.empty ?? false) || castButtonLoader.active
 
             PlayerControlLayout {
                 id: playerControlLayout

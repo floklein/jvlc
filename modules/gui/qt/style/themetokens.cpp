@@ -38,6 +38,10 @@ QColor rgba(QRgb value, float alpha)
 constexpr float TINT_ALPHA = 0.95f;
 // alpha of the Tint over the Video blur, at least
 constexpr float TINT_OVER_BLUR_ALPHA = 0.75f;
+// The blurred video, clamped so that the Tint over the blur stays about 75%:
+// at most #525252 under the dark Theme, at least #3D3D3D under the light one
+constexpr double DARK_VIDEO_BLUR_BRIGHTEST = 0.32;
+constexpr double LIGHT_VIDEO_BLUR_DARKEST = 0.24;
 // alpha of the scrim behind the bars right over the video, at least
 constexpr float SCRIM_ALPHA = 0.8f;
 
@@ -58,13 +62,18 @@ double relativeLuminance(const QColor& color)
 
 /*
  * The lowest alpha of layer, from atLeast, at which every text color reaches
- * 4.5:1 and every icon color 3:1 over both a black and a white video.
+ * 4.5:1 and every icon color 3:1 over a video from darkest to brightest (a
+ * black and a white video by default).
  */
 float readableAlpha(QColor layer, float atLeast,
-                    const QList<QColor>& text, const QList<QColor>& icons)
+                    const QList<QColor>& text, const QList<QColor>& icons,
+                    double darkest = 0., double brightest = 1.)
 {
+    const QColor darkestVideo = QColor::fromRgbF(darkest, darkest, darkest);
+    const QColor brightestVideo = QColor::fromRgbF(brightest, brightest, brightest);
+
     const auto readable = [&](const QColor& candidate) {
-        for (const QColor& backdrop : { QColor(Qt::black), QColor(Qt::white) })
+        for (const QColor& backdrop : { darkestVideo, brightestVideo })
         {
             const QColor bg = composite(candidate, backdrop);
             for (const QColor& c : text)
@@ -242,10 +251,13 @@ ThemeTokens makeThemeTokens(bool dark, const QColor& accentColor)
 
     const QList<QColor> text { t.fg1, t.fg2, t.fgA1, t.fgA2 };
 
-    // the blurred video can be as bright or as dark as the video
+    // the compositor clamps the blurred video before the Tint
+    t.videoBlurDarkest = dark ? 0. : LIGHT_VIDEO_BLUR_DARKEST;
+    t.videoBlurBrightest = dark ? DARK_VIDEO_BLUR_BRIGHTEST : 1.;
     t.tintOverBlur = t.tint;
     t.tintOverBlur.setAlphaF(readableAlpha(t.tint, TINT_OVER_BLUR_ALPHA,
-                                           text, { t.fgA3, t.accentText }));
+                                           text, { t.fgA3, t.accentText },
+                                           t.videoBlurDarkest, t.videoBlurBrightest));
 
     t.scrim = t.bgB2;
     t.scrim.setAlphaF(readableAlpha(t.bgB2, SCRIM_ALPHA,

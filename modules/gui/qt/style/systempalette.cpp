@@ -348,7 +348,10 @@ void SystemPalette::updatePalette()
     m_isDark = resolveDarkTheme(m_source, isSystemThemeDark());
 
     m_colorMap.clear();
-    // High Contrast colors take precedence over any Theme
+    m_videoBlurDarkest = 0.;
+    m_videoBlurBrightest = 1.;
+    // High Contrast colors take precedence over any Theme, and leave the
+    // Video blur unclamped
     if (m_palettePriv && m_palettePriv->update() == VLC_SUCCESS)
     {
         const QColor background = getColor(ColorContext::View, ColorContext::Bg,
@@ -435,6 +438,9 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
     typedef ColorContext C;
 
     const QColor transparent = Qt::transparent;
+
+    m_videoBlurDarkest = t.videoBlurDarkest;
+    m_videoBlurBrightest = t.videoBlurBrightest;
 
     //base set
     {

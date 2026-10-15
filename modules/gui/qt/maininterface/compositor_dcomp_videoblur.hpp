@@ -44,6 +44,8 @@ class QWindow;
 namespace vlc
 {
 
+struct DCompLinearTransferEffect;
+
 /**
  * Draws the Video blur with DirectComposition.
  *
@@ -55,7 +57,11 @@ namespace vlc
  *   rootVisual()                 between the video visual and Qt's UI visual
  *   └── clip visual (per region)  rectangle clip = the region
  *       └── blur visual           content = swap chain, offset = video position,
- *                                 effect = Gaussian blur
+ *                                 effect = Gaussian blur, then a linear transfer
+ *
+ * The linear transfer clamps the blurred video to the range of the region's
+ * Theme (`VideoBlurProvider::Region::darkest`, `brightest`), so the text
+ * stays readable under the Tint over the blur.
  *
  * The clip is on the parent and the effect on the child, so the blur samples
  * the video beyond the region's edges instead of transparent pixels. The
@@ -101,6 +107,7 @@ private:
         Microsoft::WRL::ComPtr<IDCompositionEffectGroup> fade;
         Microsoft::WRL::ComPtr<IDCompositionVisual2> blurVisual;
         Microsoft::WRL::ComPtr<IDCompositionGaussianBlurEffect> blur;
+        Microsoft::WRL::ComPtr<DCompLinearTransferEffect> clamp;
     };
 
     void onRegionChanged(quintptr key, const VideoBlurProvider::Region &region);

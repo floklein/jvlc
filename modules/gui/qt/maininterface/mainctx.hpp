@@ -137,6 +137,8 @@ class MainCtx : public QObject
     Q_PROPERTY(QString accentColor READ accentColor NOTIFY accentColorChanged FINAL)
     Q_PROPERTY(bool reduceMotion READ reduceMotion NOTIFY reduceMotionChanged FINAL)
     Q_PROPERTY(bool hideUI READ hideUI WRITE setHideUI NOTIFY hideUIChanged FINAL)
+    // test hook for screenshots without input (VLC_QT_TEST_SHOW_BARS)
+    Q_PROPERTY(QString testShowBars READ testShowBars CONSTANT FINAL)
     // the window shrunk into a small always-on-top video (minimal view)
     Q_PROPERTY(bool pictureInPicture READ pictureInPicture WRITE setPictureInPicture NOTIFY pictureInPictureChanged FINAL)
     // the desktop puts the window buttons on the left of title bars (Linux)
@@ -318,6 +320,11 @@ public:
 
     // the bars stay hidden until the pointer nears an edge, as in fullscreen
     bool hideUI() const { return m_hideUI; }
+
+    // The VLC_QT_TEST_SHOW_BARS environment variable: when set, the player
+    // shows its bars and keeps them; "queue", "adjustments" or "library" also
+    // opens that panel. Empty when unset.
+    QString testShowBars() const { return qEnvironmentVariable("VLC_QT_TEST_SHOW_BARS"); }
 
     bool pictureInPicture() const { return m_pictureInPicture; }
     bool windowButtonsOnLeft() const { return m_windowButtonsOnLeft; }

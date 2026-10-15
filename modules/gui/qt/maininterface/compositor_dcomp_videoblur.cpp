@@ -192,6 +192,37 @@ private:
     CompositorDCompositionVideoBlur *m_blur;
 };
 
+}
+
+/**
+ * IDCompositionLinearTransferEffect (Windows 8.1), which mingw-w64's dcomp.h
+ * does not declare: `CreateLinearTransferEffect()` returns a `void *`.
+ *
+ * Each channel becomes `slope * channel + intercept`. MSVC lays out the
+ * overloads of a method in reverse order, so for GCC the animation overload
+ * comes first, as in mingw-w64's other effects.
+ */
+struct DCompLinearTransferEffect : public IDCompositionFilterEffect
+{
+#define LINEAR_TRANSFER_CHANNEL(Channel) \
+    STDMETHOD(Set##Channel##YIntercept)(IDCompositionAnimation *animation) PURE; \
+    STDMETHOD(Set##Channel##YIntercept)(float yIntercept) PURE; \
+    STDMETHOD(Set##Channel##Slope)(IDCompositionAnimation *animation) PURE; \
+    STDMETHOD(Set##Channel##Slope)(float slope) PURE; \
+    STDMETHOD(Set##Channel##Disable)(BOOL disable) PURE;
+
+    LINEAR_TRANSFER_CHANNEL(Red)
+    LINEAR_TRANSFER_CHANNEL(Green)
+    LINEAR_TRANSFER_CHANNEL(Blue)
+    LINEAR_TRANSFER_CHANNEL(Alpha)
+#undef LINEAR_TRANSFER_CHANNEL
+
+    STDMETHOD(SetClampOutput)(BOOL clampOutput) PURE;
+};
+
+namespace
+{
+
 // GUID_POWER_SAVING_STATUS: battery saver, DWORD 0 or 1
 constexpr GUID POWER_SAVING_STATUS = { 0xe00958c0, 0xc213, 0x4ace, { 0xac, 0x77, 0xfe, 0xcc, 0xed, 0x2e, 0xee, 0xa5 } };
 // GUID_ENERGY_SAVER_STATUS (Windows 11 24H2): DWORD, 0 when off
@@ -354,11 +385,20 @@ void CompositorDCompositionVideoBlur::onRegionChanged(quintptr key, const VideoB
             HR(m_device->CreateEffectGroup(&region.fade), "create video blur fade");
             HR(m_device->CreateVisual(&region.blurVisual), "create video blur visual");
             HR(m_device->CreateGaussianBlurEffect(&region.blur), "create video blur effect");
+            HR(m_device->CreateLinearTransferEffect(reinterpret_cast<void **>(region.clamp.ReleaseAndGetAddressOf())),
+               "create video blur clamp");
 
             // Hard borders: the blur does not fade to transparent at the
             // edges of the video.
             HR(region.blur->SetBorderMode(D2D1_BORDER_MODE_HARD), "set video blur border mode");
-            HR(region.blurVisual->SetEffect(region.blur.Get()), "set video blur effect");
+            // The video, blurred, then clamped (makeThemeTokens() computes
+            // the Tint over the blur from the clamped range). Opaque, so the
+            // raw video never shows through where the blur is transparent.
+            HR(region.clamp->SetInput(0, region.blur.Get(), 0), "set video blur clamp input");
+            HR(region.clamp->SetClampOutput(TRUE), "set video blur clamp output");
+            HR(region.clamp->SetAlphaSlope(0.f), "set video blur clamp alpha");
+            HR(region.clamp->SetAlphaYIntercept(1.f), "set video blur clamp alpha");
+            HR(region.blurVisual->SetEffect(region.clamp.Get()), "set video blur effect");
             HR(region.clipVisual->SetEffect(region.fade.Get()), "set video blur fade");
             HR(region.blurVisual->SetOffsetX(m_videoPosition.x()), "set video blur offset");
             HR(region.blurVisual->SetOffsetY(m_videoPosition.y()), "set video blur offset");
@@ -378,6 +418,17 @@ void CompositorDCompositionVideoBlur::onRegionChanged(quintptr key, const VideoB
     // the blur fades with its panel, and its strength follows the scale
     it->second.fade->SetOpacity(static_cast<float>(value.opacity));
     it->second.blur->SetStandardDeviation(static_cast<float>(value.deviation));
+
+    // each channel from [0, 1] into [darkest, brightest]
+    DCompLinearTransferEffect *const clamp = it->second.clamp.Get();
+    const float slope = static_cast<float>(value.brightest - value.darkest);
+    const float intercept = static_cast<float>(value.darkest);
+    clamp->SetRedSlope(slope);
+    clamp->SetRedYIntercept(intercept);
+    clamp->SetGreenSlope(slope);
+    clamp->SetGreenYIntercept(intercept);
+    clamp->SetBlueSlope(slope);
+    clamp->SetBlueYIntercept(intercept);
 
     IDCompositionRectangleClip *const clip = it->second.clip.Get();
     const QRectF &rect = value.rect;

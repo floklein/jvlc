@@ -44,13 +44,19 @@ public:
         qreal radius = 0.; // corner radius, device pixels
         qreal opacity = 1.; // the panel's effective opacity, in ]0, 1]
         qreal deviation = 0.; // standard deviation of the blur, device pixels
+        // each color channel of the blurred video, from 0 to 1, is mapped
+        // linearly into [darkest, brightest]
+        qreal darkest = 0.;
+        qreal brightest = 1.;
 
         bool operator==(const Region& other) const
         {
             return rect == other.rect
                 && qFuzzyCompare(radius + 1., other.radius + 1.)
                 && qFuzzyCompare(opacity + 1., other.opacity + 1.)
-                && qFuzzyCompare(deviation + 1., other.deviation + 1.);
+                && qFuzzyCompare(deviation + 1., other.deviation + 1.)
+                && qFuzzyCompare(darkest + 1., other.darkest + 1.)
+                && qFuzzyCompare(brightest + 1., other.brightest + 1.);
         }
     };
 
@@ -116,6 +122,10 @@ class VideoBlur : public QQuickItem
     Q_PROPERTY(qreal radius READ radius WRITE setRadius NOTIFY radiusChanged FINAL)
     // standard deviation of the Gaussian blur, in pixels of the scene
     Q_PROPERTY(qreal deviation READ deviation WRITE setDeviation NOTIFY deviationChanged FINAL)
+    // the blurred video is clamped to [darkest, brightest] (color channels
+    // from 0 to 1), so the Tint over it keeps the text readable
+    Q_PROPERTY(qreal darkest READ darkest WRITE setDarkest NOTIFY darkestChanged FINAL)
+    Q_PROPERTY(qreal brightest READ brightest WRITE setBrightest NOTIFY brightestChanged FINAL)
 
 public:
     explicit VideoBlur(QQuickItem* parent = nullptr);
@@ -130,10 +140,18 @@ public:
     qreal deviation() const { return m_deviation; }
     void setDeviation(qreal deviation);
 
+    qreal darkest() const { return m_darkest; }
+    void setDarkest(qreal darkest);
+
+    qreal brightest() const { return m_brightest; }
+    void setBrightest(qreal brightest);
+
 signals:
     void providerChanged();
     void radiusChanged();
     void deviationChanged();
+    void darkestChanged();
+    void brightestChanged();
 
 protected:
     void itemChange(ItemChange change, const ItemChangeData& value) override;
@@ -151,6 +169,8 @@ private:
     qreal m_radius = 0.;
     // Figma's "background blur 50" is close to a standard deviation of 25
     qreal m_deviation = 25.;
+    qreal m_darkest = 0.;
+    qreal m_brightest = 1.;
     bool m_reported = false;
     VideoBlurProvider::Region m_lastRegion;
 };

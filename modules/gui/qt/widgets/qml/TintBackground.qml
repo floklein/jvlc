@@ -56,6 +56,10 @@ Rectangle {
         radius: root.radius
         deviation: VLCStyle.videoBlurDeviation
 
+        // the Theme keeps the blurred video readable under its Tint
+        darkest: root.colorContext.palette?.videoBlurDarkest ?? 0
+        brightest: root.colorContext.palette?.videoBlurBrightest ?? 1
+
         provider: root.videoBlur ? MainCtx.videoBlurProvider : null
     }
 }
