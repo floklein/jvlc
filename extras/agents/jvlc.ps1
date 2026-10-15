@@ -38,6 +38,8 @@ param(
     [int]$Wait = 5,
     # run: leave VLC running after the screenshot.
     [switch]$Keep,
+    # run: use the real audio output (default --aout=dummy: silent).
+    [switch]$Audio,
     # run: extra VLC arguments (media, options).
     [string[]]$VlcArgs = @()
 )
@@ -380,6 +382,8 @@ function Invoke-Shot {
 function Invoke-Run {
     if ($Platform -eq 'all') { $Platform = 'win64' }
     $common = @('--no-qt-privacy-ask')
+    # silent by default: agents must never play audible sound
+    if (-not $Audio) { $common += '--aout=dummy' }
     $log = Join-Path $Out "run-$Platform.log"
     New-Item -ItemType Directory -Force $Out | Out-Null
     switch ($Platform) {

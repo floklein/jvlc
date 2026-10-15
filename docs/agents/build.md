@@ -101,7 +101,7 @@ Every worktree has the same layout under `/opt/jvlc/w/<key>/` (`src` next to `bu
 
 - `build -Platform win64` ends by installing into `jvlc-shared\builds\<key>\vlc-win64\` (`deploy-win64.sh`). The first time, it runs `meson install --strip` into a staging dir on ext4 and copies the result. Afterwards it copies, stripped, only the installed files whose build output changed, so after `-Qt` only `plugins\gui\libqt_plugin.dll` (and its import library) is copied. It also copies the gcc runtime DLLs `libvlccore.dll` needs.
 - A `portable\` folder sits next to `vlc.exe`, so jVLC keeps its config there instead of `%APPDATA%\vlc`: each worktree has its own. Delete `portable\*` to reset it.
-- `run` starts jVLC with `--no-qt-privacy-ask --no-qt-updates-notif`. The compositor is jVLC's default (`dcomp`). Pass `-VlcArgs '--qt-compositor=dcomp'` to make sure no fallback is used.
+- `run` starts jVLC with `--no-qt-privacy-ask --no-qt-updates-notif` and, unless `-Audio` is given, `--aout=dummy`: it is silent by default. Only pass `-Audio` when a check needs a real audio output, and then mute that process in the volume mixer. The compositor is jVLC's default (`dcomp`). Pass `-VlcArgs '--qt-compositor=dcomp'` to make sure no fallback is used.
 
 ### Tests
 
