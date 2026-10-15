@@ -47,6 +47,7 @@ moc_headers = files(
     'dialogs/preferences/preferences_widgets.hpp',
     'dialogs/convert/conversion_manager.hpp',
     'dialogs/convert/conversion_profile_model.hpp',
+    'dialogs/settings/profiles_model.hpp',
     'dialogs/onboarding/app_onboarding_model.hpp',
     'dialogs/onboarding/onboarding_model.hpp',
     'dialogs/settings/settings_model.hpp',
@@ -239,6 +240,8 @@ qt_plugin_sources = files(
     'dialogs/convert/conversion_manager.hpp',
     'dialogs/convert/conversion_profile_model.cpp',
     'dialogs/convert/conversion_profile_model.hpp',
+    'dialogs/settings/profiles_model.cpp',
+    'dialogs/settings/profiles_model.hpp',
     'dialogs/onboarding/app_onboarding_model.cpp',
     'dialogs/onboarding/app_onboarding_model.hpp',
     'dialogs/onboarding/onboarding_model.cpp',
@@ -619,6 +622,7 @@ qml_modules += {
         'dialogs/dialogs/qml/MessagesWindow.qml',
         'dialogs/dialogs/qml/ModalDialog.qml',
         'dialogs/dialogs/qml/ProgramGuideWindow.qml',
+        'dialogs/dialogs/qml/ProfileRestartNotice.qml',
         'dialogs/dialogs/qml/TextInputDialog.qml',
         'dialogs/dialogs/qml/WindowDialog.qml',
         'dialogs/settings/qml/SettingsDialog.qml',
@@ -2057,6 +2061,29 @@ if qt6_dep.found()
             ),
             'moc_headers': files(
                 'dialogs/settings/settings_model.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore, libvlc],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep],
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_profiles_model',
+            'sources': files(
+                'tests/vlc_stub_modules.cpp',
+                'tests/test_profiles_model.cpp',
+                'dialogs/settings/profiles_model.hpp',
+                'dialogs/settings/profiles_model.cpp',
+                'dialogs/settings/settings_registry.hpp',
+                'dialogs/settings/settings_registry.cpp'
+            ),
+            'moc_sources': files(
+                'tests/test_profiles_model.cpp'
+            ),
+            'moc_headers': files(
+                'dialogs/settings/profiles_model.hpp'
             ),
             'suite': ['qt'],
             'include_directories' : qt_include_dir,

@@ -85,6 +85,9 @@ public:
 
     static void ToolsMenu( qt_intf_t *, QMenu * );
 
+    /* The Profiles, the active one checked, and "New" */
+    static void ProfileMenu( qt_intf_t *, QMenu * );
+
     static void ExtensionsMenu( qt_intf_t *p_intf, QMenu * );
 
     /* Submenus of the right-click menu */

@@ -62,6 +62,7 @@
 #include "menus/menus.hpp"                            // Menu creation
 
 #include "dialogs/toolbar/controlbar_profile_model.hpp"
+#include "dialogs/settings/profiles_model.hpp"
 
 #include <QKeyEvent>
 
@@ -89,6 +90,7 @@
 
 #include <vlc_interface.h>
 #include <vlc_preparser.h>
+#include <vlc_actions.h>
 
 #define VLC_REFERENCE_SCALE_FACTOR 96.
 
@@ -242,6 +244,19 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
 
     /* Controlbar Profile Model Creation */
     m_controlbarProfileModel = new ControlbarProfileModel(p_intf->mainSettings, this);
+
+    /* Profiles: a switch replaces the options and the Qt settings of the
+     * Profile, then the interface reads them again */
+    m_profiles = new ProfilesModel(p_intf, p_intf->mainSettings, this);
+    connect(m_profiles, &ProfilesModel::aboutToSwitch, this, &MainCtx::storeProfileSettings);
+    connect(m_profiles, &ProfilesModel::switched, this, [this]() {
+        loadPrefs(true);
+        loadProfileSettings();
+        m_controlbarProfileModel->reloadOrDefaults();
+        // the keyboard shortcuts of the Profile; global keys need a restart
+        vlc_actions_reload(vlc_object_instance(p_intf));
+        notifyKeyBindingsChanged();
+    });
 
     const QUrl homeUrl = QUrl::fromLocalFile(QVLCUserDir( VLC_HOME_DIR ));
     m_dialogFilepath = getSettings()->value( "filedialog-path", homeUrl ).toUrl();
@@ -557,6 +572,24 @@ void MainCtx::loadFromSettingsImpl(const bool callSignals)
 void MainCtx::reloadPrefs()
 {
     loadPrefs(true);
+}
+
+void MainCtx::storeProfileSettings()
+{
+    settings->setValue( "MainWindow/interface-scale", QString::number( m_intfUserScaleFactor ) );
+    settings->setValue( "MainWindow/color-scheme-index", m_colorScheme->currentIndex() );
+    settings->setValue( "MainWindow/show-waveform", m_showWaveform );
+}
+
+void MainCtx::loadProfileSettings()
+{
+    m_colorScheme->setCurrentIndex( settings->value( "MainWindow/color-scheme-index", 0 ).toInt() );
+
+    // a scale given on the command line wins
+    if ( var_InheritFloat( p_intf, "qt-interface-scale" ) == -1 )
+        setIntfUserScaleFactor( settings->value( "MainWindow/interface-scale", 1.0 ).toDouble() );
+
+    setShowWaveform( settings->value( "MainWindow/show-waveform", true ).toBool() );
 }
 
 void MainCtx::onInputChanged( bool hasInput )

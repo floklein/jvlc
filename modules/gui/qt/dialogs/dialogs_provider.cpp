@@ -29,6 +29,7 @@
 #include <vlc_interface.h>
 #include <vlc_intf_strings.h>
 #include <vlc_preparser.h>
+#include <vlc_configuration.h>
 
 #include "qt.hpp"
 #include "dialogs_provider.hpp"
@@ -57,6 +58,8 @@
 #include <QInputDialog>
 #include <QPointer>
 #include <QMessageBox>
+#include <QProcess>
+#include <QSettings>
 
 #define I_OP_DIR_WINTITLE I_DIR_OR_FOLDER( N_("Open Directory"), \
                                            N_("Open Folder") )
@@ -124,6 +127,27 @@ void DialogsProvider::quit()
     assert(qApp);
     qApp->setProperty("isDying", true);
     libvlc_Quit( vlc_object_instance(p_intf) );
+}
+
+void DialogsProvider::restartVLC()
+{
+    if (b_isDying)
+        return;
+
+    // save now, the new process reads the configuration at once
+    config_SaveConfigFile(p_intf);
+    getSettings()->sync();
+
+    QStringList arguments = QCoreApplication::arguments();
+    if (!arguments.isEmpty())
+        arguments.removeFirst();
+    if (!QProcess::startDetached(QCoreApplication::applicationFilePath(), arguments))
+    {
+        msg_Err(p_intf, "could not restart VLC");
+        return;
+    }
+
+    quit();
 }
 
 void DialogsProvider::customEvent( QEvent *event )

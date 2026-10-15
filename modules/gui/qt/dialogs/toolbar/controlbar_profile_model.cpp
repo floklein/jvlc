@@ -597,6 +597,19 @@ bool ControlbarProfileModel::reload()
     return true;
 }
 
+void ControlbarProfileModel::reloadOrDefaults()
+{
+    if (reload())
+        return;
+
+    // nothing saved: emptying the model brings the built-in Layouts back
+    beginResetModel();
+    m_selectedProfile = -1;
+    qDeleteAll(m_profiles);
+    m_profiles.clear();
+    endResetModel();
+}
+
 bool ControlbarProfileModel::setSelectedProfile(int selectedProfile)
 {
     if (m_selectedProfile == selectedProfile)

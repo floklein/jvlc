@@ -32,6 +32,7 @@
 #include <QTimer>
 
 Q_MOC_INCLUDE( "dialogs/toolbar/controlbar_profile_model.hpp" )
+Q_MOC_INCLUDE( "dialogs/settings/profiles_model.hpp" )
 Q_MOC_INCLUDE( "util/csdbuttonmodel.hpp" )
 Q_MOC_INCLUDE( "playlist/playlist_controller.hpp" )
 Q_MOC_INCLUDE( "maininterface/mainctx_submodels.hpp" )
@@ -59,6 +60,7 @@ struct vlc_window;
 class VideoSurfaceProvider;
 class VideoBlurProvider;
 class ControlbarProfileModel;
+class ProfilesModel;
 class SearchCtx;
 class SortCtx;
 class VLCSystray;
@@ -118,6 +120,7 @@ class MainCtx : public QObject
     Q_PROPERTY(bool pinVideoControls READ pinVideoControls WRITE setPinVideoControls NOTIFY pinVideoControlsChanged FINAL)
     Q_PROPERTY(float pinOpacity READ pinOpacity WRITE setPinOpacity NOTIFY pinOpacityChanged FINAL)
     Q_PROPERTY(ControlbarProfileModel* controlbarProfileModel READ controlbarProfileModel CONSTANT FINAL)
+    Q_PROPERTY(ProfilesModel* profiles READ profiles CONSTANT FINAL)
     Q_PROPERTY(bool hasAcrylicSurface READ hasAcrylicSurface NOTIFY hasAcrylicSurfaceChanged FINAL)
     Q_PROPERTY(bool smoothScroll READ smoothScroll NOTIFY smoothScrollChanged FINAL)
     Q_PROPERTY(QWindow* intfMainWindow READ intfMainWindow CONSTANT FINAL)
@@ -256,6 +259,7 @@ public:
     inline float pinOpacity() const { return m_pinOpacity; }
 
     inline ControlbarProfileModel* controlbarProfileModel() const { return m_controlbarProfileModel; }
+    inline ProfilesModel* profiles() const { return m_profiles; }
     inline QUrl getDialogFilePath() const { return m_dialogFilepath; }
     inline void setDialogFilePath(const QUrl& filepath ){ m_dialogFilepath = filepath; }
     inline bool hasAcrylicSurface() const { return m_hasAcrylicSurface; }
@@ -519,6 +523,7 @@ protected:
     VLCVarChoiceModel* m_extraInterfaces = nullptr;
 
     ControlbarProfileModel* m_controlbarProfileModel = nullptr;
+    ProfilesModel* m_profiles = nullptr;
 
     bool m_hasAcrylicSurface = false;
     bool m_acrylicActive = false;
@@ -693,6 +698,9 @@ signals:
 private:
     void loadPrefs(bool callSignals);
     void loadFromSettingsImpl(bool callSignals);
+    // the Theme, scale and Show waveform of the active Profile, to and from the Qt settings
+    void storeProfileSettings();
+    void loadProfileSettings();
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(MainCtx::MainInterfaceModes)

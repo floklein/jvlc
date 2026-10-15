@@ -267,6 +267,27 @@ private slots:
         QCOMPARE(restartSpy.count(), 2);
     }
 
+    // a switch of Profile changes the options behind the rows
+    void testRefreshShowsTheOtherProfile()
+    {
+        Row row = configRow("stats", "general", {"stats"});
+        row.effect = SettingsModel::Restart;
+        m_model->addRow(row);
+        QCOMPARE(m_model->profileName(), QStringLiteral("Default"));
+
+        QSignalSpy nameSpy(m_model.get(), &SettingsModel::profileNameChanged);
+        m_model->setProfileName("Movies");
+        QCOMPARE(m_model->profileName(), QStringLiteral("Movies"));
+        QCOMPARE(nameSpy.count(), 1);
+
+        QSignalSpy dataSpy(m_model.get(), &QAbstractItemModel::dataChanged);
+        config_PutInt("stats", 0);
+        m_model->refresh();
+        QCOMPARE(dataSpy.count(), 1);
+        QVERIFY(m_model->restartRequired());
+        QCOMPARE(role("stats", SettingsModel::ValueRole).toBool(), false);
+    }
+
     void testSettingsStoreRow()
     {
         Row row;
@@ -612,6 +633,32 @@ private slots:
         QCOMPARE(role("network-caching", SettingsModel::GroupRole).toString(), QString());
         QCOMPARE(role("qt-embedded-open", SettingsModel::PageRole).toString(), QStringLiteral("interface"));
         QCOMPARE(role("qt-embedded-open", SettingsModel::GroupRole).toString(), QString());
+    }
+
+    void testRegistryTellsWhichOptionsNeedARestart()
+    {
+        using namespace SettingsRegistry;
+        const auto effect = [](const SettingsOption& option) { return place(option).effect; };
+
+        // the interface reads most of its options when it starts...
+        QCOMPARE(effect(option("qt-system-tray", "qt", "Qt interface", SUBCAT_INTERFACE_MAIN)), EffectRestart);
+        QCOMPARE(effect(option("lua-intf", "lua", "Lua", SUBCAT_INTERFACE_MAIN)), EffectRestart);
+        // ... but reloads these at once (MainCtx::reloadPrefs)
+        QCOMPARE(effect(option("qt-accent-color", "qt", "Qt interface", SUBCAT_INTERFACE_MAIN,
+                               CONFIG_ITEM_STRING)), EffectImmediate);
+        QCOMPARE(effect(option("qt-pin-controls", "qt", "Qt interface", SUBCAT_INTERFACE_MAIN)), EffectImmediate);
+        QCOMPARE(effect(option("video-on-top", "core", 0, SUBCAT_VIDEO_GENERAL)), EffectImmediate);
+        QCOMPARE(effect(option("mouse-hide-timeout", "core", 0, SUBCAT_VIDEO_GENERAL,
+                               CONFIG_ITEM_INTEGER)), EffectImmediate);
+
+        // the core key map is reloaded, the global hotkeys module reads its
+        // keys once
+        QCOMPARE(effect(option("key-play-pause", "core", 0, SUBCAT_INTERFACE_HOTKEYS, CONFIG_ITEM_KEY)), EffectImmediate);
+        QCOMPARE(effect(option("global-key-play-pause", "core", 0, SUBCAT_INTERFACE_HOTKEYS, CONFIG_ITEM_KEY)), EffectRestart);
+
+        // decoders, outputs and filters read theirs when a file opens
+        QCOMPARE(effect(option("freetype-font", "freetype", "Text renderer", SUBCAT_VIDEO_SUBPIC,
+                               CONFIG_ITEM_FONT)), EffectNextFile);
     }
 
     void testRegistryHidesCommandLineAndCaptureOptions()

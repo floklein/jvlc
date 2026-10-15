@@ -24,18 +24,17 @@
 
 #include "maininterface/mainctx.hpp"
 #include "dialogs/dialogs_provider.hpp"
+#include "dialogs/settings/profiles_model.hpp"
 #include "dialogs/shortcuts/app_shortcuts_model.hpp"
 #include "style/accent_colors.hpp"
 #include "util/color_scheme_model.hpp"
 #include "util/vlchotkeyconverter.hpp"
 
-#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QGuiApplication>
-#include <QProcess>
 #include <QScreen>
 #include <QSettings>
 
@@ -227,6 +226,16 @@ void AppSettingsModel::setCtx(MainCtx* ctx)
     setStateSettings(getSettings());
     addAdvancedRows(SettingsRegistry::options());
     addResetRow();
+
+    /* the settings shown are those of the active Profile */
+    if (ProfilesModel* profiles = ctx->profiles())
+    {
+        setProfileName(profiles->activeName());
+        connect(profiles, &ProfilesModel::activeChanged, this, [this, profiles]() {
+            setProfileName(profiles->activeName());
+        });
+        connect(profiles, &ProfilesModel::switched, this, &SettingsModel::refresh);
+    }
 
     emit ctxChanged();
 }
@@ -650,22 +659,5 @@ QString AppSettingsModel::browseDirectory(const QString& title, const QString& c
 
 void AppSettingsModel::restartVLC()
 {
-    qt_intf_t* p_intf = intf();
-    if (!p_intf)
-        return;
-
-    // save now, the new process reads the configuration at once
-    config_SaveConfigFile(p_intf);
-    getSettings()->sync();
-
-    QStringList arguments = QCoreApplication::arguments();
-    if (!arguments.isEmpty())
-        arguments.removeFirst();
-    if (!QProcess::startDetached(QCoreApplication::applicationFilePath(), arguments))
-    {
-        msg_Err(p_intf, "could not restart VLC");
-        return;
-    }
-
-    THEDP->quit();
+    THEDP->restartVLC();
 }

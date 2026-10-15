@@ -41,6 +41,7 @@
 #include "player/waveform.hpp"                               /* Show waveform */
 #include "playlist/playlist_controller.hpp"
 #include "dialogs/extensions/extensions_manager.hpp"                 /* Extensions menu */
+#include "dialogs/settings/profiles_model.hpp"                       /* Profile menu */
 #include "util/varchoicemodel.hpp"
 #include "util/vlchotkeyconverter.hpp"
 #include "util/glyph_icon.hpp"
@@ -109,6 +110,12 @@ QMenu *addSubmenu( QMenu *menu, const QString &title, QAbstractListModel *model,
     QMenu *submenu = new CheckableListMenu( title, model, policy, menu );
     menu->addMenu( submenu );
     return submenu;
+}
+
+/* a user's text in a menu: '&' is not a mnemonic */
+QString escapeMenuText( QString text )
+{
+    return text.replace( QLatin1Char( '&' ), QLatin1String( "&&" ) );
 }
 
 /* run a core hotkey action, as its key would */
@@ -227,12 +234,15 @@ void VLCMenuBar::VLCMenuEntries( qt_intf_t *p_intf, QMenu *menu )
     menu->addSeparator();
 
     /* Customization */
-    QMenu *profileMenu = new QMenu( qtr( "&Profile (%1)" ).arg( qtr( "Default" ) ), menu );
-    action = profileMenu->addAction( qtr( "Default" ) );
-    action->setCheckable( true );
-    action->setChecked( true );
-    action = menu->addMenu( profileMenu );
-    setIcon( action, menu, VLCIcons::profile_tt_base, VLCIcons::profile_tt_accent );
+    if( mi && mi->profiles() )
+    {
+        QMenu *profileMenu = new QMenu( qtr( "&Profile (%1)" )
+                                        .arg( escapeMenuText( mi->profiles()->activeName() ) ),
+                                        menu );
+        ProfileMenu( p_intf, profileMenu );
+        action = menu->addMenu( profileMenu );
+        setIcon( action, menu, VLCIcons::profile_tt_base, VLCIcons::profile_tt_accent );
+    }
 
     action = addEntry( p_intf, menu, qtr( "&Keyboard Shortcuts..." ), nullptr,
                        []() { THEDP->keyboardShortcutsDialog(); } );
@@ -267,6 +277,40 @@ void VLCMenuBar::VLCMenuEntries( qt_intf_t *p_intf, QMenu *menu )
                        []() { THEDP->quit(); } );
     action->setMenuRole( QAction::QuitRole );
     setIcon( action, menu, VLCIcons::quit_tt_base, VLCIcons::quit_tt_accent );
+}
+
+/**
+ * Profile: switch to another Profile, or create one from the active one
+ **/
+void VLCMenuBar::ProfileMenu( qt_intf_t *p_intf, QMenu *menu )
+{
+    MainCtx *mi = p_intf->p_mi;
+    if( !mi || !mi->profiles() )
+        return;
+
+    QPointer<ProfilesModel> profiles = mi->profiles();
+    QActionGroup *group = new QActionGroup( menu );
+    for( int i = 0; i < profiles->rowCount(); ++i )
+    {
+        const QModelIndex index = profiles->index( i );
+        const QString id = index.data( ProfilesModel::IdRole ).toString();
+
+        QAction *action = menu->addAction(
+            escapeMenuText( index.data( ProfilesModel::NameRole ).toString() ) );
+        action->setCheckable( true );
+        action->setChecked( index.data( ProfilesModel::ActiveRole ).toBool() );
+        action->setActionGroup( group );
+        QObject::connect( action, &QAction::triggered, menu, [profiles, id]() {
+            if( profiles )
+                profiles->activate( id );
+        } );
+    }
+
+    menu->addSeparator();
+
+    QAction *action = addEntry( p_intf, menu, qtr( "&New..." ), nullptr,
+                                []() { THEDP->showNewProfileDialog(); } );
+    setIcon( action, menu, VLCIcons::add, QChar() );
 }
 
 /**

@@ -211,6 +211,18 @@ QString pageOfSubcategory(int subcategory)
     }
 }
 
+/* Options the interface applies as soon as they change: MainCtx reads
+ * them again (reloadPrefs), or they are read when used, or they only say
+ * how VLC starts. */
+bool appliesLive(const QString& name)
+{
+    return isOneOf(name, { "qt-accent-color", "qt-bgcone", "qt-titlebar", "qt-smooth-scrolling",
+                           "qt-max-volume", "qt-pin-controls", "qt-play-adds-to-queue",
+                           "qt-fs-opacity", "qt-safe-area", "qt-reduce-motion", "qt-error-dialogs",
+                           "qt-fullscreen-screennumber", "qt-minimal-view", "qt-start-minimized",
+                           "video-on-top", "mouse-hide-timeout" });
+}
+
 bool isDeveloperOption(const QString& name)
 {
     return isOneOf(name, { "qt-qmljsdebugger", "qt-verbose", "ml-verbose", "tracer",
@@ -245,9 +257,13 @@ Placement place(const SettingsOption& option)
 
     if (option.type == CONFIG_ITEM_KEY)
     {
-        // the global keys belong to the Keyboard Shortcuts editor only
+        // the global keys belong to the Keyboard Shortcuts editor only;
+        // the global hotkeys module reads them once
         if (option.name.startsWith(QLatin1String("global-")))
+        {
+            placement.effect = EffectRestart;
             return placement;
+        }
         placement.page = QStringLiteral("controls");
         placement.section = qtr("Keyboard shortcuts");
         placement.shortcut = true;
@@ -279,7 +295,9 @@ Placement place(const SettingsOption& option)
     /* The interfaces and the core's own options are read when VLC starts,
      * the others when a file opens its decoders, outputs and filters. */
     const QString modulePage = pageOfModule(option.module);
-    if (option.module == QLatin1String("qt") || option.module == QLatin1String("lua")
+    if (appliesLive(option.name))
+        placement.effect = EffectImmediate;
+    else if (option.module == QLatin1String("qt") || option.module == QLatin1String("lua")
         || modulePage == QLatin1String("general") || modulePage == QLatin1String("controls")
         || (option.subcategory >= SUBCAT_INTERFACE_GENERAL && option.subcategory <= SUBCAT_INTERFACE_HOTKEYS)
         || option.subcategory == SUBCAT_ADVANCED_MISC || option.subcategory == SUBCAT_PLAYLIST_SD)

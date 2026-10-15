@@ -222,6 +222,10 @@ public:
 
     bool restartRequired() const;
     QString profileName() const;
+    void setProfileName(const QString& name);
+
+    // the values changed elsewhere, such as by a switch of Profile
+    void refresh();
 
     // saving the configuration file, replaceable by tests
     void setSaveFunction(std::function<void()> save);

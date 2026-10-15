@@ -384,6 +384,34 @@ private slots:
         QVERIFY(video->left()->contains(C::TITLE_WIDGET));
     }
 
+    // a switch of Profile puts other saved Layouts in place, or none
+    void testReloadOrDefaultsFollowsTheSettings()
+    {
+        QSettings settings(newSettingsPath(), QSettings::IniFormat);
+        ControlbarProfileModel model(&settings);
+        QTRY_COMPARE(model.rowCount(), 2);
+
+        model.setSelectedProfile(1);
+        model.save();
+        model.setSelectedProfile(0);
+
+        // saved Layouts are read again
+        model.reloadOrDefaults();
+        QCOMPARE(model.selectedProfile(), 1);
+        QVERIFY(!model.dirty());
+
+        // without any, the built-in ones come back
+        PlayerControlbarModel* video = model.currentModel()->getModel(P::Videoplayer);
+        QVERIFY(video->removeControl(video->right(), 0));
+        settings.remove(QStringLiteral("PlayerLayouts"));
+        model.reloadOrDefaults();
+        QCOMPARE(model.rowCount(), 2);
+        QCOMPARE(model.data(model.index(1), Qt::DisplayRole).toString(), QStringLiteral("Two-row"));
+        QCOMPARE(model.selectedProfile(), 0);
+        QVERIFY(model.currentModel()->getModel(P::Videoplayer)->right()->contains(C::VOLUME));
+        QVERIFY(!model.dirty());
+    }
+
     // a hand-edited or broken configuration still follows the rules
     void testLoadingRepairsTheRules()
     {

@@ -73,6 +73,7 @@
 #include "dialogs/dialogs_provider.hpp"
 #include "dialogs/dialogs/dialogmodel.hpp"
 #include "dialogs/settings/settings_pages.hpp"
+#include "dialogs/settings/profiles_model.hpp"
 #include "dialogs/shortcuts/app_shortcuts_model.hpp"
 #include "dialogs/onboarding/app_onboarding_model.hpp"
 #include "dialogs/capture/open_capture_model.hpp"
@@ -313,6 +314,7 @@ void MainUI::registerQMLTypes()
         assert(DialogErrorModel::getInstance<false>());
         qmlRegisterSingletonInstance<DialogErrorModel>(uri, versionMajor, versionMinor, "DialogErrorModel", DialogErrorModel::getInstance<false>());
         qmlRegisterType<AppSettingsModel>(uri, versionMajor, versionMinor, "SettingsModel");
+        qmlRegisterUncreatableType<ProfilesModel>(uri, versionMajor, versionMinor, "ProfilesModel", "");
         qmlRegisterType<SettingsFilterModel>(uri, versionMajor, versionMinor, "SettingsFilterModel");
         qmlRegisterType<AppShortcutsModel>(uri, versionMajor, versionMinor, "ShortcutsModel");
         qmlRegisterType<ShortcutsFilterModel>(uri, versionMajor, versionMinor, "ShortcutsFilterModel");

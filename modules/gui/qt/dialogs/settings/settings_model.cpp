@@ -882,6 +882,21 @@ QString SettingsModel::profileName() const
     return m_profileName;
 }
 
+void SettingsModel::setProfileName(const QString& name)
+{
+    if (name == m_profileName)
+        return;
+    m_profileName = name;
+    emit profileNameChanged();
+}
+
+void SettingsModel::refresh()
+{
+    if (!m_entries.isEmpty())
+        emit dataChanged(index(0), index(m_entries.count() - 1));
+    updateRestartRequired();
+}
+
 void SettingsModel::setSaveFunction(std::function<void()> save)
 {
     m_save = std::move(save);

@@ -249,6 +249,8 @@ public slots:
     void loadVideoFile();
 
     void quit();
+    // save the settings, quit, then start VLC again with the same arguments
+    void restartVLC();
 
 public:
     bool extendedDialogVisible() const;
@@ -258,6 +260,8 @@ public:
 signals:
     void releaseMouseEvents();
     void showToolbarEditorDialog();
+    // asks the name of a new Profile, copy of the active one
+    void showNewProfileDialog();
     void showSettingsDialog(const QString& page, bool advanced);
     void hideSettingsDialog();
     void showKeyboardShortcutsDialog(const QString& action);

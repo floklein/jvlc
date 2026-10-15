@@ -115,6 +115,8 @@ libqt_plugin_la_SOURCES = \
 	dialogs/convert/conversion_manager.hpp \
 	dialogs/convert/conversion_profile_model.cpp \
 	dialogs/convert/conversion_profile_model.hpp \
+	dialogs/settings/profiles_model.cpp \
+	dialogs/settings/profiles_model.hpp \
 	dialogs/onboarding/app_onboarding_model.cpp \
 	dialogs/onboarding/app_onboarding_model.hpp \
 	dialogs/onboarding/onboarding_model.cpp \
@@ -427,6 +429,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	dialogs/preferences/preferences_widgets.moc.cpp \
 	dialogs/convert/conversion_manager.moc.cpp \
 	dialogs/convert/conversion_profile_model.moc.cpp \
+	dialogs/settings/profiles_model.moc.cpp \
 	dialogs/onboarding/app_onboarding_model.moc.cpp \
 	dialogs/onboarding/onboarding_model.moc.cpp \
 	dialogs/settings/settings_model.moc.cpp \
@@ -1029,6 +1032,7 @@ libqml_module_dialogs_a_QML = \
 	dialogs/dialogs/qml/ErrorNotice.qml \
 	dialogs/dialogs/qml/MessagesWindow.qml \
 	dialogs/dialogs/qml/ModalDialog.qml \
+	dialogs/dialogs/qml/ProfileRestartNotice.qml \
 	dialogs/dialogs/qml/ProgramGuideWindow.qml \
 	dialogs/dialogs/qml/TextInputDialog.qml \
 	dialogs/dialogs/qml/WindowDialog.qml \
@@ -2474,6 +2478,27 @@ test_settings_model_LDADD = $(QT_QTEST_COMMON_ldadd)
 test_settings_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_settings_model
 TESTS += test_settings_model
+
+# test_profiles_model
+
+test_profiles_model_SOURCES = \
+	tests/vlc_stub_modules.cpp tests/vlc_stub_modules.hpp \
+	tests/test_profiles_model.cpp \
+	dialogs/settings/profiles_model.cpp dialogs/settings/profiles_model.hpp \
+	dialogs/settings/settings_registry.cpp dialogs/settings/settings_registry.hpp
+
+nodist_test_profiles_model_SOURCES = \
+	tests/test_profiles_model.moc \
+	dialogs/settings/profiles_model.moc.cpp
+
+BUILT_SOURCES += tests/test_profiles_model.moc
+CLEANFILES += tests/test_profiles_model.moc
+test_profiles_model_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_profiles_model_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_profiles_model_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_profiles_model_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_profiles_model
+TESTS += test_profiles_model
 
 # test_media_properties_model
 

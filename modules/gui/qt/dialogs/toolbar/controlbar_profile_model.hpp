@@ -108,6 +108,8 @@ public:
 public slots:
     void save(bool clearDirty = true) const;
     bool reload();
+    // the saved Layouts, or the built-in ones when none are saved
+    void reloadOrDefaults();
 
     bool setSelectedProfile(int selectedProfile);
 

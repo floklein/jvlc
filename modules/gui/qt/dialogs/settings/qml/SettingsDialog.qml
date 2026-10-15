@@ -369,7 +369,8 @@ Window {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: VLCStyle.dp(52, VLCStyle.scale)
-            visible: appSettings.restartRequired
+            // a switch of Profile can need one too
+            visible: appSettings.restartRequired || (MainCtx.profiles?.restartRequired ?? false)
             color: theme.bg.secondary
 
             Accessible.role: Accessible.AlertMessage

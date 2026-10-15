@@ -170,6 +170,43 @@ Item {
         z: 10
     }
 
+    // after a switch of Profile that needs a restart
+    ProfileRestartNotice {
+        anchors {
+            horizontalCenter: parent.horizontalCenter
+            bottom: parent.bottom
+            // above the Control bar
+            bottomMargin: VLCStyle.dp(120, VLCStyle.scale)
+        }
+
+        z: 10
+    }
+
+    // VLC menu > Profile > New: the new Profile copies the active one
+    TextInputDialog {
+        id: newProfileDialog
+
+        rootWindow: root.bgContent
+
+        acceptText: qsTr("Create")
+        placeholderText: qsTr("e.g., Movies")
+        validate: (text) => MainCtx.profiles.isNameAvailable(text) ? ""
+                                                                    : qsTr("A profile with this name already exists.")
+
+        onAboutToHide: restoreFocus()
+
+        Connections {
+            target: DialogsProvider
+
+            function onShowNewProfileDialog() {
+                newProfileDialog.ask(qsTr("New Profile"),
+                                     qsTr("It starts as a copy of %1.").arg(MainCtx.profiles.activeName),
+                                     "",
+                                     (name) => MainCtx.profiles.create(name))
+            }
+        }
+    }
+
     // VLC's own prompts stay modal
 
     ModalDialog {

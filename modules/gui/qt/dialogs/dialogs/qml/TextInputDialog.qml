@@ -34,6 +34,12 @@ ModalDialog {
     property string acceptText: qsTr("OK")
     // whether an empty text can be accepted
     property bool acceptEmpty: false
+    // optional check of the text: function (text) returning why it can't
+    // be accepted, or "" when it can
+    property var validate: null
+
+    readonly property string _error: (validate && field.text.trim() !== "") ? validate(field.text) : ""
+    readonly property bool _acceptable: (acceptEmpty || field.text.trim() !== "") && _error === ""
 
     property var _onAccepted: null
 
@@ -48,7 +54,7 @@ ModalDialog {
     }
 
     function _accept() {
-        if (!acceptEmpty && field.text.trim() === "")
+        if (!_acceptable)
             return
         const callback = root._onAccepted
         root._onAccepted = null
@@ -161,6 +167,18 @@ ModalDialog {
 
             onAccepted: root._accept()
         }
+
+        T.Label {
+            visible: text !== ""
+            text: root._error
+            color: contentTheme.fg.secondary
+            font.pixelSize: VLCStyle.fontSize_normal
+            wrapMode: Text.Wrap
+            Layout.fillWidth: true
+
+            Accessible.role: Accessible.AlertMessage
+            Accessible.name: text
+        }
     }
 
     footer: RowLayout {
@@ -185,7 +203,7 @@ ModalDialog {
 
         Widgets.ButtonExt {
             text: root.acceptText
-            enabled: root.acceptEmpty || field.text.trim() !== ""
+            enabled: root._acceptable
             colorContext.colorSet: ColorContext.ButtonAccent
             radius: VLCStyle.radius_normal
             Layout.preferredWidth: VLCStyle.dp(100, VLCStyle.scale)
