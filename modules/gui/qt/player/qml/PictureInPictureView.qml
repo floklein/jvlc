@@ -62,6 +62,20 @@ FocusScope {
         colorSet: ColorContext.Badge
     }
 
+    // a disc of blurred video under the Tint beneath a hover button, only
+    // where the compositor draws the Video blur
+    component ButtonBlur : Widgets.TintBackground {
+        required property Item button
+
+        x: button.x
+        y: button.y
+        width: button.width
+        height: button.height
+        radius: Math.min(width, height) / 2
+
+        visible: videoBlur
+    }
+
     function backToFullWindow() {
         MainCtx.pictureInPicture = false
     }
@@ -232,6 +246,11 @@ FocusScope {
             anchors.fill: parent
             color: badgeTheme.shadow.alpha(0.35)
         }
+
+        // the Video blur beneath each button, where the compositor draws it
+        ButtonBlur { button: backButton; colorContext: theme }
+        ButtonBlur { button: closeButton; colorContext: theme }
+        ButtonBlur { button: playButton; colorContext: theme }
 
         Widgets.IconButton {
             id: backButton
