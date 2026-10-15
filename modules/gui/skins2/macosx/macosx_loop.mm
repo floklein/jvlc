@@ -189,7 +189,7 @@ void MacOSXLoop::run()
 
             // Application menu
             NSMenuItem *appMenuItem = [[NSMenuItem alloc] init];
-            NSMenu *appMenu = [[NSMenu alloc] initWithTitle:@"VLC"];
+            NSMenu *appMenu = [[NSMenu alloc] initWithTitle:@"jVLC"];
             [appMenu addItemWithTitle:_NS("About")
                                action:@selector(orderFrontStandardAboutPanel:)
                         keyEquivalent:@""];

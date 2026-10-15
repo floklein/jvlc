@@ -33,7 +33,7 @@ QtObject {
     readonly property var controlList: [
         { id: ControlListModel.WIDGET_SPACER, file: "SpacerWidget.qml", label: VLCIcons.space, text: qsTr("Spacer") },
         { id: ControlListModel.DIVIDER, file: "DividerWidget.qml", label: "", text: qsTr("Divider") },
-        { id: ControlListModel.VLC_MENU_BUTTON, file: "VlcMenuButton.qml", label: VLCIcons.more, text: qsTr("VLC menu") },
+        { id: ControlListModel.VLC_MENU_BUTTON, file: "VlcMenuButton.qml", label: VLCIcons.more, text: qsTr("jVLC menu") },
         { id: ControlListModel.LIBRARY_BUTTON, file: "LibraryButton.qml", label: VLCIcons.sidebar_left, text: qsTr("Library") },
         { id: ControlListModel.FOLDER_BUTTON, file: "FolderButton.qml", label: VLCIcons.folder, text: qsTr("Folder name") },
         { id: ControlListModel.TITLE_WIDGET, file: "TitleWidget.qml", label: VLCIcons.info, text: qsTr("Title") },

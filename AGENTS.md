@@ -1,6 +1,6 @@
 ## Build and test
 
-Build, test and launch VLC on Windows and Linux with `extras\agents\jvlc.ps1` only. Builds are capped at 4 jobs per agent. See `docs/agents/build.md`.
+Build, test and launch jVLC on Windows and Linux with `extras\agents\jvlc.ps1` only. Builds are capped at 4 jobs per agent. See `docs/agents/build.md`.
 
 ## Agent skills
 

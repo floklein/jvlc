@@ -151,7 +151,7 @@ int main(int i_argc, const char *ppsz_argv[])
 #ifndef ALLOW_RUN_AS_ROOT
     if (geteuid() == 0)
     {
-        fprintf(stderr, "VLC is not supposed to be run as root. Sorry.\n"
+        fprintf(stderr, "jVLC is not supposed to be run as root. Sorry.\n"
         "If you need to use real-time priorities and/or privileged TCP ports\n"
         "you can use %s-wrapper (make sure it is Set-UID root and\n"
         "cannot be run by non-trusted users first).\n", ppsz_argv[0]);
@@ -164,7 +164,7 @@ int main(int i_argc, const char *ppsz_argv[])
     if (isatty(STDERR_FILENO))
         /* This message clutters error logs. It is printed only on a TTY.
          * Fortunately, LibVLC prints version info with -vv anyway. */
-        fprintf(stderr, "VLC media player %s (revision %s)\n",
+        fprintf(stderr, "jVLC media player %s (revision %s)\n",
                  libvlc_get_version(), libvlc_get_changeset());
 
     sigset_t set;
@@ -293,7 +293,7 @@ int main(int i_argc, const char *ppsz_argv[])
 
 
         if (libvlc_InternalAddIntf(vlc->p_libvlc_int, NULL)) {
-            fprintf(stderr, "VLC cannot start any interface. Exiting.\n");
+            fprintf(stderr, "jVLC cannot start any interface. Exiting.\n");
             libvlc_SetExitHandler(vlc->p_libvlc_int, NULL, NULL);
             dispatch_sync(dispatch_get_main_queue(), ^{
                 intf_started = false;

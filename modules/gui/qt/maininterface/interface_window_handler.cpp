@@ -87,7 +87,7 @@ InterfaceWindowHandler::InterfaceWindowHandler(qt_intf_t *_p_intf, MainCtx* main
             m_window->hide();
     }, Qt::QueuedConnection);
 
-    /* the taskbar and window switcher title: "Title · VLC" while playing */
+    /* the taskbar and window switcher title: "Title · jVLC" while playing */
     m_window->setTitle( WindowChrome::windowTitle( {} ) );
 
     if( var_InheritBool( p_intf, "qt-name-in-title" ) )

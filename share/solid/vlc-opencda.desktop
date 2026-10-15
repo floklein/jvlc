@@ -4,8 +4,8 @@ Type=Service
 Actions=open;
 
 [Desktop Action open]
-Name=Open with VLC media player
-Name[fr]=Ouvrir avec Lecteur multimédia VLC
+Name=Open with jVLC media player
+Name[fr]=Ouvrir avec Lecteur multimédia jVLC
 Exec=vlc cdda://%d
 Icon=vlc
 

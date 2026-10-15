@@ -1,6 +1,6 @@
-# VLC Redesign
+# jVLC
 
-The vocabulary of the redesigned VLC desktop interface, as seen by the person watching or listening.
+The vocabulary of the jVLC desktop interface, as seen by the person watching or listening.
 
 ## Language
 
@@ -25,11 +25,11 @@ A network address the user has opened or saved, listed in the library's Network 
 _Avoid_: Bookmark, favorite stream, URL history
 
 **Cast**:
-Sending what is playing to another device on the network, such as a Chromecast, instead of playing it in VLC.
+Sending what is playing to another device on the network, such as a Chromecast, instead of playing it in jVLC.
 _Avoid_: Render, renderer, stream (for this meaning)
 
 **Conversion profile**:
-A named set of output format, codecs and quality settings that Convert uses to turn files into another format; VLC ships ready-made ones and the user can add custom ones.
+A named set of output format, codecs and quality settings that Convert uses to turn files into another format; jVLC ships ready-made ones and the user can add custom ones.
 _Avoid_: Profile (for this meaning), transcoding profile, preset
 
 **Conversions**:
@@ -41,7 +41,7 @@ The short welcome sequence on first start that sets library folders, Theme, Acce
 _Avoid_: First-run wizard, setup assistant, tour
 
 **Picture-in-picture**:
-The whole VLC window shrunk into a small always-on-top video (or cover art) for watching while using other apps.
+The whole jVLC window shrunk into a small always-on-top video (or cover art) for watching while using other apps.
 _Avoid_: Mini player, PiP window, floating player
 
 **Pin**:
@@ -81,7 +81,7 @@ A blurred copy of the playing video shown beneath the Tint of panels over the vi
 _Avoid_: Acrylic, glass, backdrop
 
 **Top bar**:
-The strip across the top of the window holding the VLC menu, library toggle, folder button, media title and window controls.
+The strip across the top of the window holding the jVLC menu, library toggle, folder button, media title and window controls.
 _Avoid_: Title bar, menu bar, header
 
 **Control bar**:
@@ -97,7 +97,7 @@ A named bundle of all preferences, Theme, Accent color, scale and Layouts that t
 _Avoid_: Preset, configuration, Layout
 
 **Settings**:
-The window of all of VLC's preferences, grouped into categories, each showing basic options first and Advanced Options below.
+The window of all of jVLC's preferences, grouped into categories, each showing basic options first and Advanced Options below.
 _Avoid_: Preferences, options, simple/all settings
 
 **Track menu**:
@@ -108,7 +108,7 @@ _Avoid_: Track selector, quick menu
 The right-hand panel with Playback, Video, Audio and Subtitles tabs for live adjustments such as delays, filters, speed and subtitle appearance.
 _Avoid_: Effects dialog, adjustments and effects, settings panel
 
-**VLC menu**:
+**jVLC menu**:
 The "…" menu at the left of the Top bar, holding the open actions, Profiles, customization, Settings and app-level items.
 _Avoid_: Main menu, hamburger menu, menu bar
 

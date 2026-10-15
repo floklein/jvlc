@@ -32,12 +32,12 @@ private slots:
     void testWindowTitleWhilePlaying()
     {
         QCOMPARE(windowTitle(QStringLiteral("The Wand S01E02")),
-                 QStringLiteral("The Wand S01E02 · VLC"));
+                 QStringLiteral("The Wand S01E02 · jVLC"));
     }
 
     void testWindowTitleWhenNothingPlays()
     {
-        QCOMPARE(windowTitle(QString()), QStringLiteral("VLC"));
+        QCOMPARE(windowTitle(QString()), QStringLiteral("jVLC"));
     }
 
     // GNOME: org.gnome.desktop.wm.preferences button-layout, as gsettings prints it

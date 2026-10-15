@@ -231,7 +231,7 @@ WindowDialog {
                             if (m.streamable) caps.push(qsTr("Streamable"))
                             let text = qsTr("Supports: %1").arg(caps.join(", "))
                             if (m.external)
-                                text += "\n" + qsTr("This format is not provided by VLC itself: it could be missing.")
+                                text += "\n" + qsTr("This format is not provided by jVLC itself: it could be missing.")
                             else if (!m.available)
                                 text += "\n" + qsTr("This format is missing: converting with this profile will fail.")
                             return text

@@ -31,8 +31,8 @@ class QObject;
 namespace WindowChrome
 {
 
-// the taskbar and window switcher title: "Title · VLC" while something
-// plays, "VLC" otherwise
+// the taskbar and window switcher title: "Title · jVLC" while something
+// plays, "jVLC" otherwise
 QString windowTitle( const QString &mediaTitle );
 
 // the side of the title bar holding the window buttons

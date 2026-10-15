@@ -376,7 +376,7 @@ Window {
                     implicitWidth: VLCStyle.icon_normal
                     implicitHeight: VLCStyle.icon_normal
                     description: qsTr("Global keys work even when another app is in front. "
-                                      + "Changes to them apply after VLC restarts.")
+                                      + "Changes to them apply after jVLC restarts.")
                 }
 
                 Item { Layout.fillWidth: true }

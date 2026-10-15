@@ -650,7 +650,7 @@ void SettingsModel::addAdvancedRows(const QVector<SettingsOption>& options)
                 filter.id = QStringLiteral("filter:") + group.id;
                 filter.page = pageId;
                 filter.label = qtr("Use this filter");
-                filter.help = qtr("Adds “%1” to the filters VLC applies.").arg(group.label);
+                filter.help = qtr("Adds “%1” to the filters jVLC applies.").arg(group.label);
                 filter.advanced = true;
                 filter.group = group.id;
                 filter.groupLabel = group.label;

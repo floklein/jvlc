@@ -26,9 +26,9 @@ extras\agents\jvlc.ps1 clean                    # drop this worktree's build sta
 - `build -Target <meson target>...` builds only those targets. `-Qt` is short for `-Target qt_plugin`.
 - `build -Reconfigure` re-runs `meson setup`. Ninja re-runs it by itself when a `meson.build` changes, so you rarely need this.
 - `test` syncs your changes and rebuilds what the tests need, so it does not need a `build` first. A worktree still needs one `build` before its first `test` or `run`.
-- `run` starts VLC, waits for its window, waits `-Wait` seconds (default 5), saves a PNG of the window if `-Shot` is given, then closes VLC. `-Keep` leaves it open. `-VlcArgs` passes media or options, for example `-VlcArgs 'C:\clips\a.mkv'` or `-VlcArgs '--qt-compositor=win7'`.
+- `run` starts jVLC, waits for its window, waits `-Wait` seconds (default 5), saves a PNG of the window if `-Shot` is given, then closes jVLC. `-Keep` leaves it open. `-VlcArgs` passes media or options, for example `-VlcArgs 'C:\clips\a.mkv'` or `-VlcArgs '--qt-compositor=win7'`.
 - `run` and `shot` do not rebuild: run `build` (or `build -Qt`) first.
-- Logs: `jvlc-shared\builds\<key>\run-<platform>.log` (VLC at `-vv`), `vlc-win64\tests\<test>.log` (win64 tests), `/opt/jvlc/w/<key>/build-linux/meson-logs/testlog.txt` (linux tests).
+- Logs: `jvlc-shared\builds\<key>\run-<platform>.log` (jVLC at `-vv`), `vlc-win64\tests\<test>.log` (win64 tests), `/opt/jvlc/w/<key>/build-linux/meson-logs/testlog.txt` (linux tests).
 
 ## Parallelism cap
 
@@ -100,8 +100,8 @@ Every worktree has the same layout under `/opt/jvlc/w/<key>/` (`src` next to `bu
 ### win64 runs on Windows
 
 - `build -Platform win64` ends by installing into `jvlc-shared\builds\<key>\vlc-win64\` (`deploy-win64.sh`). The first time, it runs `meson install --strip` into a staging dir on ext4 and copies the result. Afterwards it copies, stripped, only the installed files whose build output changed, so after `-Qt` only `plugins\gui\libqt_plugin.dll` (and its import library) is copied. It also copies the gcc runtime DLLs `libvlccore.dll` needs.
-- A `portable\` folder sits next to `vlc.exe`, so VLC keeps its config there instead of `%APPDATA%\vlc`: each worktree has its own. Delete `portable\*` to reset it.
-- `run` starts VLC with `--no-qt-privacy-ask --no-qt-updates-notif`. The compositor is VLC's default (`dcomp`). Pass `-VlcArgs '--qt-compositor=dcomp'` to make sure no fallback is used.
+- A `portable\` folder sits next to `vlc.exe`, so jVLC keeps its config there instead of `%APPDATA%\vlc`: each worktree has its own. Delete `portable\*` to reset it.
+- `run` starts jVLC with `--no-qt-privacy-ask --no-qt-updates-notif`. The compositor is jVLC's default (`dcomp`). Pass `-VlcArgs '--qt-compositor=dcomp'` to make sure no fallback is used.
 
 ### Tests
 
@@ -116,8 +116,8 @@ Every worktree has the same layout under `/opt/jvlc/w/<key>/` (`src` next to `bu
 
 - `run -Platform x11` sets `QT_QPA_PLATFORM=xcb` with `DISPLAY=:0`. `run -Platform wayland` sets `QT_QPA_PLATFORM=wayland` with the WSLg Wayland socket and no `DISPLAY`. Both run `bin/vlc-static -I qt` from the build dir, on the GPU through Mesa's d3d12 driver.
 - The config lives in `/opt/jvlc/w/<key>/home` (`XDG_*` dirs), not in `~/.config/vlc`.
-- WSLg's XWayland is older than 21.1. VLC therefore falls back from its X11 compositor to the dummy one (log: `running a broken XWayland version`), and WSLg shows nothing of what an X11 window draws until the window is resized. `run` and `shot` resize the X11 window by one pixel and back (`x11-nudge.sh`) before the screenshot. This is a WSLg quirk, not a VLC bug: do not "fix" it in VLC.
-- WSLg shows Linux windows on the Windows desktop through `msrdc.exe`, titled `VLC (jvlc-linux)` (or `<media> · VLC (jvlc-linux)`). `run` picks the window that appeared after the launch. `shot -Platform x11|wayland` picks the first such window, so it is ambiguous while other agents run Linux VLC: prefer `run -Shot`.
+- WSLg's XWayland is older than 21.1. jVLC therefore falls back from its X11 compositor to the dummy one (log: `running a broken XWayland version`), and WSLg shows nothing of what an X11 window draws until the window is resized. `run` and `shot` resize the X11 window by one pixel and back (`x11-nudge.sh`) before the screenshot. This is a WSLg quirk, not a jVLC bug: do not "fix" it in jVLC.
+- WSLg shows Linux windows on the Windows desktop through `msrdc.exe`, titled `jVLC (jvlc-linux)` (or `<media> · jVLC (jvlc-linux)`). `run` picks the window that appeared after the launch. `shot -Platform x11|wayland` picks the first such window, so it is ambiguous while other agents run Linux jVLC: prefer `run -Shot`.
 
 ### Screenshots
 
@@ -145,5 +145,5 @@ A ticket that changes `contrib/` or `extras/tools/` changes the contrib SHA. No 
 - `There is no distribution with the supplied name`: the distros are missing; run `setup`.
 - A build fails after a merge with odd meson errors: run `build -Reconfigure`. If that fails too, run `clean`, then `build`.
 - `vlc.exe` says "could not start ... no plugins were found", or a win64 test exits with `-1073741515` (`0xC0000135`, DLL not found): run `build -Platform win64` to refresh the install.
-- `Fail to create Process in process_pool` on win64 (a stand-in VLC test fails in `initTestCase`, or `vlc.exe` starts without its playlist): your branch predates the `vlc_pipe()` fix (`src/win32/filesystem.c`), so merge `feat/redesign` and rebuild win64. Before it, every VLC process named its pipes `\\.\pipe\AnonPipe_0`, `_1`, … Pipe names are global to the machine, so while one VLC (another agent's `vlc.exe` or test) held those names, every other VLC failed to spawn `vlc-preparser.exe`. That is why it came and went with the other agents and looked like a load or install problem. Pipes are now named `vlc-pipe-<pid>-<n>`; `Get-ChildItem \\.\pipe\ | ? Name -like 'vlc-pipe*'` lists them.
+- `Fail to create Process in process_pool` on win64 (a stand-in VLC test fails in `initTestCase`, or `vlc.exe` starts without its playlist): your branch predates the `vlc_pipe()` fix (`src/win32/filesystem.c`), so merge `feat/redesign` and rebuild win64. Before it, every jVLC process named its pipes `\\.\pipe\AnonPipe_0`, `_1`, … Pipe names are global to the machine, so while one jVLC (another agent's `vlc.exe` or test) held those names, every other jVLC failed to spawn `vlc-preparser.exe`. That is why it came and went with the other agents and looked like a load or install problem. Pipes are now named `vlc-pipe-<pid>-<n>`; `Get-ChildItem \\.\pipe\ | ? Name -like 'vlc-pipe*'` lists them.
 - Nothing shows up for `run -Platform x11|wayland`: check `run-<platform>.log`. If WSLg itself is stuck, `wsl --shutdown` restarts it, but it also kills every other agent's build: check that none is running first.

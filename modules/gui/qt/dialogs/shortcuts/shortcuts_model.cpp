@@ -145,7 +145,7 @@ const struct
     { "messages",             ShortcutsModel::Interface, N_("Messages") },
     { "settings",             ShortcutsModel::Interface, N_("Settings") },
     { "help",                 ShortcutsModel::Interface, N_("Online help") },
-    { "about",                ShortcutsModel::Interface, N_("About VLC") },
+    { "about",                ShortcutsModel::Interface, N_("About jVLC") },
     { "quit",                 ShortcutsModel::Interface, N_("Quit") },
 
     { "nav-activate",             ShortcutsModel::Advanced, N_("Disc menu: select") },
@@ -167,7 +167,7 @@ const struct
     { "zoom-double",              ShortcutsModel::Advanced, N_("Zoom to double") },
     { "viewpoint-roll-clock",     ShortcutsModel::Advanced, N_("360°: roll clockwise") },
     { "viewpoint-roll-anticlock", ShortcutsModel::Advanced, N_("360°: roll counterclockwise") },
-    { "intf-boss",                ShortcutsModel::Advanced, N_("Boss key: hide VLC") },
+    { "intf-boss",                ShortcutsModel::Advanced, N_("Boss key: hide jVLC") },
 };
 
 QString groupLabel(ShortcutsModel::Group group)

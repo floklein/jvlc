@@ -182,7 +182,7 @@ void addGeneralRows(SettingsModel& model)
 {
     Row row = panel("profiles", "general", qtr("Profiles"), qtr("Your profiles"), "profiles");
     row.help = qtr("Each Profile keeps its own settings, Theme, Accent color, scale and Layouts. "
-                   "Switch Profile from the VLC menu. The Default Profile can't be deleted.");
+                   "Switch Profile from the jVLC menu. The Default Profile can't be deleted.");
     model.addRow(std::move(row));
 }
 
@@ -192,7 +192,7 @@ void addPrivacyRows(SettingsModel& model, const Hooks& hooks)
 
     {
         Row row = makeRow("save-recentplay", "privacy", history, qtr("Keep a list of recently played items"));
-        row.help = qtr("Recent and Open Recent list what you played. When off, VLC doesn't remember it.");
+        row.help = qtr("Recent and Open Recent list what you played. When off, jVLC doesn't remember it.");
         row.effect = SettingsModel::NextFile;
         model.bindConfig(row, { QStringLiteral("save-recentplay") });
         model.addRow(std::move(row));
@@ -282,8 +282,8 @@ void addControlsRows(SettingsModel& model)
     const QString remote = qtr("Web remote control");
 
     {
-        Row row = makeRow("web-remote", "controls", remote, qtr("Control VLC from a web browser"));
-        row.help = qtr("Starts VLC's web interface, for a phone or another computer on your network. "
+        Row row = makeRow("web-remote", "controls", remote, qtr("Control jVLC from a web browser"));
+        row.help = qtr("Starts jVLC's web interface, for a phone or another computer on your network. "
                        "It needs a password.");
         bindInterface(row, "http", "lua");
         model.addRow(std::move(row));
@@ -400,7 +400,7 @@ void addPlaybackRows(SettingsModel& model, const Hooks& hooks)
 
     {
         Row row = makeRow("repeat", "playback", queue, qtr("Repeat"), SettingsModel::Segmented);
-        row.help = qtr("How VLC starts, also set by the Repeat button.");
+        row.help = qtr("How jVLC starts, also set by the Repeat button.");
         row.choices = {
             choice(QStringLiteral("off"), qtr("Off")),
             choice(QStringLiteral("all"), qtr("All")),
@@ -427,7 +427,7 @@ void addPlaybackRows(SettingsModel& model, const Hooks& hooks)
 
     {
         Row row = makeRow("random", "playback", queue, qtr("Shuffle"));
-        row.help = qtr("How VLC starts, also set by the Shuffle button.");
+        row.help = qtr("How jVLC starts, also set by the Shuffle button.");
         model.bindConfig(row, { QStringLiteral("random") });
         applyToQueue(row, hooks);
         model.addRow(std::move(row));
@@ -461,7 +461,7 @@ void addPlaybackRows(SettingsModel& model, const Hooks& hooks)
     }
 
     {
-        Row row = makeRow("play-and-exit", "playback", queue, qtr("Quit VLC when the Queue ends"));
+        Row row = makeRow("play-and-exit", "playback", queue, qtr("Quit jVLC when the Queue ends"));
         model.bindConfig(row, { QStringLiteral("play-and-exit") });
         applyToQueue(row, hooks);
         model.addRow(std::move(row));
@@ -519,7 +519,7 @@ void addVideoRows(SettingsModel& model)
 
     {
         Row row = makeRow("video", "video", display, qtr("Enable video"));
-        row.help = qtr("When off, VLC plays only the sound of videos.");
+        row.help = qtr("When off, jVLC plays only the sound of videos.");
         row.effect = SettingsModel::NextFile;
         model.bindConfig(row, { QStringLiteral("video") });
         model.addRow(std::move(row));
@@ -615,7 +615,7 @@ void addAudioRows(SettingsModel& model)
 
     {
         Row row = makeRow("audio", "audio", output, qtr("Enable audio"));
-        row.help = qtr("When off, VLC plays videos without sound.");
+        row.help = qtr("When off, jVLC plays videos without sound.");
         row.effect = SettingsModel::NextFile;
         model.bindConfig(row, { QStringLiteral("audio") });
         model.addRow(std::move(row));
@@ -623,7 +623,7 @@ void addAudioRows(SettingsModel& model)
 
     {
         Row row = makeRow("aout", "audio", output, qtr("Output module"), SettingsModel::Choice);
-        row.help = qtr("How VLC sends sound to your system. Its device is under Advanced Options.");
+        row.help = qtr("How jVLC sends sound to your system. Its device is under Advanced Options.");
         row.effect = SettingsModel::NextFile;
         declaredChoices(row, "aout");
         model.bindConfig(row, { QStringLiteral("aout") });
@@ -694,7 +694,7 @@ void addAudioRows(SettingsModel& model)
 
     {
         Row row = makeRow("volume-save", "audio", volume, qtr("Remember the volume"));
-        row.help = qtr("VLC starts at the volume you left it.");
+        row.help = qtr("jVLC starts at the volume you left it.");
         row.effect = SettingsModel::Restart;
         model.bindConfig(row, { QStringLiteral("volume-save") });
         model.addRow(std::move(row));
@@ -918,7 +918,7 @@ void addLibraryRows(SettingsModel& model, const Hooks& hooks)
 {
     {
         Row row = panel("library-folders", "library", qtr("Library"), qtr("Library folders"), "library-folders");
-        row.help = qtr("The folders VLC watches for videos and music. Excluded folders inside them "
+        row.help = qtr("The folders jVLC watches for videos and music. Excluded folders inside them "
                        "are left out. Rescan looks for new and removed files.");
         row.allProfiles = true;
         const auto hasLibrary = hooks.hasMediaLibrary;
@@ -945,8 +945,8 @@ void addLibraryRows(SettingsModel& model, const Hooks& hooks)
     }
 
     {
-        Row row = makeRow("one-instance", "library", opening, qtr("Use only one VLC window"));
-        row.help = qtr("Files opened from elsewhere go to the VLC already open.");
+        Row row = makeRow("one-instance", "library", opening, qtr("Use only one jVLC window"));
+        row.help = qtr("Files opened from elsewhere go to the jVLC already open.");
         model.bindConfig(row, { QStringLiteral("one-instance") });
         row.effect = SettingsModel::Restart;
         model.addRow(std::move(row));
@@ -954,7 +954,7 @@ void addLibraryRows(SettingsModel& model, const Hooks& hooks)
 
     {
         Row row = makeRow("one-instance-from-file", "library", opening,
-                          qtr("Use only one VLC window for files opened from the file manager"));
+                          qtr("Use only one jVLC window for files opened from the file manager"));
         row.effect = SettingsModel::Restart;
         model.bindConfig(row, { QStringLiteral("one-instance-when-started-from-file") });
         model.addRow(std::move(row));
@@ -1009,7 +1009,7 @@ void addNetworkRows(SettingsModel& model)
         row.help = qtr("More buffering plays more smoothly on slow connections, but starts later.");
         row.effect = SettingsModel::NextFile;
         row.choices = {
-            choice(CACHING_DEFAULT, qtr("VLC's values")),
+            choice(CACHING_DEFAULT, qtr("jVLC's values")),
             choice(CACHING_CUSTOM, qtr("Custom")),
             choice(100, qtr("Lowest latency")),
             choice(200, qtr("Low latency")),
@@ -1074,7 +1074,7 @@ void addNetworkRows(SettingsModel& model)
 
     {
         Row row = makeRow("http-proxy", "network", proxy, qtr("HTTP proxy"), SettingsModel::Text);
-        row.help = qtr("Such as http://proxy.example.com:3128/. When empty, VLC connects directly.");
+        row.help = qtr("Such as http://proxy.example.com:3128/. When empty, jVLC connects directly.");
         row.effect = SettingsModel::NextFile;
         model.bindConfig(row, { QStringLiteral("http-proxy") });
         model.addRow(std::move(row));
@@ -1123,7 +1123,7 @@ void addPerformanceRows(SettingsModel& model)
     {
         Row row = makeRow("avcodec-threads", "performance", decoding, qtr("Decoding threads"),
                           SettingsModel::Number);
-        row.help = qtr("0 lets VLC choose.");
+        row.help = qtr("0 lets jVLC choose.");
         row.effect = SettingsModel::NextFile;
         row.minimum = 0.;
         row.maximum = 64.;
@@ -1161,7 +1161,7 @@ void addPerformanceRows(SettingsModel& model)
     }
 
     {
-        Row row = makeRow("high-priority", "performance", decoding, qtr("Run VLC at a higher priority"));
+        Row row = makeRow("high-priority", "performance", decoding, qtr("Run jVLC at a higher priority"));
         row.effect = SettingsModel::Restart;
         model.bindConfig(row, { QStringLiteral("high-priority") });
         model.addRow(std::move(row));
@@ -1172,7 +1172,7 @@ void addPerformanceRows(SettingsModel& model)
     {
         Row row = makeRow("timeshift-path", "performance", timeshift, qtr("Time-shift folder"),
                           SettingsModel::Directory);
-        row.help = qtr("Where VLC keeps paused live streams. When empty, the temporary folder.");
+        row.help = qtr("Where jVLC keeps paused live streams. When empty, the temporary folder.");
         row.effect = SettingsModel::NextFile;
         model.bindConfig(row, { QStringLiteral("input-timeshift-path") });
         model.addRow(std::move(row));
@@ -1181,7 +1181,7 @@ void addPerformanceRows(SettingsModel& model)
     {
         Row row = makeRow("timeshift-granularity", "performance", timeshift, qtr("Time-shift block size"),
                           SettingsModel::Number);
-        row.help = qtr("In bytes. -1 lets VLC choose.");
+        row.help = qtr("In bytes. -1 lets jVLC choose.");
         row.effect = SettingsModel::NextFile;
         row.minimum = -1.;
         row.maximum = 2147483647.;
@@ -1266,13 +1266,13 @@ void addExtensionsRows(SettingsModel& model)
 {
     {
         Row row = panel("addons", "extensions", qtr("Add-ons"), qtr("Installed add-ons"), "addons");
-        row.help = qtr("Extensions, playlist readers and services added to VLC. "
+        row.help = qtr("Extensions, playlist readers and services added to jVLC. "
                        "Find more lists the ones you can install.");
         model.addRow(std::move(row));
     }
 
     {
-        Row row = makeRow("autoload-extensions", "extensions", qtr("Add-ons"), qtr("Load extensions when VLC starts"));
+        Row row = makeRow("autoload-extensions", "extensions", qtr("Add-ons"), qtr("Load extensions when jVLC starts"));
         row.effect = SettingsModel::Restart;
         model.bindConfig(row, { QStringLiteral("qt-autoload-extensions") });
         model.addRow(std::move(row));
@@ -1288,7 +1288,7 @@ void addExtensionsRows(SettingsModel& model)
 
     {
         Row row = panel("plugins", "extensions", qtr("Plugins"), qtr("Built-in plugins"), "plugins");
-        row.help = qtr("Every plugin of this VLC, with what it does.");
+        row.help = qtr("Every plugin of this jVLC, with what it does.");
         row.advanced = true;
         model.addRow(std::move(row));
     }

@@ -398,7 +398,7 @@ Item {
             ListFrame {
                 Layout.fillWidth: true
                 count: bannedRepeater.count
-                emptyText: qsTr("Folders inside your library folders that VLC leaves out.")
+                emptyText: qsTr("Folders inside your library folders that jVLC leaves out.")
 
                 Repeater {
                     id: bannedRepeater

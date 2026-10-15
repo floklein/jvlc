@@ -217,7 +217,7 @@ static const int verbosity_values[] = {
 static const char *const verbosity_text[] = { N_("Default"), N_("Info"), N_("Error"), N_("Warning"), N_("Debug") };
 
 #define FILE_LOG_TEXT N_("Log to file")
-#define FILE_LOG_LONGTEXT N_("Log all VLC messages to a text file.")
+#define FILE_LOG_LONGTEXT N_("Log all jVLC messages to a text file.")
 
 #define LOGFILE_NAME_TEXT N_("Log filename")
 #define LOGFILE_NAME_LONGTEXT N_("Specify the log filename.")

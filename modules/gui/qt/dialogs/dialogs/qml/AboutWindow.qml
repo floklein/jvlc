@@ -29,7 +29,7 @@ WindowDialog {
     readonly property string helpUrl: "https://docs.videolan.me/vlc-user/"
     readonly property string donateUrl: "https://www.videolan.org/contribute.html#money"
 
-    title: qsTr("About VLC media player")
+    title: qsTr("About jVLC media player")
 
     width: VLCStyle.dp(560, VLCStyle.scale)
     height: VLCStyle.dp(600, VLCStyle.scale)
@@ -75,7 +75,7 @@ WindowDialog {
                 T.Label {
                     Layout.fillWidth: true
 
-                    text: qsTr("VLC media player")
+                    text: qsTr("jVLC media player")
                     color: theme.fg.primary
                     font.pixelSize: VLCStyle.fontSize_xxlarge
                     font.weight: Font.DemiBold
@@ -98,8 +98,8 @@ WindowDialog {
         T.Label {
             Layout.fillWidth: true
 
-            text: qsTr("VLC media player is a free and open source media player, encoder and streamer "
-                       + "made by the volunteers of the VideoLAN community.")
+            text: qsTr("jVLC media player is a free and open source media player, encoder and streamer, "
+                       + "based on VLC media player by the volunteers of the VideoLAN community.")
             color: theme.fg.primary
             font.pixelSize: VLCStyle.fontSize_normal
             wrapMode: Text.WordWrap

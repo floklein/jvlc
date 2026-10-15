@@ -1,24 +1,24 @@
-INSTALL file for the VLC media player
+INSTALL file for the jVLC media player
 =====================================
 
 More extensive information for *nix, Windows and Mac OS X users can be
 found here: http://wiki.videolan.org/Compile_VLC
 
-People installing VLC for Windows from source MUST read:
+People installing jVLC for Windows from source MUST read:
 http://wiki.videolan.org/Win32Compile
 
-Bootstrapping VLC
+Bootstrapping jVLC
 =================
 
-If you retrieved VLC from the git server and do not have yet a "configure"
+If you retrieved jVLC from the git server and do not have yet a "configure"
 script, please run:
 
     ./bootstrap
 
-Configuring VLC
+Configuring jVLC
 ===============
 
-A typical way to configure VLC is:
+A typical way to configure jVLC is:
 
    ./configure
 
@@ -29,25 +29,25 @@ symbols:
 
    make distclean ; ./configure --enable-debug
 
-We recommend using either GCC or Clang/LLVM to build VLC. Specifically,
+We recommend using either GCC or Clang/LLVM to build jVLC. Specifically,
 GCC version 5 or higher, or Clang/LLVM version 3.4 or higher are required.
 Other compilers with compatible feature sets should also work.
 
 
-Building VLC
+Building jVLC
 ============
 
-Once configured, run `make' to build VLC.
+Once configured, run `make' to build jVLC.
 
 
-Installing and running VLC
+Installing and running jVLC
 ==========================
 
-You can install the VLC and its plugins by typing:
+You can install the jVLC and its plugins by typing:
 
    make install
 
-But you don't need to install it if you don't want to; VLC can be launched
+But you don't need to install it if you don't want to; jVLC can be launched
 from the current directory as well:
 
    ./vlc

@@ -279,7 +279,7 @@ void VLCMenuBar::VLCMenuEntries( qt_intf_t *p_intf, QMenu *menu )
     addEntry( p_intf, menu, qtr( "Online &Help" ), "help",
               []() { QDesktopServices::openUrl( QUrl( QStringLiteral( "https://docs.videolan.me/vlc-user/" ) ) ); } );
 
-    action = addEntry( p_intf, menu, qtr( "&About VLC" ), "about",
+    action = addEntry( p_intf, menu, qtr( "&About jVLC" ), "about",
                        []() { THEDP->aboutDialog(); } );
     action->setMenuRole( QAction::AboutRole );
     setIcon( action, menu, VLCIcons::info_tt_base, VLCIcons::info_tt_accent );

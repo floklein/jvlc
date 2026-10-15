@@ -662,7 +662,7 @@ ModalDialog {
             // From OpenSubtitles without a key
             Item {
                 Message {
-                    text: qsTr("OpenSubtitles isn't available in this build of VLC: "
+                    text: qsTr("OpenSubtitles isn't available in this build of jVLC: "
                                + "it was built without an OpenSubtitles API key. "
                                + "Use From Computer or From Link… instead.")
                 }

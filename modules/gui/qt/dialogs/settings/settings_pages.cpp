@@ -282,7 +282,7 @@ void AppSettingsModel::addResetRow()
 {
     Row row = makeRow("reset-all", "general", qtr("Reset"), qtr("Reset all settings in this Profile"), Action);
     row.help = qtr("Puts back every setting of this Profile, keyboard shortcuts included, "
-                   "as VLC first had them. The settings shared by all profiles are kept.");
+                   "as jVLC first had them. The settings shared by all profiles are kept.");
     row.advanced = true;
     row.buttonText = qtr("Reset…");
     row.confirmText = qtr("Reset all");
@@ -390,14 +390,14 @@ void AppSettingsModel::addGeneralRows()
 
     {
         Row row = makeRow("developer-mode", "general", diagnostics, qtr("Developer mode"));
-        row.help = qtr("Shows more options to troubleshoot VLC.");
+        row.help = qtr("Shows more options to troubleshoot jVLC.");
         bindSettings(row, getSettings(), QStringLiteral("Settings/developer-mode"), false);
         addRow(std::move(row));
     }
 
     {
         Row row = makeRow("file-logging", "general", diagnostics, qtr("Save a log"));
-        row.help = qtr("Write VLC's messages to a text file, to send with a bug report.");
+        row.help = qtr("Write jVLC's messages to a text file, to send with a bug report.");
         row.effect = Restart;
         bindConfig(row, { QStringLiteral("file-logging") });
         addRow(std::move(row));
@@ -437,7 +437,7 @@ void AppSettingsModel::addGeneralRows()
 
     {
         Row row = makeRow("syslog", "general", diagnostics, qtr("Send the log to the system log"));
-        row.help = qtr("Also write VLC's messages to the system log (syslog).");
+        row.help = qtr("Also write jVLC's messages to the system log (syslog).");
         row.effect = Restart;
         row.developer = true;
         bindConfig(row, { QStringLiteral("syslog") });
@@ -474,21 +474,21 @@ void AppSettingsModel::addInterfaceRows()
 
     {
         Row row = makeRow("remember-geometry", "interface", window, qtr("Remember window size and position"));
-        row.help = qtr("Open VLC where you left it. Applies the next time VLC starts.");
+        row.help = qtr("Open jVLC where you left it. Applies the next time jVLC starts.");
         bindSettings(row, getSettings(), QStringLiteral("MainWindow/remember-geometry"), true);
         addRow(std::move(row));
     }
 
     {
         Row row = makeRow("video-on-top", "interface", window, qtr("Keep the window above other windows"));
-        row.help = qtr("VLC stays visible when you use other apps.");
+        row.help = qtr("jVLC stays visible when you use other apps.");
         bindConfig(row, { QStringLiteral("video-on-top") });
         addRow(std::move(row));
     }
 
     {
         Row row = makeRow("window-decorations", "interface", window, qtr("Show window decorations"));
-        row.help = qtr("Use your system's title bar and borders instead of VLC's.");
+        row.help = qtr("Use your system's title bar and borders instead of jVLC's.");
         bindConfig(row, { QStringLiteral("qt-titlebar") });
         addRow(std::move(row));
     }
@@ -564,7 +564,7 @@ void AppSettingsModel::addInterfaceRows()
 
     {
         Row row = makeRow("system-tray", "interface", tray, qtr("Show a system tray icon"));
-        row.help = qtr("Control VLC from the notification area of the taskbar.");
+        row.help = qtr("Control jVLC from the notification area of the taskbar.");
         row.effect = Restart;
         bindConfig(row, { QStringLiteral("qt-system-tray") });
         addRow(std::move(row));
@@ -572,7 +572,7 @@ void AppSettingsModel::addInterfaceRows()
 
     {
         Row row = makeRow("start-minimized", "interface", tray, qtr("Start minimized to the tray"));
-        row.help = qtr("VLC starts with only its tray icon.");
+        row.help = qtr("jVLC starts with only its tray icon.");
         bindConfig(row, { QStringLiteral("qt-start-minimized") });
         addRow(std::move(row));
     }
@@ -644,7 +644,7 @@ void AppSettingsModel::addOpenSubtitlesRows()
     {
         Row row = makeRow("opensubtitles-password", "subtitles", section, qtr("OpenSubtitles password"), Password);
         row.allProfiles = true;
-        row.help = qtr("Kept in your system's keystore, not in VLC's settings.");
+        row.help = qtr("Kept in your system's keystore, not in jVLC's settings.");
         row.read = []() { return QVariant(QString()); };
         row.readDefault = []() { return QVariant(QString()); };
         row.write = [self, client, state, available, currentUser](const QVariant& value) {
@@ -689,7 +689,7 @@ void AppSettingsModel::addOpenSubtitlesRows()
         };
         row.helpProvider = [client, available]() -> QString {
             if (!available())
-                return qtr("This build of VLC has no OpenSubtitles API key.");
+                return qtr("This build of jVLC has no OpenSubtitles API key.");
             if (client->storedUser().isEmpty())
                 return qtr("Without an account, OpenSubtitles allows a few downloads a day.");
             return qtr("Sign Out forgets the sign-in of %1 on this computer.").arg(client->storedUser());

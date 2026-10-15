@@ -74,26 +74,26 @@ static const char *const ppsz_snap_formats[] =
 
 // DEPRECATED
 #define INTF_CAT_LONGTEXT N_( \
-    "These options allow you to configure the interfaces used by VLC. " \
+    "These options allow you to configure the interfaces used by jVLC. " \
     "You can select the main interface, additional " \
     "interface modules, and define various related options." )
 
 #define INTF_TEXT N_("Interface module")
 #define INTF_LONGTEXT N_( \
-    "This is the main interface used by VLC. " \
+    "This is the main interface used by jVLC. " \
     "The default behavior is to automatically select the best module " \
     "available.")
 
 #define EXTRAINTF_TEXT N_("Extra interface modules")
 #define EXTRAINTF_LONGTEXT N_( \
-    "You can select \"additional interfaces\" for VLC. " \
+    "You can select \"additional interfaces\" for jVLC. " \
     "They will be launched in the background in addition to the default " \
     "interface. Use a colon separated list of interface modules. (common " \
     "values are \"rc\" (remote control), \"http\", \"gestures\" ...)")
 
 #define CONTROL_TEXT N_("Control interfaces")
 #define CONTROL_LONGTEXT N_( \
-    "You can select control interfaces for VLC.")
+    "You can select control interfaces for jVLC.")
 
 #define VERBOSE_TEXT N_("Verbosity (0,1,2)")
 #define VERBOSE_LONGTEXT N_( \
@@ -102,7 +102,7 @@ static const char *const ppsz_snap_formats[] =
 
 #define OPEN_TEXT N_("Default stream")
 #define OPEN_LONGTEXT N_( \
-    "This stream will always be opened at VLC startup." )
+    "This stream will always be opened at jVLC startup." )
 
 #define COLOR_TEXT N_("Color messages")
 #define COLOR_LONGTEXT N_( \
@@ -129,7 +129,7 @@ static const char *const ppsz_snap_formats[] =
 
 #define AOUT_TEXT N_("Audio output module")
 #define AOUT_LONGTEXT N_( \
-    "This is the audio output method used by VLC. " \
+    "This is the audio output method used by jVLC. " \
     "The default behavior is to automatically select the best method " \
     "available.")
 
@@ -169,7 +169,7 @@ static const char *ppsz_roles_text[] = {
 #define VOLUME_SAVE_TEXT N_( "Remember the audio volume" )
 #define VOLUME_SAVE_LONGTEXT N_( \
     "The volume can be recorded and automatically restored next time " \
-    "VLC is used." )
+    "jVLC is used." )
 
 #define DESYNC_TEXT N_("Audio desynchronization compensation")
 #define DESYNC_LONGTEXT N_( \
@@ -272,7 +272,7 @@ static const char *const ppsz_replay_gain_mode_text[] = {
 
 #define VOUT_TEXT N_("Video output module")
 #define VOUT_LONGTEXT N_( \
-    "This is the the video output method used by VLC. " \
+    "This is the the video output method used by jVLC. " \
     "The default behavior is to automatically select the best method available.")
 
 #define VIDEO_TEXT N_("Enable video")
@@ -434,7 +434,7 @@ static const char *const screensaver_texts[] = {
 
 #define VIDEO_DECO_TEXT N_("Window decorations")
 #define VIDEO_DECO_LONGTEXT N_( \
-    "VLC can avoid creating window caption, frames, etc... around the video" \
+    "jVLC can avoid creating window caption, frames, etc... around the video" \
     ", giving a \"minimal\" window.")
 
 #define VIDEO_FILTER_TEXT N_("Video filter module")
@@ -483,7 +483,7 @@ static const char *const screensaver_texts[] = {
 #define ASPECT_RATIO_LONGTEXT N_( \
     "This forces the source aspect ratio. For instance, some DVDs claim " \
     "to be 16:9 while they are actually 4:3. This can also be used as a " \
-    "hint for VLC when a movie does not have aspect ratio information. " \
+    "hint for jVLC when a movie does not have aspect ratio information. " \
     "Accepted formats are x:y (4:3, 16:9, etc.) expressing the global image " \
     "aspect, or a float value (1.25, 1.3333, etc.) expressing pixel " \
     "squareness.")
@@ -534,7 +534,7 @@ static const char *const fit_descriptions[] = {
 
 #define KEYBOARD_EVENTS_TEXT N_("Key press events")
 #define KEYBOARD_EVENTS_LONGTEXT N_( \
-    "This enables VLC hotkeys from the (non-embedded) video window." )
+    "This enables jVLC hotkeys from the (non-embedded) video window." )
 
 #define MOUSE_EVENTS_TEXT N_("Mouse events")
 #define MOUSE_EVENTS_LONGTEXT N_( \
@@ -841,12 +841,12 @@ static const char* const ppsz_restore_playback_desc[] = {
 
 #define OSD_TEXT N_("On Screen Display")
 #define OSD_LONGTEXT N_( \
-    "VLC can display messages on the video. This is called OSD (On Screen " \
+    "jVLC can display messages on the video. This is called OSD (On Screen " \
     "Display).")
 
 #define TEXTRENDERER_TEXT N_("Text rendering module")
 #define TEXTRENDERER_LONGTEXT N_( \
-    "VLC normally uses Freetype for rendering, but this allows you to use svg for instance.")
+    "jVLC normally uses Freetype for rendering, but this allows you to use svg for instance.")
 
 #define SUB_SOURCE_TEXT N_("Subpictures source module")
 #define SUB_SOURCE_LONGTEXT N_( \
@@ -1021,14 +1021,14 @@ static const char* const ppsz_restore_playback_desc[] = {
 
 #define CODEC_TEXT N_("Preferred decoders list")
 #define CODEC_LONGTEXT N_( \
-    "List of codecs that VLC will use in " \
+    "List of codecs that jVLC will use in " \
     "priority. For instance, 'dummy,a52' will try the dummy and a52 codecs " \
     "before trying the other ones. Only advanced users should " \
     "alter this option as it can break playback of all your streams." )
 
 #define HW_DEC_TEXT N_("Enable hardware decoders")
 #define HW_DEC_LONGTEXT N_( \
-    "VLC will fallback automatically to software decoders in case of " \
+    "jVLC will fallback automatically to software decoders in case of " \
     "hardware decoder failure." )
 
 #define DEC_DEV_TEXT N_("Preferred decoder hardware device")
@@ -1084,7 +1084,7 @@ static const char* const ppsz_restore_playback_desc[] = {
 
 #define PACKETIZER_TEXT N_("Preferred packetizer list")
 #define PACKETIZER_LONGTEXT N_( \
-    "This allows you to select the order in which VLC will choose its " \
+    "This allows you to select the order in which jVLC will choose its " \
     "packetizers."  )
 
 #define ANN_SAPINTV_TEXT N_("SAP announcement interval")
@@ -1127,16 +1127,16 @@ static const char* const ppsz_restore_playback_desc[] = {
 
 #define PLUGINS_CACHE_TEXT N_("Use a plugins cache")
 #define PLUGINS_CACHE_LONGTEXT N_( \
-    "Use a plugins cache which will greatly improve the startup time of VLC.")
+    "Use a plugins cache which will greatly improve the startup time of jVLC.")
 
 #define PLUGINS_SCAN_TEXT N_("Scan for new plugins")
 #define PLUGINS_SCAN_LONGTEXT N_( \
     "Scan plugin directories for new plugins at startup. " \
-    "This increases the startup time of VLC.")
+    "This increases the startup time of jVLC.")
 
 #define KEYSTORE_TEXT N_("Preferred keystore list")
 #define KEYSTORE_LONGTEXT N_( \
-    "List of keystores that VLC will use in priority." )
+    "List of keystores that jVLC will use in priority." )
 
 #define STATS_TEXT N_("Locally collect statistics")
 #define STATS_LONGTEXT N_( \
@@ -1148,15 +1148,15 @@ static const char* const ppsz_restore_playback_desc[] = {
 
 #define ONEINSTANCE_TEXT N_("Allow only one running instance")
 #define ONEINSTANCE_LONGTEXT N_( \
-    "Allowing only one running instance of VLC can sometimes be useful, " \
-    "for example if you associated VLC with some media types and you " \
-    "don't want a new instance of VLC to be opened each time you " \
+    "Allowing only one running instance of jVLC can sometimes be useful, " \
+    "for example if you associated jVLC with some media types and you " \
+    "don't want a new instance of jVLC to be opened each time you " \
     "open a file in your file manager. This option will allow you " \
     "to play the file with the already running instance or enqueue it.")
 
-#define STARTEDFROMFILE_TEXT N_("VLC is started from file association")
+#define STARTEDFROMFILE_TEXT N_("jVLC is started from file association")
 #define STARTEDFROMFILE_LONGTEXT N_( \
-    "Tell VLC that it is being launched due to a file association in the OS" )
+    "Tell jVLC that it is being launched due to a file association in the OS" )
 
 #define ONEINSTANCEWHENSTARTEDFROMFILE_TEXT N_( \
     "Use only one instance when started from file manager")
@@ -1164,9 +1164,9 @@ static const char* const ppsz_restore_playback_desc[] = {
 #define HPRIORITY_TEXT N_("Increase the priority of the process")
 #define HPRIORITY_LONGTEXT N_( \
     "Increasing the priority of the process will very likely improve your " \
-    "playing experience as it allows VLC not to be disturbed by other " \
+    "playing experience as it allows jVLC not to be disturbed by other " \
     "applications that could otherwise take too much processor time. " \
-    "However be advised that in certain circumstances (bugs) VLC could take " \
+    "However be advised that in certain circumstances (bugs) jVLC could take " \
     "all the processor time and render the whole system unresponsive which " \
     "might require a reboot of your machine.")
 
@@ -1194,7 +1194,7 @@ static const char *const clock_sources_text[] = {
     "and keep playing current item.")
 
 #define DBUS_TEXT N_("Expose media player via D-Bus")
-#define DBUS_LONGTEXT N_("Allow other applications to control VLC " \
+#define DBUS_LONGTEXT N_("Allow other applications to control jVLC " \
     "using the D-Bus MPRIS protocol.")
 
 /*****************************************************************************
@@ -1257,15 +1257,15 @@ static const char *const psz_recursive_list_text[] = {
 
 #define RANDOM_TEXT N_("Play files randomly forever")
 #define RANDOM_LONGTEXT N_( \
-    "VLC will randomly play files in the play queue until interrupted.")
+    "jVLC will randomly play files in the play queue until interrupted.")
 
 #define LOOP_TEXT N_("Repeat all")
 #define LOOP_LONGTEXT N_( \
-    "VLC will keep playing the play queue indefinitely." )
+    "jVLC will keep playing the play queue indefinitely." )
 
 #define REPEAT_TEXT N_("Repeat current item")
 #define REPEAT_LONGTEXT N_( \
-    "VLC will keep playing the current play queue item." )
+    "jVLC will keep playing the current play queue item." )
 
 #define PAS_TEXT N_("Play and stop")
 #define PAS_LONGTEXT N_( \
@@ -1295,7 +1295,7 @@ static const char *const psz_recursive_list_text[] = {
 #define ML_TEXT N_("Use media library")
 #define ML_LONGTEXT N_( \
     "The media library is automatically saved and reloaded each time you " \
-    "start VLC." )
+    "start jVLC." )
 
 #define PLTREE_TEXT N_("Display play queue tree")
 #define PLTREE_LONGTEXT N_( \
@@ -1319,7 +1319,7 @@ static const char *const psz_recursive_list_text[] = {
  ****************************************************************************/
 
 // DEPRECATED
-#define HOTKEY_CAT_LONGTEXT N_( "These settings are the global VLC key " \
+#define HOTKEY_CAT_LONGTEXT N_( "These settings are the global jVLC key " \
     "bindings, known as \"hotkeys\"." )
 
 static const int mouse_wheel_values[] = { -1, 0, 2, 3, };
@@ -2825,9 +2825,9 @@ vlc_module_begin ()
     add_category_hint(N_("Miscellaneous"), NULL)
 
 #define HELP_TEXT \
-    N_("print help for VLC (can be combined with --help-verbose)")
+    N_("print help for jVLC (can be combined with --help-verbose)")
 #define LONGHELP_TEXT \
-    N_("print help for VLC and all its modules (can be combined with " \
+    N_("print help for jVLC and all its modules (can be combined with " \
        "--help-verbose)")
 #define FULL_HELP_TEXT \
     N_("print complete help (same as --longhelp --help-verbose)")

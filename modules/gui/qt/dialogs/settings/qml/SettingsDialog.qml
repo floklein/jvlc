@@ -399,7 +399,7 @@ Window {
                 Text {
                     id: restartText
                     Layout.fillWidth: true
-                    text: qsTr("Some changes apply after VLC restarts.")
+                    text: qsTr("Some changes apply after jVLC restarts.")
                     elide: Text.ElideRight
                     color: theme.fg.primary
                     font.pixelSize: VLCStyle.fontSize_normal
@@ -407,7 +407,7 @@ Window {
                 }
 
                 Widgets.ActionButtonPrimary {
-                    text: qsTr("Restart VLC")
+                    text: qsTr("Restart jVLC")
                     onClicked: appSettings.restartVLC()
                 }
             }

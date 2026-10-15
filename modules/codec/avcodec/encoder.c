@@ -407,7 +407,7 @@ int InitVideoEnc( vlc_object_t *p_this )
 "%s.\n"
 "If you don't know how to fix this, ask for support from your distribution.\n"
 "\n"
-"This is not an error inside VLC media player.\n"
+"This is not an error inside jVLC media player.\n"
 "Do not contact the VideoLAN project about this issue.\n"),
             psz_namecodec );
 #endif
@@ -953,7 +953,7 @@ errmsg:
                 type = types[p_enc->fmt_in.i_cat];
             msg_Err( p_enc, "cannot open %4.4s %s encoder", fcc.txt, type );
             vlc_dialog_display_error( p_enc, _("Streaming / Transcoding failed"),
-                _("VLC could not open the %4.4s %s encoder."),
+                _("jVLC could not open the %4.4s %s encoder."),
                 fcc.txt, vlc_gettext(type) );
             av_dict_free(&options);
             goto error;

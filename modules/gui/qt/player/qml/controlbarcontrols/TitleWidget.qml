@@ -34,7 +34,7 @@ Item {
         if (paintOnly)
             return qsTr("Title")
         const title = Player.title || Player.name
-        return title !== "" ? title : qsTr("VLC Media Player")
+        return title !== "" ? title : qsTr("jVLC Media Player")
     }
 
     // not focusable: the Control bar gives focus to enabled items

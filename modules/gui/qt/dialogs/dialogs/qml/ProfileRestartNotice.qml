@@ -25,7 +25,7 @@ import VLC.Dialogs
 import VLC.Widgets as Widgets
 import VLC.Style
 
-// "Restart VLC to apply · Restart VLC", after a switch of Profile changed
+// "Restart jVLC to apply · Restart jVLC", after a switch of Profile changed
 // options that VLC only reads when it starts
 Rectangle {
     id: root
@@ -83,7 +83,7 @@ Rectangle {
         T.Label {
             id: label
 
-            text: qsTr("Restart VLC to apply")
+            text: qsTr("Restart jVLC to apply")
 
             font.pixelSize: VLCStyle.fontSize_normal
             color: theme.fg.primary
@@ -97,7 +97,7 @@ Rectangle {
         }
 
         Widgets.TextToolButton {
-            text: qsTr("Restart VLC")
+            text: qsTr("Restart jVLC")
 
             colorContext.colorSet: ColorContext.ButtonAccent
 

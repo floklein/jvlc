@@ -34,7 +34,7 @@ Widgets.IconToolButton {
     implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
 
     text: VLCIcons.more
-    description: qsTr("VLC menu")
+    description: qsTr("jVLC menu")
 
     AccessibleCompat.id: "topBarMenuButton"
 

@@ -565,7 +565,7 @@ static int Handshake(intf_thread_t *p_this)
         vlc_dialog_display_error(p_this,
             _("last.fm: Authentication failed"),
             "%s", _("last.fm username or password is incorrect. "
-              "Please verify your settings and relaunch VLC."));
+              "Please verify your settings and relaunch jVLC."));
         return VLC_AUDIOSCROBBLER_EFATAL;
     }
 
@@ -573,7 +573,7 @@ static int Handshake(intf_thread_t *p_this)
     {
         /* oops, our version of vlc has been banned by last.fm servers */
         msg_Err(p_intf, "This version of VLC has been banned by last.fm. "
-                         "You should upgrade VLC, or disable the last.fm plugin.");
+                         "You should upgrade jVLC, or disable the last.fm plugin.");
         return VLC_AUDIOSCROBBLER_EFATAL;
     }
 
@@ -581,7 +581,7 @@ static int Handshake(intf_thread_t *p_this)
     {
         /* The system clock isn't good */
         msg_Err(p_intf, "last.fm handshake failed because your clock is too "
-                         "much shifted. Please correct it, and relaunch VLC.");
+                         "much shifted. Please correct it, and relaunch jVLC.");
         return VLC_AUDIOSCROBBLER_EFATAL;
     }
 
@@ -725,7 +725,7 @@ static void *Run(void *data)
                     vlc_dialog_display_error(p_intf,
                         _("Last.fm username not set"),
                         "%s", _("Please set a username or disable the "
-                        "audioscrobbler plugin, and restart VLC.\n"
+                        "audioscrobbler plugin, and restart jVLC.\n"
                         "Visit https://www.last.fm/join/ to get an account."));
                     goto out;
 

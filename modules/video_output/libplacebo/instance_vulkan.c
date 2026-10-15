@@ -161,7 +161,7 @@ static void CloseInstance(vlc_placebo_t *pl)
 #define QUEUE_COUNT_LONGTEXT "How many queues to use on the device. Increasing this might improve rendering throughput for GPUs capable of concurrent scheduling. Increasing this past the driver's limit has no effect."
 
 #define QUEUE_DEPTH_TEXT "Maximum frame latency"
-#define QUEUE_DEPTH_LONGTEXT "Affects how many frames to render/present in advance. Increasing this can improve performance at the cost of latency, by allowing better pipelining between frames. May have no effect, depending on the VLC clock settings."
+#define QUEUE_DEPTH_LONGTEXT "Affects how many frames to render/present in advance. Increasing this can improve performance at the cost of latency, by allowing better pipelining between frames. May have no effect, depending on the jVLC clock settings."
 
 static const int present_values[] = {
     VK_PRESENT_MODE_IMMEDIATE_KHR,
@@ -178,7 +178,7 @@ static const char * const present_text[] = {
 };
 
 #define PRESENT_MODE_TEXT "Preferred present mode"
-#define PRESENT_MODE_LONGTEXT "Which present mode to use when creating the swapchain. If the chosen mode is not supported, VLC will fall back to using FIFO."
+#define PRESENT_MODE_LONGTEXT "Which present mode to use when creating the swapchain. If the chosen mode is not supported, jVLC will fall back to using FIFO."
 
 vlc_module_begin()
     set_shortname("libplacebo Vulkan")

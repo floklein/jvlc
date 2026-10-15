@@ -1001,13 +1001,13 @@ WarnConfiguration(audio_output_t *p_aout)
     if (!dev_is_warned)
     {
         msg_Warn(p_aout, "You should configure your speaker layout with "
-                "Audio Midi Setup in /Applications/Utilities. VLC will "
+                "Audio Midi Setup in /Applications/Utilities. jVLC will "
                 "output Stereo only.");
         vlc_dialog_display_error(p_aout,
             _("Audio device is not configured"), "%s",
             _("You should configure your speaker layout with "
             "\"Audio Midi Setup\" in /Applications/"
-            "Utilities. VLC will output Stereo only."));
+            "Utilities. jVLC will output Stereo only."));
 
         /* Don't save too many devices */
         if (dev_count >= 10)

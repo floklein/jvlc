@@ -188,7 +188,7 @@ T.ToolBar {
 
                     font.pixelSize: VLCStyle.icon_banner
                     text: VLCIcons.more
-                    description: qsTr("VLC menu")
+                    description: qsTr("jVLC menu")
                     width: VLCStyle.bannerButton_width
                     height: VLCStyle.bannerButton_height
                     checked: contextMenu.shown

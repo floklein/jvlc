@@ -28,7 +28,7 @@ namespace WindowChrome
 
 QString windowTitle( const QString &mediaTitle )
 {
-    static const QString app = QStringLiteral( "VLC" );
+    static const QString app = QStringLiteral( "jVLC" );
     if( mediaTitle.isEmpty() )
         return app;
     return mediaTitle + QStringLiteral( " · " ) + app;

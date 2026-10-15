@@ -198,7 +198,7 @@ static const char vlc_usage[] = N_(
   "  udp://[[<source address>]@[<bind address>][:<bind port>]]\n"
   "                                 UDP stream sent by a streaming server\n"
   "  vlc://pause:<seconds>          Pause the playlist for a certain time\n"
-  "  vlc://quit                     Special item to quit VLC\n"
+  "  vlc://quit                     Special item to quit jVLC\n"
   "\n");
 
 static void Help (libvlc_int_t *p_this, char const *psz_help_name)
@@ -696,7 +696,7 @@ static void ListModules (libvlc_int_t *p_this, bool b_verbose)
 static void Version( void )
 {
     ShowConsole();
-    printf(_("VLC version %s (%s)\n"), VERSION_MESSAGE, psz_vlc_changeset);
+    printf(_("jVLC version %s (%s)\n"), VERSION_MESSAGE, psz_vlc_changeset);
     printf(_("Compiled by %s on %s (%s)\n"), VLC_CompileBy(),
            VLC_CompileHost(), __DATE__" "__TIME__ );
     printf(_("Compiler: %s\n"), VLC_Compiler());
@@ -720,7 +720,7 @@ static void ShowConsole( void )
      * Unicode/locale subsystem. By default, we have the obsolecent OEM code
      * page (e.g. CP437 or CP850). */
     SetConsoleOutputCP (GetACP ());
-    SetConsoleTitle (TEXT("VLC media player version ") TEXT(PACKAGE_VERSION));
+    SetConsoleTitle (TEXT("jVLC media player version ") TEXT(PACKAGE_VERSION));
 
     freopen( "CONOUT$", "w", stderr );
     freopen( "CONIN$", "r", stdin );

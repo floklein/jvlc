@@ -34,7 +34,7 @@ Window {
     flags: Qt.Dialog
     modality: Qt.WindowModal
 
-    title: qsTr("Welcome to VLC")
+    title: qsTr("Welcome to jVLC")
 
     // NOTE: At large scales the sizes are clamped to the screen, the pages scroll.
     width: Math.min(VLCStyle.dp(980, VLCStyle.scale), Screen.desktopAvailableWidth * 0.9)
@@ -202,11 +202,11 @@ Window {
                 }
 
                 Title {
-                    text: qsTr("Welcome to VLC!")
+                    text: qsTr("Welcome to jVLC!")
                 }
 
                 Paragraph {
-                    text: qsTr("VLC is a free and open source cross-platform multimedia player "
+                    text: qsTr("jVLC is a free and open source cross-platform multimedia player "
                                + "that plays most multimedia files as well as DVDs, Audio CDs, "
                                + "VCDs, and various streaming protocols.")
                 }
@@ -565,8 +565,8 @@ Window {
                 }
 
                 Paragraph {
-                    text: qsTr("To find them, VLC sends the names and tags of your media "
-                               + "to online services. VLC collects no other data about you.")
+                    text: qsTr("To find them, jVLC sends the names and tags of your media "
+                               + "to online services. jVLC collects no other data about you.")
                 }
 
                 Rectangle {

@@ -49,7 +49,7 @@ static void SwapBuffers(void *);
 #define ALLOWSW_LONGTEXT "If enabled, allow the use of OpenGL contexts detected as software rasterizers (e.g. llvmpipe, swrast)."
 
 #define SWAP_DEPTH_TEXT "Maximum frame latency"
-#define SWAP_DEPTH_LONGTEXT "Attempt limiting the maximum frame latency. The true frame latency may be lower than this setting, depending on OpenGL driver internals and the VLC clock settings."
+#define SWAP_DEPTH_LONGTEXT "Attempt limiting the maximum frame latency. The true frame latency may be lower than this setting, depending on OpenGL driver internals and the jVLC clock settings."
 
 vlc_module_begin()
     set_subcategory(SUBCAT_VIDEO_VOUT)
