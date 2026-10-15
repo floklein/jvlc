@@ -31,7 +31,7 @@ Widgets.IconToolButton {
     enabled: MainPlaylistController.hasPrev
     onClicked: MainPlaylistController.prev()
     description: qsTr("Previous")
-    shortcut: MainCtx.actionShortcut("prev")
+    shortcutAction: "prev"
 
     // Figma: 24 px icon in a 30x28 slot
     leftPadding: VLCStyle.dp(3, VLCStyle.scale)

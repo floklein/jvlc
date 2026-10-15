@@ -327,10 +327,12 @@ FocusScope {
                 bottom: parent.bottom
                 leftMargin: VLCStyle.margin_small
                 rightMargin: VLCStyle.margin_small
-                bottomMargin: VLCStyle.margin_xsmall
+                // the strip stays where it was with the taller target
+                bottomMargin: VLCStyle.margin_xsmall - VLCStyle.dp(6, VLCStyle.scale)
             }
 
-            implicitHeight: VLCStyle.dp(12, VLCStyle.scale)
+            // NOTE: The strip stays thin, the pointer target is 24 dp tall (WCAG 2.5.8).
+            implicitHeight: VLCStyle.icon_normal
 
             enabled: Player.seekable
             hoverEnabled: true
@@ -341,9 +343,26 @@ FocusScope {
             value: Player.position
             live: true
 
-            onMoved: Player.position = value
+            // read as "12:34 of 45:00"; updated on focus and on a move rather
+            // than every second, so screen readers don't repeat it while it plays
+            property string _accessibleName: qsTr("Seek bar")
 
-            Accessible.name: qsTr("Seek bar")
+            function _updateAccessibleName() {
+                _accessibleName = Helpers.seekBarName(Player.length.scale(value).formatHMS(0),
+                                                      Player.length.formatHMS(0))
+            }
+
+            onActiveFocusChanged: {
+                if (activeFocus)
+                    _updateAccessibleName()
+            }
+
+            onMoved: {
+                Player.position = value
+                _updateAccessibleName()
+            }
+
+            Accessible.name: _accessibleName
 
             Navigation.parentItem: controls
             Navigation.upItem: playButton

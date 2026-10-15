@@ -36,9 +36,106 @@ QColor rgba(QRgb value, float alpha)
 
 // alpha of the Tint of panels over the video
 constexpr float TINT_ALPHA = 0.95f;
-// alpha of the Tint over the Video blur
+// alpha of the Tint over the Video blur, at least
 constexpr float TINT_OVER_BLUR_ALPHA = 0.75f;
+// alpha of the scrim behind the bars right over the video, at least
+constexpr float SCRIM_ALPHA = 0.8f;
 
+// WCAG 2.2 AA
+constexpr double TEXT_CONTRAST = 4.5;
+constexpr double ICON_CONTRAST = 3.0;
+
+double relativeLuminance(const QColor& color)
+{
+    const auto channel = [](double v) {
+        return v <= 0.03928 ? v / 12.92 : std::pow((v + 0.055) / 1.055, 2.4);
+    };
+    const QColor c = color.toRgb();
+    return 0.2126 * channel(c.redF())
+         + 0.7152 * channel(c.greenF())
+         + 0.0722 * channel(c.blueF());
+}
+
+/*
+ * The lowest alpha of layer, from atLeast, at which every text color reaches
+ * 4.5:1 and every icon color 3:1 over both a black and a white video.
+ */
+float readableAlpha(QColor layer, float atLeast,
+                    const QList<QColor>& text, const QList<QColor>& icons)
+{
+    const auto readable = [&](const QColor& candidate) {
+        for (const QColor& backdrop : { QColor(Qt::black), QColor(Qt::white) })
+        {
+            const QColor bg = composite(candidate, backdrop);
+            for (const QColor& c : text)
+                if (contrastRatio(c, bg) < TEXT_CONTRAST)
+                    return false;
+            for (const QColor& c : icons)
+                if (contrastRatio(c, bg) < ICON_CONTRAST)
+                    return false;
+        }
+        return true;
+    };
+
+    for (int percent = std::lround(atLeast * 100); percent < 100; ++percent)
+    {
+        layer.setAlphaF(percent / 100.f);
+        if (readable(layer))
+            return percent / 100.f;
+    }
+    return 1.f;
+}
+
+}
+
+double contrastRatio(const QColor& a, const QColor& b)
+{
+    const double la = relativeLuminance(a);
+    const double lb = relativeLuminance(b);
+    return (std::max(la, lb) + 0.05) / (std::min(la, lb) + 0.05);
+}
+
+QColor composite(const QColor& color, const QColor& backdrop)
+{
+    const QColor c = color.toRgb();
+    const QColor b = backdrop.toRgb();
+    const float alpha = c.alphaF();
+    return QColor::fromRgbF(c.redF() * alpha + b.redF() * (1.f - alpha),
+                            c.greenF() * alpha + b.greenF() * (1.f - alpha),
+                            c.blueF() * alpha + b.blueF() * (1.f - alpha));
+}
+
+QColor withContrast(const QColor& color, const QList<QColor>& backgrounds, double ratio)
+{
+    const auto reaches = [&](const QColor& c) {
+        for (const QColor& bg : backgrounds)
+            if (contrastRatio(c, bg) < ratio)
+                return false;
+        return true;
+    };
+
+    if (reaches(color))
+        return color;
+
+    // the smallest change of lightness that reaches the ratio
+    float h, s, l;
+    color.toHsl().getHslF(&h, &s, &l);
+    h = std::max(h, 0.f); // achromatic
+    for (int step = 1; step <= 200; ++step)
+    {
+        for (float direction : { -1.f, 1.f })
+        {
+            const float lightness = l + direction * step / 200.f;
+            if (lightness < 0.f || lightness > 1.f)
+                continue;
+            const QColor c = QColor::fromHslF(h, s, lightness).toRgb();
+            if (reaches(c))
+                return c;
+        }
+    }
+
+    const QColor black(Qt::black);
+    return reaches(black) ? black : QColor(Qt::white);
 }
 
 ThemeTokens makeThemeTokens(bool dark, const QColor& accentColor)
@@ -125,8 +222,39 @@ ThemeTokens makeThemeTokens(bool dark, const QColor& accentColor)
 
     t.tint = t.bgA3Transparent;
     t.tint.setAlphaF(TINT_ALPHA);
-    t.tintOverBlur = t.bgA3Transparent;
-    t.tintOverBlur.setAlphaF(TINT_OVER_BLUR_ALPHA);
+
+    const QColor black(Qt::black);
+    const QColor white(Qt::white);
+
+    // the Figma accent shades are too light for text on the light surfaces,
+    // and a user Accent color can be too close to any surface
+    t.accentText = withContrast(t.accentMain, {
+        t.bgA1, t.bgA2, t.bgA3, t.bgA4, t.bgA5, t.bgB1, t.bgB2,
+        composite(t.tint, black), composite(t.tint, white),
+    }, TEXT_CONTRAST);
+
+    const QColor lightText = t.dark ? t.fg1 : t.bgB2;
+    t.onAccent = contrastRatio(t.fgB1, t.accentMain) >= contrastRatio(lightText, t.accentMain)
+        ? t.fgB1 : lightText;
+    t.accentButton = withContrast(t.accentMain, { t.onAccent }, TEXT_CONTRAST);
+    t.accentButtonHovered = withContrast(t.accentBright, { t.onAccent }, TEXT_CONTRAST);
+    t.accentButtonPressed = withContrast(t.accentDim, { t.onAccent }, TEXT_CONTRAST);
+
+    const QList<QColor> text { t.fg1, t.fg2, t.fgA1, t.fgA2 };
+
+    // the blurred video can be as bright or as dark as the video
+    t.tintOverBlur = t.tint;
+    t.tintOverBlur.setAlphaF(readableAlpha(t.tint, TINT_OVER_BLUR_ALPHA,
+                                           text, { t.fgA3, t.accentText }));
+
+    t.scrim = t.bgB2;
+    t.scrim.setAlphaF(readableAlpha(t.bgB2, SCRIM_ALPHA,
+                                    text + QList<QColor>{ t.accentText }, { t.fgA3 }));
+
+    t.badgeFg = t.dark ? t.fg1 : t.bgB2;
+    t.badgeBg = t.bgB2Transparent;
+    t.badgeBg.setAlphaF(readableAlpha(t.bgB2Transparent, t.bgB2Transparent.alphaF(),
+                                      { t.badgeFg }, {}));
 
     return t;
 }

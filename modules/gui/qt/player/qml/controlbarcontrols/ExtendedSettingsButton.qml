@@ -46,8 +46,7 @@ Widgets.IconToolButton {
 
     checked: MainCtx.adjustmentsOpened
 
-    Accessible.checkable: true
-    Accessible.checked: checked
+    toggle: true
 
     onClicked: MainCtx.toggleAdjustments()
 }

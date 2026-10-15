@@ -19,6 +19,7 @@
 #define VLC_QT_THEMETOKENS_HPP
 
 #include <QColor>
+#include <QList>
 
 #include "util/color_scheme_model.hpp"
 
@@ -51,10 +52,23 @@ struct ThemeTokens
 
     QColor dividerBright, dividerDim;
 
+    // accent for text, icons and focus rings: the accent, darkened or
+    // lightened until it reads on every surface (WCAG 2.2 AA)
+    QColor accentText;
+    // accent buttons and the text drawn on them
+    QColor accentButton, accentButtonHovered, accentButtonPressed;
+    QColor onAccent;
+
     // translucent layer of panels over the video
     QColor tint;
-    // the lighter Tint over the Video blur
+    // the lighter Tint over the Video blur, opaque enough for the text to
+    // read over a bright video
     QColor tintOverBlur;
+    // the dark scrim drawn behind the bars right over the video
+    QColor scrim;
+
+    // badges drawn over artwork
+    QColor badgeBg, badgeFg;
 
     // status colors, not part of the Figma styles
     QColor positive, neutral, negative;
@@ -97,6 +111,22 @@ AccentShades deriveAccentShades(const QColor& accent, bool dark);
  * An invalid accent means defaultAccentColor().
  */
 ThemeTokens makeThemeTokens(bool dark, const QColor& accent = {});
+
+/**
+ * WCAG 2.2 contrast ratio of two opaque colors, from 1 to 21
+ */
+double contrastRatio(const QColor& a, const QColor& b);
+
+/**
+ * The opaque color seen when color is drawn over an opaque backdrop
+ */
+QColor composite(const QColor& color, const QColor& backdrop);
+
+/**
+ * color, made just lighter or darker enough to reach ratio against every
+ * background. Black or white when it cannot.
+ */
+QColor withContrast(const QColor& color, const QList<QColor>& backgrounds, double ratio);
 
 /**
  * Whether a Theme choice shows the dark palette. System follows the

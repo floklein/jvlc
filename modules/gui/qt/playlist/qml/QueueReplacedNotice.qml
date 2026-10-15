@@ -23,6 +23,7 @@ import QtQuick.Templates as T
 import VLC.MainInterface
 import VLC.Widgets as Widgets
 import VLC.Style
+import VLC.Util
 
 // "Queue replaced · Undo", shown while the replaced Queue can be restored
 Rectangle {
@@ -37,6 +38,15 @@ Rectangle {
 
     visible: opacity > 0
     opacity: MainPlaylistController.canUndoReplace ? 1 : 0
+
+    Connections {
+        target: MainPlaylistController
+
+        function onCanUndoReplaceChanged() {
+            if (MainPlaylistController.canUndoReplace)
+                Helpers.announce(root, qsTr("Queue replaced. Undo with the Undo button"))
+        }
+    }
 
     Behavior on opacity {
         NumberAnimation {

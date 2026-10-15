@@ -37,6 +37,9 @@ Widgets.ImageToolButton {
 
     AccessibleCompat.id: "atoBButton"
 
+    // screen readers read the on/off state
+    checkable: true
+
     //imageSource: "qrc:///icons/atob.svg"
     imageSource: {
         switch(Player.ABloopState) {

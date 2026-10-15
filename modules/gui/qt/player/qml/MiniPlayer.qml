@@ -17,6 +17,7 @@
  *****************************************************************************/
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Window
 import QtQuick.Templates as T
 
 import VLC.MainInterface
@@ -72,6 +73,7 @@ T.Control {
 
     Accessible.role: Accessible.Pane
     Accessible.name: qsTr("Mini player")
+    Accessible.description: qsTr("Alt+arrow keys move it to another corner")
     AccessibleCompat.id: "miniPlayer"
 
     // Functions
@@ -81,6 +83,56 @@ T.Control {
                                            root.area, root.edgeMargin)
         root.x = pos.x
         root.y = pos.y
+    }
+
+    readonly property bool _atLeft: (corner === Qt.TopLeftCorner || corner === Qt.BottomLeftCorner)
+    readonly property bool _atTop: (corner === Qt.TopLeftCorner || corner === Qt.TopRightCorner)
+
+    // the keyboard moves it to another corner, as dragging it does
+    function moveToCorner(left, top) {
+        const corner = top ? (left ? Qt.TopLeftCorner : Qt.TopRightCorner)
+                           : (left ? Qt.BottomLeftCorner : Qt.BottomRightCorner)
+        if (corner === root.corner)
+            return
+
+        MainCtx.setSettingValue(root._settingKey, corner)
+
+        root._snapping = true
+        snapEnd.restart()
+        root.corner = corner
+    }
+
+    // F6 or Tab lands on the Mini player itself: the focus goes on to its first
+    // control, "Back to the player", where it shows (then Tab reaches Play)
+    onActiveFocusChanged: {
+        if (activeFocus && Window.activeFocusItem === root)
+            picture.forceActiveFocus(focusReason)
+    }
+
+    // Alt+arrow keys, while the Mini player has the focus. Shortcuts, as the
+    // buttons inside take the arrow keys for the navigation.
+    Shortcut {
+        enabled: root.activeFocus
+        sequence: "Alt+Left"
+        onActivated: root.moveToCorner(true, root._atTop)
+    }
+
+    Shortcut {
+        enabled: root.activeFocus
+        sequence: "Alt+Right"
+        onActivated: root.moveToCorner(false, root._atTop)
+    }
+
+    Shortcut {
+        enabled: root.activeFocus
+        sequence: "Alt+Up"
+        onActivated: root.moveToCorner(root._atLeft, true)
+    }
+
+    Shortcut {
+        enabled: root.activeFocus
+        sequence: "Alt+Down"
+        onActivated: root.moveToCorner(root._atLeft, false)
     }
 
     // Events
@@ -180,7 +232,25 @@ T.Control {
 
             Accessible.role: Accessible.Button
             Accessible.name: qsTr("Back to the player")
+            Accessible.focusable: true
             Accessible.onPressAction: MainCtx.playerView = true
+
+            // a button for the keyboard too: Enter or Space returns to the player
+            activeFocusOnTab: true
+
+            Keys.priority: Keys.AfterItem
+            Keys.onPressed: (event) => {
+                // not the keys of the Play button inside
+                if (!playButton.activeFocus && KeyHelper.matchOk(event)) {
+                    event.accepted = true
+                    MainCtx.playerView = true
+                    return
+                }
+                picture.Navigation.defaultKeyAction(event)
+            }
+
+            Navigation.parentItem: root
+            Navigation.downItem: playButton
 
             Rectangle {
                 anchors.fill: parent
@@ -229,6 +299,19 @@ T.Control {
                 }
             }
 
+            // the keyboard focus ring of "Back to the player"
+            Rectangle {
+                anchors.fill: parent
+
+                visible: picture.activeFocus && !playButton.activeFocus
+
+                radius: VLCStyle.radius_small
+                color: "transparent"
+                border.width: VLCStyle.focus_border
+                // the focus ring color: theme.visualFocus is only set on a focused context
+                border.color: theme.accent
+            }
+
             // play and pause without leaving the library
             Widgets.IconButton {
                 id: playButton
@@ -248,6 +331,7 @@ T.Control {
                 textStyle: Text.Outline
 
                 Navigation.parentItem: root
+                Navigation.upItem: picture
                 Navigation.downItem: folderButton.visible ? folderButton : queueButton
 
                 onClicked: MainPlaylistController.togglePlayPause()

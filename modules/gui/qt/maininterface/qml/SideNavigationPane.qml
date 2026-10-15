@@ -354,6 +354,8 @@ T.Pane {
 
                 onActionAtIndex: (index) => root.openPin(index, Qt.TabFocusReason)
 
+                menuKeyShowsContextMenu: true
+
                 // a right click on a pin, or the Menu key on the current one
                 onShowContextMenu: (globalPos) => {
                     const pos = contentItem.mapFromGlobal(globalPos.x, globalPos.y)

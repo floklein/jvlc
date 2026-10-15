@@ -46,8 +46,8 @@ TextField {
     property real radius
 
     background: Rectangle {
-        implicitWidth: 200
-        implicitHeight: 40
+        implicitWidth: VLCStyle.dp(200, VLCStyle.scale)
+        implicitHeight: VLCStyle.dp(40, VLCStyle.scale)
         border.width: control.enabled ? VLCStyle.dp(2, VLCStyle.scale) : 0
         color: theme.bg.primary
         border.color: theme.border

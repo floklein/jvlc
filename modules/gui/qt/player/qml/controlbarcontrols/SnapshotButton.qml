@@ -30,6 +30,7 @@ Widgets.IconToolButton {
     text: VLCIcons.snapshot
     onClicked: Player.snapshot()
     description: qsTr("Snapshot")
+    shortcutAction: "snapshot"
 
     AccessibleCompat.id: "snapshotButton"
 }

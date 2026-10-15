@@ -448,7 +448,7 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         setColor(CS, C::Fg, C::Secondary, C::Normal, t.fgA1);
         setColor(CS, C::Fg, C::Secondary, C::Disabled, t.fgA4);
         setColor(CS, C::Fg, C::Highlight, C::Normal, t.fg1);
-        setColor(CS, C::Fg, C::Link, C::Normal, t.accentMain);
+        setColor(CS, C::Fg, C::Link, C::Normal, t.accentText);
 
         setColor(CS, C::Bg, C::Negative, C::Normal, t.negativeBg);
         setColor(CS, C::Fg, C::Negative, C::Normal, t.negative);
@@ -457,8 +457,8 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         setColor(CS, C::Bg, C::Positive, C::Normal, t.positiveBg);
         setColor(CS, C::Fg, C::Positive, C::Normal, t.positive);
 
-        setColor(CS, C::Decoration, C::VisualFocus, C::Normal, setColorAlpha(t.accentMain, 0.0));
-        setColor(CS, C::Decoration, C::VisualFocus, C::Focused, t.accentMain);
+        setColor(CS, C::Decoration, C::VisualFocus, C::Normal, setColorAlpha(t.accentText, 0.0));
+        setColor(CS, C::Decoration, C::VisualFocus, C::Focused, t.accentText);
 
         setColor(CS, C::Decoration, C::Border, C::Normal, t.dividerBright);
         setColor(CS, C::Decoration, C::Border, C::Focused, t.fgA3);
@@ -467,10 +467,12 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
 
         setColor(CS, C::Decoration, C::Separator, C::Normal, t.dividerDim);
         setColor(CS, C::Decoration, C::Shadow, C::Normal, t.shadow);
-        setColor(CS, C::Decoration, C::Accent, C::Normal, t.accentMain);
+        // accent text, icons and checked states: the accent made readable
+        setColor(CS, C::Decoration, C::Accent, C::Normal, t.accentText);
         setColor(CS, C::Decoration, C::Indicator, C::Normal, t.fgA3);
         setColor(CS, C::Decoration, C::Tint, C::Normal, t.tint);
         setColor(CS, C::Decoration, C::TintOverBlur, C::Normal, t.tintOverBlur);
+        setColor(CS, C::Decoration, C::Scrim, C::Normal, t.scrim);
     }
 
     //window banner & miniplayer
@@ -487,8 +489,8 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
     //badges, drawn over thumbnails
     {
         C::ColorSet CS = C::Badge;
-        setColor(CS, C::Bg, C::Primary, C::Normal, t.bgB2Transparent);
-        setColor(CS, C::Fg, C::Primary, C::Normal, t.dark ? t.fg1 : t.bgB2);
+        setColor(CS, C::Bg, C::Primary, C::Normal, t.badgeBg);
+        setColor(CS, C::Fg, C::Primary, C::Normal, t.badgeFg);
     }
 
     //tab button
@@ -559,13 +561,13 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
     //Accent Buttons
     {
         C::ColorSet CS = C::ButtonAccent;
-        setColor(CS, C::Bg, C::Primary, C::Normal, t.accentMain);
-        setColor(CS, C::Bg, C::Primary, C::Hovered, t.accentBright);
-        setColor(CS, C::Bg, C::Primary, C::Focused, t.accentBright);
-        setColor(CS, C::Bg, C::Primary, C::Pressed, t.accentDim);
+        setColor(CS, C::Bg, C::Primary, C::Normal, t.accentButton);
+        setColor(CS, C::Bg, C::Primary, C::Hovered, t.accentButtonHovered);
+        setColor(CS, C::Bg, C::Primary, C::Focused, t.accentButtonHovered);
+        setColor(CS, C::Bg, C::Primary, C::Pressed, t.accentButtonPressed);
         setColor(CS, C::Bg, C::Primary, C::Disabled, t.fgA4);
 
-        setColor(CS, C::Fg, C::Primary, C::Normal, t.fgB1);
+        setColor(CS, C::Fg, C::Primary, C::Normal, t.onAccent);
         setColor(CS, C::Fg, C::Primary, C::Disabled, t.fgA1);
 
         setColor(CS, C::Decoration, C::Border, C::Normal, transparent);
@@ -607,7 +609,7 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         setColor(CS, C::Bg, C::Primary, C::Normal, t.bgB2);
         setColor(CS, C::Bg, C::Secondary, C::Normal, t.dividerBright);
         setColor(CS, C::Bg, C::Highlight, C::Normal, t.bgAccentBright);
-        setColor(CS, C::Fg, C::Primary, C::Normal, t.accentMain);
+        setColor(CS, C::Fg, C::Primary, C::Normal, t.accentText);
         // waveform seek bar: bars still to play, and played bars
         setColor(CS, C::Fg, C::Secondary, C::Normal, t.fgA4);
         setColor(CS, C::Fg, C::Highlight, C::Normal, t.accentDim);
@@ -631,9 +633,10 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
     {
         setColor(CS, C::Bg, C::Primary, C::Normal, t.bgB2);
 
-        setColor(CS, C::Decoration, C::Border, C::Normal, t.dividerBright);
-        setColor(CS, C::Decoration, C::Border, C::Focused, t.accentMain);
-        setColor(CS, C::Decoration, C::Border, C::Hovered, t.fgA3);
+        // the outline is what shows the field: 3:1 against the surface
+        setColor(CS, C::Decoration, C::Border, C::Normal, t.fgA3);
+        setColor(CS, C::Decoration, C::Border, C::Focused, t.accentText);
+        setColor(CS, C::Decoration, C::Border, C::Hovered, t.fgA2);
         setColor(CS, C::Decoration, C::Border, C::Disabled, transparent);
 
         // text selection
@@ -649,7 +652,8 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         setColor(CS, C::Bg, C::Highlight, C::Normal, t.bgA4);   // unselected segment, off side
         setColor(CS, C::Fg, C::Primary, C::Normal, t.fgA3);
         setColor(CS, C::Decoration, C::Border, C::Normal, t.dividerBright);
-        setColor(CS, C::Decoration, C::Indicator, C::Normal, t.fgA4); // off knob
+        // off knob: it shows the state, so 3:1 against the track
+        setColor(CS, C::Decoration, C::Indicator, C::Normal, t.fgA3);
         // on
         setColor(CS, C::Bg, C::Secondary, C::Normal, t.bgAccentBright);
         setColor(CS, C::Fg, C::Secondary, C::Normal, t.accentDim);

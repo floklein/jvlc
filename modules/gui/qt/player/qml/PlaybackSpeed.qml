@@ -189,6 +189,9 @@ ColumnLayout {
 
         topPadding: 0
 
+        // NOTE: The bar stays thin, the pointer target is at least 24 dp tall (WCAG 2.5.8).
+        implicitHeight: VLCStyle.icon_normal
+
         // NOTE: These values come from the VLC 3.x implementation.
         from: -34
         to: 34

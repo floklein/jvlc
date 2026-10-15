@@ -259,8 +259,7 @@ T.Pane {
                     }
                 }
 
-                Accessible.checkable: true
-                Accessible.checked: checked
+                toggle: true
 
                 onClicked: MainPlaylistController.toggleRepeatMode()
 
@@ -279,8 +278,7 @@ T.Pane {
                 text: VLCIcons.shuffle
                 description: qsTr("Shuffle")
 
-                Accessible.checkable: true
-                Accessible.checked: checked
+                toggle: true
 
                 onClicked: MainPlaylistController.toggleRandom()
 

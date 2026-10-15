@@ -29,7 +29,7 @@ Widgets.IconToolButton {
 
     text: VLCIcons.pip
     description: qsTr("Picture in Picture")
-    shortcut: MainCtx.actionShortcut("picture-in-picture")
+    shortcutAction: "picture-in-picture"
 
     AccessibleCompat.id: "pictureInPictureButton"
 

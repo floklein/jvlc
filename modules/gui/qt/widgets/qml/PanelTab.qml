@@ -76,7 +76,8 @@ T.TabButton {
     }
 
     contentItem: Item {
-        implicitWidth: tabRow.implicitWidth
+        // the label's full width, not the elided one: no binding loop with the tab's width
+        implicitWidth: iconLoader.implicitWidth + tabRow.spacing + tabLabel.implicitWidth
         implicitHeight: tabRow.implicitHeight
 
         Row {
@@ -87,6 +88,8 @@ T.TabButton {
             spacing: VLCStyle.spacing_8
 
             Loader {
+                id: iconLoader
+
                 anchors.verticalCenter: parent.verticalCenter
 
                 sourceComponent: tab.checked ? twoToneIcon : plainIcon
@@ -112,7 +115,13 @@ T.TabButton {
             }
 
             Widgets.ListLabel {
+                id: tabLabel
+
                 anchors.verticalCenter: parent.verticalCenter
+
+                // elided rather than spilling out of the tab (large scales)
+                width: Math.max(0, Math.min(implicitWidth,
+                                            tab.availableWidth - iconLoader.width - tabRow.spacing))
 
                 text: tab.text
                 font.pixelSize: VLCStyle.fontSize_small

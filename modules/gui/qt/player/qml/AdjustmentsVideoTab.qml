@@ -731,10 +731,13 @@ FocusScope {
 
                         text: group.expanded ? qsTr("Collapse Settings") : qsTr("Expand Settings")
 
+                        // screen readers read it as on (expanded) or off: a real
+                        // checkable, the attached Accessible.checkable does not hold
+                        checkable: true
+                        checked: group.expanded
+
                         Accessible.role: Accessible.Button
                         Accessible.name: qsTr("%1 settings").arg(group.title)
-                        Accessible.checkable: true
-                        Accessible.checked: group.expanded
                         Accessible.onPressAction: group.toggled()
 
                         Keys.priority: Keys.AfterItem
@@ -1026,9 +1029,7 @@ FocusScope {
             description: cropRow.linkText
             text: cropRow.linked ? VLCIcons.link_active : VLCIcons.link
             checked: cropRow.linked
-
-            Accessible.checkable: true
-            Accessible.checked: cropRow.linked
+            toggle: true
 
             onClicked: root._set(cropRow.linkKey, !cropRow.linked)
 

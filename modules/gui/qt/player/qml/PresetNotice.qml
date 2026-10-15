@@ -23,6 +23,7 @@ import VLC.MainInterface
 import VLC.Widgets as Widgets
 import VLC.Player
 import VLC.Style
+import VLC.Util
 
 // "Using Anime for The Wand" when a Show starts using a Preset, and
 // "Anime deleted · Undo" for a few seconds after a Preset is deleted
@@ -37,6 +38,7 @@ Rectangle {
         root.message = text
         root.undoable = undo
         timer.restart()
+        Helpers.announce(root, undo ? qsTr("%1. Undo with the Undo button").arg(text) : text)
     }
 
     readonly property ColorContext colorContext: ColorContext {

@@ -39,6 +39,21 @@ T.AbstractButton {
 
     background: null
 
+    Accessible.role: Accessible.Button
+    Accessible.name: {
+        switch (buttonType) {
+        case CSDThemeImage.MINIMIZE:
+            return qsTr("Minimize")
+        case CSDThemeImage.MAXIMIZE:
+            return qsTr("Maximize")
+        case CSDThemeImage.RESTORE:
+            return qsTr("Restore")
+        default:
+            return qsTr("Close")
+        }
+    }
+    Accessible.onPressAction: control.clicked()
+
     contentItem: CSDThemeImage {
 
         anchors.verticalCenter: parent.verticalCenter

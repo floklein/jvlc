@@ -75,10 +75,13 @@ FocusScope {
         font.pixelSize: VLCStyle.fontSize_normal
         font.weight: Font.Normal
 
+        // screen readers read it as on (expanded) or off: a real checkable,
+        // the attached Accessible.checkable does not hold on a button
+        checkable: true
+        checked: model.expanded
+
         Accessible.role: Accessible.Button
         Accessible.name: model.label
-        Accessible.checkable: true
-        Accessible.checked: model.expanded
 
         background: Rectangle {
             radius: VLCStyle.radius_normal
@@ -103,10 +106,12 @@ FocusScope {
         anchors.verticalCenter: parent.verticalCenter
         implicitHeight: VLCStyle.dp(36, VLCStyle.scale)
 
+        // screen readers read it as on (expanded) or off
+        checkable: true
+        checked: model.expanded
+
         Accessible.role: Accessible.Button
         Accessible.name: model.groupLabel
-        Accessible.checkable: true
-        Accessible.checked: model.expanded
         Accessible.onPressAction: groupHeader.clicked()
 
         background: Rectangle {
@@ -207,6 +212,9 @@ FocusScope {
                     visible: model.help !== ""
                     text: VLCIcons.info
                     font.pixelSize: VLCStyle.dp(18, VLCStyle.scale)
+                    // NOTE: The glyph stays small, the target is 24 dp (WCAG 2.5.8).
+                    implicitWidth: VLCStyle.icon_normal
+                    implicitHeight: VLCStyle.icon_normal
                     description: qsTr("About “%1”").arg(model.label)
                     checked: root.helpShown
 

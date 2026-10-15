@@ -31,7 +31,7 @@ Widgets.IconToolButton {
     enabled: MainPlaylistController.hasNext
     onClicked: MainPlaylistController.next()
     description: qsTr("Next")
-    shortcut: MainCtx.actionShortcut("next")
+    shortcutAction: "next"
 
     // Figma: 24 px icon in a 30x28 slot
     leftPadding: VLCStyle.dp(3, VLCStyle.scale)

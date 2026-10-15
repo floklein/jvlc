@@ -112,9 +112,10 @@ FocusScope {
         target: Player
 
         function onPlaybackRestoreQueried() {
-            if (Player.canRestorePlayback)
+            if (Player.canRestorePlayback) {
                 prompt.show()
-            else
+                Helpers.announce(root, root.message)
+            } else
                 prompt.hide()
         }
     }

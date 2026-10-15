@@ -29,7 +29,7 @@ TrackMenuButton {
     activeGlyph: VLCIcons.audio_active
 
     description: qsTr("Audio")
-    shortcut: MainCtx.actionShortcut("audio-track")
+    shortcutAction: "audio-track"
 
     AccessibleCompat.id: "audioButton"
 }

@@ -22,6 +22,7 @@ import QtQuick.Templates as T
 import VLC.MainInterface
 import VLC.Widgets as Widgets
 import VLC.Style
+import VLC.Util
 
 // Asks for one line of text, such as a name or a link:
 // ask(title, label, text, onAccepted)
@@ -178,6 +179,8 @@ ModalDialog {
 
             Accessible.role: Accessible.AlertMessage
             Accessible.name: text
+
+            onTextChanged: Helpers.announce(this, text)
         }
     }
 

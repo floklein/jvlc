@@ -17,6 +17,7 @@
  *****************************************************************************/
 import QtQuick
 import QtQuick.Controls.Basic
+import QtQuick.Window
 import QtQuick.Templates as T
 import QtQuick.Layouts
 
@@ -47,11 +48,12 @@ WindowDialog {
 
     readonly property PlayerControlbarModel bars: layouts.currentModel?.getModel(identifier) ?? null
 
-    width: VLCStyle.dp(1000, VLCStyle.scale)
-    height: VLCStyle.dp(720, VLCStyle.scale)
+    // NOTE: At large scales the sizes are clamped to the screen.
+    width: Math.min(VLCStyle.dp(1000, VLCStyle.scale), Screen.desktopAvailableWidth * 0.9)
+    height: Math.min(VLCStyle.dp(720, VLCStyle.scale), Screen.desktopAvailableHeight * 0.9)
 
-    minimumWidth: VLCStyle.dp(760, VLCStyle.scale)
-    minimumHeight: VLCStyle.dp(560, VLCStyle.scale)
+    minimumWidth: Math.min(VLCStyle.dp(760, VLCStyle.scale), Screen.desktopAvailableWidth * 0.9)
+    minimumHeight: Math.min(VLCStyle.dp(560, VLCStyle.scale), Screen.desktopAvailableHeight * 0.9)
 
     modal: true
 

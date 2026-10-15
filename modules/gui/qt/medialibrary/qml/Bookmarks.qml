@@ -92,12 +92,18 @@ Item {
         Widgets.RoundButtonExt {
             id: bookmarkButton
 
-            height: control.barHeight
+            // NOTE: The dot stays barHeight wide, the target is at least 24 dp
+            //       (WCAG 2.5.8): the insets shrink the background to the dot.
+            height: Math.max(control.barHeight, VLCStyle.icon_normal)
             width: height
+            topInset: (height - control.barHeight) / 2
+            bottomInset: topInset
+            leftInset: topInset
+            rightInset: topInset
             backgroundColor: bookmarkButton.colorContext.fg.primary
 
             x: control.width * model.position - width/2
-            y: VLCStyle.dp(1, VLCStyle.scale)
+            y: VLCStyle.dp(1, VLCStyle.scale) - topInset
             focusPolicy: Qt.NoFocus
 
             onClicked: modelBookmark.select(modelBookmark.index(index, 0))

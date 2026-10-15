@@ -32,6 +32,7 @@ Widgets.IconToolButton {
     text: VLCIcons.stop
     onClicked: MainPlaylistController.stop()
     description: qsTr("Stop")
+    shortcutAction: "stop"
 
     AccessibleCompat.id: "stopButton"
 }

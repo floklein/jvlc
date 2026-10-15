@@ -23,6 +23,7 @@ import QtQuick.Layouts
 import VLC.MainInterface
 import VLC.Widgets as Widgets
 import VLC.Style
+import VLC.Util
 import VLC.Dialogs
 
 // The Settings window: categories grouped App, Media and System, search, and
@@ -36,10 +37,11 @@ Window {
 
     title: qsTr("Settings")
 
-    width: VLCStyle.dp(1048, VLCStyle.scale)
-    height: VLCStyle.dp(865, VLCStyle.scale)
-    minimumWidth: VLCStyle.dp(720, VLCStyle.scale)
-    minimumHeight: VLCStyle.dp(480, VLCStyle.scale)
+    // NOTE: At large scales the sizes are clamped to the screen, the rows scroll.
+    width: Math.min(VLCStyle.dp(1048, VLCStyle.scale), Screen.desktopAvailableWidth * 0.9)
+    height: Math.min(VLCStyle.dp(865, VLCStyle.scale), Screen.desktopAvailableHeight * 0.9)
+    minimumWidth: Math.min(VLCStyle.dp(720, VLCStyle.scale), Screen.desktopAvailableWidth * 0.9)
+    minimumHeight: Math.min(VLCStyle.dp(480, VLCStyle.scale), Screen.desktopAvailableHeight * 0.9)
 
     color: theme.bg.primary
 
@@ -368,14 +370,25 @@ Window {
 
         // some changes need a restart
         Rectangle {
+            id: restartNotice
+
+            // a switch of Profile can need one too
+            readonly property bool needed: appSettings.restartRequired
+                                             || (MainCtx.profiles?.restartRequired ?? false)
+
             Layout.fillWidth: true
             Layout.preferredHeight: VLCStyle.dp(52, VLCStyle.scale)
-            // a switch of Profile can need one too
-            visible: appSettings.restartRequired || (MainCtx.profiles?.restartRequired ?? false)
+            visible: needed
             color: theme.bg.secondary
 
             Accessible.role: Accessible.AlertMessage
             Accessible.name: restartText.text
+
+            // screen readers read it when a change needs the restart
+            onNeededChanged: {
+                if (needed && root.visible)
+                    Helpers.announce(restartNotice, restartText.text)
+            }
 
             RowLayout {
                 anchors.fill: parent
@@ -437,6 +450,8 @@ Window {
 
             Accessible.role: Accessible.PageTab
             Accessible.name: entry.title
+            // the button resets the attached checked state to its own
+            checked: current
             Accessible.checkable: true
             Accessible.checked: current
             Accessible.onPressAction: category.clicked()

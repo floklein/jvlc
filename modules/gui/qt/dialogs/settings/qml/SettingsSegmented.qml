@@ -89,7 +89,7 @@ FocusScope {
                 Accessible.checked: selected
                 Accessible.onPressAction: root.activated(modelData.value)
 
-                T.ToolTip.visible: root.swatches && (hovered || visualFocus)
+                T.ToolTip.visible: (root.swatches || segmentLabel.truncated) && (hovered || visualFocus)
                 T.ToolTip.delay: VLCStyle.delayToolTipAppear
                 T.ToolTip.text: modelData.label
 
@@ -116,8 +116,13 @@ FocusScope {
 
                 contentItem: Item {
                     Text {
+                        id: segmentLabel
+
                         visible: !root.swatches
                         anchors.centerIn: parent
+                        // elided rather than spilling out of the segment (large scales)
+                        width: Math.max(0, Math.min(implicitWidth, parent.width - 2 * VLCStyle.spacing_4))
+                        elide: Text.ElideRight
                         text: segment.text
                         font.pixelSize: VLCStyle.fontSize_normal
                         font.family: VLCStyle.fontFamily

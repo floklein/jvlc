@@ -97,8 +97,8 @@ GridView {
     }
 
     Keys.onPressed: (event) => {
-        if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
-                && currentIndex >= 0 && currentIndex < count) {
+        // Enter or Space adds the current item
+        if (KeyHelper.matchOk(event) && currentIndex >= 0 && currentIndex < count) {
             root.addRequested(model[currentIndex].id)
             event.accepted = true
         }
@@ -176,6 +176,9 @@ GridView {
 
             font.family: VLCIcons.fontFamily
             color: theme.fg.secondary
+
+            // an icon glyph, not text to read
+            Accessible.ignored: true
         }
 
         MouseArea {

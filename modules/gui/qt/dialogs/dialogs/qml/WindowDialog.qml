@@ -87,10 +87,22 @@ Window {
             colorSet: ColorContext.Window
         }
 
+        // Esc closes the window as its close button does, unless the content
+        // handles Esc itself (accepting it)
+        Keys.onPressed: (event) => {
+            if (event.matches(StandardKey.Cancel)) {
+                event.accepted = true
+                root.close()
+            }
+        }
+
         Loader {
             id: loader
             Layout.fillHeight: true
             Layout.fillWidth: true
+
+            // the keys reach the content, then the Esc above
+            focus: true
 
             clip: true
             sourceComponent: contentComponent

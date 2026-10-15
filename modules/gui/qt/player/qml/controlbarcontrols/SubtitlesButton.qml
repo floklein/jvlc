@@ -30,7 +30,7 @@ TrackMenuButton {
     activeGlyph: VLCIcons.subtitles_active
 
     description: qsTr("Subtitles")
-    shortcut: MainCtx.actionShortcut("subtitle-track")
+    shortcutAction: "subtitle-track"
 
     AccessibleCompat.id: "subtitlesButton"
 }

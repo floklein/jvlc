@@ -31,7 +31,7 @@ Window {
 
     property alias playlistView: playlistView
 
-    width: 350
+    width: VLCStyle.dp(350, VLCStyle.scale)
     minimumWidth: playlistView.minimumWidth
 
     title: qsTr("Play Queue")

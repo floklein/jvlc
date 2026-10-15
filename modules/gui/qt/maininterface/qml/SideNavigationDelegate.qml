@@ -61,6 +61,9 @@ T.ItemDelegate {
     // Accessible
 
     Accessible.onPressAction: control.clicked()
+    // the current section reads as selected
+    Accessible.selectable: true
+    Accessible.selected: control.checked
     AccessibleCompat.id: {
         if (model.depth !== 0 || !model.uri || model.uri.length === 0) return "";
         const navBarIds = {

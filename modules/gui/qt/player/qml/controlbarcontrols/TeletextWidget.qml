@@ -108,6 +108,7 @@ T.Pane {
 
                 text: VLCIcons.transparency
                 description: qsTr("Teletext transparency")
+                toggle: true
 
                 Navigation.parentItem: root
                 Navigation.leftItem: teleActivateBtn

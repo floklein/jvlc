@@ -22,6 +22,7 @@ import QtQuick
 
 import VLC.MainInterface
 import VLC.Style
+import VLC.Util
 
 Column {
     id: root
@@ -184,6 +185,7 @@ Column {
                     if (del.text !== text) {
                         del.text = text
                         del.resetLifetime()
+                        Helpers.announce(root, text)
                     }
 
                     break
@@ -192,6 +194,7 @@ Column {
 
             if (!found) {
                 model.append({"id": id, "text": text})
+                Helpers.announce(root, text)
             }
         }
     }

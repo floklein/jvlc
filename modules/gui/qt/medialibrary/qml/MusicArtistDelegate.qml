@@ -68,6 +68,10 @@ T.ItemDelegate {
     hoverEnabled: true
 
     Accessible.onPressAction: root.itemClicked()
+    Accessible.role: Accessible.ListItem
+    Accessible.name: artistName.text
+    Accessible.selectable: true
+    Accessible.selected: selected
 
     Component.onCompleted: {
         // Qt Quick AbstractButton sets a cursor for itself, unset it so that if the view has

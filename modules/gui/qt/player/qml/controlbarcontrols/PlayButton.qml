@@ -75,9 +75,11 @@ T.Control {
 
     focusPolicy: Qt.TabFocus
 
+    // the key follows the user's bindings
+    readonly property string _shortcut: MainCtx.keyBindingsRevision >= 0 ? MainCtx.actionShortcut("play-pause") : ""
+
     Accessible.role: Accessible.Button
-    Accessible.name: Helpers.accessibleName(_playing ? qsTr("Pause") : qsTr("Play"),
-                                            MainCtx.actionShortcut("play-pause"))
+    Accessible.name: Helpers.accessibleName(_playing ? qsTr("Pause") : qsTr("Play"), _shortcut)
     AccessibleCompat.id: "playButton"
     Accessible.onPressAction: MainPlaylistController.togglePlayPause()
 
@@ -87,7 +89,7 @@ T.Control {
     T.ToolTip.delay: VLCStyle.delayToolTipAppear
     T.ToolTip.text: {
         const name = _playing ? qsTr("Pause") : qsTr("Play")
-        const key = MainCtx.actionShortcut("play-pause")
+        const key = _shortcut
         return key ? qsTr("%1 (%2)").arg(name).arg(key) : name
     }
 

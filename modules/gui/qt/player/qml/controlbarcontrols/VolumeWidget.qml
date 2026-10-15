@@ -33,6 +33,8 @@ T.Pane {
 
     property bool paintOnly: false
 
+    Accessible.name: qsTr("Volume")
+
     readonly property var _player: paintOnly ? ({ muted: false, volume: .5 }) : Player
     // the cone works in percent
     readonly property int _maxvol: MainCtx.maxVolume
@@ -127,6 +129,9 @@ T.Pane {
         contentItem: Item {
             id: popupContent
 
+            Accessible.role: Accessible.Dialog
+            Accessible.name: qsTr("Volume")
+
             implicitWidth: volControl.implicitWidth
             implicitHeight: volControl.implicitHeight
 
@@ -171,7 +176,7 @@ T.Pane {
                     return VLCIcons.volume_high
             }
             description: _player.muted ? qsTr("Unmute") : qsTr("Mute")
-            shortcut: MainCtx.actionShortcut("vol-mute")
+            shortcutAction: "vol-mute"
 
             AccessibleCompat.id: "muteButton"
 

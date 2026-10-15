@@ -50,12 +50,16 @@ T.SpinBox {
 
     implicitHeight: Math.max(implicitContentHeight + topPadding + bottomPadding,
                            implicitBackgroundHeight,
-                           up.implicitIndicatorHeight,
-                           down.implicitIndicatorHeight)
+                           up.implicitIndicatorHeight + 2 * borderWidth,
+                           down.implicitIndicatorHeight + 2 * borderWidth)
+
+    // NOTE: The down and up buttons sit side by side at the end, each at
+    //       least 24x24 dp (WCAG 2.5.8).
+    readonly property real _indicatorsWidth: up.indicator.width + down.indicator.width
 
     padding: VLCStyle.margin_xxsmall
-    leftPadding: padding + (control.mirrored ? up.indicator.width : 0) + control.borderWidth
-    rightPadding: padding + (control.mirrored ? 0 : up.indicator.width) + control.borderWidth
+    leftPadding: padding + (control.mirrored ? _indicatorsWidth : 0) + control.borderWidth
+    rightPadding: padding + (control.mirrored ? 0 : _indicatorsWidth) + control.borderWidth
     topPadding: padding + control.borderWidth
     bottomPadding: padding + control.borderWidth
 
@@ -105,13 +109,13 @@ T.SpinBox {
         Navigation.parentItem: control
     }
 
+    // at the end
     up.indicator: Rectangle {
         x: control.mirrored ? control.borderWidth : parent.width - width - control.borderWidth
-        height: parent.height / 2
-        implicitWidth: VLCStyle.dp(15, VLCStyle.scale)
-        implicitHeight: VLCStyle.dp(10, VLCStyle.scale)
-        anchors.top: parent.top
-        anchors.topMargin: control.borderWidth
+        y: control.borderWidth
+        height: parent.height - 2 * control.borderWidth
+        implicitWidth: VLCStyle.icon_normal
+        implicitHeight: VLCStyle.icon_normal
 
         color: upTheme.bg.primary
 
@@ -129,7 +133,7 @@ T.SpinBox {
 
         Widgets.IconLabel {
             text: VLCIcons.chevron_up
-            font.pixelSize: control.font.pixelSize * 2
+            font.pixelSize: VLCStyle.dp(14, VLCStyle.scale) // the glyph keeps its size
             color: upTheme.fg.primary
             font.bold: true
             anchors.fill: parent
@@ -139,13 +143,14 @@ T.SpinBox {
         }
     }
 
+    // before the up button
     down.indicator: Rectangle {
-        x: control.mirrored ? control.borderWidth : parent.width - width - control.borderWidth
-        height: parent.height / 2
-        implicitWidth: VLCStyle.dp(15, VLCStyle.scale)
-        implicitHeight: VLCStyle.dp(10, VLCStyle.scale)
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: control.borderWidth
+        x: control.mirrored ? control.borderWidth + control.up.indicator.width
+                            : parent.width - width - control.borderWidth - control.up.indicator.width
+        y: control.borderWidth
+        height: parent.height - 2 * control.borderWidth
+        implicitWidth: VLCStyle.icon_normal
+        implicitHeight: VLCStyle.icon_normal
         color: downTheme.bg.primary
 
         ColorContext {
@@ -162,7 +167,7 @@ T.SpinBox {
 
         Widgets.IconLabel {
             text: VLCIcons.chevron_down
-            font.pixelSize: control.font.pixelSize * 2
+            font.pixelSize: VLCStyle.dp(14, VLCStyle.scale) // the glyph keeps its size
             color: downTheme.fg.primary
             font.bold: true
             anchors.fill: parent

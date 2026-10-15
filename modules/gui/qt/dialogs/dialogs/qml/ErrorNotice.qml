@@ -23,6 +23,7 @@ import VLC.MainInterface
 import VLC.Dialogs
 import VLC.Widgets as Widgets
 import VLC.Style
+import VLC.Util
 
 // A non-blocking notice for the last engine error, shown in a corner.
 // "Details" opens Messages on the errors.
@@ -37,6 +38,7 @@ FocusScope {
     function show() {
         state = "visible"
         hideTimer.restart()
+        Helpers.announce(card, card.Accessible.name)
     }
 
     function dismiss() {

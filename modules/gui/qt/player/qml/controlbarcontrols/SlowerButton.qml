@@ -31,6 +31,7 @@ Widgets.IconToolButton {
     text: VLCIcons.slower
     onClicked: Player.slower()
     description: qsTr("Slower")
+    shortcutAction: "slower"
 
     AccessibleCompat.id: "slowerButton"
 }

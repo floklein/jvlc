@@ -31,7 +31,13 @@ Widgets.IconToolButton {
           ? VLCIcons.repeat_one
           : VLCIcons.repeat_all
     onClicked: MainPlaylistController.toggleRepeatMode()
-    description: qsTr("Repeat")
+    // the mode is part of the name: "Repeat one"
+    description: (MainPlaylistController.repeatMode === PlaylistController.PLAYBACK_REPEAT_CURRENT)
+                 ? qsTr("Repeat one")
+                 : (MainPlaylistController.repeatMode === PlaylistController.PLAYBACK_REPEAT_ALL)
+                   ? qsTr("Repeat all") : qsTr("Repeat")
+    shortcutAction: "loop"
+    toggle: true
 
     AccessibleCompat.id: "loopButton"
 }

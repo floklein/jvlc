@@ -279,7 +279,7 @@ FocusScope {
 
                 iconTxt: root._fullscreen ? VLCIcons.fullscreen_active : VLCIcons.fullscreen
                 description: root._fullscreen ? qsTr("Exit fullscreen") : qsTr("Fullscreen")
-                shortcut: MainCtx.actionShortcut("toggle-fullscreen")
+                shortcut: (MainCtx.keyBindingsRevision >= 0 ? MainCtx.actionShortcut("toggle-fullscreen") : "")
 
                 AccessibleCompat.id: "topBarFullscreenButton"
 
@@ -300,7 +300,7 @@ FocusScope {
 
                 showFullscreen: true
                 fullscreenChecked: root._fullscreen
-                fullscreenShortcut: MainCtx.actionShortcut("toggle-fullscreen")
+                fullscreenShortcut: (MainCtx.keyBindingsRevision >= 0 ? MainCtx.actionShortcut("toggle-fullscreen") : "")
 
                 onFullscreenClicked: root.toggleFullscreen()
 

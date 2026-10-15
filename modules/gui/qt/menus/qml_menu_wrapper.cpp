@@ -39,6 +39,8 @@
 #include <QStyle>
 #include <QStyleOption>
 
+#include <algorithm>
+
 namespace
 {
     QIcon sortIcon(QWidget *widget, int order)
@@ -758,6 +760,30 @@ void PlaylistContextMenu::popup(int selectedIndex, QPoint pos )
         action->setEnabled(rows != QVector<int>{ m_model->getCurrentIndex() });
         connect(action, &QAction::triggered, [this, rows]( ) {
             m_model->moveItemsAfterCurrent(rows);
+        });
+
+        // Move Up / Move Down, as Alt+Up / Alt+Down do: the rows move together,
+        // and not past the ends
+        const int rowsCount = static_cast<int>(rows.size());
+        const bool together = (rows.last() - rows.first() == rowsCount - 1);
+        const int lastFirstRow = m_model->rowCount() - rowsCount;
+        const auto canShift = [&rows, together, lastFirstRow](int offset) {
+            return !together
+                   || std::clamp(rows.first() + offset, 0, lastFirstRow) != rows.first();
+        };
+
+        action = m_menu->addAction( qtr("Move Up") );
+        action->setShortcut(QKeySequence(Qt::ALT | Qt::Key_Up));
+        action->setEnabled(canShift(-1));
+        connect(action, &QAction::triggered, [this, rows]( ) {
+            m_model->shiftItems(rows, -1);
+        });
+
+        action = m_menu->addAction( qtr("Move Down") );
+        action->setShortcut(QKeySequence(Qt::ALT | Qt::Key_Down));
+        action->setEnabled(canShift(1));
+        connect(action, &QAction::triggered, [this, rows]( ) {
+            m_model->shiftItems(rows, 1);
         });
 
         action = m_menu->addAction( qtr("Remove") );

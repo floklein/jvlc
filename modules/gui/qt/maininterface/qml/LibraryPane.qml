@@ -33,7 +33,14 @@ FocusScope {
     // Video blur where there is one
     property bool overlaid: false
 
-    implicitWidth: rail.width + VLCStyle.sidePanel_width
+    // NOTE: At large scales or in a small window it leaves room for the video:
+    //       240 dp, or half the window.
+    implicitWidth: {
+        const width = rail.width + VLCStyle.sidePanel_width
+        if (Window.width <= 0)
+            return width
+        return Math.min(width, Math.max(Window.width / 2, Window.width - VLCStyle.dp(240, VLCStyle.scale)))
+    }
 
     Accessible.role: Accessible.Pane
     Accessible.name: qsTr("Library pane")

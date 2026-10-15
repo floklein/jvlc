@@ -32,7 +32,10 @@ Widgets.IconToolButton {
     // the active (accent) icon means recording
     color: Player.recording ? control.colorContext.accent : control.colorContext.fg.primary
     text: Player.recording ? VLCIcons.record_active : VLCIcons.record
-    description: qsTr("record")
+    description: qsTr("Record")
+    shortcutAction: "record"
+    checked: Player.recording
+    toggle: true
 
     AccessibleCompat.id: "recordButton"
 

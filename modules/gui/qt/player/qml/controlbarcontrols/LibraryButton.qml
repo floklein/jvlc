@@ -35,6 +35,7 @@ Widgets.IconToolButton {
 
     text: VLCIcons.sidebar_left
     description: qsTr("Library")
+    toggle: true
 
     AccessibleCompat.id: "topBarLibraryButton"
 

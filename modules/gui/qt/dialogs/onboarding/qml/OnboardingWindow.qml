@@ -36,10 +36,11 @@ Window {
 
     title: qsTr("Welcome to VLC")
 
-    width: VLCStyle.dp(980, VLCStyle.scale)
-    height: VLCStyle.dp(690, VLCStyle.scale)
-    minimumWidth: VLCStyle.dp(760, VLCStyle.scale)
-    minimumHeight: VLCStyle.dp(560, VLCStyle.scale)
+    // NOTE: At large scales the sizes are clamped to the screen, the pages scroll.
+    width: Math.min(VLCStyle.dp(980, VLCStyle.scale), Screen.desktopAvailableWidth * 0.9)
+    height: Math.min(VLCStyle.dp(690, VLCStyle.scale), Screen.desktopAvailableHeight * 0.9)
+    minimumWidth: Math.min(VLCStyle.dp(760, VLCStyle.scale), Screen.desktopAvailableWidth * 0.9)
+    minimumHeight: Math.min(VLCStyle.dp(560, VLCStyle.scale), Screen.desktopAvailableHeight * 0.9)
 
     color: theme.bg.primary
 
@@ -158,15 +159,27 @@ Window {
         }
 
         // one page per step
-        Item {
+        Flickable {
             id: pages
 
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.margins: VLCStyle.margin_large
 
+            // the page fills the window, and scrolls when the window is too small for it
+            contentWidth: width
+            contentHeight: Math.max(height, [foldersPage, themePage, privacyPage, shortcutsPage]
+                                                .find((page) => page.visible)?.implicitHeight ?? 0)
+            clip: true
+            interactive: contentHeight > height
+            boundsBehavior: Flickable.StopAtBounds
+
+            T.ScrollBar.vertical: Widgets.ScrollBarExt { }
+
             // 1. Welcome and library folders
             ColumnLayout {
+                id: foldersPage
+
                 anchors.fill: parent
                 visible: onboarding.page === OnboardingModel.Folders
                 spacing: VLCStyle.spacing_20
@@ -254,6 +267,9 @@ Window {
                                 Widgets.IconToolButton {
                                     text: VLCIcons.close
                                     font.pixelSize: VLCStyle.icon_small
+                                    // NOTE: The glyph stays small, the target is 24 dp (WCAG 2.5.8).
+                                    implicitWidth: VLCStyle.icon_normal
+                                    implicitHeight: VLCStyle.icon_normal
                                     description: qsTr("Remove %1").arg(folderRow.path)
                                     onClicked: onboarding.removeFolder(folderRow.index)
                                 }
@@ -282,6 +298,8 @@ Window {
 
             // 2. Theme and Accent color, over a preview of the player
             ColumnLayout {
+                id: themePage
+
                 anchors.fill: parent
                 visible: onboarding.page === OnboardingModel.Theme
                 spacing: VLCStyle.spacing_20
@@ -291,6 +309,9 @@ Window {
 
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    // room for the Themes between the title bar and the Control bar
+                    Layout.minimumHeight: previewThemes.implicitHeight + previewTitleBar.height
+                                          + previewControlBar.height + 2 * VLCStyle.spacing_20
                     radius: VLCStyle.radius_normal
                     color: viewTheme.bg.secondary
                     border.width: 1
@@ -370,6 +391,8 @@ Window {
 
                     // the Theme, over the video
                     ColumnLayout {
+                        id: previewThemes
+
                         anchors.centerIn: parent
                         spacing: VLCStyle.spacing_20
 
@@ -402,6 +425,8 @@ Window {
 
                                     text: modelData.label
                                     Accessible.role: Accessible.RadioButton
+                                    // the button resets the attached checked state to its own
+                                    checked: current
                                     Accessible.checkable: true
                                     Accessible.checked: current
                                     Accessible.name: text
@@ -481,6 +506,8 @@ Window {
 
                             text: modelData.label
                             Accessible.role: Accessible.RadioButton
+                            // the button resets the attached checked state to its own
+                            checked: current
                             Accessible.checkable: true
                             Accessible.checked: current
                             Accessible.name: qsTr("Accent color: %1").arg(text)
@@ -513,6 +540,8 @@ Window {
 
             // 3. Privacy
             ColumnLayout {
+                id: privacyPage
+
                 anchors.fill: parent
                 visible: onboarding.page === OnboardingModel.Privacy
                 spacing: VLCStyle.spacing_20
@@ -573,6 +602,8 @@ Window {
 
             // 4. The basic shortcuts, with the keys bound now
             ColumnLayout {
+                id: shortcutsPage
+
                 anchors.fill: parent
                 visible: onboarding.page === OnboardingModel.Shortcuts
                 spacing: VLCStyle.dp(32, VLCStyle.scale)

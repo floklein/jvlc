@@ -30,6 +30,8 @@ Widgets.IconToolButton {
     text: VLCIcons.shuffle
     onClicked: MainPlaylistController.toggleRandom()
     description: qsTr("Random")
+    shortcutAction: "random"
+    toggle: true
 
     AccessibleCompat.id: "randomButton"
 }

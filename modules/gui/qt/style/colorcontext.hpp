@@ -121,7 +121,8 @@ public:
         Separator = VQTC_NAME_SEPARATOR,
         Indicator = VQTC_NAME_INDICATOR,
         Tint = VQTC_NAME_TINT,
-        TintOverBlur = VQTC_NAME_TINT_OVER_BLUR
+        TintOverBlur = VQTC_NAME_TINT_OVER_BLUR,
+        Scrim = VQTC_NAME_SCRIM
     };
 
     Q_PROPERTY(SystemPalette* palette READ palette WRITE setPalette NOTIFY paletteChanged FINAL)
@@ -151,6 +152,8 @@ public:
     Q_PROPERTY(QColor tint READ tint NOTIFY colorsChanged FINAL)
     // the lighter Tint over the Video blur
     Q_PROPERTY(QColor tintOverBlur READ tintOverBlur NOTIFY colorsChanged FINAL)
+    // the dark scrim behind the bars drawn right over the video
+    Q_PROPERTY(QColor scrim READ scrim NOTIFY colorsChanged FINAL)
 
 
     Q_PROPERTY(bool initialized READ initialized NOTIFY initializedChanged FINAL)
@@ -175,6 +178,7 @@ public:
     QColor accent() const;
     QColor tint() const;
     QColor tintOverBlur() const;
+    QColor scrim() const;
 
     void setPalette(SystemPalette*);
     void setColorSet(ColorSet);

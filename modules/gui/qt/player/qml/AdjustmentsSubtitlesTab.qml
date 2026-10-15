@@ -935,7 +935,7 @@ FocusScope {
             width: VLCStyle.dp(140, VLCStyle.scale)
             height: parent.height
             radius: VLCStyle.radius_normal
-            rightPadding: swatch.width + VLCStyle.spacing_10
+            rightPadding: VLCStyle.dp(18, VLCStyle.scale) + VLCStyle.spacing_10 // the swatch
 
             focus: true
 
@@ -967,10 +967,12 @@ FocusScope {
         T.AbstractButton {
             id: swatch
 
+            // NOTE: The swatch stays 18 dp, the target is 24 dp (WCAG 2.5.8): the
+            //       swatch's right edge stays 6 dp from the field's.
             anchors.right: hexField.right
-            anchors.rightMargin: VLCStyle.spacing_6
+            anchors.rightMargin: VLCStyle.spacing_6 - (width - VLCStyle.dp(18, VLCStyle.scale)) / 2
             anchors.verticalCenter: parent.verticalCenter
-            width: VLCStyle.dp(18, VLCStyle.scale)
+            width: VLCStyle.icon_normal
             height: width
 
             focusPolicy: Qt.StrongFocus
@@ -983,11 +985,17 @@ FocusScope {
             Keys.priority: Keys.AfterItem
             Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
 
-            background: Rectangle {
-                radius: VLCStyle.dp(2, VLCStyle.scale)
-                color: colorRow.color
-                border.width: swatch.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : VLCStyle.border
-                border.color: swatch.visualFocus ? theme.accent : theme.fg.secondary
+            background: Item {
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: VLCStyle.dp(18, VLCStyle.scale)
+                    height: width
+
+                    radius: VLCStyle.dp(2, VLCStyle.scale)
+                    color: colorRow.color
+                    border.width: swatch.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : VLCStyle.border
+                    border.color: swatch.visualFocus ? theme.accent : theme.fg.secondary
+                }
             }
 
             Navigation.parentItem: colorRow

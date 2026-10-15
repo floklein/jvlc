@@ -145,6 +145,9 @@ T.AbstractButton {
         contentItem: ColumnLayout {
             spacing: 0
 
+            Accessible.role: Accessible.Dialog
+            Accessible.name: qsTr("Presets")
+
             Repeater {
                 id: list
 
@@ -292,6 +295,8 @@ T.AbstractButton {
         hoverEnabled: true
 
         Accessible.role: Accessible.RadioButton
+        // the button resets the attached checked state to its own
+        checked: active
         Accessible.name: name
         Accessible.checkable: true
         Accessible.checked: active
@@ -360,7 +365,9 @@ T.AbstractButton {
                 description: qsTr("More actions for %1").arg(row.name)
                 font.pixelSize: VLCStyle.icon_small
 
-                focusPolicy: Qt.NoFocus
+                // NOTE: The glyph stays small, the target is 24 dp (WCAG 2.5.8).
+                implicitWidth: VLCStyle.icon_normal
+                implicitHeight: VLCStyle.icon_normal
 
                 onClicked: {
                     presetMenu.presetId = row.presetId

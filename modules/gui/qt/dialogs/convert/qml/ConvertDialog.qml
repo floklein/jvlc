@@ -192,6 +192,10 @@ WindowDialog {
                             description: qsTr("Remove")
                             font.pixelSize: VLCStyle.icon_small
 
+                            // NOTE: The glyph stays small, the target is 24 dp (WCAG 2.5.8).
+                            implicitWidth: VLCStyle.icon_normal
+                            implicitHeight: VLCStyle.icon_normal
+
                             onClicked: root.removeSource(index)
                         }
                     }

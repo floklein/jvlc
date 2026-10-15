@@ -1095,13 +1095,18 @@ ModalDialog {
         implicitWidth: tagLabel.implicitWidth + VLCStyle.margin_xsmall * 2
         implicitHeight: tagLabel.implicitHeight + VLCStyle.dp(4, VLCStyle.scale)
         radius: height / 2
-        color: accent ? root.colorContext.accent : root.colorContext.bg.secondary
+        color: accent ? accentTheme.bg.primary : root.colorContext.bg.secondary
+
+        // the text drawn on the accent reads like on accent buttons
+        readonly property ColorContext accentTheme: ColorContext {
+            colorSet: ColorContext.ButtonAccent
+        }
 
         T.Label {
             id: tagLabel
 
             anchors.centerIn: parent
-            color: parent.accent ? root.colorContext.fg.highlight : root.colorContext.fg.secondary
+            color: parent.accent ? parent.accentTheme.fg.primary : root.colorContext.fg.secondary
             font.pixelSize: VLCStyle.fontSize_small
         }
     }

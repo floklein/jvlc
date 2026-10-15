@@ -91,8 +91,9 @@ T.ComboBox {
     background: Widgets.AnimatedBackground {
         enabled: theme.initialized
         color: control.bgColor
-        border.color: theme.border
-        border.width: VLCStyle.dp(2, VLCStyle.scale)
+        // the accent ring of the keyboard focus, as on the other controls
+        border.color: control.visualFocus ? theme.visualFocus : theme.border
+        border.width: VLCStyle.focus_border
         radius: VLCStyle.dp(2, VLCStyle.scale)
     }
 

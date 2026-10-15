@@ -98,6 +98,9 @@ T.Popup {
     contentItem: RowLayout {
         spacing: VLCStyle.margin_xsmall
 
+        Accessible.role: Accessible.Dialog
+        Accessible.name: qsTr("Jump to Time")
+
         T.Label {
             text: qsTr("Jump to")
             color: theme.fg.primary

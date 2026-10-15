@@ -52,7 +52,7 @@ T.ProgressBar {
             anchors.right: parent.right
 
             implicitHeight: VLCStyle.heightBar_xxsmall
-            implicitWidth: 200
+            implicitWidth: VLCStyle.dp(200, VLCStyle.scale)
 
             ColorContext {
                 id: progressBarTheme

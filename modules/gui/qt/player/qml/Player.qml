@@ -140,6 +140,14 @@ FocusScope {
         if (event.accepted)
             return
 
+        // F6 moves the focus to the next area of the player, Shift+F6 to the previous one
+        if (event.key === Qt.Key_F6
+            && (event.modifiers & ~Qt.ShiftModifier) === Qt.NoModifier) {
+            cycleFocusArea(event.modifiers & Qt.ShiftModifier)
+            event.accepted = true
+            return
+        }
+
         _keyPressed = true
 
         rootPlayer.Navigation.defaultKeyAction(event)
@@ -219,6 +227,23 @@ FocusScope {
     function _isInEdgeZone(y) {
         return (y < Math.max(_edgeZone, topBar.height))
                 || (y > height - Math.max(_edgeZone, controlBar.height))
+    }
+
+    // The areas F6 goes through, in reading order: the Top bar, the Library
+    // pane, the video (or the audio view), the Queue panel or the Adjustments
+    // sidebar, the Control bar. Hidden areas are skipped.
+    function cycleFocusArea(backward) {
+        const areas = [topBar, libraryPaneLoader.item, playerSpecializationLoader.item,
+                       rootPlayer._rightPanel.item, controlBar]
+            .filter((area) => !!area && area.visible && area.enabled
+                              && area.width > 0 && area.height > 0)
+
+        const current = areas.findIndex((area) => area.activeFocus)
+        const next = Helpers.nextFocusArea(current, areas.length, !!backward)
+        if (next < 0)
+            return
+
+        areas[next].forceActiveFocus(backward ? Qt.BacktabFocusReason : Qt.TabFocusReason)
     }
 
     // Esc in the bars: back to the video
@@ -525,30 +550,41 @@ FocusScope {
                 }
 
                 FadeRectangle {
+                    id: topFade
+
                     anchors.top: parent.top
                     anchors.left: parent.left
                     anchors.right: parent.right
+
+                    // the scrim stays dark enough behind the bar for its text
+                    // to read over any video, then fades out
+                    height: Math.max(implicitHeight, topBar.height * 1.5)
 
                     opacity: topBar.opacity
                     visible: rootPlayer.displayFadeRectangles && !topBarAcrylicBg.visible
 
                     gradient: Gradient {
-                        GradientStop { position: 0; color: scrimTheme.bg.secondary.alpha(.8) }
-                        GradientStop { position: 1; color: scrimTheme.bg.secondary.alpha(0) }
+                        GradientStop { position: 0; color: scrimTheme.scrim }
+                        GradientStop { position: topBar.height / topFade.height; color: scrimTheme.scrim }
+                        GradientStop { position: 1; color: Qt.alpha(scrimTheme.scrim, 0) }
                     }
                 }
 
                 FadeRectangle {
+                    id: bottomFade
+
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
 
+                    height: Math.max(implicitHeight, controlBar.height * 1.5)
+
                     opacity: controlBar.opacity
 
                     gradient: Gradient {
-                        GradientStop { position: 0; color: scrimTheme.bg.secondary.alpha(0) }
-                        GradientStop { position: .64; color: scrimTheme.bg.secondary.alpha(.8) }
-                        GradientStop { position: 1; color: scrimTheme.bg.secondary }
+                        GradientStop { position: 0; color: Qt.alpha(scrimTheme.scrim, 0) }
+                        GradientStop { position: 1 - controlBar.height / bottomFade.height; color: scrimTheme.scrim }
+                        GradientStop { position: 1; color: scrimTheme.scrim }
                     }
 
                     visible: rootPlayer.displayFadeRectangles && !(controlBar.background && controlBar.background.visible)
@@ -1166,7 +1202,9 @@ FocusScope {
             bottomMargin: parent.height - rootPlayer.positionSliderY + VLCStyle.spacing_20
         }
 
-        width: VLCStyle.sidePanel_width
+        // at large scales or in a small window, it leaves room for the video
+        width: Math.min(VLCStyle.sidePanel_width,
+                        Math.max(parent.width / 2, parent.width - VLCStyle.dp(240, VLCStyle.scale)))
 
         focus: false
 
@@ -1270,7 +1308,9 @@ FocusScope {
             bottomMargin: parent.height - rootPlayer.positionSliderY + VLCStyle.spacing_20
         }
 
-        width: VLCStyle.sidePanel_width
+        // at large scales or in a small window, it leaves room for the video
+        width: Math.min(VLCStyle.sidePanel_width,
+                        Math.max(parent.width / 2, parent.width - VLCStyle.dp(240, VLCStyle.scale)))
 
         focus: false
 
@@ -1532,6 +1572,10 @@ FocusScope {
         iconSize: VLCStyle.icon_large
         iconTxt: controlBar.state === "hidden" ? VLCIcons.expand_inverted : VLCIcons.expand
 
+        // icon only: the name is for the tooltip and screen readers
+        text: controlBar.state === "hidden" ? qsTr("Show controls") : qsTr("Hide controls")
+        showText: false
+
         Navigation.parentItem: rootPlayer
         Navigation.upItem: rightPanel.adjustmentsOpened ? adjustmentsPanel
                            : playlistVisibility.isPlaylistVisible ? playlistpopup
@@ -1743,12 +1787,13 @@ FocusScope {
                 return
             }
 
-            // Tab and F6 from the video reveal the bars instantly, with the focus on Play
-            const revealKey = (event.key === Qt.Key_Tab
-                               || event.key === Qt.Key_Backtab
-                               || event.key === Qt.Key_F6)
+            // Tab and F6 from the video reveal the bars instantly, with the focus on Play;
+            // once the bars are shown, F6 goes to the next area (cycleFocusArea)
+            const tabKey = (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab)
+            const revealKey = tabKey || event.key === Qt.Key_F6
             if (revealKey && MainCtx.hasEmbededVideo
-                    && (!playerToolbarVisibilityFSM.isVisible || playerSpecializationLoader.activeFocus)) {
+                    && (!playerToolbarVisibilityFSM.isVisible
+                        || (tabKey && playerSpecializationLoader.activeFocus))) {
                 playerToolbarVisibilityFSM.keyboardReveal()
                 controlBar.focusPlayButton(Qt.TabFocusReason)
                 event.accepted = true

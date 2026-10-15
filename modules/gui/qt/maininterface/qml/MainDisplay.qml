@@ -452,6 +452,16 @@ FocusScope {
             Navigation.downItem: miniPlayer
             Navigation.rightItem: stackView.currentItem
 
+            // Esc closes the side navigation shown over the page on small
+            // screens, instead of going back in the history
+            Navigation.cancelAction: (VLCStyle.isScreenSmall && sidebar.state === "expanded")
+                                     ? sidebar.closeOverlay : null
+
+            function closeOverlay() {
+                pannelVisiblity.hideVisiblePanels()
+                stackView.forceActiveFocus(Qt.BacktabFocusReason)
+            }
+
             state: pannelVisiblity.showNavigation ? "expanded" : ""
 
             onVisibleChanged: {

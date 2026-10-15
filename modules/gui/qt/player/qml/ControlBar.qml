@@ -242,6 +242,42 @@ T.Pane {
 
                 visible: root.showRemainingTime
 
+                // a button: a click, Enter or Space switches between the
+                // duration and the remaining time
+                Accessible.role: Accessible.Button
+                Accessible.name: MainCtx.showRemainingTime ? qsTr("Show the duration")
+                                                           : qsTr("Show the remaining time")
+                Accessible.focusable: true
+                Accessible.onPressAction: MainCtx.showRemainingTime = !MainCtx.showRemainingTime
+
+                Navigation.parentItem: root
+                Navigation.downItem: playerControlLayout
+
+                activeFocusOnTab: true
+
+                Keys.onPressed: (event) => {
+                    if (KeyHelper.matchOk(event)) {
+                        event.accepted = true
+                        MainCtx.showRemainingTime = !MainCtx.showRemainingTime
+                        return
+                    }
+                    Navigation.defaultKeyAction(event)
+                }
+
+                // the keyboard focus ring
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: - VLCStyle.focus_border
+
+                    visible: mediaRemainingTime.activeFocus
+
+                    radius: VLCStyle.dp(2, VLCStyle.scale)
+                    color: "transparent"
+                    border.width: VLCStyle.focus_border
+                    // the focus ring color: theme.visualFocus is only set on a focused context
+                    border.color: theme.accent
+                }
+
                 // TODO: Do not use `Binding` when minimum Qt is 6.12:
                 Binding {
                     target: mediaRemainingTime

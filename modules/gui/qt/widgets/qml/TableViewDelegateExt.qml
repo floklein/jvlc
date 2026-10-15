@@ -38,6 +38,11 @@ T.Control {
 
     readonly property bool selected: (selectionModel?.selectedIndexesFlat.includes(index) ?? false)
 
+    Accessible.role: Accessible.ListItem
+    Accessible.name: rowModel?.title ?? rowModel?.name ?? ""
+    Accessible.selectable: true
+    Accessible.selected: selected
+
     readonly property bool topContainsDrag: dropAreaLayout.higherDropArea.containsDrag
     readonly property bool bottomContainsDrag: dropAreaLayout.lowerDropArea.containsDrag
     readonly property bool containsDrag: (topContainsDrag || bottomContainsDrag)

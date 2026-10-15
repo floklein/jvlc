@@ -44,6 +44,11 @@ ListView {
         ScrollBarExt { }
     }
 
+    // The Menu key (or Shift+F10) emits showContextMenu for the current item,
+    // at the item. Only for views whose showContextMenu opens the menu of the
+    // item under the point: elsewhere the key opens the global menu.
+    property bool menuKeyShowsContextMenu: false
+
     // Private
 
     property bool _keyPressed: false
@@ -540,6 +545,16 @@ ListView {
     }
 
     Keys.onPressed: (event) => {
+        if (root.menuKeyShowsContextMenu && event.key === Qt.Key_Menu
+                && event.modifiers === Qt.NoModifier) {
+            const menuItem = root.itemAtIndex(currentIndex)
+            if (menuItem) {
+                event.accepted = true
+                root.showContextMenu(menuItem.mapToGlobal(menuItem.width / 2, menuItem.height / 2))
+                return
+            }
+        }
+
         let newIndex = currentIndex
 
         let target = undefined

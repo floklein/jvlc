@@ -30,6 +30,7 @@ Widgets.IconToolButton {
     onClicked: Player.chapterPrev()
     enabled: Player.hasChapters
     description: qsTr("Previous chapter")
+    shortcutAction: "chapter-prev"
     
     AccessibleCompat.id: "chapterPreviousButton"
 }

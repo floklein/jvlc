@@ -105,6 +105,23 @@ QtObject {
         return qsTr("%1, %2").arg(name).arg(shortcut)
     }
 
+    // Have screen readers read a notice now, without moving the focus: the
+    // live region of notices, toasts and prompts. Needs Qt 6.8; returns
+    // whether the notice could be announced.
+    function announce(item: Item, text: string) : bool {
+        if (!item || !text)
+            return false
+        if (typeof item.Accessible.announce !== "function")
+            return false
+        item.Accessible.announce(text)
+        return true
+    }
+
+    // accessible name of a seek bar: "12:34 of 45:00"
+    function seekBarName(time: string, length: string) : string {
+        return qsTr("%1 of %2").arg(time).arg(length)
+    }
+
     // Where an item of a given width goes, centered on `center`, between a
     // left and a right limit: it slides aside rather than cross a limit, then
     // shrinks, down to nothing. When the limits cross, it sits at the right
@@ -313,5 +330,17 @@ QtObject {
     // A playback speed as "1x", "0.25x", "1.04x"
     function formatSpeed(speed: real) : string {
         return (Math.round(speed * 100) / 100) + "x"
+    }
+
+    // The area F6 moves the focus to, among `count` areas, from the area at
+    // `current` (-1 when none has the focus): the next one, or the previous
+    // one with Shift+F6 (`backward`), wrapping around. Returns -1 when there
+    // is no area.
+    function nextFocusArea(current: int, count: int, backward: bool) : int {
+        if (count <= 0)
+            return -1
+        if (current < 0 || current >= count)
+            return backward ? count - 1 : 0
+        return (current + (backward ? count - 1 : 1)) % count
     }
 }

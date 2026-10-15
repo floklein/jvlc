@@ -31,7 +31,10 @@ import VLC.Util
 T.Control {
     id: delegate
 
-    Accessible.name: title
+    Accessible.role: Accessible.ListItem
+    Accessible.name: isCurrent ? qsTr("%1, playing").arg(title) : title
+    Accessible.selectable: true
+    Accessible.selected: selected
 
     // Properties
 

@@ -31,6 +31,7 @@ Widgets.IconToolButton {
     text: VLCIcons.faster
     onClicked: Player.faster()
     description: qsTr("Faster")
+    shortcutAction: "faster"
 
     AccessibleCompat.id: "fasterButton"
 }

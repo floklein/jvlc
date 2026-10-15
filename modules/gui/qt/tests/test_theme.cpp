@@ -18,6 +18,8 @@
 
 #include <QTest>
 
+#include <cmath>
+
 #include "../style/themetokens.hpp"
 
 // Figma paint styles of the redesign (file QRb0F0V7fSTZCIoOyeV0Km)
@@ -128,6 +130,8 @@ private slots:
             t.positive, t.neutral, t.negative,
             t.positiveBg, t.neutralBg, t.negativeBg,
             t.critical, t.shadow,
+            t.accentText, t.accentButton, t.accentButtonHovered,
+            t.accentButtonPressed, t.onAccent, t.badgeBg, t.badgeFg, t.scrim,
         };
         for (const QColor& c : tokens)
             QVERIFY(c.isValid());
@@ -151,16 +155,180 @@ private slots:
     void testTintOverTheVideoBlurIsLighter_data()
     {
         QTest::addColumn<bool>("dark");
-        QTest::addColumn<QString>("tint");
-        QTest::newRow("dark") << true << withAlpha("#191919", 0.75).name(QColor::HexArgb);
-        QTest::newRow("light") << false << withAlpha("#ebebeb", 0.75).name(QColor::HexArgb);
+        QTest::newRow("dark") << true;
+        QTest::newRow("light") << false;
     }
 
     void testTintOverTheVideoBlurIsLighter()
     {
         QFETCH(bool, dark);
-        QFETCH(QString, tint);
-        QCOMPARE_COLOR(makeThemeTokens(dark).tintOverBlur, tint);
+        const ThemeTokens t = makeThemeTokens(dark);
+        QCOMPARE(t.tintOverBlur.rgb(), t.tint.rgb());
+        QVERIFY(t.tintOverBlur.alphaF() < t.tint.alphaF());
+        // about 75%, more where the text would not read over a bright video
+        QVERIFY(t.tintOverBlur.alphaF() >= 0.75f);
+    }
+
+    // WCAG 2.2 contrast ratios (https://www.w3.org/TR/WCAG22/#dfn-contrast-ratio)
+    void testContrastRatioFollowsWcag_data()
+    {
+        QTest::addColumn<QString>("a");
+        QTest::addColumn<QString>("b");
+        QTest::addColumn<double>("ratio");
+        QTest::newRow("black on white") << "#000000" << "#ffffff" << 21.0;
+        QTest::newRow("white on black") << "#ffffff" << "#000000" << 21.0;
+        QTest::newRow("same color") << "#777777" << "#777777" << 1.0;
+        QTest::newRow("#767676 on white") << "#767676" << "#ffffff" << 4.54;
+        QTest::newRow("#777777 on white") << "#777777" << "#ffffff" << 4.48;
+        QTest::newRow("#0000ff on white") << "#0000ff" << "#ffffff" << 8.59;
+    }
+
+    void testContrastRatioFollowsWcag()
+    {
+        QFETCH(QString, a);
+        QFETCH(QString, b);
+        QFETCH(double, ratio);
+        QVERIFY2(std::abs(contrastRatio(QColor(a), QColor(b)) - ratio) < 0.01,
+                 qPrintable(QString::number(contrastRatio(QColor(a), QColor(b)))));
+    }
+
+    void testCompositeBlendsOverTheBackdrop()
+    {
+        QCOMPARE_COLOR(composite(withAlpha("#000000", 0.6), QColor("#ffffff")), "#666666");
+        QCOMPARE_COLOR(composite(QColor("#123456"), QColor("#ffffff")), "#123456");
+        QCOMPARE_COLOR(composite(withAlpha("#ffffff", 0.0), QColor("#123456")), "#123456");
+    }
+
+    // readable text reaches 4.5:1 and icons 3:1, in both Themes, with any
+    // Accent color, on every surface and over any video
+    void testReadability_data()
+    {
+        QTest::addColumn<bool>("dark");
+        QTest::addColumn<QString>("accent");
+        const char* accents[] = {
+            "", "#0078d4", "#ffd400", "#1a237e", "#808080",
+            "#e81123", "#00b294", "#000000", "#ffffff",
+        };
+        for (bool dark : { true, false })
+            for (const char* accent : accents)
+                QTest::addRow("%s %s", dark ? "dark" : "light", *accent ? accent : "default")
+                    << dark << QString(accent);
+    }
+
+    void testReadability()
+    {
+        QFETCH(bool, dark);
+        QFETCH(QString, accent);
+        const ThemeTokens t = makeThemeTokens(dark, accent.isEmpty() ? QColor() : QColor(accent));
+
+        const QColor black("#000000");
+        const QColor white("#ffffff");
+
+        struct Surface { const char* name; QColor color; };
+        const Surface surfaces[] = {
+            { "A1", t.bgA1 }, { "A2", t.bgA2 }, { "A3", t.bgA3 }, { "A4", t.bgA4 },
+            { "A5", t.bgA5 }, { "B1", t.bgB1 }, { "B2", t.bgB2 },
+            { "Tint over a black video", composite(t.tint, black) },
+            { "Tint over a white video", composite(t.tint, white) },
+            { "blur Tint over a black video", composite(t.tintOverBlur, black) },
+            { "blur Tint over a white video", composite(t.tintOverBlur, white) },
+        };
+        struct Ink { const char* name; QColor color; double ratio; };
+        const Ink inks[] = {
+            { "FG/1", t.fg1, 4.5 }, { "FG/2", t.fg2, 4.5 },
+            { "FG/A1", t.fgA1, 4.5 }, { "FG/A2", t.fgA2, 4.5 },
+            { "accent text", t.accentText, 4.5 },
+            { "FG/A3 icons", t.fgA3, 3.0 },
+        };
+
+        for (const Surface& s : surfaces)
+            for (const Ink& ink : inks)
+            {
+                // accent text over the Video blur is only drawn as icons,
+                // checked states and focus rings
+                const bool blur = QByteArray(s.name).startsWith("blur");
+                const double ratio = (blur && ink.color == t.accentText) ? 3.0 : ink.ratio;
+                const double actual = contrastRatio(ink.color, s.color);
+                QVERIFY2(actual >= ratio,
+                         qPrintable(QString("%1 on %2: %3").arg(ink.name, s.name).arg(actual)));
+            }
+
+        // accent buttons
+        const QColor buttons[] = { t.accentButton, t.accentButtonHovered, t.accentButtonPressed };
+        for (const QColor& button : buttons)
+            QVERIFY2(contrastRatio(t.onAccent, button) >= 4.5,
+                     qPrintable(QString("%1 on %2").arg(t.onAccent.name(), button.name())));
+    }
+
+    void testDefaultAccentKeepsFigmaButtons_data()
+    {
+        QTest::addColumn<bool>("dark");
+        QTest::newRow("dark") << true;
+        QTest::newRow("light") << false;
+    }
+
+    void testDefaultAccentKeepsFigmaButtons()
+    {
+        QFETCH(bool, dark);
+        const ThemeTokens t = makeThemeTokens(dark);
+        QCOMPARE_COLOR(t.accentButton, t.accentMain.name());
+        QCOMPARE_COLOR(t.accentButtonHovered, t.accentBright.name());
+        QCOMPARE_COLOR(t.onAccent, t.fgB1.name());
+        // the dark accent already reads on every dark surface
+        if (dark)
+            QCOMPARE_COLOR(t.accentText, t.accentMain.name());
+    }
+
+    void testBadgesReadOverAnyArtwork_data()
+    {
+        testTintOverTheVideoBlurIsLighter_data();
+    }
+
+    void testBadgesReadOverAnyArtwork()
+    {
+        QFETCH(bool, dark);
+        const ThemeTokens t = makeThemeTokens(dark);
+        for (const char* artwork : { "#000000", "#ffffff", "#808080" })
+        {
+            const double actual = contrastRatio(t.badgeFg, composite(t.badgeBg, QColor(artwork)));
+            QVERIFY2(actual >= 4.5, qPrintable(QString("over %1: %2").arg(artwork).arg(actual)));
+        }
+    }
+
+    // the bars drawn right over the video, on the dark Theme's scrim
+    void testScrimKeepsTheBarsReadable()
+    {
+        const ThemeTokens t = makeThemeTokens(true);
+        for (const char* video : { "#000000", "#ffffff", "#808080" })
+        {
+            const QColor bg = composite(t.scrim, QColor(video));
+            for (const QColor& text : { t.fg1, t.fg2, t.fgA1, t.fgA2, t.accentText })
+                QVERIFY2(contrastRatio(text, bg) >= 4.5,
+                         qPrintable(QString("%1 over %2").arg(text.name(), video)));
+            QVERIFY(contrastRatio(t.fgA3, bg) >= 3.0);
+        }
+        // a scrim, not an opaque bar
+        QVERIFY(t.scrim.alphaF() < 1.f);
+    }
+
+    void testStatusColorsAreReadable_data()
+    {
+        testTintOverTheVideoBlurIsLighter_data();
+    }
+
+    void testStatusColorsAreReadable()
+    {
+        QFETCH(bool, dark);
+        const ThemeTokens t = makeThemeTokens(dark);
+        QVERIFY(contrastRatio(t.positive, t.positiveBg) >= 4.5);
+        QVERIFY(contrastRatio(t.neutral, t.neutralBg) >= 4.5);
+        QVERIFY(contrastRatio(t.negative, t.negativeBg) >= 4.5);
+        for (const QColor& bg : { t.bgB1, t.bgB2 })
+        {
+            QVERIFY(contrastRatio(t.positive, bg) >= 4.5);
+            QVERIFY(contrastRatio(t.neutral, bg) >= 4.5);
+            QVERIFY(contrastRatio(t.negative, bg) >= 4.5);
+        }
     }
 
     void testDefaultAccentGivesFigmaShades_data()

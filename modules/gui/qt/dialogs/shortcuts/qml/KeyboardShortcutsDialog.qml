@@ -23,6 +23,7 @@ import QtQuick.Layouts
 import VLC.MainInterface
 import VLC.Widgets as Widgets
 import VLC.Style
+import VLC.Util
 import VLC.Dialogs
 
 // Keyboard Shortcuts: find and rebind every action. Changes apply on Save,
@@ -36,10 +37,11 @@ Window {
 
     title: qsTr("Keyboard Shortcuts")
 
-    width: VLCStyle.dp(1048, VLCStyle.scale)
-    height: VLCStyle.dp(800, VLCStyle.scale)
-    minimumWidth: VLCStyle.dp(760, VLCStyle.scale)
-    minimumHeight: VLCStyle.dp(480, VLCStyle.scale)
+    // NOTE: At large scales the sizes are clamped to the screen, the list scrolls.
+    width: Math.min(VLCStyle.dp(1048, VLCStyle.scale), Screen.desktopAvailableWidth * 0.9)
+    height: Math.min(VLCStyle.dp(800, VLCStyle.scale), Screen.desktopAvailableHeight * 0.9)
+    minimumWidth: Math.min(VLCStyle.dp(760, VLCStyle.scale), Screen.desktopAvailableWidth * 0.9)
+    minimumHeight: Math.min(VLCStyle.dp(480, VLCStyle.scale), Screen.desktopAvailableHeight * 0.9)
 
     color: theme.bg.primary
 
@@ -370,6 +372,9 @@ Window {
                 Widgets.IconToolButton {
                     text: VLCIcons.info
                     font.pixelSize: VLCStyle.dp(16, VLCStyle.scale)
+                    // NOTE: The glyph stays small, the target is 24 dp (WCAG 2.5.8).
+                    implicitWidth: VLCStyle.icon_normal
+                    implicitHeight: VLCStyle.icon_normal
                     description: qsTr("Global keys work even when another app is in front. "
                                       + "Changes to them apply after VLC restarts.")
                 }
@@ -536,6 +541,9 @@ Window {
                                 visible: !row.isDefault
                                 text: VLCIcons.refresh
                                 font.pixelSize: VLCStyle.dp(18, VLCStyle.scale)
+                                // NOTE: The glyph stays small, the target is 24 dp (WCAG 2.5.8).
+                                implicitWidth: VLCStyle.icon_normal
+                                implicitHeight: VLCStyle.icon_normal
                                 description: qsTr("Reset “%1”").arg(row.label)
                                 onClicked: {
                                     rowsView.currentIndex = row.index
@@ -565,6 +573,11 @@ Window {
                             color: theme.fg.primary
                             font.pixelSize: VLCStyle.fontSize_normal
                             font.family: VLCStyle.fontFamily
+
+                            onTextChanged: {
+                                if (row.prompting)
+                                    Qt.callLater(row.announcePrompt)
+                            }
                         }
 
                         Widgets.ButtonExt {
@@ -583,8 +596,16 @@ Window {
                 }
 
                 onPromptingChanged: {
-                    if (prompting)
+                    if (prompting) {
                         replaceButton.forceActiveFocus(Qt.OtherFocusReason)
+                        Qt.callLater(row.announcePrompt)
+                    }
+                }
+
+                // screen readers read "Used by X: Replace?" when it shows or changes
+                function announcePrompt() {
+                    if (row.prompting)
+                        Helpers.announce(promptText, promptText.text)
                 }
             }
 

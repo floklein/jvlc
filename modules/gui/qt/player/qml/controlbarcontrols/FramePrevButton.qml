@@ -32,6 +32,7 @@ Widgets.IconToolButton {
     text: VLCIcons.previous_frame
     onClicked: Player.framePrev()
     description: qsTr("Previous frame")
+    shortcutAction: "frame-previous"
 
     AccessibleCompat.id: "previousFrameButton"
 }

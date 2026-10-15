@@ -53,6 +53,23 @@ TestCase {
         compare(Helpers.accessibleName(data.name, data.shortcut), data.result)
     }
 
+    Item {
+        id: notice
+    }
+
+    // Notices are announced to screen readers, the focus stays where it is
+    function test_announce() {
+        // both platforms build with Qt >= 6.8, which has Accessible.announce
+        verify(Helpers.announce(notice, "Added to the Queue"))
+        verify(!Helpers.announce(notice, ""))
+        verify(!Helpers.announce(null, "Added to the Queue"))
+    }
+
+    // The seek bar reads as "12:34 of 45:00"
+    function test_seekBarName() {
+        compare(Helpers.seekBarName("12:34", "45:00"), "12:34 of 45:00")
+    }
+
     // The Top bar's title stays centered on the window, slides aside when it
     // meets a side zone, then truncates: the side zones keep their room until
     // the title has none left
@@ -143,5 +160,23 @@ TestCase {
 
     function test_formatSpeed(data) {
         compare(Helpers.formatSpeed(data.speed), data.text)
+    }
+
+    // F6 and Shift+F6 go through the areas of the player, wrapping around
+    function test_nextFocusArea_data() {
+        return [
+            { tag: "next", current: 1, count: 4, backward: false, next: 2 },
+            { tag: "previous", current: 1, count: 4, backward: true, next: 0 },
+            { tag: "wraps forward", current: 3, count: 4, backward: false, next: 0 },
+            { tag: "wraps backward", current: 0, count: 4, backward: true, next: 3 },
+            { tag: "from none, forward", current: -1, count: 4, backward: false, next: 0 },
+            { tag: "from none, backward", current: -1, count: 4, backward: true, next: 3 },
+            { tag: "single area", current: 0, count: 1, backward: false, next: 0 },
+            { tag: "no area", current: -1, count: 0, backward: false, next: -1 },
+        ]
+    }
+
+    function test_nextFocusArea(data) {
+        compare(Helpers.nextFocusArea(data.current, data.count, data.backward), data.next)
     }
 }

@@ -44,10 +44,12 @@ T.AbstractButton {
 
     visible: _overridden.length > 0
 
-    implicitWidth: VLCStyle.dp(16, VLCStyle.scale)
+    // NOTE: The dot stays small, the target is 24 dp (WCAG 2.5.8).
+    implicitWidth: VLCStyle.icon_normal
     implicitHeight: implicitWidth
 
-    focusPolicy: Qt.NoFocus
+    // Tab reaches it, a click doesn't steal the focus from the row's control
+    focusPolicy: Qt.TabFocus
     hoverEnabled: true
 
     Accessible.role: Accessible.Button
@@ -56,6 +58,19 @@ T.AbstractButton {
     onClicked: menu.popup(root.mapToGlobal(0, root.height), [qsTr("Reset to Profile value")])
 
     background: Item {
+        // keyboard focus ring
+        Rectangle {
+            anchors.fill: parent
+
+            visible: root.visualFocus
+
+            radius: width / 2
+            color: "transparent"
+            border.width: VLCStyle.focus_border
+            // the focus ring color: theme.visualFocus is only set on a focused context
+            border.color: theme.accent
+        }
+
         Rectangle {
             anchors.centerIn: parent
 
@@ -71,7 +86,7 @@ T.AbstractButton {
 
     Widgets.ToolTipExt {
         colorContext.palette: theme.palette
-        visible: root.hovered
+        visible: root.hovered || root.visualFocus
         delay: VLCStyle.delayToolTipAppear
         text: qsTr("From the Preset %1").arg(Presets.activeName)
     }

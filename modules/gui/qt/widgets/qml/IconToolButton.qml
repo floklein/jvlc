@@ -34,9 +34,21 @@ T.ToolButton {
 
     required property string description
 
+    // the hotkey action ("stop") whose key is the shortcut; the key follows
+    // the user's bindings
+    property string shortcutAction: ""
+
     // key that triggers the same action, read by screen readers ("Play, Space")
     // and shown in the tooltip
-    property string shortcut: ""
+    property string shortcut: (shortcutAction !== "" && MainCtx.keyBindingsRevision >= 0)
+                              ? MainCtx.actionShortcut(shortcutAction) : ""
+
+    // an on/off button, such as Random: screen readers read its state. Its
+    // `checked` stays bound to the state it shows, the click changes the state.
+    // (Accessible.checkable alone does not hold: the button resets it.)
+    property bool toggle: false
+
+    checkable: toggle
 
     property color color: (control.checked) ? theme.accent : theme.fg.primary
 

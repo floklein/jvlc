@@ -32,6 +32,7 @@ Widgets.IconToolButton {
     text: VLCIcons.next_frame
     onClicked: Player.frameNext()
     description: qsTr("Next frame")
+    shortcutAction: "frame-next"
 
     AccessibleCompat.id: "frameButton"
 }

@@ -92,7 +92,7 @@ FocusScope {
                 enabled: Player.isStarted
                 text: VLCIcons.add
                 description: qsTr("Add bookmark")
-                shortcut: MainCtx.actionShortcut("add-bookmark")
+                shortcutAction: "add-bookmark"
 
                 // the same action as the Add Bookmark key and menu entries
                 onClicked: MainCtx.addBookmark()
@@ -212,7 +212,7 @@ FocusScope {
                 T.Label {
                     anchors.horizontalCenter: parent.horizontalCenter
 
-                    text: qsTr("Press %1 or + to add one").arg(MainCtx.actionShortcut("add-bookmark"))
+                    text: qsTr("Press %1 or + to add one").arg(MainCtx.keyBindingsRevision >= 0 ? MainCtx.actionShortcut("add-bookmark") : "")
                     color: theme.fg.secondary
                     font.pixelSize: VLCStyle.fontSize_normal
                 }

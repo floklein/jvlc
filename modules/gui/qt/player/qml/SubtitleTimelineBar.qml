@@ -60,15 +60,48 @@ T.Control {
     hoverEnabled: false
     focusPolicy: Qt.StrongFocus
 
-    Keys.onRightPressed: Player.jumpFwd()
-    Keys.onLeftPressed: Player.jumpBwd()
+    function _jump(forward) {
+        _accessibleSeeking = true
+        if (forward)
+            Player.jumpFwd()
+        else
+            Player.jumpBwd()
+    }
 
-    // read as the seek bar: "12:34 of 45:00"
+    Keys.onRightPressed: _jump(true)
+    Keys.onLeftPressed: _jump(false)
+
+    // read as the seek bar: "12:34 of 45:00", updated on focus and on keyboard
+    // seeks rather than every second
+    property string _accessibleName: ""
+    property bool _accessibleSeeking: false
+
+    function _updateAccessibleName() {
+        _accessibleName = Helpers.seekBarName(Player.time.formatHMS(0), Player.length.formatHMS(0))
+    }
+
+    onActiveFocusChanged: {
+        if (activeFocus)
+            _updateAccessibleName()
+    }
+
+    Connections {
+        target: Player
+
+        function onTimeChanged() {
+            // screen readers only read the name changes of the focused bar
+            if (control._accessibleSeeking || !control.activeFocus) {
+                control._accessibleSeeking = false
+                control._updateAccessibleName()
+            }
+        }
+    }
+
     Accessible.role: Accessible.Slider
-    Accessible.name: qsTr("%1 of %2").arg(Player.time.formatHMS(0)).arg(Player.length.formatHMS(0))
+    Accessible.name: _accessibleName
     Accessible.description: qsTr("Subtitle timeline")
-    Accessible.onIncreaseAction: Player.jumpFwd()
-    Accessible.onDecreaseAction: Player.jumpBwd()
+    Accessible.onIncreaseAction: _jump(true)
+    Accessible.onDecreaseAction: _jump(false)
 
     readonly property ColorContext colorContext: ColorContext {
         id: theme

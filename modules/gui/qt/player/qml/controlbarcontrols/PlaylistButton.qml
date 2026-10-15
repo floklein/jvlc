@@ -47,8 +47,7 @@ Widgets.IconToolButton {
     topPadding: VLCStyle.dp(4, VLCStyle.scale)
     bottomPadding: VLCStyle.dp(4, VLCStyle.scale)
 
-    Accessible.checkable: true
-    Accessible.checked: checked
+    toggle: true
 
     AccessibleCompat.id: "playqueueButton"
 

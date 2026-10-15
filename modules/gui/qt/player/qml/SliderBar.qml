@@ -77,14 +77,56 @@ T.ProgressBar {
                                            && Player.hasVideoOutput
                                            && Player.seekable
 
-    Keys.onRightPressed: Player.jumpFwd()
-    Keys.onLeftPressed: Player.jumpBwd()
+    function _jump(forward) {
+        _accessibleSeeking = true
+        if (forward)
+            Player.jumpFwd()
+        else
+            Player.jumpBwd()
+    }
 
-    // read as "12:34 of 45:00"
+    Keys.onRightPressed: _jump(true)
+    Keys.onLeftPressed: _jump(false)
+
+    // read as "12:34 of 45:00". It is not bound to the time: screen readers
+    // would read the focused bar every second. It follows the focus and the
+    // keyboard seeks.
+    property string _accessibleName: ""
+    property bool _accessibleSeeking: false
+
+    function _updateAccessibleName() {
+        _accessibleName = Helpers.seekBarName(Player.time.formatHMS(0), Player.length.formatHMS(0))
+    }
+
+    onActiveFocusChanged: {
+        if (activeFocus)
+            _updateAccessibleName()
+    }
+
+    Connections {
+        target: Player
+
+        function onTimeChanged() {
+            // screen readers only read the name changes of the focused bar
+            if (control._accessibleSeeking || !control.activeFocus) {
+                control._accessibleSeeking = false
+                control._updateAccessibleName()
+            }
+        }
+
+        function onLengthChanged() {
+            control._updateAccessibleName()
+        }
+    }
+
+    // the range of the value screen readers read: Qt reads these names
+    readonly property real minimumValue: from
+    readonly property real maximumValue: to
+
     Accessible.role: Accessible.Slider
-    Accessible.name: qsTr("%1 of %2").arg(Player.time.formatHMS(0)).arg(Player.length.formatHMS(0))
-    Accessible.onIncreaseAction: Player.jumpFwd()
-    Accessible.onDecreaseAction: Player.jumpBwd()
+    Accessible.name: _accessibleName
+    Accessible.onIncreaseAction: _jump(true)
+    Accessible.onDecreaseAction: _jump(false)
 
     function showChapterMarks() {
         _isSeekPointsShown = true
@@ -252,7 +294,10 @@ T.ProgressBar {
         function onInputChanged() {  fsm.inputChanged() }
     }
 
-    Component.onCompleted: value = Player.position
+    Component.onCompleted: {
+        value = Player.position
+        _updateAccessibleName()
+    }
 
     implicitHeight: control.barHeight
     height: implicitHeight
