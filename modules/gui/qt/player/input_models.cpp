@@ -107,6 +107,8 @@ QVariant TrackListModel::data(const QModelIndex &index, int role) const
                                          && m_data[row].m_id.get() == m_secondary);
     else if (role == StyledRole)
         return QVariant::fromValue<bool>(m_data[row].m_styled);
+    else if (role == LanguageRole)
+        return m_data[row].m_language;
     return QVariant{};
 }
 
@@ -120,19 +122,23 @@ bool TrackListModel::setData(const QModelIndex &index, const QVariant &value, in
     if (!value.canConvert<bool>())
         return false;
     bool select = value.toBool();
-    vlc_player_locker lock{ m_player };
-
-    if (select)
     {
-        vlc_es_id_t *es_id = m_data[row].m_id.get();
-        const enum es_format_category_e cat = vlc_es_id_GetCat(es_id);
-        enum vlc_player_select_policy policy =
-            ( cat ==  VIDEO_ES ) || m_multiSelect ? VLC_PLAYER_SELECT_SIMULTANEOUS
-                                                  : VLC_PLAYER_SELECT_EXCLUSIVE;
-        vlc_player_SelectEsId(m_player, es_id, policy);
+        vlc_player_locker lock{ m_player };
+
+        if (select)
+        {
+            vlc_es_id_t *es_id = m_data[row].m_id.get();
+            const enum es_format_category_e cat = vlc_es_id_GetCat(es_id);
+            enum vlc_player_select_policy policy =
+                ( cat ==  VIDEO_ES ) || m_multiSelect ? VLC_PLAYER_SELECT_SIMULTANEOUS
+                                                      : VLC_PLAYER_SELECT_EXCLUSIVE;
+            vlc_player_SelectEsId(m_player, es_id, policy);
+        }
+        else
+            vlc_player_UnselectEsId(m_player, m_data[row].m_id.get());
     }
-    else
-        vlc_player_UnselectEsId(m_player, m_data[row].m_id.get());
+    if (select)
+        emit picked(m_data[row].m_language);
     return true;
 }
 
@@ -142,23 +148,30 @@ void TrackListModel::select(int row)
         return;
     vlc_es_id_t *es_id = m_data[row].m_id.get();
 
+    const QString language = m_data[row].m_language;
     const int secondaryRow = rowOf(m_secondary);
     if (secondaryRow == row)
     {
         /* the second subtitle becomes the only one: restart it as the
          * first one */
         setSecondary(nullptr);
-        vlc_player_locker lock{ m_player };
-        vlc_player_UnselectTrackCategory(m_player, vlc_es_id_GetCat(es_id));
-        vlc_player_SelectEsId(m_player, es_id, VLC_PLAYER_SELECT_EXCLUSIVE);
+        {
+            vlc_player_locker lock{ m_player };
+            vlc_player_UnselectTrackCategory(m_player, vlc_es_id_GetCat(es_id));
+            vlc_player_SelectEsId(m_player, es_id, VLC_PLAYER_SELECT_EXCLUSIVE);
+        }
+        emit picked(language);
         return;
     }
 
-    vlc_player_locker lock{ m_player };
-    if (secondaryRow < 0)
-        vlc_player_SelectEsId(m_player, es_id, VLC_PLAYER_SELECT_EXCLUSIVE);
-    else
-        selectPair(es_id, m_data[secondaryRow].m_id.get());
+    {
+        vlc_player_locker lock{ m_player };
+        if (secondaryRow < 0)
+            vlc_player_SelectEsId(m_player, es_id, VLC_PLAYER_SELECT_EXCLUSIVE);
+        else
+            selectPair(es_id, m_data[secondaryRow].m_id.get());
+    }
+    emit picked(language);
 }
 
 void TrackListModel::selectSecondary(int row)
@@ -211,9 +224,12 @@ void TrackListModel::unselectAll()
     if (m_data.isEmpty())
         return;
     setSecondary(nullptr);
-    vlc_player_locker lock{ m_player };
-    vlc_player_UnselectTrackCategory(m_player,
-                                     vlc_es_id_GetCat(m_data.first().m_id.get()));
+    {
+        vlc_player_locker lock{ m_player };
+        vlc_player_UnselectTrackCategory(m_player,
+                                         vlc_es_id_GetCat(m_data.first().m_id.get()));
+    }
+    emit turnedOff();
 }
 
 bool TrackListModel::remove(int row)
@@ -400,6 +416,7 @@ QHash<int, QByteArray> TrackListModel::roleNames() const
     roleNames[ExternalRole] = QByteArrayLiteral("external");
     roleNames[SecondaryRole] = QByteArrayLiteral("secondary");
     roleNames[StyledRole] = QByteArrayLiteral("styled");
+    roleNames[LanguageRole] = QByteArrayLiteral("language");
     return roleNames;
 }
 
@@ -435,6 +452,7 @@ TrackListModel::Data::Data(const vlc_player_track *track_info)
     , m_selected( track_info->selected )
     , m_external( isExternalTrack(track_info->es_id) )
     , m_styled( track_info->fmt.i_codec == VLC_CODEC_SSA )
+    , m_language( qfu(track_info->fmt.psz_language) )
 {
 }
 
@@ -445,6 +463,7 @@ void TrackListModel::Data::update(const vlc_player_track *track_info)
     m_selected = track_info->selected;
     m_external = isExternalTrack(track_info->es_id);
     m_styled = track_info->fmt.i_codec == VLC_CODEC_SSA;
+    m_language = qfu(track_info->fmt.psz_language);
 }
 
 

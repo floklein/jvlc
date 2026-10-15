@@ -156,6 +156,8 @@ signals:
     void valuesChanged();
     void hdrModeChanged();
     void maxResolutionChanged();
+    /// flip, rotation or a value changed (what a Preset can hold)
+    void adjusted();
 
 private:
     static const std::vector<Parameter>& parameters();

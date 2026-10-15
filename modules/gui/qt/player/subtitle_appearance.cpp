@@ -150,9 +150,17 @@ void SubtitleAppearance::reload()
     m_backend->redraw();
 }
 
+void SubtitleAppearance::write(const char* option, const QVariant& value)
+{
+    if (m_profileWrites)
+        m_backend->setValue(option, value);
+    else
+        m_backend->apply(option, value);
+}
+
 void SubtitleAppearance::applyLook(const char* option, const QVariant& value)
 {
-    m_backend->setValue(option, value);
+    write(option, value);
     m_backend->redraw();
 }
 
@@ -163,8 +171,9 @@ void SubtitleAppearance::setDefaultLanguage(const QString& language)
         return;
     m_defaultLanguage = code;
     // it picks the subtitle track of the next media, not of this one
-    m_backend->setValue("sub-language", code);
+    write("sub-language", code);
     emit defaultLanguageChanged();
+    emit adjusted();
 }
 
 QVariantList SubtitleAppearance::languages() const
@@ -213,6 +222,7 @@ void SubtitleAppearance::setKeepFileStyling(bool keep)
     m_keepFileStyling = keep;
     applyLook("freetype-keep-styling", keep);
     emit keepFileStylingChanged();
+    emit adjusted();
 }
 
 void SubtitleAppearance::setFont(const QString& font)
@@ -222,6 +232,7 @@ void SubtitleAppearance::setFont(const QString& font)
     m_font = font;
     applyLook("freetype-font", font);
     emit fontChanged();
+    emit adjusted();
 }
 
 void SubtitleAppearance::setSizeMode(SizeMode mode)
@@ -231,6 +242,7 @@ void SubtitleAppearance::setSizeMode(SizeMode mode)
     m_sizeMode = mode;
     applyLook("freetype-pixel-size", mode == Pixels ? m_pixelSize : 0);
     emit sizeModeChanged();
+    emit adjusted();
 }
 
 void SubtitleAppearance::setRelativeSize(RelativeSize size)
@@ -241,16 +253,17 @@ void SubtitleAppearance::setRelativeSize(RelativeSize size)
         return;
     const bool sizeChanged = size != m_relativeSize;
     m_relativeSize = size;
-    m_backend->setValue("sub-text-scale", RELATIVE_SCALES[size]);
+    write("sub-text-scale", RELATIVE_SCALES[size]);
     if (m_sizeMode == Pixels)
     {
         m_sizeMode = Relative;
-        m_backend->setValue("freetype-pixel-size", 0);
+        write("freetype-pixel-size", 0);
         emit sizeModeChanged();
     }
     m_backend->redraw();
     if (sizeChanged)
         emit relativeSizeChanged();
+    emit adjusted();
 }
 
 void SubtitleAppearance::setPixelSize(int pixels)
@@ -262,6 +275,7 @@ void SubtitleAppearance::setPixelSize(int pixels)
     if (m_sizeMode == Pixels)
         applyLook("freetype-pixel-size", pixels);
     emit pixelSizeChanged();
+    emit adjusted();
 }
 
 void SubtitleAppearance::setTextColor(const QColor& color)
@@ -271,6 +285,7 @@ void SubtitleAppearance::setTextColor(const QColor& color)
     m_textColor = QColor::fromRgb(color.rgb());
     applyLook("freetype-color", rgbValue(color));
     emit textColorChanged();
+    emit adjusted();
 }
 
 void SubtitleAppearance::setOutlineColor(const QColor& color)
@@ -280,6 +295,7 @@ void SubtitleAppearance::setOutlineColor(const QColor& color)
     m_outlineColor = QColor::fromRgb(color.rgb());
     applyLook("freetype-outline-color", rgbValue(color));
     emit outlineColorChanged();
+    emit adjusted();
 }
 
 void SubtitleAppearance::setOutlineThickness(OutlineThickness thickness)
@@ -289,6 +305,7 @@ void SubtitleAppearance::setOutlineThickness(OutlineThickness thickness)
     m_outlineThickness = thickness;
     applyLook("freetype-outline-thickness", OUTLINE_THICKNESSES[thickness]);
     emit outlineThicknessChanged();
+    emit adjusted();
 }
 
 void SubtitleAppearance::setBackgroundOpacity(int percent)
@@ -299,6 +316,7 @@ void SubtitleAppearance::setBackgroundOpacity(int percent)
     m_backgroundOpacity = percent;
     applyLook("freetype-background-opacity", qRound(percent * 255. / 100.));
     emit backgroundOpacityChanged();
+    emit adjusted();
 }
 
 void SubtitleAppearance::setVerticalOffset(int pixels)
@@ -308,6 +326,7 @@ void SubtitleAppearance::setVerticalOffset(int pixels)
         return;
     m_verticalOffset = pixels;
     // the video output moves the subtitles by itself
-    m_backend->setValue("sub-margin", pixels);
+    write("sub-margin", pixels);
     emit verticalOffsetChanged();
+    emit adjusted();
 }

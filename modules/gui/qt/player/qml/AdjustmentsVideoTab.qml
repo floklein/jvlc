@@ -147,6 +147,12 @@ FocusScope {
                 Layout.topMargin: VLCStyle.spacing_20 + VLCStyle.spacing_6
 
                 text: qsTr("Flip")
+
+                PresetMark {
+                    anchors.right: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    keys: ["video-flip"]
+                }
             }
 
             SettingsSegmented {
@@ -183,6 +189,12 @@ FocusScope {
                 RowLabel {
                     Layout.fillWidth: true
                     text: qsTr("Rotate")
+
+                    PresetMark {
+                        anchors.right: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        keys: ["video-rotation"]
+                    }
                 }
 
                 Widgets.TextFieldExt {
@@ -361,6 +373,8 @@ FocusScope {
                 id: essentialGroup
 
                 title: qsTr("Essential")
+                presetPrefixes: ["video-hue", "video-brightness", "video-contrast", "video-saturation",
+                                 "video-gamma", "video-sharpen", "video-banding", "video-grain"]
                 modified: root.video.essentialModified
                 expanded: root._essentialExpanded
 
@@ -385,6 +399,7 @@ FocusScope {
                 id: cropGroup
 
                 title: qsTr("Crop")
+                presetPrefixes: ["video-crop"]
                 modified: root.video.cropModified
                 expanded: root._cropExpanded
 
@@ -418,6 +433,8 @@ FocusScope {
                 id: colorsGroup
 
                 title: qsTr("Colors")
+                presetPrefixes: ["video-extract", "video-colorThreshold", "video-negate",
+                                 "video-posterize", "video-gradient", "video-sepia"]
                 modified: root.video.colorsModified
                 expanded: root._colorsExpanded
 
@@ -630,6 +647,8 @@ FocusScope {
         id: group
 
         property string title
+        // the Preset keys of the group, by prefix
+        property var presetPrefixes: []
         property bool modified: false
         property bool expanded: false
 
@@ -658,6 +677,12 @@ FocusScope {
                     Layout.fillWidth: true
                     text: group.title
                     Accessible.role: Accessible.Heading
+
+                    PresetMark {
+                        anchors.right: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        prefixes: group.presetPrefixes
+                    }
                 }
 
                 Widgets.TextToolButton {

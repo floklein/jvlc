@@ -61,6 +61,7 @@ public:
         ExternalRole = Qt::UserRole,
         SecondaryRole,
         StyledRole,
+        LanguageRole,
     };
     Q_ENUM(Roles)
 
@@ -114,6 +115,10 @@ signals:
     void styledSelectedChanged();
     void externalTrackRemoved(const QString& trackId, const QString& mediaMrl,
                               const QString& sourceMrl);
+    // the viewer picked a track of this language (as the media names it)
+    void picked(const QString& language);
+    // the viewer picked "None"
+    void turnedOff();
 
 private:
     int rowOf(const vlc_es_id_t *trackid) const;
@@ -137,6 +142,7 @@ private:
         bool m_selected = false;
         bool m_external = false;
         bool m_styled = false;
+        QString m_language;
     };
     QList<Data> m_data;
     bool m_multiSelect = false; // this only work for subtitles

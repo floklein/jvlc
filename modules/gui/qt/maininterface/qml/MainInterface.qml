@@ -453,6 +453,15 @@ Item {
             z: 10
         }
 
+        // "Using <Preset> for <folder>", "<Preset> deleted · Undo"
+        PresetNotice {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: VLCStyle.dp(170, VLCStyle.scale)
+
+            z: 10
+        }
+
         // New Playlist and the Add to Playlist picker, from the library or the player
         Loader {
             anchors.fill: parent

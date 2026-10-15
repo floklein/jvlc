@@ -104,6 +104,13 @@ public:
     QString language() const;
     QVariantList languages() const;
 
+    /// whether changes are kept in the configuration; while a Preset is
+    /// active they are only applied to the output (#56)
+    void setProfileWrites(bool enabled) { m_profileWrites = enabled; }
+
+    /// shows an equalizer state as a whole, as a Preset holds it
+    void setEqualizer(bool enabled, double preamp, const QList<double>& bands);
+
     /// the band values of a preset, for its curve icon
     Q_INVOKABLE QList<double> equalizerPresetBands(int index) const;
 
@@ -149,6 +156,8 @@ signals:
     void modifiedGroupsChanged();
     void languageChanged();
     void stereoModeChanged();
+    /// the viewer changed something (not a preview)
+    void adjusted();
 
 private:
     struct EqualizerState
@@ -167,6 +176,8 @@ private:
     void showStereoMode(int mode);
 
     vlc_player_t* m_player;
+    bool m_profileWrites = true;
+    QString m_language;
 
     EqualizerState m_equalizer;
     bool m_twoPass = false;

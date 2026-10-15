@@ -423,6 +423,52 @@ private slots:
         QVERIFY(next.enabledFilters().contains("spatializer"));
     }
 
+    // a Preset is active (#56): the changes are shown, the Profile keeps
+    // its options
+    void withoutProfileWritesNothingIsSaved()
+    {
+        QSignalSpy adjusted(m_audio.get(), &AudioAdjustments::adjusted);
+        m_audio->setProfileWrites(false);
+
+        m_audio->applyEqualizerPreset(ROCK);
+        m_audio->setFilterEnabled("compressor", true);
+        m_audio->setValue("compressor-ratio", 8.);
+        m_audio->setStereoMode(AOUT_VAR_CHAN_MONO);
+        m_audio->setLanguage("ja");
+
+        QCOMPARE(m_audio->equalizerPreset(), ROCK);
+        QVERIFY(m_audio->enabledFilters().contains("compressor"));
+        QCOMPARE(m_audio->values().value("compressor-ratio").toDouble(), 8.);
+        QCOMPARE(m_audio->stereoMode(), int(AOUT_VAR_CHAN_MONO));
+        QVERIFY(m_audio->modifiedGroups().contains("stereo"));
+        QCOMPARE(m_audio->language(), QStringLiteral("ja"));
+        QCOMPARE(adjusted.count(), 5);
+
+        QCOMPARE(configString("audio-filter"), QString());
+        QCOMPARE(config_GetFloat("compressor-ratio"), 4.f);
+        QCOMPARE(config_GetInt("stereo-mode"), int64_t(AOUT_VAR_CHAN_UNSET));
+        QCOMPARE(configString("audio-language"), QString());
+
+        m_audio->resetAll();
+        m_audio->setLanguage(QString());
+        m_audio->setProfileWrites(true);
+    }
+
+    void theEqualizerCanBeShownAsAWhole()
+    {
+        QList<double> bands(AudioAdjustments::BAND_COUNT, 0.);
+        bands[2] = 6.;
+        m_audio->setEqualizer(true, 4., bands);
+
+        QVERIFY(m_audio->isEqualizerEnabled());
+        QCOMPARE(m_audio->preamp(), 4.);
+        QCOMPARE(m_audio->bands(), bands);
+        QCOMPARE(m_audio->equalizerPreset(), -1);
+
+        m_audio->setEqualizer(false, 12., bands);
+        QVERIFY(!m_audio->isEqualizerEnabled());
+    }
+
 private:
     static QStringList splitChain(const QString& chain)
     {

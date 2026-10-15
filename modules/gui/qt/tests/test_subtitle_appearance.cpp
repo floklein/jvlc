@@ -56,6 +56,13 @@ class TestSubtitleAppearance : public QObject
             ++writes[option];
         }
 
+        // shown on the player only
+        std::map<std::string, QVariant> shown;
+        void apply(const char* option, const QVariant& value) override
+        {
+            shown[option] = value;
+        }
+
         void redraw() override
         {
             ++redraws;
@@ -289,6 +296,39 @@ private slots:
         QCOMPARE(color.count(), 1);
         QCOMPARE(mode.count(), 1);
         QCOMPARE(m_options->redraws, 1);
+    }
+
+    // a Preset is active (#56): changes are shown, the Profile keeps its
+    // values
+    void withoutProfileWritesTheChangesAreOnlyShown()
+    {
+        QSignalSpy adjusted(m_appearance.get(), &SubtitleAppearance::adjusted);
+        m_appearance->setProfileWrites(false);
+
+        m_appearance->setTextColor(Qt::yellow);
+        m_appearance->setRelativeSize(SubtitleAppearance::Large);
+        m_appearance->setDefaultLanguage(QStringLiteral("ja"));
+
+        QCOMPARE(writes("freetype-color"), 0);
+        QCOMPARE(writes("sub-text-scale"), 0);
+        QCOMPARE(writes("sub-language"), 0);
+        QCOMPARE(m_options->shown["freetype-color"].toInt(), 0xFFFF00);
+        QCOMPARE(m_options->shown["sub-text-scale"].toInt(), 133);
+        QCOMPARE(m_options->shown["sub-language"].toString(), QStringLiteral("ja"));
+        QCOMPARE(m_options->redraws, 2);
+        QCOMPARE(adjusted.count(), 3);
+
+        m_appearance->setProfileWrites(true);
+        m_appearance->setTextColor(Qt::white);
+        QCOMPARE(writes("freetype-color"), 1);
+    }
+
+    void reloadingTheProfileIsNotAnAdjustment()
+    {
+        QSignalSpy adjusted(m_appearance.get(), &SubtitleAppearance::adjusted);
+        m_options->values["freetype-color"] = 0x00FF00;
+        m_appearance->reload();
+        QCOMPARE(adjusted.count(), 0);
     }
 
     void languagesStartWithAutomaticAndNone()

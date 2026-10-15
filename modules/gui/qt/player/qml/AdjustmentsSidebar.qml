@@ -183,25 +183,50 @@ T.Pane {
             }
         }
 
-        // Figma "Frame 68": the footer (the Preset selector comes with #56)
+        // Figma "Frame 68": the footer, the Preset of the playing file's
+        // folder and Reset All
         Rectangle {
             Layout.fillWidth: true
-            implicitHeight: resetAllButton.implicitHeight + 2 * VLCStyle.spacing_10
+            implicitHeight: footer.implicitHeight + 2 * VLCStyle.spacing_10
 
             color: theme.bg.secondary
             radius: VLCStyle.radius_xxsmall
 
-            Widgets.TextToolButton {
-                id: resetAllButton
+            RowLayout {
+                id: footer
 
-                anchors.centerIn: parent
+                anchors.fill: parent
+                anchors.leftMargin: VLCStyle.spacing_10
+                anchors.rightMargin: VLCStyle.spacing_10
 
-                text: qsTr("Reset All Adjustments")
+                spacing: VLCStyle.spacing_10
 
-                onClicked: root.resetAll()
+                PresetSelector {
+                    id: presetSelector
 
-                Navigation.parentItem: root
-                Navigation.upItem: tabContent.item
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: VLCStyle.dp(200, VLCStyle.scale)
+
+                    Navigation.parentItem: root
+                    Navigation.upItem: tabContent.item
+                    Navigation.rightItem: resetAllButton
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
+                Widgets.TextToolButton {
+                    id: resetAllButton
+
+                    text: qsTr("Reset All Adjustments")
+
+                    onClicked: root.resetAll()
+
+                    Navigation.parentItem: root
+                    Navigation.upItem: tabContent.item
+                    Navigation.leftItem: presetSelector
+                }
             }
         }
     }

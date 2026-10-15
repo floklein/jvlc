@@ -504,6 +504,9 @@ signals:
     void nameChanged( const QString& );
     void bufferingChanged( float );
     void rateChanged( float );
+    // the viewer asked for another "rate", "audio-delay" or "sub-delay";
+    // the new value comes with its change signal
+    void adjustedByUser( const QString& key );
 
     void timeChanged( VLCTime );
     void remainingTimeChanged( VLCTime );

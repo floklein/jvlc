@@ -77,6 +77,8 @@ public:
         virtual QVariant value(const char* option) const = 0;
         // apply and save an option
         virtual void setValue(const char* option, const QVariant& value) = 0;
+        // apply an option to the player only, the Profile keeps its value
+        virtual void apply(const char* option, const QVariant& value) = 0;
         // draw the subtitles on screen again with the current options
         virtual void redraw() = 0;
         // the Profile's options changed: apply them again
@@ -88,6 +90,10 @@ public:
 
     // another Profile is active: apply and show its options
     void reload();
+
+    // whether changes are saved in the Profile; while a Preset is active
+    // they are only shown (#56)
+    void setProfileWrites(bool enabled) { m_profileWrites = enabled; }
 
     // "" lets the media choose, "none" shows no subtitle, else a language code
     QString defaultLanguage() const { return m_defaultLanguage; }
@@ -143,13 +149,18 @@ signals:
     void outlineThicknessChanged();
     void backgroundOpacityChanged();
     void verticalOffsetChanged();
+    // a value was changed through a setter, not by a reload
+    void adjusted();
 
 private:
     void read();
+    // save and apply, or only apply without Profile writes
+    void write(const char* option, const QVariant& value);
     // write an option of the look, then show it on the line on screen
     void applyLook(const char* option, const QVariant& value);
 
     std::unique_ptr<Backend> m_backend;
+    bool m_profileWrites = true;
 
     QString m_defaultLanguage;
     bool m_keepFileStyling = true;

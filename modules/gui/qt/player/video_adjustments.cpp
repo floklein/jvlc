@@ -184,6 +184,7 @@ void VideoAdjustments::setFlip( Flip flip )
     applyRotateOption();
     applyChain();
     emit flipChanged();
+    emit adjusted();
 }
 
 void VideoAdjustments::setRotation( double degrees )
@@ -198,6 +199,7 @@ void VideoAdjustments::setRotation( double degrees )
     applyRotateOption();
     applyChain();
     emit rotationChanged();
+    emit adjusted();
 }
 
 bool VideoAdjustments::isQuarterTurn() const
@@ -268,6 +270,7 @@ void VideoAdjustments::setValue( const QString& key, const QVariant& value )
 
     applyChain();
     emit valuesChanged();
+    emit adjusted();
 }
 
 QString VideoAdjustments::cropBorders() const
@@ -354,6 +357,7 @@ void VideoAdjustments::reset( Group group )
     applyOptions( group );
     applyChain();
     emit valuesChanged();
+    emit adjusted();
 }
 
 void VideoAdjustments::resetAll()
@@ -370,6 +374,7 @@ void VideoAdjustments::clearCropBorders()
         return;
     resetValues( Crop );
     emit valuesChanged();
+    emit adjusted();
 }
 
 bool VideoAdjustments::hdrAvailable() const

@@ -208,6 +208,8 @@ AudioAdjustments::AudioAdjustments(vlc_player_t* player, QObject* parent)
         m_twoPass = config_GetInt("equalizer-2pass") != 0;
     if (config_FindConfig("stereo-mode"))
         m_stereoMode = int(config_GetInt("stereo-mode"));
+    // the first of the preferred languages
+    m_language = configString("audio-language").section(',', 0, 0).trimmed();
 
     m_modifiedGroups = modifiedGroups();
 }
@@ -325,15 +327,16 @@ QStringList AudioAdjustments::modifiedGroups() const
             groups.append(filterGroup(filter));
     }
 
-    if (config_FindConfig("stereo-mode") && config_GetInt("stereo-mode") != AOUT_VAR_CHAN_UNSET)
+    // the chosen mode, not a tried one
+    const int stereo = m_stereoBeforePreview ? *m_stereoBeforePreview : m_stereoMode;
+    if (stereo != AOUT_VAR_CHAN_UNSET)
         groups.append("stereo");
     return groups;
 }
 
 QString AudioAdjustments::language() const
 {
-    // the first of the preferred languages
-    return configString("audio-language").section(',', 0, 0).trimmed();
+    return m_language;
 }
 
 QVariantList AudioAdjustments::languages() const
@@ -404,10 +407,13 @@ void AudioAdjustments::showEqualizer(const EqualizerState& state)
 
 void AudioAdjustments::saveEqualizer(const QString& presetName)
 {
-    config_PutFloat("equalizer-preamp", m_equalizer.preamp);
-    config_PutPsz("equalizer-bands", (formatBands(m_equalizer.bands)).toUtf8().constData());
-    if (!presetName.isEmpty())
-        config_PutPsz("equalizer-preset", presetName.toUtf8().constData());
+    if (m_profileWrites)
+    {
+        config_PutFloat("equalizer-preamp", m_equalizer.preamp);
+        config_PutPsz("equalizer-bands", (formatBands(m_equalizer.bands)).toUtf8().constData());
+        if (!presetName.isEmpty())
+            config_PutPsz("equalizer-preset", presetName.toUtf8().constData());
+    }
     enableFilter("equalizer", m_equalizer.enabled);
 }
 
@@ -418,17 +424,20 @@ void AudioAdjustments::enableFilter(const char* name, bool enabled)
     else if (!enabled)
         m_enabledFilters.removeAll(name);
 
-    // the equalizer goes first, as the output does it
-    QStringList chain = splitFilters(configString("audio-filter"));
-    chain.removeAll(name);
-    if (enabled)
+    if (m_profileWrites)
     {
-        if (!strcmp(name, "equalizer"))
-            chain.prepend(name);
-        else
-            chain.append(name);
+        // the equalizer goes first, as the output does it
+        QStringList chain = splitFilters(configString("audio-filter"));
+        chain.removeAll(name);
+        if (enabled)
+        {
+            if (!strcmp(name, "equalizer"))
+                chain.prepend(name);
+            else
+                chain.append(name);
+        }
+        config_PutPsz("audio-filter", (chain.join(':')).toUtf8().constData());
     }
-    config_PutPsz("audio-filter", (chain.join(':')).toUtf8().constData());
 
     Aout aout(m_player);
     if (aout.get())
@@ -461,6 +470,7 @@ void AudioAdjustments::applyEqualizerPreset(int index)
     saveEqualizer(index >= 0 && index < NB_PRESETS ? QString(preset_list[index]) : QString());
     emit equalizerChanged();
     emitModifiedGroups();
+    emit adjusted();
 }
 
 void AudioAdjustments::previewEqualizerPreset(int index)
@@ -502,6 +512,7 @@ void AudioAdjustments::setPreamp(double value)
     saveEqualizer({});
     emit equalizerChanged();
     emitModifiedGroups();
+    emit adjusted();
 }
 
 void AudioAdjustments::setBand(int band, double value)
@@ -515,6 +526,7 @@ void AudioAdjustments::setBand(int band, double value)
     saveEqualizer({});
     emit equalizerChanged();
     emitModifiedGroups();
+    emit adjusted();
 }
 
 void AudioAdjustments::setTwoPass(bool enabled)
@@ -522,12 +534,14 @@ void AudioAdjustments::setTwoPass(bool enabled)
     if (m_twoPass == enabled)
         return;
     m_twoPass = enabled;
-    config_PutInt("equalizer-2pass", enabled);
+    if (m_profileWrites)
+        config_PutInt("equalizer-2pass", enabled);
     Aout aout(m_player);
     if (aout.has("equalizer-2pass"))
         var_SetBool(aout.get(), "equalizer-2pass", enabled);
     emit equalizerChanged();
     emitModifiedGroups();
+    emit adjusted();
 }
 
 void AudioAdjustments::setFilterEnabled(const QString& filter, bool enabled)
@@ -541,6 +555,7 @@ void AudioAdjustments::setFilterEnabled(const QString& filter, bool enabled)
     enableFilter(filter.toUtf8().constData(), enabled);
     emit filtersChanged();
     emitModifiedGroups();
+    emit adjusted();
 }
 
 void AudioAdjustments::setParameter(const QString& name, double value)
@@ -551,7 +566,7 @@ void AudioAdjustments::setParameter(const QString& name, double value)
     value = std::clamp(value, double(parameter->from), double(parameter->to));
     m_values.insert(name, value);
 
-    if (config_FindConfig(parameter->name))
+    if (m_profileWrites && config_FindConfig(parameter->name))
         config_PutFloat(parameter->name, value);
     Aout aout(m_player);
     if (aout.has(parameter->name))
@@ -574,13 +589,16 @@ void AudioAdjustments::setValue(const QString& name, double value)
 
     emit filtersChanged();
     emitModifiedGroups();
+    emit adjusted();
 }
 
 void AudioAdjustments::setLanguage(const QString& code)
 {
     if (code == language())
         return;
-    config_PutPsz("audio-language", code.toUtf8().constData());
+    m_language = code;
+    if (m_profileWrites)
+        config_PutPsz("audio-language", code.toUtf8().constData());
     if (m_player)
     {
         vlc_player_Lock(m_player);
@@ -588,6 +606,20 @@ void AudioAdjustments::setLanguage(const QString& code)
         vlc_player_Unlock(m_player);
     }
     emit languageChanged();
+    emit adjusted();
+}
+
+void AudioAdjustments::setEqualizer(bool enabled, double preamp, const QList<double>& bands)
+{
+    m_beforePreview.reset();
+    m_equalizer.enabled = enabled;
+    m_equalizer.preamp = std::clamp(preamp, -20., 20.);
+    if (bands.size() == BAND_COUNT)
+        m_equalizer.bands = bands;
+    showEqualizer(m_equalizer);
+    saveEqualizer({});
+    emit equalizerChanged();
+    emitModifiedGroups();
 }
 
 QVariantList AudioAdjustments::stereoModes() const
@@ -630,8 +662,10 @@ void AudioAdjustments::setStereoMode(int mode)
 {
     m_stereoBeforePreview.reset();
     showStereoMode(mode);
-    config_PutInt("stereo-mode", mode);
+    if (m_profileWrites)
+        config_PutInt("stereo-mode", mode);
     emitModifiedGroups();
+    emit adjusted();
 }
 
 void AudioAdjustments::previewStereoMode(int mode)
@@ -688,6 +722,7 @@ void AudioAdjustments::reset(const QString& group)
         emit filtersChanged();
     }
     emitModifiedGroups();
+    emit adjusted();
 }
 
 void AudioAdjustments::resetAll()

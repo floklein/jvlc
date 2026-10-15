@@ -347,6 +347,12 @@ FocusScope {
                 RowLabel {
                     Layout.fillWidth: true
                     text: qsTr("Speed")
+
+                    PresetMark {
+                        anchors.right: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        keys: ["rate"]
+                    }
                 }
 
                 Widgets.TextFieldExt {

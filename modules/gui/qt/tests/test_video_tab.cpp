@@ -365,6 +365,21 @@ private slots:
         QCOMPARE( m_video->maxResolution(), 720 );
     }
 
+    // what a Preset holds (#56): flip, rotation and the values, not the
+    // preferences
+    void adjustmentsAreSignalledForPresets()
+    {
+        QSignalSpy adjusted( m_video.get(), &VideoAdjustments::adjusted );
+        m_video->setFlip( VideoAdjustments::FlipVertical );
+        m_video->setRotation( 30. );
+        m_video->setValue( "hue", 90 );
+        QCOMPARE( adjusted.count(), 3 );
+
+        m_video->setHdrMode( "never" );
+        m_video->setMaxResolution( 720 );
+        QCOMPARE( adjusted.count(), 3 );
+    }
+
     void noHdrWithoutDirect3D11()
     {
         m_outputs->preferences.remove( "d3d11-hdr-mode" );

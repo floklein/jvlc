@@ -144,6 +144,9 @@ moc_headers = files(
     'player/sleep_timer.hpp',
     'player/playback_statistics.hpp',
     'player/subtitle_appearance.hpp',
+    'player/presets_model.hpp',
+    'player/preset_controller.hpp',
+    'player/player_preset_target.hpp',
     'playlist/playlist_controller.hpp',
     'playlist/playlist_item.hpp',
     'playlist/playlist_model.hpp',
@@ -479,6 +482,12 @@ qt_plugin_sources = files(
     'player/subtitle_appearance.cpp',
     'player/playback_statistics.hpp',
     'player/subtitle_appearance.hpp',
+    'player/presets_model.cpp',
+    'player/presets_model.hpp',
+    'player/preset_controller.cpp',
+    'player/preset_controller.hpp',
+    'player/player_preset_target.cpp',
+    'player/player_preset_target.hpp',
     'playlist/media.hpp',
     'playlist/playlist_common.hpp',
     'playlist/playlist_controller.cpp',
@@ -818,6 +827,9 @@ qml_modules += {
        'player/qml/AdjustmentsPlaybackTab.qml',
        'player/qml/StatisticsOverlay.qml',
        'player/qml/AdjustmentsSubtitlesTab.qml',
+       'player/qml/PresetSelector.qml',
+       'player/qml/PresetMark.qml',
+       'player/qml/PresetNotice.qml',
        'player/qml/ControlLayout.qml',
        'player/qml/ControlRepeater.qml',
        'player/qml/NavigationBox.qml',
@@ -1771,6 +1783,28 @@ if qt6_dep.found()
             'link_with': [libvlccore, libvlc],
             'link_args': qt_link_args,
             'dependencies': [qt6_dep, qt_extra_deps, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_presets',
+            'sources': files(
+                'tests/test_presets.cpp',
+                'player/presets_model.cpp',
+                'player/presets_model.hpp',
+                'player/preset_controller.cpp',
+                'player/preset_controller.hpp',
+            ),
+            'moc_sources': files(
+                'tests/test_presets.cpp'
+            ),
+            'moc_headers': files(
+                'player/presets_model.hpp',
+                'player/preset_controller.hpp',
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
         }
 
         vlc_tests += {

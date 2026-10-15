@@ -69,6 +69,8 @@ class SavedStreamsModel;
 class MLBookmarkModel;
 class ColorSchemeModel;
 class PinsModel;
+class PresetsModel;
+class PresetController;
 class VLCVarChoiceModel;
 class SidePanelCtx;
 class ShortcutMessage;
@@ -259,6 +261,8 @@ public:
     inline bool showSubtitleTimeline() const { return m_showSubtitleTimeline; }
     inline ColorSchemeModel* getColorScheme() const { return m_colorScheme; }
     inline PinsModel* getPins() const { return m_pins; }
+    // the Preset of the playing file and the list of Presets
+    inline PresetController* getPresets() const { return m_presetController; }
     bool hasVLM() const;
     bool useClientSideDecoration() const;
     bool hasFirstrun() const;
@@ -523,6 +527,8 @@ protected:
     bool                 m_hasGridListMode = false;
     ColorSchemeModel*    m_colorScheme = nullptr;
     PinsModel*           m_pins = nullptr;
+    PresetsModel*        m_presets = nullptr;
+    PresetController*    m_presetController = nullptr;
     bool                 m_windowTitlebar = true;
     // NOTE: Ideally this should be a QVLCBool.
     bool                 m_canShowVideoPIP = false;

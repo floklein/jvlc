@@ -163,6 +163,7 @@ FocusScope {
 
             ChoiceRow {
                 text: qsTr("Subtitle Language")
+                presetKeys: ["sub-language"]
 
                 ChoiceCombo {
                     id: languageCombo
@@ -193,6 +194,7 @@ FocusScope {
 
             FieldRow {
                 text: qsTr("Subtitle Track Delay")
+                presetKeys: ["sub-delay"]
 
                 ValueField {
                     id: delayField
@@ -458,6 +460,7 @@ FocusScope {
                     id: keepStylingRow
 
                     text: qsTr("Keep the File's Styling")
+                    presetKeys: ["sub-keep-styling"]
                     description: qsTr("Bold, italic and colors set by the subtitles")
                     checked: root.appearance.keepFileStyling
                     onToggled: root.appearance.keepFileStyling = !root.appearance.keepFileStyling
@@ -465,6 +468,7 @@ FocusScope {
 
                 ChoiceRow {
                     text: qsTr("Font")
+                    presetKeys: ["sub-font"]
 
                     ChoiceCombo {
                         id: fontCombo
@@ -487,6 +491,7 @@ FocusScope {
 
                 FieldRow {
                     text: qsTr("Size")
+                    presetKeys: ["sub-size-mode"]
 
                     SettingsSegmented {
                         id: sizeModeSegments
@@ -512,6 +517,7 @@ FocusScope {
                     visible: root.appearance.sizeMode === SubtitleAppearance.Relative
 
                     text: qsTr("Relative Size")
+                    presetKeys: ["sub-relative-size"]
 
                     ChoiceCombo {
                         id: relativeSizeCombo
@@ -535,6 +541,7 @@ FocusScope {
                     visible: root.appearance.sizeMode === SubtitleAppearance.Pixels
 
                     text: qsTr("Size in Pixels")
+                    presetKeys: ["sub-pixel-size"]
 
                     ValueField {
                         id: pixelSizeField
@@ -560,6 +567,7 @@ FocusScope {
                     id: textColorRow
 
                     text: qsTr("Text Color")
+                    presetKeys: ["sub-text-color"]
                     color: root.appearance.textColor
                     onPicked: (color) => { root.appearance.textColor = color }
                 }
@@ -568,12 +576,14 @@ FocusScope {
                     id: outlineColorRow
 
                     text: qsTr("Outline Color")
+                    presetKeys: ["sub-outline-color"]
                     color: root.appearance.outlineColor
                     onPicked: (color) => { root.appearance.outlineColor = color }
                 }
 
                 FieldRow {
                     text: qsTr("Outline")
+                    presetKeys: ["sub-outline-thickness"]
 
                     SettingsSegmented {
                         id: outlineSegments
@@ -599,6 +609,7 @@ FocusScope {
 
                 FieldRow {
                     text: qsTr("Background Opacity")
+                    presetKeys: ["sub-background-opacity"]
                 }
 
                 RowSlider {
@@ -618,6 +629,7 @@ FocusScope {
                     Layout.bottomMargin: VLCStyle.spacing_20
 
                     text: qsTr("Vertical Offset")
+                    presetKeys: ["sub-vertical-offset"]
 
                     ValueField {
                         id: offsetField
@@ -703,6 +715,8 @@ FocusScope {
     // a label and a control at the right
     component FieldRow : RowLayout {
         property alias text: fieldLabel.text
+        // the Preset keys of the row: a dot shows that the Preset sets it
+        property alias presetKeys: fieldMark.keys
 
         Layout.fillWidth: true
         Layout.leftMargin: VLCStyle.spacing_20
@@ -716,6 +730,12 @@ FocusScope {
             Layout.fillWidth: true
             Layout.minimumHeight: VLCStyle.dp(32, VLCStyle.scale)
             verticalAlignment: Text.AlignVCenter
+
+            PresetMark {
+                id: fieldMark
+                anchors.right: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+            }
         }
     }
 
@@ -759,6 +779,7 @@ FocusScope {
         property alias text: toggleLabel.text
         property alias description: toggleDescription.text
         property alias checked: toggle.checked
+        property alias presetKeys: toggleMark.keys
 
         signal toggled()
 
@@ -782,6 +803,12 @@ FocusScope {
             RowLabel {
                 id: toggleLabel
                 Layout.fillWidth: true
+
+                PresetMark {
+                    id: toggleMark
+                    anchors.right: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
 
             RowLabel {
@@ -873,6 +900,7 @@ FocusScope {
         id: colorRow
 
         property alias text: colorLabel.text
+        property alias presetKeys: colorMark.keys
         property color color
 
         signal picked(color color)
@@ -891,6 +919,12 @@ FocusScope {
             anchors.right: hexField.left
             anchors.rightMargin: VLCStyle.spacing_10
             anchors.verticalCenter: parent.verticalCenter
+
+            PresetMark {
+                id: colorMark
+                anchors.right: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+            }
         }
 
         Widgets.TextFieldExt {

@@ -1448,26 +1448,42 @@ public:
 
     void setValue( const char *option, const QVariant &value ) override
     {
+        switch ( config_GetType( option ) )
+        {
+        case VLC_VAR_BOOL:
+            config_PutInt( option, value.toBool() );
+            break;
+        case VLC_VAR_INTEGER:
+            config_PutInt( option, value.toLongLong() );
+            break;
+        case VLC_VAR_STRING:
+            config_PutPsz( option, value.toString().toUtf8().constData() );
+            break;
+        default:
+            return;
+        }
+        m_saveTimer.start();
+        apply( option, value );
+    }
+
+    void apply( const char *option, const QVariant &value ) override
+    {
         const QByteArray utf8 = value.toString().toUtf8();
         vlc_value_t val{};
         switch ( config_GetType( option ) )
         {
         case VLC_VAR_BOOL:
             val.b_bool = value.toBool();
-            config_PutInt( option, val.b_bool );
             break;
         case VLC_VAR_INTEGER:
             val.i_int = value.toLongLong();
-            config_PutInt( option, val.i_int );
             break;
         case VLC_VAR_STRING:
             val.psz_string = const_cast<char *>( utf8.constData() );
-            config_PutPsz( option, utf8.constData() );
             break;
         default:
             return;
         }
-        m_saveTimer.start();
 
         if ( !strcmp( option, "sub-text-scale" ) )
         {
@@ -1702,6 +1718,7 @@ void PlayerController::setRate( float new_rate )
     if (qFuzzyCompare(d->m_rate, new_rate))
         return;
 
+    emit adjustedByUser( QStringLiteral( "rate" ) );
     msg_Dbg( d->p_intf, "setRate %f", new_rate);
     vlc_player_locker lock{ d->m_player };
     if ( vlc_player_CanChangeRate( d->m_player ) )
@@ -1721,6 +1738,7 @@ void PlayerController::slower()
 {
     Q_D(PlayerController);
     msg_Dbg( d->p_intf, "slower");
+    emit adjustedByUser( QStringLiteral( "rate" ) );
     vlc_player_locker lock{ d->m_player };
     if ( vlc_player_CanChangeRate( d->m_player ) )
         vlc_player_DecrementRate( d->m_player );
@@ -1730,6 +1748,7 @@ void PlayerController::faster()
 {
     Q_D(PlayerController);
     msg_Dbg( d->p_intf, "faster");
+    emit adjustedByUser( QStringLiteral( "rate" ) );
     vlc_player_locker lock{ d->m_player };
     if ( vlc_player_CanChangeRate( d->m_player ) )
         vlc_player_IncrementRate( d->m_player );
@@ -1739,6 +1758,7 @@ void PlayerController::littlefaster()
 {
     Q_D(PlayerController);
     msg_Dbg( d->p_intf, "littlefaster");
+    emit adjustedByUser( QStringLiteral( "rate" ) );
     var_SetInteger( vlc_object_instance(d->p_intf), "key-action", ACTIONID_RATE_FASTER_FINE );
 }
 
@@ -1746,6 +1766,7 @@ void PlayerController::littleslower()
 {
     Q_D(PlayerController);
     msg_Dbg( d->p_intf, "littleslower");
+    emit adjustedByUser( QStringLiteral( "rate" ) );
     var_SetInteger( vlc_object_instance(d->p_intf), "key-action", ACTIONID_RATE_SLOWER_FINE );
 }
 
@@ -1753,6 +1774,7 @@ void PlayerController::normalRate()
 {
     Q_D(PlayerController);
     msg_Dbg( d->p_intf, "normalRate");
+    emit adjustedByUser( QStringLiteral( "rate" ) );
     vlc_player_locker lock{ d->m_player };
     if ( vlc_player_CanChangeRate( d->m_player ) )
         vlc_player_ChangeRate( d->m_player, 1.0f );
@@ -1873,35 +1895,47 @@ void PlayerController::framePrev()
 void PlayerController::setAudioDelay(VLCDuration delay)
 {
     Q_D(PlayerController);
-    vlc_player_locker lock{ d->m_player };
-    if( !d->isCurrentItemSynced() )
-        return;
-    vlc_player_SetAudioDelay( d->m_player, delay.toVLCTick(), VLC_PLAYER_WHENCE_ABSOLUTE );
+    {
+        vlc_player_locker lock{ d->m_player };
+        if( !d->isCurrentItemSynced() )
+            return;
+        vlc_player_SetAudioDelay( d->m_player, delay.toVLCTick(), VLC_PLAYER_WHENCE_ABSOLUTE );
+    }
+    emit adjustedByUser( QStringLiteral( "audio-delay" ) );
 }
 
 /*Q_INVOKABLE*/void PlayerController::addAudioDelay(VLCDuration delay)
 {
     Q_D(PlayerController);
-    vlc_player_locker lock{ d->m_player };
-    vlc_player_SetAudioDelay( d->m_player, delay.toVLCTick(), VLC_PLAYER_WHENCE_RELATIVE );
+    {
+        vlc_player_locker lock{ d->m_player };
+        vlc_player_SetAudioDelay( d->m_player, delay.toVLCTick(), VLC_PLAYER_WHENCE_RELATIVE );
+    }
     emit audioDelayChanged(delay);
+    emit adjustedByUser( QStringLiteral( "audio-delay" ) );
 }
 
 void PlayerController::setSubtitleDelay(VLCDuration delay)
 {
     Q_D(PlayerController);
-    vlc_player_locker lock{ d->m_player };
-    if(!d->isCurrentItemSynced() )
-        return;
-    vlc_player_SetSubtitleDelay( d->m_player, delay.toVLCTick(), VLC_PLAYER_WHENCE_ABSOLUTE );
+    {
+        vlc_player_locker lock{ d->m_player };
+        if(!d->isCurrentItemSynced() )
+            return;
+        vlc_player_SetSubtitleDelay( d->m_player, delay.toVLCTick(), VLC_PLAYER_WHENCE_ABSOLUTE );
+    }
+    emit adjustedByUser( QStringLiteral( "sub-delay" ) );
 }
 
 /*Q_INVOKABLE*/void PlayerController::addSubtitleDelay(VLCDuration delay)
 {
     Q_D(PlayerController);
-    vlc_player_locker lock{ d->m_player };
-    vlc_player_SetSubtitleDelay( d->m_player, delay.toVLCTick(), VLC_PLAYER_WHENCE_RELATIVE);
+    {
+        vlc_player_locker lock{ d->m_player };
+        vlc_player_SetSubtitleDelay( d->m_player, delay.toVLCTick(), VLC_PLAYER_WHENCE_RELATIVE);
+    }
     emit subtitleDelayChanged(delay);
+    emit adjustedByUser( QStringLiteral( "sub-delay" ) );
 }
 
 void PlayerController::setSecondarySubtitleDelay(VLCDuration delay)

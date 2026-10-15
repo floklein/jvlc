@@ -113,6 +113,7 @@ FocusScope {
                 Layout.topMargin: VLCStyle.spacing_10
 
                 text: qsTr("Audio Language")
+                presetKeys: ["audio-language"]
 
                 ChoiceCombo {
                     id: languageCombo
@@ -145,6 +146,12 @@ FocusScope {
                     Layout.topMargin: VLCStyle.spacing_10
                     Layout.bottomMargin: VLCStyle.spacing_10
                     text: qsTr("Stereo Mode")
+
+                    PresetMark {
+                        anchors.right: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        keys: ["stereo-mode"]
+                    }
                 }
 
                 // the output picks its own mode until one is chosen
@@ -229,6 +236,12 @@ FocusScope {
                     Layout.topMargin: VLCStyle.spacing_10
                     Layout.bottomMargin: VLCStyle.spacing_10
                     text: qsTr("Audio Track Delay")
+
+                    PresetMark {
+                        anchors.right: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        keys: ["audio-delay"]
+                    }
                 }
 
                 ValueField {
@@ -500,6 +513,12 @@ FocusScope {
                     Layout.topMargin: VLCStyle.spacing_10
                     Layout.bottomMargin: VLCStyle.spacing_10
                     text: qsTr("Adjust Pitch")
+
+                    PresetMark {
+                        anchors.right: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        keys: ["pitch-shift"]
+                    }
                 }
 
                 ResetButton {
@@ -610,6 +629,14 @@ FocusScope {
             anchors.right: groupReset.left
             anchors.rightMargin: VLCStyle.spacing_10
             anchors.verticalCenter: parent.verticalCenter
+
+            // the group's keys come from the Preset
+            PresetMark {
+                anchors.right: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                prefixes: groupHeader.group === "stereo_widen" ? ["stereo_widen", "stereowiden-"]
+                                                               : [groupHeader.group]
+            }
         }
 
         ResetButton {
@@ -698,6 +725,8 @@ FocusScope {
     // a label and a dropdown
     component ChoiceRow : RowLayout {
         property alias text: choiceLabel.text
+        // the Preset keys of the row: a dot shows that the Preset sets it
+        property alias presetKeys: choiceMark.keys
 
         Layout.fillWidth: true
         Layout.leftMargin: VLCStyle.spacing_20
@@ -708,6 +737,12 @@ FocusScope {
         RowLabel {
             id: choiceLabel
             Layout.fillWidth: true
+
+            PresetMark {
+                id: choiceMark
+                anchors.right: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+            }
         }
     }
 

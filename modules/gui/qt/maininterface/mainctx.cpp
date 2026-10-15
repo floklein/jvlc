@@ -52,6 +52,9 @@
 #include "playlist/pasted_media.hpp"
 #include "network/saved_streams_model.hpp"
 #include "player/player_controller.hpp"
+#include "player/player_preset_target.hpp"
+#include "player/preset_controller.hpp"
+#include "player/presets_model.hpp"
 #include "player/shortcut_message.hpp"
 #include "player/subtitle_appearance.hpp"
 #include "player/waveform.hpp"
@@ -294,6 +297,20 @@ MainCtx::MainCtx(qt_intf_t *_p_intf)
         if (p_intf->p_mainPlayerController)
             p_intf->p_mainPlayerController->getSubtitleAppearance()->reload();
     });
+
+    /* Presets and Shows: outside the Profiles, so every Profile shares them;
+     * the playing file's Preset goes over the Profile's values */
+    m_presets = new PresetsModel(p_intf->mainSettings, this);
+    if (PlayerController* player = p_intf->p_mainPlayerController)
+    {
+        m_presetController = new PresetController(m_presets, new PlayerPresetTarget(player, this), this);
+        connect(player, &PlayerController::inputChanged, m_presetController, [this, player](bool hasInput) {
+            m_presetController->setMedia(hasInput ? player->getUrl().toString() : QString());
+        });
+        // after the Profile's options reached the player
+        connect(m_profiles, &ProfilesModel::switched,
+                m_presetController, &PresetController::profileSwitched);
+    }
 
     const QUrl homeUrl = QUrl::fromLocalFile(QVLCUserDir( VLC_HOME_DIR ));
     m_dialogFilepath = getSettings()->value( "filedialog-path", homeUrl ).toUrl();

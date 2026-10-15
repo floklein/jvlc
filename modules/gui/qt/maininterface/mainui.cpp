@@ -44,6 +44,8 @@
 #include "player/playback_statistics.hpp"
 #include "player/subtitle_appearance.hpp"
 #include "player/audio_adjustments.hpp"
+#include "player/preset_controller.hpp"
+#include "player/presets_model.hpp"
 #include "player/equalizer_curve.hpp"
 #include "player/seek_thumbnailer.hpp"
 #include "player/shortcut_message.hpp"
@@ -394,6 +396,9 @@ void MainUI::registerQMLTypes()
         qmlRegisterType<EqualizerCurve>(uri, versionMajor, versionMinor, "EqualizerCurve");
         qmlRegisterType<SeekThumbnailer>(uri, versionMajor, versionMinor, "SeekThumbnailer");
         qmlRegisterUncreatableType<VideoAdjustments>(uri, versionMajor, versionMinor, "VideoAdjustments", "the Video tab of the Adjustments sidebar, see Player.videoAdjustments");
+        qmlRegisterUncreatableType<PresetsModel>(uri, versionMajor, versionMinor, "PresetsModel", "the Presets, see Presets.model");
+        assert(m_mainCtx->getPresets());
+        qmlRegisterSingletonInstance<PresetController>(uri, versionMajor, versionMinor, "Presets", m_mainCtx->getPresets());
         qmlRegisterSingletonInstance<ShortcutMessage>(uri, versionMajor, versionMinor, "ShortcutMessage", m_mainCtx->shortcutMessage());
         qmlRegisterUncreatableMetaObject(VLCTickForeign::staticMetaObject, uri, versionMajor, versionMinor, "VLCTick", "Not Instantiable" );
         qmlRegisterTypesAndRevisions<VLCDuration>(uri, versionMajor);
