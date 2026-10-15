@@ -122,6 +122,24 @@ QtObject {
         return qsTr("%1 of %2").arg(time).arg(length)
     }
 
+    // Where a key moves a seek bar at `position` (0..1): Home and End go to
+    // the start and the end, Page Up and Page Down a tenth forward and back.
+    // -1 for the other keys.
+    function seekKeyPosition(key: int, position: real) : real {
+        switch (key) {
+        case Qt.Key_Home:
+            return 0
+        case Qt.Key_End:
+            return 1
+        case Qt.Key_PageUp:
+            return clamp(position + 0.1, 0, 1)
+        case Qt.Key_PageDown:
+            return clamp(position - 0.1, 0, 1)
+        default:
+            return -1
+        }
+    }
+
     // Where an item of a given width goes, centered on `center`, between a
     // left and a right limit: it slides aside rather than cross a limit, then
     // shrinks, down to nothing. When the limits cross, it sits at the right

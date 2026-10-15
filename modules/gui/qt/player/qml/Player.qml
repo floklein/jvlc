@@ -780,8 +780,18 @@ FocusScope {
                         Loader {
                             id: lyricsLoader
 
+                            // the arrow up from the Control bar reaches the
+                            // lyrics
+                            focus: true
+
                             active: audioFocusScope.lyricsLayoutActive
                             sourceComponent: T.Pane {
+                                focus: true
+
+                                // a bare container: screen readers get to
+                                // the Lyrics list inside
+                                Accessible.ignored: true
+
                                 // Swallow wheel events so scrolling the lyrics
                                 // does not bubble up to the player and change
                                 // the volume.
@@ -799,6 +809,12 @@ FocusScope {
 
                                 contentItem: LyricsFlickable {
                                     id: lyricsFlickable
+
+                                    focus: true
+
+                                    Navigation.parentItem: rootPlayer
+                                    Navigation.upItem: topBar
+                                    Navigation.downItem: Player.isInteractive ? toggleControlBarButton : controlBar
 
                                     onPlayerPositionChangeRequested: (time) => {
                                         Player.setTime(time)

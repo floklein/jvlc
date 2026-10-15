@@ -957,7 +957,8 @@ qml_modules += {
         'util/qml/DelayedBehavior.qml',
         'util/qml/DelegateTouchTapHandler.qml',
         'util/qml/ClickGesture.qml',
-        'util/qml/TimedPrompt.qml'
+        'util/qml/TimedPrompt.qml',
+        'util/qml/LineKeyNavigation.qml'
     ),
     'singletons': files(
         'util/qml/Helpers.qml',
@@ -1074,6 +1075,7 @@ qml_tests = {
     'tst_ControlBarFolding': files('tests/tst_ControlBarFolding.qml'),
     'tst_RightPanelFSM': files('tests/tst_RightPanelFSM.qml'),
     'tst_ChoicePreview': files('tests/tst_ChoicePreview.qml'),
+    'tst_LineKeyNavigation': files('tests/tst_LineKeyNavigation.qml'),
 }
 
 qmllibs = []

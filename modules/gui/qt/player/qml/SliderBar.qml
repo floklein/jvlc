@@ -88,6 +88,18 @@ T.ProgressBar {
     Keys.onRightPressed: _jump(true)
     Keys.onLeftPressed: _jump(false)
 
+    // Home and End, Page Up and Page Down
+    Keys.onPressed: (event) => {
+        const position = Helpers.seekKeyPosition(event.key, control.position)
+        if (position < 0)
+            return
+        event.accepted = true
+        if (!Player.seekable)
+            return
+        _accessibleSeeking = true
+        Player.jumpToPos(position)
+    }
+
     // read as "12:34 of 45:00". It is not bound to the time: screen readers
     // would read the focused bar every second. It follows the focus and the
     // keyboard seeks.
@@ -119,9 +131,18 @@ T.ProgressBar {
         }
     }
 
-    // the range of the value screen readers read: Qt reads these names
+    // The value screen readers read, after the name: a percentage, so the
+    // value runs from 0 to 100 and `position` is the 0..1 position. Qt reads
+    // these names; the step makes Orca read whole percents.
+    from: 0
+    to: 100
     readonly property real minimumValue: from
     readonly property real maximumValue: to
+    readonly property real stepSize: 1
+
+    function _setPosition(position) {
+        value = position * to
+    }
 
     Accessible.role: Accessible.Slider
     Accessible.name: _accessibleName
@@ -197,7 +218,7 @@ T.ProgressBar {
         initialState: fsmReleased
 
         function _setPositionFromValue(position) {
-            control.value = position
+            control._setPosition(position)
         }
 
         // whether the video follows a drag with fast seeks, to be made precise
@@ -206,7 +227,7 @@ T.ProgressBar {
 
         function _seekToPosition(position, threshold, forcePrecise, scrub) {
             position = Helpers.clamp(position, 0., 1.)
-            control.value = position
+            control._setPosition(position)
             if (!forcePrecise) {
                 const chapter = Player.chapters.getClosestChapterFromPos(position, threshold)
                 if (chapter !== -1) {
@@ -228,7 +249,7 @@ T.ProgressBar {
         function _endScrub() {
             if (fsm._scrubbed) {
                 fsm._scrubbed = false
-                Player.position = control.value
+                Player.position = control.position
             }
         }
 
@@ -238,7 +259,7 @@ T.ProgressBar {
             transitions: ({
                 "playerUpdatePosition": {
                     action: (position) => {
-                        control.value = position
+                        control._setPosition(position)
                     }
                 },
                 "pressControl": {
@@ -295,7 +316,7 @@ T.ProgressBar {
     }
 
     Component.onCompleted: {
-        value = Player.position
+        _setPosition(Player.position)
         _updateAccessibleName()
     }
 

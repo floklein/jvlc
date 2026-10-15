@@ -63,11 +63,18 @@ Widgets.IconToolButton {
 
     // Children
 
-    Popup {
+    // A Dialog rather than a Popup: screen readers read it as a dialog named
+    // by its title. QML can't name the item of a Popup.
+    Dialog {
         id: popup
 
         x: (parent.width - width) / 2
         y: -height - VLCStyle.margin_xxxsmall
+
+        // the accessible name only, it shows no header
+        title: control.description
+        header: null
+        footer: null
 
         padding: VLCStyle.margin_small
 

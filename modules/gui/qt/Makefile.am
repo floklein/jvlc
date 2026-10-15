@@ -1353,7 +1353,8 @@ libqml_module_util_a_QML = \
 	util/qml/DelayedBehavior.qml \
 	util/qml/DelegateTouchTapHandler.qml \
 	util/qml/ClickGesture.qml \
-	util/qml/TimedPrompt.qml
+	util/qml/TimedPrompt.qml \
+	util/qml/LineKeyNavigation.qml
 libqml_module_util_a_Singleton_QML = \
 	util/qml/Helpers.qml
 libqml_module_util_a_SOURCES = $(QML_MODULE_util_SRC)
@@ -2982,5 +2983,7 @@ EXTRA_DIST += tests/tst_RightPanelFSM.qml
 TESTS += tests/tst_RightPanelFSM.qml
 EXTRA_DIST += tests/tst_ChoicePreview.qml
 TESTS += tests/tst_ChoicePreview.qml
+EXTRA_DIST += tests/tst_LineKeyNavigation.qml
+TESTS += tests/tst_LineKeyNavigation.qml
 endif
 endif

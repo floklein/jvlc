@@ -33,7 +33,7 @@ PopupIconToolButton {
 
     text: qsTr("Playback Speed")
 
-    description: qsTr("change playback speed")
+    description: qsTr("Playback speed")
 
     AccessibleCompat.id: "playbackSpeedButton"
 

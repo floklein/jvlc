@@ -70,6 +70,25 @@ TestCase {
         compare(Helpers.seekBarName("12:34", "45:00"), "12:34 of 45:00")
     }
 
+    // Home and End go to the start and the end of the seek bar, Page Up and
+    // Page Down move a tenth of it; other keys are not the seek bar's
+    function test_seekKeyPosition_data() {
+        return [
+            { tag: "home", key: Qt.Key_Home, position: 0.5, result: 0 },
+            { tag: "end", key: Qt.Key_End, position: 0.5, result: 1 },
+            { tag: "page up", key: Qt.Key_PageUp, position: 0.5, result: 0.6 },
+            { tag: "page down", key: Qt.Key_PageDown, position: 0.5, result: 0.4 },
+            { tag: "page up near the end", key: Qt.Key_PageUp, position: 0.95, result: 1 },
+            { tag: "page down near the start", key: Qt.Key_PageDown, position: 0.05, result: 0 },
+            { tag: "arrow", key: Qt.Key_Right, position: 0.5, result: -1 },
+            { tag: "letter", key: Qt.Key_A, position: 0.5, result: -1 },
+        ]
+    }
+
+    function test_seekKeyPosition(data) {
+        fuzzyCompare(Helpers.seekKeyPosition(data.key, data.position), data.result, 1e-9)
+    }
+
     // The Top bar's title stays centered on the window, slides aside when it
     // meets a side zone, then truncates: the side zones keep their room until
     // the title has none left
