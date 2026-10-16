@@ -656,6 +656,19 @@ static void MainLoop( input_thread_t *p_input, bool b_interactive )
     if( b_interactive && var_InheritBool( p_input, "start-paused" ) )
         ControlPause(p_input, vlc_tick_now(), true);
 
+    if( input_priv(p_input)->type == INPUT_TYPE_THUMBNAILING )
+    {
+        /* The thumbnailer queues its seek before starting the input and keeps
+         * the first decoded picture. Seek before demuxing anything: the first
+         * demux call can end the buffering (mp4 sends the PCR after the
+         * blocks), and the decoder would then output the first picture of the
+         * media before the seek request is handled. */
+        int i_type;
+        input_control_param_t param;
+        while( !ControlPop( p_input, &i_type, &param, 0, false ) )
+            Control( p_input, i_type, param );
+    }
+
     bool eof_signaled = false;
 
     demux_t *p_demux = input_priv(p_input)->master->p_demux;

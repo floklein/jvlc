@@ -236,6 +236,7 @@ var_Read_float(const char *psz)
     X(can_record, bool, add_bool, Bool, true, NO_FREE) \
     X(error, bool, add_bool, Bool, false, NO_FREE) \
     X(pts_delay, vlc_tick_t, add_integer, Unsigned, DEFAULT_PTS_DELAY, NO_FREE) \
+    X(pcr_after_data, bool, add_bool, Bool, false, NO_FREE) \
     X(pts_offset, vlc_tick_t, add_integer, Unsigned, 0, NO_FREE) \
     X(time_offset, vlc_tick_t, add_integer, Ssize, 0, NO_FREE) \
     X(discontinuities, char *, add_string, String, NULL, FREE_CB) \
@@ -1324,7 +1325,10 @@ Demux(demux_t *demux)
         vlc_tick_sleep(delay);
     }
 
-    es_out_SetPCR(demux->out, sys->clock);
+    /* Some demuxers (mp4) send the PCR after the blocks it covers */
+    const vlc_tick_t pcr = sys->clock;
+    if (!sys->pcr_after_data)
+        es_out_SetPCR(demux->out, pcr);
 
     const vlc_tick_t video_step_length =
         (sys->video_track_count == 0 && sys->sub_track_count == 0) ? 0 :
@@ -1364,6 +1368,9 @@ Demux(demux_t *demux)
 
     if (ret != VLC_SUCCESS)
         return VLC_DEMUXER_EGENERIC;
+
+    if (sys->pcr_after_data)
+        es_out_SetPCR(demux->out, pcr);
 
     if (sys->eof_requested)
         return VLC_DEMUXER_EOF;
