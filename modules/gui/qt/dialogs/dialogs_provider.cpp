@@ -61,6 +61,7 @@
 #include <QPointer>
 #include <QProcess>
 #include <QSettings>
+#include <QWindow>
 
 #define I_OP_DIR_WINTITLE I_DIR_OR_FOLDER( N_("Open Directory"), \
                                            N_("Open Folder") )
@@ -280,7 +281,13 @@ bool DialogsProvider::prefsDialogVisible() const
 
 void DialogsProvider::keyboardShortcutsDialog(const QString& action)
 {
-    emit showKeyboardShortcutsDialog(action);
+    /* The dialog opens over the window asking for it: the main window,
+     * Settings, or Onboarding (which blocks the main window). A menu asks
+     * for its window. */
+    QWindow *window = QGuiApplication::focusWindow();
+    while( window && window->type() == Qt::Popup && window->transientParent() )
+        window = window->transientParent();
+    emit showKeyboardShortcutsDialog(action, window);
 }
 
 void DialogsProvider::onboarding(int step)

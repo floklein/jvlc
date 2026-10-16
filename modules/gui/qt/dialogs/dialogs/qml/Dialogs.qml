@@ -629,28 +629,14 @@ Item {
         }
     }
 
-    // loads the keys again each time it opens, see KeyboardShortcutsDialog
-    Loader {
-        id: keyboardShortcutsDialogLoader
-        active: false
-        source: "qrc:///qt/qml/VLC/Dialogs/KeyboardShortcutsDialog.qml"
-
-        Connections {
-            target: DialogsProvider
-
-            function onShowKeyboardShortcutsDialog(action) {
-                keyboardShortcutsDialogLoader.active = true
-                keyboardShortcutsDialogLoader.item.openOn(action)
-            }
-        }
-
-        Connections {
-            target: keyboardShortcutsDialogLoader.item
-            function onFinished() {
-                // drops the model and its unsaved changes
-                Qt.callLater(() => keyboardShortcutsDialogLoader.active = false)
-            }
-        }
+    // Keyboard Shortcuts over the main window, unless Settings or Onboarding
+    // (another window of the application) asks for it. The main interface
+    // is drawn offscreen: its window is MainCtx's.
+    KeyboardShortcutsLoader {
+        window: MainCtx.intfMainWindow
+        fallback: true
+        backdrop: root.bgContent
+        onAboutToHide: root.restoreFocus()
     }
 }
 

@@ -890,6 +890,7 @@ vlc_player_GetRenderer
 vlc_player_GetSelectedChapterIdx
 vlc_player_GetSelectedTitleIdx
 vlc_player_GetSignal
+vlc_player_GetStartTime
 vlc_player_GetState
 vlc_player_GetStatistics
 vlc_player_GetStreamOutput

@@ -779,16 +779,20 @@ static void on_player_titles_changed(vlc_player_t *, struct vlc_player_title_lis
     });
 }
 
-static void on_player_title_selection_changed(vlc_player_t *,
+static void on_player_title_selection_changed(vlc_player_t *player,
                                               const struct vlc_player_title *new_title, size_t new_idx, void *data)
 {
     PlayerControllerPrivate* that = static_cast<PlayerControllerPrivate*>(data);
     msg_Dbg( that->p_intf, "on_player_title_selection_changed");
 
     bool hasChapter = (new_title != nullptr && new_title->chapter_count != 0);
-    that->callAsync([that,new_title,new_idx,hasChapter] (){
+    // the seek bar counts from the start time: so do its chapter marks
+    const vlc_tick_t startTime = vlc_player_GetStartTime( player );
+    that->callAsync([that,new_title,new_idx,hasChapter,startTime] (){
         PlayerController* q = that->q_func();
+        that->m_startTime = startTime;
         that->m_chapterList.resetTitle(new_title);
+        that->m_chapterList.setClip(startTime, that->m_length.toVLCTick());
         that->m_titleList.setCurrent(new_idx);
         that->m_hasChapters  = hasChapter;
         that->m_isInteractive = new_title && (new_title->flags & VLC_PLAYER_TITLE_INTERACTIVE);
@@ -1139,6 +1143,7 @@ static void on_player_timer_update(const struct vlc_player_timer_point *point,
         if (that->m_length.toVLCTick() != that->m_player_time.length)
         {
             that->m_length = that->m_player_time.length > 0 ? VLCDuration(that->m_player_time.length) : VLCDuration();
+            that->m_chapterList.setClip(that->m_startTime, that->m_length.toVLCTick());
             emit q->lengthChanged(that->m_length);
 
             lengthOrRateChanged = true;

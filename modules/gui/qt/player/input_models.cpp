@@ -607,12 +607,12 @@ QVariant ChapterListModel::data(const QModelIndex &index, int role) const
         return QVariant::fromValue<bool>(row == m_current);
     else if (role == ChapterListRoles::TimeRole )
         return QVariant::fromValue<VLCTime>(chapter.time);
-    else if (role == ChapterListRoles::StartPositionRole && (m_title->length != 0))
-        return QVariant::fromValue<float>(chapter.time / (float) m_title->length);
-    else if (role == ChapterListRoles::EndPositionRole && (m_title->length != 0))
+    else if (role == ChapterListRoles::StartPositionRole && clipLength() > 0)
+        return QVariant::fromValue<float>(toClipPosition(chapter.time));
+    else if (role == ChapterListRoles::EndPositionRole && clipLength() > 0)
         return (size_t)row + 1 == m_title->chapter_count
                 ? QVariant::fromValue<float> (1)
-                : QVariant::fromValue<float> (m_title->chapters[row+1].time / (float) m_title->length);
+                : QVariant::fromValue<float> (toClipPosition(m_title->chapters[row+1].time));
 
     return QVariant{};
 }
@@ -671,6 +671,45 @@ void ChapterListModel::resetTitle(const vlc_player_title *newTitle)
     emit countChanged();
 }
 
+void ChapterListModel::setClip(vlc_tick_t start, vlc_tick_t length)
+{
+    start = std::max<vlc_tick_t>(start, 0);
+    if (length <= 0)
+        length = VLC_TICK_INVALID;
+    if (start == m_clipStart && length == m_clipLength)
+        return;
+    m_clipStart = start;
+    m_clipLength = length;
+
+    if (getCount() > 0)
+        emit dataChanged(index(0), index(getCount() - 1),
+                         { ChapterListRoles::StartPositionRole, ChapterListRoles::EndPositionRole });
+}
+
+vlc_tick_t ChapterListModel::clipLength() const
+{
+    if (m_clipLength != VLC_TICK_INVALID)
+        return m_clipLength;
+    if (m_title && m_title->length > m_clipStart)
+        return m_title->length - m_clipStart;
+    return 0;
+}
+
+/* where a media time falls on the seek bar: before the part played is its
+ * start, after it its end */
+float ChapterListModel::toClipPosition(vlc_tick_t time) const
+{
+    const vlc_tick_t length = clipLength();
+    if (length <= 0)
+        return 0.f;
+    return std::clamp((time - m_clipStart) / (float) length, 0.f, 1.f);
+}
+
+bool ChapterListModel::isInClip(vlc_tick_t time) const
+{
+    return time >= m_clipStart && time < m_clipStart + clipLength();
+}
+
 void ChapterListModel::selectChapter(int index)
 {
     if (!m_title || index < 0 || static_cast<size_t>(index) >= m_title->chapter_count)
@@ -685,7 +724,7 @@ QString ChapterListModel::getNameAtPosition(float pos) const
 {
     if(m_title != nullptr){
 
-        vlc_tick_t posTime = pos * m_title->length;
+        vlc_tick_t posTime = m_clipStart + pos * clipLength();
         int prevChapterIndex = 0;
 
         for(unsigned int i=0;i<m_title->chapter_count;i++){
@@ -709,14 +748,18 @@ int ChapterListModel::getClosestChapterFromPos(float pos, float threshold) const
     if(m_title == nullptr)
         return -1;
 
-    vlc_tick_t posTime = pos * m_title->length;
+    if (clipLength() <= 0)
+        return -1;
+
+    vlc_tick_t posTime = m_clipStart + pos * clipLength();
     vlc_tick_t closestTime = VLC_TICK_INVALID;
     int chapterIndex = -1;
 
     for(size_t i=0; i<m_title->chapter_count; i++){
 
         vlc_tick_t currentChapterTime = m_title->chapters[i].time;
-        if (currentChapterTime == VLC_TICK_INVALID)
+        // selecting a chapter outside the part played would seek out of it
+        if (currentChapterTime == VLC_TICK_INVALID || !isInClip(currentChapterTime))
             continue;
         if (closestTime == VLC_TICK_INVALID
             || qAbs(currentChapterTime - posTime) < qAbs(closestTime - posTime))
@@ -732,7 +775,7 @@ int ChapterListModel::getClosestChapterFromPos(float pos, float threshold) const
         return -1;
     else
     {
-        float chapterPos = closestTime / (float)m_title->length;
+        float chapterPos = toClipPosition(closestTime);
 
         if (qAbs(chapterPos - pos) < threshold)
             return chapterIndex;

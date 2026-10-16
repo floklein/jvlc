@@ -97,15 +97,22 @@ vlc_player_input_HandleAtoBLoop(struct vlc_player_input *input, bool forced)
     return false;
 }
 
+vlc_tick_t
+vlc_player_input_GetStartTime(struct vlc_player_input *input)
+{
+    const vlc_tick_t start =
+        llroundl(CLOCK_FREQ * (double) var_GetFloat(input->thread, "start-time"));
+    return start > 0 ? start : 0;
+}
+
 int
 vlc_player_input_Start(struct vlc_player_input *input)
 {
     /* The timer counts from the start time, as the input does (see
      * input_GetItemDuration()). The outputs can report points before the
      * input gives it: it must be known from the first one. */
-    const vlc_tick_t start =
-        llroundl(CLOCK_FREQ * (double) var_GetFloat(input->thread, "start-time"));
-    vlc_player_SetTimerStartOffset(input->player, start);
+    vlc_player_SetTimerStartOffset(input->player,
+                                   vlc_player_input_GetStartTime(input));
 
     int ret = input_Start(input->thread);
     if (ret != VLC_SUCCESS)

@@ -147,6 +147,9 @@ ListViewExt {
                                                       // contextButton is implemented as fixed column
                                                       - VLCStyle.contextButton_width - (VLCStyle.contextButton_margin * 2)
 
+    // whether the column titles show above the rows
+    property bool tableHeaderVisible: true
+
     property bool sortingFromHeader: true
     property bool useCurrentSectionLabel: true
 
@@ -241,7 +244,7 @@ ListViewExt {
 
             color: root.headerColor
 
-            implicitHeight: row.implicitHeight
+            implicitHeight: root.tableHeaderVisible ? row.implicitHeight : 0
 
             Widgets.ListLabel {
                 // NOTE: We want the section label to be slightly shifted to the left.
@@ -276,7 +279,8 @@ ListViewExt {
                 spacing: VLCStyle.column_spacing
 
                 // If there is a specific header, obey to its visibility otherwise hide the header if model is empty:
-                visible: headerLoader.item ? headerLoader.item.visible : (root.count > 0)
+                visible: root.tableHeaderVisible
+                         && (headerLoader.item ? headerLoader.item.visible : (root.count > 0))
 
                 Repeater {
                     model: sortModel

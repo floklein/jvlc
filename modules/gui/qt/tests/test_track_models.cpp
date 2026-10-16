@@ -373,6 +373,69 @@ private slots:
         QTRY_VERIFY(!m_subtitles->styledSelected());
     }
 
+    /* The seek bar counts from the start time (":start-time"): the chapter
+     * marks are placed within the part played, and chapters outside it get
+     * none */
+    void testChapterPositionsInClip()
+    {
+        static const vlc_player_chapter chapters[] = {
+            { "One", VLC_TICK_FROM_SEC(0) },
+            { "Two", VLC_TICK_FROM_SEC(20) },
+            { "Three", VLC_TICK_FROM_SEC(50) },
+            { "Four", VLC_TICK_FROM_SEC(80) },
+        };
+        static const vlc_player_title title = {
+            "title", VLC_TICK_FROM_SEC(100), 0, 4, chapters
+        };
+
+        ChapterListModel model(player());
+        model.resetTitle(&title);
+
+        const auto start = [&model](int row) {
+            return model.data(model.index(row), ChapterListModel::StartPositionRole).toFloat();
+        };
+        const auto end = [&model](int row) {
+            return model.data(model.index(row), ChapterListModel::EndPositionRole).toFloat();
+        };
+
+        /* the whole media */
+        QCOMPARE(start(2), 0.5f);
+        QCOMPARE(end(2), 0.8f);
+        QCOMPARE(model.getNameAtPosition(0.6f), QStringLiteral("Three"));
+        QCOMPARE(model.getClosestChapterFromPos(0.5f, 0.01f), 2);
+
+        /* played from 30 s to 70 s */
+        QSignalSpy changed(&model, &QAbstractItemModel::dataChanged);
+        model.setClip(VLC_TICK_FROM_SEC(30), VLC_TICK_FROM_SEC(40));
+        QVERIFY(changed.count() > 0);
+
+        /* before the part played: no mark */
+        QCOMPARE(start(0), 0.f);
+        QCOMPARE(end(0), 0.f);
+        /* the chapter going on at the start time begins with the bar */
+        QCOMPARE(start(1), 0.f);
+        QCOMPARE(end(1), 0.5f);
+        /* the one going on at the end goes to the end of the bar */
+        QCOMPARE(start(2), 0.5f);
+        QCOMPARE(end(2), 1.f);
+        /* after the part played: no mark */
+        QCOMPARE(start(3), 1.f);
+        QCOMPARE(end(3), 1.f);
+
+        QCOMPARE(model.getNameAtPosition(0.f), QStringLiteral("Two"));
+        QCOMPARE(model.getNameAtPosition(0.6f), QStringLiteral("Three"));
+        QCOMPARE(model.getClosestChapterFromPos(0.5f, 0.01f), 2);
+        /* a press at the start of the bar must not seek back before it, nor
+         * one at its end past it */
+        QCOMPARE(model.getClosestChapterFromPos(0.f, 0.05f), -1);
+        QCOMPARE(model.getClosestChapterFromPos(1.f, 0.3f), -1);
+
+        /* played whole again */
+        model.setClip(0, VLC_TICK_INVALID);
+        QCOMPARE(start(2), 0.5f);
+        QCOMPARE(end(2), 0.8f);
+    }
+
     void cleanupTestCase()
     {
         {

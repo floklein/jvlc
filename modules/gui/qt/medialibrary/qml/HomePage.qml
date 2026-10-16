@@ -115,10 +115,35 @@ Widgets.PageExt {
             _showItem(item)
     }
 
+    // the Library pane (Figma 1106:5633) has smaller titles: 16 px
     component RowHeader: Widgets.ViewHeader {
         seeAllChevron: true
         seeAllButton.visible: true
+        titlePixelSize: MainCtx.libraryPane ? VLCStyle.fontSize_xlarge : VLCStyle.fontSize_sectionTitle
     }
+
+    // the Library pane (Figma 1106:5633) lists the rows without column titles
+    component PaneRowsWithoutTitles: Binding {
+        required property Item row
+
+        target: row.currentItem
+        property: "tableHeaderVisible"
+        value: false
+        // the list, not the grid
+        when: MainCtx.libraryPane && row.currentItem?.tableHeaderVisible !== undefined
+    }
+
+    PaneRowsWithoutTitles { row: continueWatchingRow }
+    PaneRowsWithoutTitles { row: listenAgainRow }
+    PaneRowsWithoutTitles { row: foldersRow }
+    PaneRowsWithoutTitles { row: playlistsRow }
+    PaneRowsWithoutTitles { row: artistsRow }
+    PaneRowsWithoutTitles { row: streamsRow }
+    PaneRowsWithoutTitles { row: favoritePlaylistsRow }
+    PaneRowsWithoutTitles { row: favoritesRow }
+
+    // the Library pane (Figma 1106:5633) counts the media of the library
+    itemCount: (MainCtx.libraryPane && !_libraryMedia.loading) ? _libraryMedia.maximumCount : -1
 
     contentItem: Flickable {
         id: flickable

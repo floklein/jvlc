@@ -186,6 +186,8 @@ Window {
     }
 
     ColumnLayout {
+        id: settingsContent
+
         anchors.fill: parent
         spacing: 0
 
@@ -457,6 +459,11 @@ Window {
     // names and links asked by the lists (Profiles, Presets, podcasts)
     TextInputDialog {
         id: nameDialog
+    }
+
+    // Keyboard Shortcuts, when a row of Settings opens it
+    KeyboardShortcutsLoader {
+        backdrop: settingsContent
     }
 
     Component {

@@ -1084,6 +1084,7 @@ libqml_module_dialogs_a_QML = \
 	dialogs/settings/qml/SettingsSlider.qml \
 	dialogs/settings/qml/SettingsToggle.qml \
 	dialogs/shortcuts/qml/KeyboardShortcutsDialog.qml \
+	dialogs/shortcuts/qml/KeyboardShortcutsLoader.qml \
 	dialogs/shortcuts/qml/ShortcutKeyField.qml \
 	dialogs/onboarding/qml/OnboardingWindow.qml \
 	dialogs/mediainfo/qml/MediaPropertiesDialog.qml \

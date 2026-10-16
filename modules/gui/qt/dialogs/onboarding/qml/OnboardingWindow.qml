@@ -162,7 +162,15 @@ Window {
         }
     }
 
+    // the Shortcuts step's link opens it over Onboarding, which blocks the
+    // main window
+    KeyboardShortcutsLoader {
+        backdrop: onboardingContent
+    }
+
     ColumnLayout {
+        id: onboardingContent
+
         anchors.fill: parent
         spacing: 0
 

@@ -48,6 +48,9 @@ T.Pane {
     // Shows the "See All" button as a chevron right after the title
     property bool seeAllChevron: false
 
+    // Figma 6261:15078: 20 px
+    property int titlePixelSize: VLCStyle.fontSize_sectionTitle
+
     // Signals
 
     signal seeAllButtonClicked(int reason)
@@ -86,13 +89,13 @@ T.Pane {
 
         anchors.fill: parent
 
-        // Figma 6261:15078: 20 px, regular, FG/A1
+        // Figma 6261:15078: regular, FG/A1
         SubtitleLabel {
             id: label
 
             Layout.fillWidth: !root.seeAllChevron
 
-            font.pixelSize: VLCStyle.fontSize_sectionTitle
+            font.pixelSize: root.titlePixelSize
             font.weight: Font.Normal
 
             color: theme.fg.secondary

@@ -696,6 +696,20 @@ VLC_API vlc_tick_t
 vlc_player_GetLength(vlc_player_t *player);
 
 /**
+ * Get the start time of the current media
+ *
+ * A media played from a start time (":start-time") is a part of the media:
+ * its time, position and length count from the start time. Media times, like
+ * the chapters' (@ref vlc_player_chapter.time), are this far from them.
+ *
+ * @param player locked player instance
+ * @return the start time in media time, or 0 (if no media is set or it is
+ * played from its beginning)
+ */
+VLC_API vlc_tick_t
+vlc_player_GetStartTime(vlc_player_t *player);
+
+/**
  * Get the time of the current media
  *
  * @note A started and playing media doesn't have necessarily a valid time.

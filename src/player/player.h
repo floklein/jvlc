@@ -497,6 +497,9 @@ double
 vlc_player_input_GetPos(struct vlc_player_input *input, bool seeking,
                         vlc_tick_t system_now);
 
+vlc_tick_t
+vlc_player_input_GetStartTime(struct vlc_player_input *input);
+
 int
 vlc_player_input_Start(struct vlc_player_input *input);
 

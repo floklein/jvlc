@@ -114,6 +114,8 @@ public:
     VLCDuration  m_remainingTime;
     double       m_position = 0.f;
     VLCDuration  m_length;
+    // the media time the time, position and length count from (":start-time")
+    vlc_tick_t   m_startTime = 0;
 
 #ifdef QT_HAS_LIBATOMIC
     std::atomic<vlc_player_timer_smpte_timecode> m_highResolutionTime {{}};

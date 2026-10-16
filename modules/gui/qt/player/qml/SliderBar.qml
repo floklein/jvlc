@@ -628,14 +628,20 @@ T.ProgressBar {
             Item {
                 // the delegates are children of the Repeater's parent: its
                 // visibility does not hide them (the thick bar draws ticks)
-                visible: seekpointsRptr.visible
+                visible: seekpointsRptr.visible && seekpointsRect._inClip
 
                 Rectangle {
                     id: seekpointsRect
                     readonly property real startPosition: model.startPosition ??  0.0
                     readonly property real endPosition: model.endPosition ?? 1.0
 
+                    // a chapter outside the part played (":start-time") has
+                    // no room on the bar
+                    readonly property bool _inClip: endPosition > startPosition
+
                     readonly property int _currentChapter: {
+                        if (!_inClip)
+                            return startPosition > 0 ? 1 : -1
                         if (control._visualPosition < seekpointsRect.startPosition)
                             return 1
                         else if (control._visualPosition > seekpointsRect.endPosition)
@@ -800,8 +806,9 @@ T.ProgressBar {
                 readonly property bool _hovered: hoverHandler.hovered && !dragHandler.active
                                                  && Math.abs(control._pointerX - _x) < control._chapterSnapDistance
 
-                // the first chapter starts with the bar
-                visible: _position > 0
+                // the first chapter starts with the bar, and chapters outside
+                // the part played (":start-time") have no tick
+                visible: _position > 0 && _position < 1
 
                 x: Math.round(_x - width / 2)
                 y: control._inset

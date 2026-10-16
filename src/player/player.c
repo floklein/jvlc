@@ -1516,6 +1516,13 @@ vlc_player_GetLength(vlc_player_t *player)
 }
 
 vlc_tick_t
+vlc_player_GetStartTime(vlc_player_t *player)
+{
+    struct vlc_player_input *input = vlc_player_get_input_locked(player);
+    return input ? vlc_player_input_GetStartTime(input) : 0;
+}
+
+vlc_tick_t
 vlc_player_GetTime(vlc_player_t *player)
 {
     struct vlc_player_input *input = vlc_player_get_input_locked(player);

@@ -275,7 +275,8 @@ signals:
     void showNewProfileDialog();
     void showSettingsDialog(const QString& page, bool advanced);
     void hideSettingsDialog();
-    void showKeyboardShortcutsDialog(const QString& action);
+    // @a window is the window asking for it, if any
+    void showKeyboardShortcutsDialog(const QString& action, QWindow* window);
     void showOnboarding(int step);
     void showOpenCaptureDialog();
     /* opens Convert with these media, if any */

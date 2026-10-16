@@ -245,6 +245,11 @@ public:
 
     void resetTitle(const vlc_player_title* newTitle);
 
+    /* the part played (":start-time", ":stop-time"), in media time: the
+     * positions are within it, like the seek bar's. The length is the
+     * player's; VLC_TICK_INVALID plays to the end of the title. */
+    void setClip(vlc_tick_t start, vlc_tick_t length);
+
     inline int getCount() const { return (m_title == nullptr) ?  0 : m_title->chapter_count; }
 
     Q_INVOKABLE void selectChapter(int index);
@@ -258,9 +263,15 @@ public slots:
     QString getNameAtPosition(float pos) const;
 
 private:
+    vlc_tick_t clipLength() const;
+    float toClipPosition(vlc_tick_t time) const;
+    bool isInClip(vlc_tick_t time) const;
+
     vlc_player_t* m_player = nullptr;
     const vlc_player_title* m_title = nullptr;
     int m_current = -1;
+    vlc_tick_t m_clipStart = 0;
+    vlc_tick_t m_clipLength = VLC_TICK_INVALID;
 };
 
 /**

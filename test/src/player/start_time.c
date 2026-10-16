@@ -45,6 +45,8 @@ test_start_time(struct ctx *ctx, bool paused)
             vlc_player_CondWait(player, &ctx->wait);
         assert(VEC_LAST(vec) == ctx->params.length);
     }
+    /* what the media times (chapters) are counted against */
+    assert(vlc_player_GetStartTime(player) == start);
 
     /* every point the timer gave until now is within the part played */
     size_t points = 0;
