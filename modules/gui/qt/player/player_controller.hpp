@@ -158,6 +158,9 @@ public:
     Q_PROPERTY(VLCTime remainingTime READ getRemainingTime NOTIFY remainingTimeChanged FINAL)
     Q_PROPERTY(double position READ getPosition WRITE setPosition NOTIFY positionChanged FINAL)
     Q_PROPERTY(VLCDuration length READ getLength NOTIFY lengthChanged FINAL)
+    // where the part played starts in the media (":start-time"): time,
+    // position and length count from there
+    Q_PROPERTY(VLCDuration startTime READ getStartTime NOTIFY startTimeChanged FINAL)
 
     Q_PROPERTY(bool seekable READ isSeekable NOTIFY seekableChanged FINAL)
     Q_PROPERTY(bool rewindable READ isRewindable NOTIFY rewindableChanged FINAL)
@@ -368,6 +371,7 @@ public slots:
     double getPosition() const;
     void setPosition(double);
     VLCDuration getLength() const;
+    VLCDuration getStartTime() const;
     bool isSeekable() const;
     bool isRewindable() const;
     bool isPausable() const;
@@ -516,6 +520,7 @@ signals:
     void remainingTimeChanged( VLCTime );
     void positionChanged( double );
     void lengthChanged( VLCDuration );
+    void startTimeChanged();
     void positionUpdated( double , VLCTime, VLCDuration );
     void seekRequested( double pos ); //not exposed through Q_PROPERTY
 

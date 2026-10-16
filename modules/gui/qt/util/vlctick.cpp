@@ -20,11 +20,11 @@
 
 namespace  {
 
-int64_t roundNearestMultiple(int64_t number, int64_t multiple)
+/* a duration reads the same in every format, and as the running time at its
+ * end: what is under the last unit shown is dropped, never rounded up */
+int64_t truncateToMultiple(int64_t number, int64_t multiple)
 {
-    int64_t result = number + multiple/2;
-    result -= result % multiple;
-    return result;
+    return number - number % multiple;
 }
 
 }
@@ -79,8 +79,8 @@ QString VLCTick::formatLong(int formatFlags) const
     int64_t t_ms = asMilliseconds();
     if (t_ms >= 60*60*1000)
     {
-        //round to the nearest minute
-        t_ms = roundNearestMultiple(t_ms, 60*1000);
+        //truncate to the minute
+        t_ms = truncateToMultiple(t_ms, 60*1000);
         int64_t t_sec = t_ms / 1000;
         int min = (t_sec / 60) % 60;
         int hour = t_sec / 3600;
@@ -91,8 +91,8 @@ QString VLCTick::formatLong(int formatFlags) const
     }
     else if (!isSubSecond() || !(formatFlags & SubSecondFormattedAsMS))
     {
-        //round to the nearest second
-        t_ms = roundNearestMultiple(t_ms, 1000);
+        //truncate to the second
+        t_ms = truncateToMultiple(t_ms, 1000);
         int64_t t_sec = t_ms / 1000;
         int sec = t_sec % 60;
         int min = (t_sec / 60) % 60;
@@ -116,8 +116,8 @@ QString VLCTick::formatShort(int formatFlags) const
     int64_t t_ms = asMilliseconds();
     if (t_ms >= 60*60*1000)
     {
-        //round to the nearest minute
-        t_ms = roundNearestMultiple(t_ms, 60*1000);
+        //truncate to the minute
+        t_ms = truncateToMultiple(t_ms, 60*1000);
         int64_t t_sec = t_ms / 1000;
         int min = (t_sec / 60) % 60;
         int hour = t_sec / 3600;
@@ -128,8 +128,8 @@ QString VLCTick::formatShort(int formatFlags) const
     }
     else if (!isSubSecond() || !(formatFlags & SubSecondFormattedAsMS))
     {
-        //round to the nearest second
-        t_ms = roundNearestMultiple(t_ms, 1000);
+        //truncate to the second
+        t_ms = truncateToMultiple(t_ms, 1000);
         int64_t t_sec = t_ms / 1000;
         int sec = t_sec % 60;
         int min = (t_sec / 60) % 60;

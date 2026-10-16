@@ -226,7 +226,8 @@ public:
     enum ChapterListRoles {
         TimeRole = Qt::UserRole + 1 ,
         StartPositionRole,
-        EndPositionRole
+        EndPositionRole,
+        InClipRole
     };
 public:
     ChapterListModel(vlc_player_t* player, QObject* parent = nullptr);
@@ -266,6 +267,7 @@ private:
     vlc_tick_t clipLength() const;
     float toClipPosition(vlc_tick_t time) const;
     bool isInClip(vlc_tick_t time) const;
+    bool overlapsClip(size_t row) const;
 
     vlc_player_t* m_player = nullptr;
     const vlc_player_title* m_title = nullptr;

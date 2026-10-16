@@ -367,12 +367,14 @@ T.ProgressBar {
 
         mrl: control._thick ? Player.url : ""
         length: Player.length
+        startTime: Player.startTime
         size: Qt.size(Math.round(thumbnailPopup.thumbnailWidth * Screen.devicePixelRatio),
                       Math.round(thumbnailPopup.thumbnailHeight * Screen.devicePixelRatio))
 
         // the media may become known while the pointer rests on the bar
         onMrlChanged: control._requestThumbnail()
         onLengthChanged: control._requestThumbnail()
+        onStartTimeChanged: control._requestThumbnail()
         onSizeChanged: control._requestThumbnail()
     }
 

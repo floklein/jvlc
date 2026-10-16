@@ -2029,6 +2029,26 @@ if qt6_dep.found()
         }
 
         vlc_tests += {
+            'name': 'test_qt_vlctick',
+            'sources': files(
+                'tests/test_vlctick.cpp',
+                'util/vlctick.cpp',
+                'util/vlctick.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_vlctick.cpp'
+            ),
+            'moc_headers': files(
+                'util/vlctick.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore],
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
             'name': 'test_qt_window_chrome',
             'sources': files(
                 'tests/test_window_chrome.cpp',

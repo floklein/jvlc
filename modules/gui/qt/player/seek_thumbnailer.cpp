@@ -143,6 +143,13 @@ PreparserSeekThumbnailSource::start(const QString& mrl, vlc_tick_t time,
     input_item_t* item = input_item_New(qtu(mrl), nullptr);
     if (!item)
         return nullptr;
+    /* the times are media times, from its beginning: the options given to
+     * every input on the command line (--start-time, --start-paused...) must
+     * not apply to it */
+    static const char* const options[] = {
+        ":start-time=0", ":stop-time=0", ":run-time=0", ":no-start-paused",
+    };
+    input_item_AddOptions(item, ARRAY_SIZE(options), options, VLC_INPUT_OPTION_TRUSTED);
 
     struct vlc_thumbnailer_arg arg{};
     arg.seek.type = vlc_thumbnailer_arg::seek::VLC_THUMBNAILER_SEEK_TIME;
@@ -291,6 +298,14 @@ void SeekThumbnailer::setLength(const VLCDuration& length)
     emit lengthChanged();
 }
 
+void SeekThumbnailer::setStartTime(const VLCDuration& startTime)
+{
+    if (startTime == m_startTime)
+        return;
+    m_startTime = startTime;
+    emit startTimeChanged();
+}
+
 void SeekThumbnailer::setSize(const QSize& size)
 {
     if (size == m_size)
@@ -321,7 +336,9 @@ vlc_tick_t SeekThumbnailer::stepTime(double position) const
     const vlc_tick_t step = std::max(VLC_TICK_FROM_SEC(1), length / MAX_STEPS);
     position = qBound(0.0, position, 1.0);
     const vlc_tick_t time = std::llround(position * length / step) * step;
-    return std::min(time, length);
+    // the thumbnailer opens the media from its beginning
+    const vlc_tick_t start = m_startTime.valid() ? std::max<vlc_tick_t>(m_startTime.toVLCTick(), 0) : 0;
+    return start + std::min(time, length);
 }
 
 QString SeekThumbnailer::pictureId(vlc_tick_t time) const

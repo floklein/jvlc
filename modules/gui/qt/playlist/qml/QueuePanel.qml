@@ -207,11 +207,17 @@ T.Pane {
                 // "display" and "checked" are buttons' own properties
                 readonly property string title: model.display ?? ""
                 readonly property bool isCurrentChapter: !!model.checked
-                // the first chapter starts at 0, which VLCTime holds as invalid
+                // from the start time (":start-time"), like the seek bar; a
+                // chapter outside the part played has no time and can't be
+                // played, as it has no room on the seek bar
+                readonly property bool inClip: model.inClip ?? true
                 readonly property string timeText: (model.time !== undefined && model.time.valid())
-                                                   ? model.time.formatHMS() : "00:00"
+                                                   ? model.time.formatHMS(0) : ""
 
                 width: ListView.view.width
+
+                enabled: inClip
+                opacity: inClip ? 1.0 : 0.5
 
                 leftPadding: VLCStyle.spacing_4
                 rightPadding: VLCStyle.spacing_4
@@ -221,7 +227,8 @@ T.Pane {
 
                 hoverEnabled: true
 
-                Accessible.name: qsTr("Chapter %1, %2, %3").arg(index + 1).arg(title).arg(timeText)
+                Accessible.name: timeText ? qsTr("Chapter %1, %2, %3").arg(index + 1).arg(title).arg(timeText)
+                                          : qsTr("Chapter %1, %2").arg(index + 1).arg(title)
 
                 readonly property ColorContext colorContext: ColorContext {
                     id: chapterTheme

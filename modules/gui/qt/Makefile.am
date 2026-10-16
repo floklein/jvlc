@@ -2643,6 +2643,25 @@ test_seek_thumbnailer_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
 check_PROGRAMS += test_seek_thumbnailer
 TESTS += test_seek_thumbnailer
 
+# test_vlctick
+
+test_vlctick_SOURCES = \
+	tests/test_vlctick.cpp \
+	util/vlctick.cpp util/vlctick.hpp
+
+nodist_test_vlctick_SOURCES = \
+	tests/test_vlctick.moc \
+	util/vlctick.moc.cpp
+
+BUILT_SOURCES += tests/test_vlctick.moc
+CLEANFILES += tests/test_vlctick.moc
+test_vlctick_CPPFLAGS = $(QT_QTEST_COMMON_cppflags)
+test_vlctick_CXXFLAGS = $(QT_QTEST_COMMON_cxxflags)
+test_vlctick_LDADD = $(QT_QTEST_COMMON_ldadd)
+test_vlctick_LDFLAGS = $(QT_QTEST_COMMON_ldflags)
+check_PROGRAMS += test_vlctick
+TESTS += test_vlctick
+
 # test_playback_tab
 
 test_playback_tab_SOURCES = \

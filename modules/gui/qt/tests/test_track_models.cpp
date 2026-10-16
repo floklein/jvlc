@@ -436,6 +436,61 @@ private slots:
         QCOMPARE(end(2), 0.8f);
     }
 
+    /* The Queue panel's Chapters list counts from the start time too, as the
+     * seek bar does: the chapters it has no room for are out of the clip */
+    void testChapterTimesInClip()
+    {
+        static const vlc_player_chapter chapters[] = {
+            { "One", VLC_TICK_FROM_SEC(0) },
+            { "Two", VLC_TICK_FROM_SEC(20) },
+            { "Three", VLC_TICK_FROM_SEC(50) },
+            { "Four", VLC_TICK_FROM_SEC(80) },
+        };
+        static const vlc_player_title title = {
+            "title", VLC_TICK_FROM_SEC(100), 0, 4, chapters
+        };
+
+        ChapterListModel model(player());
+        model.resetTitle(&title);
+
+        const auto time = [&model](int row) {
+            const QVariant v = model.data(model.index(row), ChapterListModel::TimeRole);
+            return v.isValid() ? v.value<VLCDuration>().toVLCTick() : VLC_TICK_INVALID;
+        };
+        const auto inClip = [&model](int row) {
+            return model.data(model.index(row), ChapterListModel::InClipRole).toBool();
+        };
+        QVERIFY(model.roleNames().values().contains("inClip"));
+
+        /* the whole media */
+        QCOMPARE(time(2), VLC_TICK_FROM_SEC(50));
+        for (int row = 0; row < 4; ++row)
+            QVERIFY(inClip(row));
+
+        /* played from 30 s to 70 s */
+        QSignalSpy changed(&model, &QAbstractItemModel::dataChanged);
+        model.setClip(VLC_TICK_FROM_SEC(30), VLC_TICK_FROM_SEC(40));
+        QVERIFY(changed.count() > 0);
+        QVERIFY(changed.last().at(2).value<QList<int>>().contains(ChapterListModel::TimeRole));
+
+        /* over before the start time: no time */
+        QVERIFY(!inClip(0));
+        QCOMPARE(time(0), VLC_TICK_INVALID);
+        /* going on at the start time: it begins with the clip */
+        QVERIFY(inClip(1));
+        QCOMPARE(time(1), VLC_TICK_FROM_SEC(0));
+        QVERIFY(inClip(2));
+        QCOMPARE(time(2), VLC_TICK_FROM_SEC(20));
+        /* after the part played: no time */
+        QVERIFY(!inClip(3));
+        QCOMPARE(time(3), VLC_TICK_INVALID);
+
+        /* played whole again */
+        model.setClip(0, VLC_TICK_INVALID);
+        QVERIFY(inClip(0));
+        QCOMPARE(time(3), VLC_TICK_FROM_SEC(80));
+    }
+
     void cleanupTestCase()
     {
         {

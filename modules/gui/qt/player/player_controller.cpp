@@ -390,6 +390,18 @@ static QString slaveMrlOfTrack(input_item_t *item, const char *str_id)
     return {};
 }
 
+/* The seek bar counts from the start time: so do its chapter marks and
+ * thumbnails */
+void PlayerControllerPrivate::UpdateStartTime( vlc_tick_t startTime )
+{
+    Q_Q(PlayerController);
+    if (startTime == m_startTime)
+        return;
+    m_startTime = startTime;
+    m_chapterList.setClip(m_startTime, m_length.toVLCTick());
+    emit q->startTimeChanged();
+}
+
 /* The subtitle timeline shows the main subtitle: the selected track that is
  * not the second subtitle */
 void PlayerControllerPrivate::UpdateSubtitleTimelineTrack()
@@ -506,17 +518,21 @@ static  void on_player_current_media_changed(vlc_player_t *, input_item_t *new_m
     });
 }
 
-static void on_player_state_changed(vlc_player_t *, enum vlc_player_state state, void *data)
+static void on_player_state_changed(vlc_player_t *player, enum vlc_player_state state, void *data)
 {
     PlayerControllerPrivate* that = static_cast<PlayerControllerPrivate*>(data);
     msg_Dbg( that->p_intf, "on_player_state_changed");
 
-    that->callAsync([that,state] () {
+    // a media with no title list reports no title selection
+    const vlc_tick_t startTime = state == VLC_PLAYER_STATE_STARTED
+                               ? vlc_player_GetStartTime( player ) : 0;
+    that->callAsync([that,state,startTime] () {
         PlayerController* q = that->q_func();
         that->m_playing_status = static_cast<PlayerController::PlayingState>(state);
         switch ( state ) {
         case VLC_PLAYER_STATE_STARTED:
             msg_Dbg( that->p_intf, "on_player_state_changed VLC_PLAYER_STATE_STARTED");
+            that->UpdateStartTime( startTime );
             break;
         case VLC_PLAYER_STATE_PLAYING:
         {
@@ -545,6 +561,7 @@ static void on_player_state_changed(vlc_player_t *, enum vlc_player_state state,
             that->m_position = 0;
             that->m_time = 0;
             that->m_length = 0;
+            that->UpdateStartTime( 0 );
             emit q->positionUpdated( -1.0, VLCTime() , VLCDuration() );
             that->m_rate = 1.0f;
             emit q->rateChanged( 1.0f );
@@ -790,9 +807,9 @@ static void on_player_title_selection_changed(vlc_player_t *player,
     const vlc_tick_t startTime = vlc_player_GetStartTime( player );
     that->callAsync([that,new_title,new_idx,hasChapter,startTime] (){
         PlayerController* q = that->q_func();
-        that->m_startTime = startTime;
         that->m_chapterList.resetTitle(new_title);
         that->m_chapterList.setClip(startTime, that->m_length.toVLCTick());
+        that->UpdateStartTime(startTime);
         that->m_titleList.setCurrent(new_idx);
         that->m_hasChapters  = hasChapter;
         that->m_isInteractive = new_title && (new_title->flags & VLC_PLAYER_TITLE_INTERACTIVE);
@@ -2920,6 +2937,11 @@ void PlayerController::updateSleepTimerQueue()
         return d->var; \
     }
 
+VLCDuration PlayerController::getStartTime() const
+{
+    Q_D(const PlayerController);
+    return VLCDuration(d->m_startTime);
+}
 
 PRIMITIVETYPE_GETTER(PlayerController::PlayingState, getPlayingState, m_playing_status)
 PRIMITIVETYPE_GETTER(QString, getName, m_name)

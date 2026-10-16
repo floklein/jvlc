@@ -86,7 +86,7 @@ Item {
                     continue
                 parts.push(value.formatShort())
             } else if (criteria === "nb_tracks") {
-                parts.push(qsTr("%1 track", "%1 tracks", value).arg(value))
+                parts.push(qsTr("%1 song", "%1 songs", value).arg(value))
             } else if (criteria === "nb_videos") {
                 if (value > 0)
                     parts.push(qsTr("%1 video", "%1 videos", value).arg(value))

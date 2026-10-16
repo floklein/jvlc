@@ -62,6 +62,8 @@ public:
      * 5 min
      * 10 sec
      * 43 ms
+     *
+     * what is under the last unit is truncated towards 0, as in formatHMS
      */
     Q_INVOKABLE QString formatLong(int formatFlags = SubSecondFormattedAsMS) const;
 
@@ -72,6 +74,8 @@ public:
      * 1h02
      * 02:42
      * 43 ms
+     *
+     * what is under the last unit is truncated towards 0, as in formatHMS
      */
     Q_INVOKABLE QString formatShort(int formatFlags = SubSecondFormattedAsMS) const;
 

@@ -346,7 +346,7 @@ MainViewLoader {
                     (function () {
                         const labels = []
                         if (model.nb_audio > 0)
-                            labels.push(qsTr("%1 Track", "%1 Tracks", model.nb_audio).arg(model.nb_audio))
+                            labels.push(qsTr("%1 Song", "%1 Songs", model.nb_audio).arg(model.nb_audio))
                         if (model.nb_video > 0)
                             labels.push(qsTr("%1 Video", "%1 Videos", model.nb_video).arg(model.nb_video))
                         if (model.nb_unknown > 0)

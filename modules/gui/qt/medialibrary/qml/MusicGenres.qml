@@ -207,7 +207,7 @@ MainViewLoader {
 
                         Widgets.CaptionLabel {
                             width: overlay.width
-                            text: qsTr("%1 Track", "%1 Tracks", model.nb_tracks).arg(model.nb_tracks)
+                            text: qsTr("%1 Song", "%1 Songs", model.nb_tracks).arg(model.nb_tracks)
                             opacity: .7
                             color: overlayTheme.fg.primary
                             horizontalAlignment: Text.AlignHCenter
@@ -262,7 +262,7 @@ MainViewLoader {
                 model: {
                     criteria: "nb_tracks",
 
-                    text: qsTr("Tracks"),
+                    text: qsTr("Songs"),
 
                     isSortable: false
                 }

@@ -61,6 +61,7 @@ public:
     void UpdateTrackSelection(vlc_es_id_t *trackid, bool selected);
     void UpdateSpuOrder(vlc_es_id_t *es_id, enum vlc_vout_order spu_order);
     void UpdateSubtitleTimelineTrack();
+    void UpdateStartTime( vlc_tick_t startTime );
     void keepRequestedVolume( float volume );
     void keepRequestedMute( bool muted );
     int interpolateTime(vlc_tick_t system_now);

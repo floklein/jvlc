@@ -81,7 +81,7 @@ MainViewLoader {
     sortModel: [
         { text: qsTr("Name A-Z"), criteria: "name", order: Qt.AscendingOrder },
         { text: qsTr("Name Z-A"), criteria: "name", order: Qt.DescendingOrder },
-        { text: qsTr("Most Tracks"), criteria: "nb_tracks", order: Qt.DescendingOrder }
+        { text: qsTr("Most Songs"), criteria: "nb_tracks", order: Qt.DescendingOrder }
     ]
 
     grid: gridComponent
@@ -212,7 +212,7 @@ MainViewLoader {
                 model: {
                     criteria: "nb_tracks",
 
-                    text: qsTr("Tracks")
+                    text: qsTr("Songs")
                 }
             }]
 

@@ -141,6 +141,9 @@ class SeekThumbnailer : public QObject, public QQmlParserStatus
 
     Q_PROPERTY(QUrl mrl READ mrl WRITE setMrl NOTIFY mrlChanged FINAL)
     Q_PROPERTY(VLCDuration length READ length WRITE setLength NOTIFY lengthChanged FINAL)
+    // where the part played starts in the media (":start-time"): the bar,
+    // and its length, count from there
+    Q_PROPERTY(VLCDuration startTime READ startTime WRITE setStartTime NOTIFY startTimeChanged FINAL)
     // the size of the picture, in pixels
     Q_PROPERTY(QSize size READ size WRITE setSize NOTIFY sizeChanged FINAL)
     // the picture to show, empty until one is ready
@@ -160,12 +163,14 @@ public:
     void setMrl(const QUrl& mrl);
     VLCDuration length() const { return m_length; }
     void setLength(const VLCDuration& length);
+    VLCDuration startTime() const { return m_startTime; }
+    void setStartTime(const VLCDuration& startTime);
     QSize size() const { return m_size; }
     void setSize(const QSize& size);
     QUrl source() const { return m_source; }
     static double testPosition();
 
-    /// show the picture at `position` (0 to 1) of the media
+    /// show the picture at `position` (0 to 1) of the part played
     Q_INVOKABLE void request(double position);
     /// forget the requested position (the pointer left the seek bar)
     Q_INVOKABLE void stop();
@@ -176,6 +181,7 @@ public:
 signals:
     void mrlChanged();
     void lengthChanged();
+    void startTimeChanged();
     void sizeChanged();
     void sourceChanged();
 
@@ -197,6 +203,7 @@ private:
     QUrl m_mrl;
     QString m_mrlKey;
     VLCDuration m_length;
+    VLCDuration m_startTime { 0 };
     QSize m_size;
     QUrl m_source;
 

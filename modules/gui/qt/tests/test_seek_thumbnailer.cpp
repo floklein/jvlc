@@ -155,6 +155,23 @@ private slots:
         QCOMPARE(shown(*thumbnailer), picture(m_size, Qt::red));
     }
 
+    void aStartTimeOffsetsThePicture()
+    {
+        // played from 30 s (":start-time"): the bar spans 30 s to 230 s of
+        // the media, which the thumbnailer opens from its beginning
+        auto thumbnailer = makeThumbnailer(VLC_TICK_FROM_SEC(200));
+        thumbnailer->setStartTime(VLCDuration(VLC_TICK_FROM_SEC(30)));
+
+        thumbnailer->request(0.25);
+        QCOMPARE(m_source->jobs.size(), size_t(1));
+        QCOMPARE(m_source->jobs[0]->time, VLC_TICK_FROM_SEC(80));
+
+        thumbnailer->request(0.0);
+        m_source->jobs[0]->finish(picture(m_size, Qt::red));
+        QTRY_COMPARE(m_source->jobs.size(), size_t(2));
+        QCOMPARE(m_source->jobs[1]->time, VLC_TICK_FROM_SEC(30));
+    }
+
     void picturesArriveFromTheGeneratorThread()
     {
         auto thumbnailer = makeThumbnailer();

@@ -605,8 +605,16 @@ QVariant ChapterListModel::data(const QModelIndex &index, int role) const
         return qfu(chapter.name);
     else if (role == Qt::CheckStateRole)
         return QVariant::fromValue<bool>(row == m_current);
-    else if (role == ChapterListRoles::TimeRole )
-        return QVariant::fromValue<VLCTime>(chapter.time);
+    else if (role == ChapterListRoles::TimeRole)
+    {
+        /* from the start of the part played, like the seek bar */
+        if (!overlapsClip(row))
+            return QVariant{};
+        return QVariant::fromValue<VLCDuration>(
+                    std::max<vlc_tick_t>(chapter.time - m_clipStart, 0));
+    }
+    else if (role == ChapterListRoles::InClipRole)
+        return QVariant::fromValue<bool>(overlapsClip(row));
     else if (role == ChapterListRoles::StartPositionRole && clipLength() > 0)
         return QVariant::fromValue<float>(toClipPosition(chapter.time));
     else if (role == ChapterListRoles::EndPositionRole && clipLength() > 0)
@@ -642,7 +650,8 @@ QHash<int, QByteArray> ChapterListModel::roleNames() const
         {Qt::CheckStateRole, QByteArrayLiteral("checked")},
         {ChapterListRoles::TimeRole, QByteArrayLiteral("time")},
         {ChapterListRoles::StartPositionRole, QByteArrayLiteral("startPosition")},
-        {ChapterListRoles::EndPositionRole, QByteArrayLiteral("endPosition")}
+        {ChapterListRoles::EndPositionRole, QByteArrayLiteral("endPosition")},
+        {ChapterListRoles::InClipRole, QByteArrayLiteral("inClip")}
     };
 }
 
@@ -683,7 +692,8 @@ void ChapterListModel::setClip(vlc_tick_t start, vlc_tick_t length)
 
     if (getCount() > 0)
         emit dataChanged(index(0), index(getCount() - 1),
-                         { ChapterListRoles::StartPositionRole, ChapterListRoles::EndPositionRole });
+                         { ChapterListRoles::StartPositionRole, ChapterListRoles::EndPositionRole,
+                           ChapterListRoles::TimeRole, ChapterListRoles::InClipRole });
 }
 
 vlc_tick_t ChapterListModel::clipLength() const
@@ -710,14 +720,33 @@ bool ChapterListModel::isInClip(vlc_tick_t time) const
     return time >= m_clipStart && time < m_clipStart + clipLength();
 }
 
+/* whether some of the chapter is played: the seek bar has room for it */
+bool ChapterListModel::overlapsClip(size_t row) const
+{
+    if (!m_title || row >= m_title->chapter_count)
+        return false;
+    const vlc_tick_t length = clipLength();
+    if (length <= 0)
+        return true;
+    const vlc_tick_t start = m_title->chapters[row].time;
+    const vlc_tick_t end = row + 1 < m_title->chapter_count
+                         ? m_title->chapters[row + 1].time : m_title->length;
+    return start < m_clipStart + length && (end > m_clipStart || end <= start);
+}
+
 void ChapterListModel::selectChapter(int index)
 {
     if (!m_title || index < 0 || static_cast<size_t>(index) >= m_title->chapter_count)
         return;
-    {
-        vlc_player_locker lock{ m_player };
+    // the part played (":start-time") is all there is to seek in
+    if (!overlapsClip(index))
+        return;
+    vlc_player_locker lock{ m_player };
+    if (m_title->chapters[index].time < m_clipStart)
+        /* the chapter going on at the start time: from the start time */
+        vlc_player_SetPosition(m_player, 0.);
+    else
         vlc_player_SelectChapter(m_player, m_title, index);
-    }
 }
 
 QString ChapterListModel::getNameAtPosition(float pos) const
