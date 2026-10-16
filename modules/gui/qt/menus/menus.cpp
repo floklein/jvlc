@@ -217,7 +217,7 @@ void VLCMenuBar::VLCMenuEntries( qt_intf_t *p_intf, QMenu *menu )
 
     OpenEntries( p_intf, menu, true );
 
-    action = addEntry( p_intf, menu, qtr( "Conve&rt..." ), "convert",
+    action = addEntry( p_intf, menu, qtr( "Con&vert..." ), "convert",
                        []() { THEDP->openAndTranscodingDialogs(); } );
     setIcon( action, menu, VLCIcons::swap_tt_base, VLCIcons::swap_tt_accent );
 
@@ -353,7 +353,7 @@ void VLCMenuBar::FoldedEntries( qt_intf_t *p_intf, QMenu *menu, const QList<int>
         { C::PLAYLIST_BUTTON, N_( "&Queue" ), "show-queue", QChar(), QChar() },
         { C::PLAY_BUTTON, N_( "Play/Pa&use" ), "play-pause", QChar(), QChar() },
         { C::STOP_BUTTON, N_( "S&top" ), "stop", QChar(), QChar() },
-        { C::PREVIOUS_BUTTON, N_( "Pre&vious" ), "prev", QChar(), QChar() },
+        { C::PREVIOUS_BUTTON, N_( "Prev&ious" ), "prev", QChar(), QChar() },
         { C::NEXT_BUTTON, N_( "Ne&xt" ), "next", QChar(), QChar() },
         { C::SKIP_BACK_BUTTON, N_( "Step Back" ), "jump-short", QChar(), QChar() },
         { C::SKIP_FW_BUTTON, N_( "Step Forward" ), "jump+short", QChar(), QChar() },
@@ -629,7 +629,7 @@ void VLCMenuBar::SleepTimerMenu( qt_intf_t *p_intf, QMenu *menu )
     if( !timer )
         return;
 
-    QMenu *submenu = menu->addMenu( qtr( "Sl&eep Timer" ) );
+    QMenu *submenu = menu->addMenu( qtr( "S&leep Timer" ) );
     QActionGroup *group = new QActionGroup( submenu );
 
     const auto add = [&]( const QString &text, bool checked, std::function<void()> start ) {
@@ -728,25 +728,29 @@ void VLCMenuBar::PopupMenuPlaylistEntries( QMenu *menu, qt_intf_t *p_intf, bool 
     QAction *action;
     bool hasInput = THEMIM->hasInput();
 
-    /* Play or Pause action and icon */
-    if( !hasInput || THEMIM->getPlayingState() != PlayerController::PLAYING_STATE_PLAYING )
-    {
-        action = addEntry( p_intf, menu, qtr( "&Play" ), "play-pause", [p_intf]() {
-            if ( THEMPL->isEmpty() )
-                THEDP->simpleOpenDialog();
-            else
-                THEMPL->togglePlayPause();
-        });
+    /* Play or Pause action and icon. The entry follows the playing state
+     * while the menu is open: the menu is often built right after a click
+     * that starts or pauses the media. */
+    action = addEntry( p_intf, menu, qtr( "&Play" ), "play-pause", [p_intf]() {
+        if ( THEMIM->getPlayingState() != PlayerController::PLAYING_STATE_PLAYING
+             && THEMPL->isEmpty() )
+            THEDP->simpleOpenDialog();
+        else
+            THEMPL->togglePlayPause();
+    });
+    const auto updatePlayPause = [p_intf, menu, icons, action = QPointer<QAction>( action )]() {
+        if( !action )
+            return;
+        const bool b_playing = THEMIM->hasInput()
+            && THEMIM->getPlayingState() == PlayerController::PLAYING_STATE_PLAYING;
+        action->setText( withKey( p_intf, b_playing ? qtr( "&Pause" ) : qtr( "&Play" ),
+                                  "play-pause" ) );
         if( icons )
-            setIcon( action, menu, {}, VLCIcons::playback_tt_accent );
-    }
-    else
-    {
-        action = addEntry( p_intf, menu, qtr( "&Pause" ), "play-pause",
-                           [p_intf]() { THEMPL->togglePlayPause(); } );
-        if( icons )
-            setIcon( action, menu, {}, VLCIcons::pause );
-    }
+            setIcon( action, menu, {}, b_playing ? VLCIcons::pause
+                                                 : VLCIcons::playback_tt_accent );
+    };
+    updatePlayPause();
+    connect( THEMIM, &PlayerController::playingStateChanged, action, updatePlayPause );
 
     /* Stop */
     action = addEntry( p_intf, menu, qtr( "&Stop" ), "stop",

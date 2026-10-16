@@ -263,5 +263,19 @@ T.ToolBar {
         source: VLCStyle.palette.hasCSDImage
                   ? "qrc:///qt/qml/VLC/Widgets/CSDThemeButtonSet.qml"
                   : "qrc:///qt/qml/VLC/Widgets/CSDWindowButtonSet.qml"
+
+        // fullscreen next to maximize, as in the player's Top bar (Figma
+        // 6261:15080)
+        readonly property bool _fullscreen: MainCtx.intfMainWindow.visibility === Window.FullScreen
+
+        onLoaded: {
+            if (item.showFullscreen === undefined)
+                return
+            item.showFullscreen = true
+            item.fullscreenChecked = Qt.binding(() => csdButtons._fullscreen)
+            item.fullscreenShortcut = Qt.binding(() => MainCtx.keyBindingsRevision >= 0
+                                                       ? MainCtx.actionShortcut("toggle-fullscreen") : "")
+            item.fullscreenClicked.connect(MainCtx.toggleInterfaceFullScreen)
+        }
     }
 }

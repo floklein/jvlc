@@ -40,7 +40,9 @@ Item {
     // not focusable: the Control bar gives focus to enabled items
     enabled: false
 
-    implicitWidth: Math.min(Math.ceil(metrics.advanceWidth), VLCStyle.dp(400, VLCStyle.scale))
+    // the whole title: the zone gives it all the room the other controls
+    // leave, and it elides only beyond that
+    implicitWidth: Math.ceil(metrics.advanceWidth)
 
     // In a narrow window the title truncates first: it takes the room the
     // other controls leave, and hides below a few characters. It folds

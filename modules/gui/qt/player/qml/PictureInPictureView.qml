@@ -39,11 +39,24 @@ FocusScope {
 
     // the controls show while the pointer moves over the window or the
     // keyboard is in them
-    readonly property bool controlsVisible: (pointer.containsMouse && !_idle)
+    readonly property bool controlsVisible: ((pointer.containsMouse || edgeHovered) && !_idle)
                                             || controls.activeFocus
                                             || playButton.hovered || backButton.hovered
                                             || closeButton.hovered || seekStrip.hovered
                                             || seekStrip.pressed
+
+    // the pointer is in the resize band along the window's edges, which
+    // takes the hover from the views below it (set by MainInterface)
+    property bool edgeHovered: false
+
+    function edgeHoverMoved() {
+        _wake()
+    }
+
+    onEdgeHoveredChanged: {
+        if (edgeHovered)
+            _wake()
+    }
 
     property bool _idle: false
 

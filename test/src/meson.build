@@ -327,6 +327,18 @@ vlc_tests += {
 }
 
 vlc_tests += {
+    'name' : 'test_src_player_start_time',
+    'sources' : files(
+        'player/common.h',
+        'player/modules.c',
+        'player/timers.h',
+        'player/start_time.c'),
+    'suite' : ['src', 'test_src'],
+    'link_with' : [libvlc, libvlccore],
+    'module_depends' : vlc_plugins_targets.keys()
+}
+
+vlc_tests += {
     'name' : 'test_src_player_teletext',
     'sources' : files(
         'player/common.h',

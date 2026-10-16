@@ -29,12 +29,15 @@
 #include <vlc_url.h>
 #include <vlc_cxx_helpers.hpp>
 #include <vlc_preparser.h>
+#include <vlc_image.h>
+#include <vlc_picture.h>
 
 #include <climits>
 #include <stdexcept>
 
 Thumbnailer::Thumbnailer( vlc_medialibrary_module_t* ml )
-    : m_currentContext(nullptr)
+    : m_ml(ml)
+    , m_currentContext(nullptr)
     , m_thumbnailer(VLC_OBJECT(ml), {
         .types = VLC_PREPARSER_TYPE_THUMBNAIL_TO_FILES,
         .max_parser_threads = 0,
@@ -67,9 +70,82 @@ void Thumbnailer::onThumbnailToFilesComplete(vlc_preparser_req *req, int ,
     vlc_preparser_req_Release( req );
 }
 
+/* Many films open dark: titles, a fade in. A thumbnail taken there is all
+ * black, so a dark one is taken again further in, a few times at most: the
+ * check reads back the small picture just written. */
 bool Thumbnailer::generate( const medialibrary::IMedia&, const std::string& mrl,
                             uint32_t desiredWidth, uint32_t desiredHeight,
                             float position, const std::string& dest )
+{
+    static const float step = .2f;
+    static const int attempts = 3;
+
+    bool generated = false;
+    for ( int i = 0; i < attempts; ++i )
+    {
+        const float pos = position + i * step;
+        if ( i > 0 && pos > .9f )
+            break;
+        if ( !generateAt( mrl, desiredWidth, desiredHeight, pos, i > 0, dest ) )
+        {
+            /* a dark thumbnail is still one */
+            msg_Dbg( m_ml, "no thumbnail at %.2f for %s", pos, mrl.c_str() );
+            continue;
+        }
+        generated = true;
+        if ( !isDark( dest ) )
+            break;
+        msg_Dbg( m_ml, "dark thumbnail at %.2f for %s, trying further in",
+                 pos, mrl.c_str() );
+    }
+    return generated;
+}
+
+/* Whether the picture of a file is almost black: its average luma is below
+ * an eighth of the range */
+bool Thumbnailer::isDark( const std::string& dest )
+{
+    auto url = vlc::wrap_cptr( vlc_path2uri( dest.c_str(), nullptr ), &free );
+    if ( url == nullptr )
+        return false;
+
+    image_handler_t *handler = image_HandlerCreate( m_ml );
+    if ( handler == nullptr )
+        return false;
+
+    video_format_t fmt;
+    video_format_Init( &fmt, VLC_CODEC_I420 );
+    picture_t *pic = image_ReadUrl( handler, url.get(), &fmt );
+    image_HandlerDelete( handler );
+    if ( pic == nullptr )
+    {
+        video_format_Clean( &fmt );
+        return false;
+    }
+
+    bool dark = false;
+    if ( pic->format.i_chroma == VLC_CODEC_I420 )
+    {
+        const plane_t &y = pic->p[0];
+        uint64_t sum = 0;
+        for ( int line = 0; line < y.i_visible_lines; ++line )
+        {
+            const uint8_t *p = y.p_pixels + line * y.i_pitch;
+            for ( int col = 0; col < y.i_visible_pitch; ++col )
+                sum += p[col];
+        }
+        const uint64_t count = (uint64_t)y.i_visible_lines * y.i_visible_pitch;
+        dark = count > 0 && sum / count < 32;
+    }
+    picture_Release( pic );
+    video_format_Clean( &fmt );
+    return dark;
+}
+
+bool Thumbnailer::generateAt( const std::string& mrl,
+                              uint32_t desiredWidth, uint32_t desiredHeight,
+                              float position, bool precise,
+                              const std::string& dest )
 {
 #if INT_MAX < UINT32_MAX
     assert(desiredWidth < (uint32_t)INT_MAX);
@@ -93,7 +169,8 @@ bool Thumbnailer::generate( const medialibrary::IMedia&, const std::string& mrl,
             .seek = {
                 .type = vlc_thumbnailer_arg::seek::VLC_THUMBNAILER_SEEK_POS,
                 .pos = position,
-                .speed = vlc_thumbnailer_arg::seek::VLC_THUMBNAILER_SEEK_FAST,
+                .speed = precise ? vlc_thumbnailer_arg::seek::VLC_THUMBNAILER_SEEK_PRECISE
+                                 : vlc_thumbnailer_arg::seek::VLC_THUMBNAILER_SEEK_FAST,
             },
             .hw_dec = false,
         };

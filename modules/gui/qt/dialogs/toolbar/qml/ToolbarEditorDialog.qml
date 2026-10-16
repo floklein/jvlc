@@ -28,12 +28,14 @@ import VLC.Dialogs
 import VLC.Player
 import VLC.PlayerControls
 
-// Customize Player (Figma 2107:5604): drag items between the palette and the
-// Top bar and Control bar of the video or the music player. The bars of the
-// player follow the changes live; Save keeps them, Cancel brings back the
-// saved Layout.
-WindowDialog {
+// Customize Player (Figma 2107:5604): a dialog over the player. Drag items
+// between the palette and the Top bar and Control bar of the video or the
+// music player. The bars of the player follow the changes live; Save keeps
+// them, Cancel (or Esc) brings back the saved Layout.
+ModalDialog {
     id: root
+
+    parent: T.Overlay.overlay
 
     readonly property ControlbarProfileModel layouts: MainCtx.controlbarProfileModel
 
@@ -48,52 +50,55 @@ WindowDialog {
 
     readonly property PlayerControlbarModel bars: layouts.currentModel?.getModel(identifier) ?? null
 
-    // NOTE: At large scales the sizes are clamped to the screen.
-    width: Math.min(VLCStyle.dp(1000, VLCStyle.scale), Screen.desktopAvailableWidth * 0.9)
-    height: Math.min(VLCStyle.dp(720, VLCStyle.scale), Screen.desktopAvailableHeight * 0.9)
-
-    minimumWidth: Math.min(VLCStyle.dp(760, VLCStyle.scale), Screen.desktopAvailableWidth * 0.9)
-    minimumHeight: Math.min(VLCStyle.dp(560, VLCStyle.scale), Screen.desktopAvailableHeight * 0.9)
-
-    modal: true
+    // within the window, at large scales or in a small window too
+    width: Math.min(VLCStyle.dp(1000, VLCStyle.scale), (parent?.width ?? 0) - 2 * VLCStyle.margin_large)
+    height: Math.min(VLCStyle.dp(720, VLCStyle.scale), (parent?.height ?? 0) - 2 * VLCStyle.margin_large)
 
     title: (identifier === PlayerControlbarModel.Audioplayer) ? qsTr("Customize music player")
                                                               : qsTr("Customize video player")
 
-    standardButtons: DialogButtonBox.NoButton
+    Accessible.role: Accessible.Dialog
+    Accessible.name: title
 
     signal unload()
 
-    function open() {
+    // whether the dialog closes through Save, else it discards the changes
+    property bool _saving: false
+
+    function openEditor() {
         // what was saved, in case of Cancel
         layouts.save(false)
 
         _pickedIdentifier = -1
-        show()
+        _saving = false
+        open()
     }
 
     function save() {
+        _saving = true
         layouts.save()
-        hide()
-        unload()
+        close()
     }
 
     function cancel() {
-        // Load saved to discard the changes
-        layouts.reload()
-        hide()
+        close()
+    }
+
+    // Cancel, Esc or a click away: load what was saved to discard the changes
+    onClosed: {
+        if (!_saving)
+            layouts.reload()
         unload()
     }
 
-    onRejected: (byButton) => {
-        if (!byButton)
-            cancel()
-    }
-
-    contentComponent: FocusScope {
+    contentItem: FocusScope {
         focus: true
 
-        Keys.onEscapePressed: root.cancel()
+        // the popup's content takes no palette from the dialog
+        readonly property ColorContext colorContext: ColorContext {
+            palette: VLCStyle.palette
+            colorSet: ColorContext.Window
+        }
 
         ColumnLayout {
             anchors.fill: parent

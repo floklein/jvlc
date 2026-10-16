@@ -69,27 +69,36 @@ Item {
         if (criterias === undefined || criterias.length === 0)
             return ""
 
-        let string = ""
+        // what the library does not know (no duration) or has none of (a
+        // folder of songs has no videos) is left out
+        const parts = []
 
         for (let i = 0; i < criterias.length; i++) {
-            if (i) string += " • "
-
             const criteria = criterias[i]
 
             const value = rowModel[criteria]
 
+            if (value === undefined || value === null || value === "")
+                continue
+
             if (value.formatShort) {
-                string += value.formatShort()
+                if (value.valid !== undefined && !value.valid())
+                    continue
+                parts.push(value.formatShort())
             } else if (criteria === "nb_tracks") {
-                string += qsTr("%1 track", "%1 tracks", value).arg(value)
+                parts.push(qsTr("%1 track", "%1 tracks", value).arg(value))
             } else if (criteria === "nb_videos") {
-                string += qsTr("%1 video", "%1 videos", value).arg(value)
+                if (value > 0)
+                    parts.push(qsTr("%1 video", "%1 videos", value).arg(value))
+            } else if (criteria === "nb_audio") {
+                if (value > 0)
+                    parts.push(qsTr("%1 song", "%1 songs", value).arg(value))
             } else {
-                string += value
+                parts.push(value)
             }
         }
 
-        return string
+        return parts.join(" • ")
     }
 
     property Component titleDelegate: TableRowDelegate {

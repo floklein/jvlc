@@ -48,6 +48,14 @@ vlc_player_ResetTimer(vlc_player_t *player)
     vlc_mutex_unlock(&player->timer.lock);
 }
 
+void
+vlc_player_SetTimerStartOffset(vlc_player_t *player, vlc_tick_t start_offset)
+{
+    vlc_mutex_lock(&player->timer.lock);
+    player->timer.start_offset = start_offset > 0 ? start_offset : 0;
+    vlc_mutex_unlock(&player->timer.lock);
+}
+
 static void
 vlc_player_SendTimerSeek(vlc_player_t *player,
                          struct vlc_player_timer_source *source,
@@ -371,8 +379,16 @@ vlc_player_UpdateTimerSource(vlc_player_t *player,
     assert(ts >= VLC_TICK_0);
     assert(player->timer.input_normal_time >= VLC_TICK_0);
 
+    /* The time within the part played, which begins at the start time. A
+     * point before it comes until the input has seeked there (started paused,
+     * or outputs reporting first): the part has not begun yet. */
+    vlc_tick_t elapsed = ts - player->timer.input_normal_time
+                       - player->timer.start_offset;
+    if (elapsed < 0)
+        elapsed = 0;
+
     source->point.rate = rate;
-    source->point.ts = ts - player->timer.input_normal_time - player->timer.start_offset + VLC_TICK_0;
+    source->point.ts = elapsed + VLC_TICK_0;
     source->point.length = player->timer.input_length;
     source->point.live = player->timer.input_live;
 
@@ -385,8 +401,7 @@ vlc_player_UpdateTimerSource(vlc_player_t *player,
         source->point.system_date = system_date;
 
     if (source->point.length != VLC_TICK_INVALID && !source->point.live)
-        source->point.position = (ts - player->timer.input_normal_time - player->timer.start_offset)
-                               / (double) source->point.length;
+        source->point.position = elapsed / (double) source->point.length;
     else
         source->point.position = player->timer.input_position;
 }

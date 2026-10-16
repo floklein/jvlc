@@ -1298,6 +1298,17 @@ ModalDialog {
 
         bgColor: root.colorContext.bg.primary
 
+        leftPadding: VLCStyle.margin_small
+
+        // Figma 1911:7545: regular weight, as the rest of the dialog
+        contentItem: Widgets.ListLabel {
+            rightPadding: picker.spacing + picker.indicator.width
+
+            text: picker.displayText
+            color: picker.color
+            font.weight: Font.Normal
+        }
+
         delegate: T.ItemDelegate {
             id: entry
 
@@ -1319,6 +1330,7 @@ ModalDialog {
 
                     text: entry.modelData.text
                     color: picker.color
+                    font.weight: Font.Normal
                     opacity: entry.enabled ? 1.0 : 0.4
                     elide: Text.ElideRight
                     verticalAlignment: Text.AlignVCenter

@@ -546,7 +546,7 @@ Item {
 
         function open() {
             toolbarEditorDialogLoader.active = true
-            toolbarEditorDialogLoader.item.open()
+            toolbarEditorDialogLoader.item.openEditor()
         }
 
         Connections {

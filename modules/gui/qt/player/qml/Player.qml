@@ -422,6 +422,20 @@ FocusScope {
     }
 
 
+    // The music player's background, also behind the docked panels: the
+    // window shows through (black) where the music view does not reach
+    Rectangle {
+        anchors.fill: parent
+
+        visible: !MainCtx.hasEmbededVideo
+        color: musicBackgroundTheme.bg.primary
+
+        readonly property ColorContext colorContext: ColorContext {
+            id: musicBackgroundTheme
+            colorSet: ColorContext.View
+        }
+    }
+
     Loader {
         id: playerSpecializationLoader
 
@@ -766,6 +780,16 @@ FocusScope {
                     anchors.fill: parent
                     anchors.topMargin: VLCStyle.margin_xsmall + audioFocusScope.topPadding
                     anchors.bottomMargin: VLCStyle.margin_xsmall + audioFocusScope.bottomPadding
+
+                    // this area takes the right button press too, so the
+                    // TapHandler of the player never sees it: open the
+                    // right-click menu from here
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+
+                    onClicked: (mouse) => {
+                        if (mouse.button === Qt.RightButton && !MainCtx.hasEmbededVideo)
+                            audioContextMenu.popup(mapToGlobal(mouse.x, mouse.y))
+                    }
 
                     onWheel: (wheel) => {
                         wheel.accepted = true

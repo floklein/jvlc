@@ -2491,7 +2491,7 @@ vlc_module_begin ()
 #   define KEY_VOL_UP             "Up\tCtrl+Up\tVolume Up"
 #   define KEY_VOL_DOWN           "Down\tCtrl+Down\tVolume Down"
 #   define KEY_VOL_MUTE           "m\tVolume Mute"
-#   define KEY_FRAME_NEXT         "e\tBrowser Next"
+#   define KEY_FRAME_NEXT         "e\tBrowser Forward"
 #endif
 
 #   define KEY_FRAME_PREVIOUS     "Shift+e"

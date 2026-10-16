@@ -46,6 +46,7 @@
 #include <vlc_playlist.h>
 
 #include <algorithm>
+#include <cmath>
 
 #include <QFile>
 #include <QDir>
@@ -1076,6 +1077,10 @@ static void on_player_aout_volume_changed(audio_output_t *, float volume, void *
 {
     PlayerControllerPrivate* that = static_cast<PlayerControllerPrivate*>(data);
     msg_Dbg( that->p_intf, "on_player_aout_volume_changed");
+    /* an output without volume (or one going away) reports none: the player
+     * keeps showing the last volume, see PlayerController::setVolume() */
+    if( volume < 0.f )
+        return;
     that->callAsync([that,volume](){
         that->m_volume = volume;
         emit that->q_func()->volumeChanged( volume );
@@ -1361,6 +1366,10 @@ PlayerControllerPrivate::PlayerControllerPrivate(PlayerController *playercontrol
     m_fullscreen = vlc_player_vout_IsFullscreen( m_player );
 
     m_volume = vlc_player_aout_GetVolume( m_player );
+    /* the audio output has no volume (dummy output, or none yet): show the
+     * default one until it is set */
+    if( m_volume < 0.f )
+        m_volume = 1.f;
 }
 
 void PlayerControllerPrivate::addSMPTETimer()
@@ -2338,25 +2347,56 @@ SharedAOut PlayerController::getAout()
     return SharedAOut( vlc_player_aout_Hold( d->m_player ), false );
 }
 
+/* An audio output without volume of its own (the dummy one) can't take the
+ * volume: the player keeps the requested one, so that the volume control
+ * shows it, as it would show the output's. */
+void PlayerControllerPrivate::keepRequestedVolume( float volume )
+{
+    volume = std::clamp( volume, 0.f, AOUT_VOLUME_MAX / (float)AOUT_VOLUME_DEFAULT );
+    if( qFuzzyCompare( m_volume, volume ) )
+        return;
+    m_volume = volume;
+    emit q_func()->volumeChanged( volume );
+}
+
+void PlayerControllerPrivate::keepRequestedMute( bool muted )
+{
+    if( m_muted == muted )
+        return;
+    m_muted = muted;
+    emit q_func()->soundMuteChanged( muted );
+}
+
 void PlayerController::setVolume(float volume)
 {
     Q_D(PlayerController);
-    vlc_player_locker lock{ d->m_player };
-    vlc_player_aout_SetVolume( d->m_player, volume );
+    int ret;
+    {
+        vlc_player_locker lock{ d->m_player };
+        ret = vlc_player_aout_SetVolume( d->m_player, volume );
+    }
+    if( ret != VLC_SUCCESS )
+        d->keepRequestedVolume( volume );
 }
 
 void PlayerController::setVolumeUp(int steps)
 {
     Q_D(PlayerController);
-    vlc_player_locker lock{ d->m_player };
-    vlc_player_aout_IncrementVolume( d->m_player, steps, NULL );
+    int ret;
+    {
+        vlc_player_locker lock{ d->m_player };
+        ret = vlc_player_aout_IncrementVolume( d->m_player, steps, NULL );
+    }
+    if( ret != VLC_SUCCESS )
+    {
+        const float step = var_InheritFloat( d->p_intf, "volume-step" ) / AOUT_VOLUME_DEFAULT;
+        d->keepRequestedVolume( std::round( ( d->m_volume + steps * step ) / step ) * step );
+    }
 }
 
 void PlayerController::setVolumeDown(int steps)
 {
-    Q_D(PlayerController);
-    vlc_player_locker lock{ d->m_player };
-    vlc_player_aout_DecrementVolume( d->m_player, steps, NULL );
+    setVolumeUp( -steps );
 }
 
 void PlayerController::setMuted(bool muted)
@@ -2364,8 +2404,13 @@ void PlayerController::setMuted(bool muted)
     Q_D(PlayerController);
     if( d->m_muted == muted )
         return;
-    vlc_player_locker lock{ d->m_player };
-    vlc_player_aout_Mute( d->m_player, muted );
+    int ret;
+    {
+        vlc_player_locker lock{ d->m_player };
+        ret = vlc_player_aout_Mute( d->m_player, muted );
+    }
+    if( ret != VLC_SUCCESS )
+        d->keepRequestedMute( muted );
 }
 
 void PlayerController::toggleMuted()

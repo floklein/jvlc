@@ -52,7 +52,8 @@ Widgets.TableViewExt {
         model: ({
             criteria: mainCriteria,
 
-            subCriterias: showGroupCountColumn ? [ "nb_videos", "duration" ]
+            // the folders of songs count their songs
+            subCriterias: showGroupCountColumn ? [ "nb_videos", "nb_audio", "duration" ]
                                                : [ "duration" ],
 
             showSection: "title",

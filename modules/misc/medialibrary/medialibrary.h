@@ -131,8 +131,13 @@ private:
     static void onThumbnailToFilesComplete(vlc_preparser_req *req, int status,
                                            const bool *result_array,
                                            size_t result_count, void *data);
+    bool generateAt( const std::string& mrl, uint32_t desiredWidth,
+                     uint32_t desiredHeight, float position, bool precise,
+                     const std::string& dest );
+    bool isDark( const std::string& dest );
 
 private:
+    vlc_medialibrary_module_t* m_ml;
     vlc::threads::mutex m_mutex;
     vlc::threads::condition_variable m_cond;
     ThumbnailerCtx* m_currentContext;

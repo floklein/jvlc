@@ -100,6 +100,29 @@ Window {
         root.requestActivate()
     }
 
+    // the categories, in the order of the list
+    readonly property var _categoryPages: pages.filter((p) => p.page !== undefined)
+                                               .map((p) => p.page)
+
+    // the category Tab lands on in the list
+    readonly property string _tabCategory: searching ? _categoryPages[0] : currentPage
+
+    // open a category from the keyboard and keep the focus on it
+    function _openCategory(page: string) {
+        searchField.text = ""
+        root.currentPage = page
+        const index = pages.findIndex((p) => p.page === page)
+        const loader = categoryRepeater.itemAt(index)
+        if (loader && loader.item)
+            loader.item.forceActiveFocus(Qt.TabFocusReason)
+    }
+
+    function _stepCategory(page: string, step: int) {
+        const index = _categoryPages.indexOf(page) + step
+        if (index >= 0 && index < _categoryPages.length)
+            _openCategory(_categoryPages[index])
+    }
+
     // where a row of the search results comes from
     function rowPath(row) : string {
         const parts = [root.pageTitle(row.page)]
@@ -280,18 +303,35 @@ Window {
                         clip: true
                         boundsBehavior: Flickable.StopAtBounds
 
-                        Column {
-                            id: categories
+                        // a tab list: one Tab stop, which lands on the current
+                        // category (the first one while searching); the
+                        // arrows move between the categories
+                        FocusScope {
                             width: parent.width
-                            spacing: VLCStyle.spacing_8
+                            height: categories.implicitHeight
 
-                            Repeater {
-                                model: root.pages
+                            activeFocusOnTab: true
 
-                                delegate: Loader {
-                                    required property var modelData
-                                    width: categories.width
-                                    sourceComponent: modelData.group !== undefined ? groupComponent : categoryComponent
+                            Column {
+                                id: categories
+                                width: parent.width
+                                spacing: VLCStyle.spacing_8
+
+                                Accessible.role: Accessible.PageTabList
+                                Accessible.name: qsTr("Settings categories")
+
+                                Repeater {
+                                    id: categoryRepeater
+
+                                    model: root.pages
+
+                                    delegate: Loader {
+                                        required property var modelData
+                                        width: categories.width
+                                        focus: modelData.page !== undefined
+                                               && modelData.page === root._tabCategory
+                                        sourceComponent: modelData.group !== undefined ? groupComponent : categoryComponent
+                                    }
                                 }
                             }
                         }
@@ -446,7 +486,23 @@ Window {
 
             implicitHeight: VLCStyle.dp(40, VLCStyle.scale)
             padding: VLCStyle.spacing_4
-            focusPolicy: Qt.StrongFocus
+            // one Tab stop for the list: the current category, or the first
+            // one while searching
+            // the list is the Tab stop, see _tabCategory
+            focusPolicy: Qt.ClickFocus
+            focus: true
+
+            Keys.onUpPressed: root._stepCategory(entry.page, -1)
+            Keys.onDownPressed: root._stepCategory(entry.page, 1)
+            Keys.onPressed: (event) => {
+                if (event.key === Qt.Key_Home) {
+                    root._openCategory(root._categoryPages[0])
+                    event.accepted = true
+                } else if (event.key === Qt.Key_End) {
+                    root._openCategory(root._categoryPages[root._categoryPages.length - 1])
+                    event.accepted = true
+                }
+            }
 
             Accessible.role: Accessible.PageTab
             Accessible.name: entry.title

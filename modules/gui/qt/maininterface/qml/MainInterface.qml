@@ -454,6 +454,25 @@ Item {
                     return "qrc:///qt/qml/VLC/MainInterface/MainDisplay.qml"
                 }
             }
+
+            // Picture-in-picture shows its controls while the pointer is over
+            // the window, the resize band along its edges included
+            Binding {
+                target: viewLoader.item
+                property: "edgeHovered"
+                value: csdMouseStealer.item?.hovered ?? false
+                when: viewLoader.item?.edgeHovered !== undefined
+            }
+
+            Connections {
+                target: csdMouseStealer.item
+                ignoreUnknownSignals: true
+
+                function onHoverMoved() {
+                    if (viewLoader.item?.edgeHovered !== undefined)
+                        viewLoader.item.edgeHoverMoved()
+                }
+            }
         }
 
         QueueReplacedNotice {
@@ -562,6 +581,8 @@ Item {
         }
 
         Loader {
+            id: csdMouseStealer
+
             active: {
                 const windowVisibility = MainCtx.intfMainWindow.visibility
                 return MainCtx.clientSideDecoration && !MainCtx.platformHandlesResizeWithCSD()

@@ -28,6 +28,15 @@ Item {
     required property Item target
     property bool anchorInside: true
 
+    // the pointer is over one of the resize areas: the views below them get
+    // no hover there, but the pointer is still over the window
+    readonly property bool hovered: _hoverCount > 0
+
+    // the pointer moved over a resize area
+    signal hoverMoved()
+
+    property int _hoverCount: 0
+
     //private
     readonly property int _targetHeight: target?.height ?? 0
     readonly property int _targetWidth: target?.width ?? 0
@@ -198,6 +207,13 @@ Item {
             hoverEnabled: true
             cursorShape: modelData.cursor
             acceptedButtons: Qt.LeftButton
+
+            onContainsMouseChanged: root._hoverCount += containsMouse ? 1 : -1
+            onPositionChanged: root.hoverMoved()
+            Component.onDestruction: {
+                if (containsMouse)
+                    root._hoverCount -= 1
+            }
 
             onPressed: MainCtx.intfMainWindow.startSystemResize(modelData.edge)
         }

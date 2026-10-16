@@ -38,6 +38,39 @@ FocusScope {
     implicitWidth: VLCStyle.dp(320, VLCStyle.scale)
     implicitHeight: VLCStyle.dp(36, VLCStyle.scale)
 
+    // text segments never truncate: the control is at least as wide as its
+    // labels, and the segments share the room equally when they can
+    readonly property real _margin: VLCStyle.dp(2, VLCStyle.scale)
+    readonly property real _spacing: root.swatches ? VLCStyle.spacing_4 : VLCStyle.dp(2, VLCStyle.scale)
+    readonly property real _labelPadding: VLCStyle.spacing_6
+
+    function _segmentWidth(label) {
+        return Math.ceil(fontMetrics.advanceWidth(label)) + 2 * _labelPadding
+    }
+
+    readonly property real _widestSegment: {
+        let widest = 0
+        for (let i = 0; i < choices.length; ++i)
+            widest = Math.max(widest, _segmentWidth(choices[i].label))
+        return widest
+    }
+
+    Layout.minimumWidth: {
+        if (swatches || choices.length === 0)
+            return -1
+        let width = 2 * _margin + (choices.length - 1) * _spacing
+        for (let i = 0; i < choices.length; ++i)
+            width += _segmentWidth(choices[i].label)
+        return width
+    }
+
+    FontMetrics {
+        id: fontMetrics
+
+        font.pixelSize: VLCStyle.fontSize_normal
+        font.family: VLCStyle.fontFamily
+    }
+
     Accessible.role: Accessible.PageTabList
     Accessible.name: accessibleName
 
@@ -59,8 +92,8 @@ FocusScope {
 
     RowLayout {
         anchors.fill: parent
-        anchors.margins: VLCStyle.dp(2, VLCStyle.scale)
-        spacing: root.swatches ? VLCStyle.spacing_4 : VLCStyle.dp(2, VLCStyle.scale)
+        anchors.margins: root._margin
+        spacing: root._spacing
 
         Repeater {
             model: root.choices
@@ -75,6 +108,8 @@ FocusScope {
 
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.minimumWidth: root.swatches ? -1 : root._segmentWidth(modelData.label)
+                Layout.preferredWidth: root.swatches ? -1 : root._widestSegment
 
                 focus: selected
                 focusPolicy: Qt.StrongFocus
