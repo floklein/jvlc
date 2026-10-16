@@ -363,6 +363,10 @@ T.Page {
 
                                 anchors.verticalCenter: parent.verticalCenter
 
+                                // the current folder elides rather than lose its first
+                                // letters when it alone is wider than the trail
+                                width: crumb.isLast ? Math.min(implicitWidth, crumbs.width) : implicitWidth
+
                                 text: crumb.modelData
                                 font.pixelSize: VLCStyle.fontSize_large
                                 font.weight: crumb.isLast ? Font.DemiBold : Font.Normal

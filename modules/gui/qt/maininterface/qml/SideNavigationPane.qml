@@ -233,6 +233,18 @@ T.Pane {
                         navigationModel.setData(rowIndex, true, NavigationModel.EXPANDED)
                 }
 
+                // once every section fits, the list must not stay scrolled: following
+                // the current section while Music's sections collapse scrolled it, and
+                // Home was then cut at the top above an empty row
+                function _scrollBackIfFits() {
+                    if (height >= contentHeight - 0.5 && contentY !== originY)
+                        contentY = originY
+                }
+
+                onHeightChanged: _scrollBackIfFits()
+                onContentHeightChanged: _scrollBackIfFits()
+                onContentYChanged: _scrollBackIfFits()
+
                 property bool readyForAnimations: false
 
                 onModelChanged: {

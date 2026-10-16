@@ -33,8 +33,10 @@ EOF
         rm -f /etc/apt/sources.list
         # Runtime pieces the CI image lacks to *show* VLC under WSLg:
         # qt6-wayland (Wayland QPA plugin), qt6-svg-plugins (VLC's SVG icons),
-        # xdotool (run-linux.sh, X11 first-frame workaround)
-        PKGS="ccache qt6-wayland qt6-svg-plugins xdotool"
+        # xdotool (run-linux.sh, X11 first-frame workaround).
+        # libmedialibrary-dev: the image lacks it, so meson would skip the
+        # medialibrary module and the Qt interface would have no library.
+        PKGS="ccache qt6-wayland qt6-svg-plugins xdotool libmedialibrary-dev"
         ;;
     win64)
         # The prebuilt contribs keep a few absolute paths of the CI checkout

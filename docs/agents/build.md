@@ -134,7 +134,7 @@ extras\agents\jvlc.ps1 setup
 `setup` is idempotent. It:
 
 1. imports the two CI images as WSL distros if they are missing, after pulling them with Docker (so Docker Desktop must be running);
-2. installs, from each image's own Debian release, `ccache` in both distros and `qt6-wayland`, `qt6-svg-plugins` and `xdotool` in `jvlc-linux`. For sid it uses the snapshot of the image's date, so Qt is never upgraded;
+2. installs, from each image's own Debian release, `ccache` in both distros and `qt6-wayland`, `qt6-svg-plugins`, `xdotool` and `libmedialibrary-dev` in `jvlc-linux`. For sid it uses the snapshot of the image's date, so Qt is never upgraded;
 3. downloads the prebuilt win64 contribs of this tree's contrib SHA, patches them (see above) and adds QtQuickTest (about 30 minutes).
 
 A ticket that changes `contrib/` or `extras/tools/` changes the contrib SHA. No prebuilt contribs exist for the new SHA, so that ticket must build the contribs, which `setup` does not cover.
@@ -143,6 +143,7 @@ A ticket that changes `contrib/` or `extras/tools/` changes the contrib SHA. No 
 
 - `contribs missing: run jvlc.ps1 setup`: the shared contribs are not installed.
 - `There is no distribution with the supplied name`: the distros are missing; run `setup`.
+- The Linux jVLC has no media library (the Library shows only Home and Network, no `libmedialibrary_plugin.so` in `build-linux/modules`): the build dir was configured before `setup` installed `libmedialibrary-dev`. Run `build -Platform linux -Reconfigure`.
 - A build fails after a merge with odd meson errors: run `build -Reconfigure`. If that fails too, run `clean`, then `build`.
 - `vlc.exe` says "could not start ... no plugins were found", or a win64 test exits with `-1073741515` (`0xC0000135`, DLL not found): run `build -Platform win64` to refresh the install.
 - `Fail to create Process in process_pool` on win64 (a stand-in VLC test fails in `initTestCase`, or `vlc.exe` starts without its playlist): your branch predates the `vlc_pipe()` fix (`src/win32/filesystem.c`), so merge `feat/redesign` and rebuild win64. Before it, every jVLC process named its pipes `\\.\pipe\AnonPipe_0`, `_1`, … Pipe names are global to the machine, so while one jVLC (another agent's `vlc.exe` or test) held those names, every other jVLC failed to spawn `vlc-preparser.exe`. That is why it came and went with the other agents and looked like a load or install problem. Pipes are now named `vlc-pipe-<pid>-<n>`; `Get-ChildItem \\.\pipe\ | ? Name -like 'vlc-pipe*'` lists them.

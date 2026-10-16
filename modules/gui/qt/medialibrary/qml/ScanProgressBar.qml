@@ -38,7 +38,9 @@ ProgressBarExt {
 
         text: (MediaLib.discoveryPending) ? qsTr("Scanning %1")
                                             .arg(MediaLib.discoveryEntryPoint)
-                                          : qsTr("Indexing Medias (%1%)")
+                                          // short enough for the sidebar, which otherwise
+                                          // cut it to "Indexi...s (0%)"
+                                          : qsTr("Indexing (%1%)")
                                             .arg(MediaLib.parsingProgress)
 
         elide: Text.ElideMiddle

@@ -205,6 +205,21 @@ FocusScope {
 
     onModelChanged: _onModelCountChanged()
 
+    // Tab lands on the current item, not on the bare view: otherwise no focus
+    // ring shows and a screen reader reads nothing. A click on the empty area
+    // focuses the bare view on purpose. Qt often reports a Tab into this focus
+    // scope as OtherFocusReason, hence the fallback to TabFocusReason.
+    property bool _focusingBareView: false
+
+    onActiveFocusChanged: {
+        if (!activeFocus || _count === 0 || _focusingBareView || focusReason === Qt.MouseFocusReason)
+            return
+        if (Window.activeFocusItem !== root && Window.activeFocusItem !== flickable)
+            return
+        setCurrentItemFocus(focusReason === Qt.BacktabFocusReason ? Qt.BacktabFocusReason
+                                                                  : Qt.TabFocusReason)
+    }
+
     onCurrentIndexChanged: {
         if (expandIndex !== -1)
             retract()
@@ -450,7 +465,8 @@ FocusScope {
             return;
         }
 
-        if (currentIndex === -1)
+        // a search or a removal may have left the current index past the end
+        if (currentIndex < 0 || currentIndex >= model.count)
             currentIndex = 0
 
         if (_containsItem(currentIndex))
@@ -896,7 +912,9 @@ FocusScope {
             function initialAction() {
                 if (root.currentItem)
                     root.currentItem.focus = false // Grab the focus from delegate
+                root._focusingBareView = true
                 root.forceActiveFocus(Qt.MouseFocusReason) // Re-focus the list
+                root._focusingBareView = false
 
                 root.currentIndex = -1
             }

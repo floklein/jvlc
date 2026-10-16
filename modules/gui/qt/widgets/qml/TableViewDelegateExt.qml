@@ -102,6 +102,10 @@ T.Control {
 
                 horizontalAlignment: defaultDelId.colModel.hCenterText ? Text.AlignHCenter : Text.AlignLeft
 
+                // regular like the title and duration cells (Figma 970:3308),
+                // not a semibold Album or Artist beside a regular title
+                font.weight: Font.Normal
+
                 text: defaultDelId.rowModel[defaultDelId.colModel.criteria] ?? ""
 
                 color: defaultDelId.selected

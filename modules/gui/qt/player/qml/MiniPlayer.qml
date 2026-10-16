@@ -69,7 +69,9 @@ T.Control {
 
     padding: VLCStyle.spacing_8
 
-    focusPolicy: Qt.TabFocus
+    // not a Tab stop itself: it passes the focus on to "Back to the player", so
+    // Shift+Tab from there would land on it and come straight back
+    focusPolicy: Qt.NoFocus
 
     Accessible.role: Accessible.Pane
     Accessible.name: qsTr("Mini player")
@@ -219,8 +221,10 @@ T.Control {
         Navigation.downItem: folderButton.visible ? folderButton : queueButton
     }
 
-    // the hover keys over the picture (Figma 975:4333)
+    // the hover keys over the picture (Figma 975:4333); they show too while
+    // "Back to the player" has the focus, so that Tab reaches them
     readonly property bool _showKeys: pictureHover.hovered || MainCtx.usingTouch
+                                      || picture.activeFocus
                                       || playButton.hovered || playButton.visualFocus
                                       || previousButton.hovered || previousButton.visualFocus
                                       || nextButton.hovered || nextButton.visualFocus
