@@ -154,7 +154,8 @@ QtObject {
     readonly property int icon_track: icon_normal
     readonly property int icon_tableHeader: icon_normal
     readonly property int icon_playlistHeader: icon_normal
-    readonly property int icon_banner: MainCtx.dp(28, scale)
+    // the icons of the title bar and of the library header (Figma 6261:15080, 6261:15118)
+    readonly property int icon_banner: icon_normal
     readonly property int icon_play: MainCtx.dp(28, scale)
     readonly property int icon_addressBar: icon_normal
     readonly property int icon_actionButton: icon_normal
@@ -187,10 +188,57 @@ QtObject {
     readonly property int defaultWidthPlaylist: MainCtx.dp(300, scale);
     readonly property int closedWidthPlaylist: MainCtx.dp(20, scale);
 
-    readonly property int expandNavigationPaneWidth: MainCtx.dp(160, scale);
-    readonly property int buttonHeightNavigationPane: MainCtx.dp(35, scale);
+    // the Nav sidebar (Figma 6261:15094): 217 px with its card inset by 8 px,
+    // the sections 16 px from the sides and 12 px from the top of the card,
+    // rows 32 px high and 14 px apart, a 30 px wide icon then the label 8 px
+    // after it
+    readonly property int expandNavigationPaneWidth: MainCtx.dp(217, scale);
+    readonly property int navigationCard_margin: margin_xsmall
+    readonly property int navigationCard_horizontalPadding: margin_normal
+    readonly property int navigationCard_verticalPadding: margin_small
+    readonly property int navigationItem_height: MainCtx.dp(32, scale);
+    readonly property int navigationItem_spacing: MainCtx.dp(14, scale);
+    readonly property int navigationItem_iconWidth: MainCtx.dp(30, scale);
+    readonly property int buttonHeightNavigationPane: navigationItem_height + navigationItem_spacing
+    // the icon-only sidebar of the Library pane (Figma 848:1996)
+    readonly property int navigationRail_width: MainCtx.dp(50, scale);
+    // the Library pane with its icon-only sidebar
+    readonly property int libraryPane_width: MainCtx.dp(427, scale);
 
-    readonly property int widthSearchInput: MainCtx.dp(200, scale);
+    // the search field of the library header (Figma 6261:15136)
+    readonly property int widthSearchInput: MainCtx.dp(325, scale);
+
+    // the title bar of the library (Figma 6261:15080): 6 px inside, the cone
+    // in a 38 px box and the jVLC menu in a 28 px one, 7 px apart
+    readonly property int titleBar_padding: MainCtx.dp(6, scale)
+    readonly property int titleBar_spacing: MainCtx.dp(7, scale)
+    readonly property int titleBar_coneWidth: MainCtx.dp(38, scale)
+    readonly property int titleBar_buttonSize: MainCtx.dp(28, scale)
+
+    // the header of the library pages (Figma 6261:15118, 970:2703): 20 px
+    // from the edges of the page, a 34 px high row, 20 px between its
+    // groups, 12 px between back and forward and between the page actions,
+    // 10 px before the trail of folders, then a divider 17 px below
+    readonly property int pageHeader_topPadding: margin_normal + margin_xxsmall
+    readonly property int pageHeader_bottomPadding: MainCtx.dp(17, scale) + pageHeader_dividerHeight
+    readonly property int pageHeader_dividerHeight: MainCtx.dp(1, scale)
+    readonly property int pageHeader_rowHeight: MainCtx.dp(34, scale)
+    readonly property int pageHeader_spacing: margin_normal + margin_xxsmall
+    readonly property int pageHeader_historySpacing: MainCtx.dp(10, scale)
+    readonly property int pageHeader_actionSpacing: margin_small
+    readonly property int pageHeader_crumbSpacing: MainCtx.dp(6, scale)
+    readonly property int pageHeader_crumbSeparatorWidth: MainCtx.dp(8, scale)
+    readonly property real pageHeader_disabledOpacity: 0.3
+
+    // the color of a tool of the page header (sort, view, search, …): FG/A3,
+    // the indicator color, at rest, as a tool button otherwise
+    function pageToolColor(button) {
+        if (button.checked)
+            return button.colorContext.accent
+        if (button.enabled && !button.hovered && !button.visualFocus && !button.down)
+            return button.colorContext.indicator
+        return button.colorContext.fg.primary
+    }
     readonly property int widthSortBox: MainCtx.dp(150, scale);
     readonly property int widthTeletext: MainCtx.dp(280, scale);
     readonly property int widthExtendedSpacer: MainCtx.dp(128, scale);
@@ -385,14 +433,10 @@ QtObject {
       return nb * VLCStyle.column_width + ( nb - 1 ) * VLCStyle.column_spacing;
     }
 
-    //dynamic margins based on screen width
+    // the margins added to layout_left_margin and layout_right_margin: Figma
+    // puts the header and the content of a page 20 px from its edges at
+    // every width (6261:15117, 970:2739, 1106:5642)
     function dynamicAppMargins(width : int) : int {
-        if (width < smallWidth)
-            return margin_normal;
-        else if(width > mediumWidth)
-            return margin_large;
-        else
-            return margin_normal + (width - smallWidth) * (margin_large - margin_normal) /
-                    (mediumWidth - smallWidth);
+        return margin_xxsmall;
     }
 }

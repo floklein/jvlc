@@ -59,6 +59,12 @@ FocusScope {
         colorSet: ColorContext.Window
     }
 
+    // the colors of the title bars: the cone and the window buttons
+    ColorContext {
+        id: navTheme
+        colorSet: ColorContext.Navigation
+    }
+
     // Figma: 40 px tall, 6 px padding
     readonly property int _barHeight: VLCStyle.dp(40, VLCStyle.scale)
     readonly property int _padding: VLCStyle.dp(6, VLCStyle.scale) + sideMargin
@@ -159,14 +165,31 @@ FocusScope {
                     csdMenuLoader.item.popup(cone.mapToGlobal(0, cone.height))
             }
 
-            // the cone logo stays orange, whatever the Accent color
-            contentItem: Widgets.BannerCone {
-                color: theme.accent
+            // the cone logo stays orange, whatever the Accent color: Figma
+            // 247:449 draws the flat cone in "Accent/Logo"
+            contentItem: Item {
+                Widgets.IconLabel {
+                    anchors.centerIn: parent
 
-                fillMode: Image.PreserveAspectFit
-                sourceSize: Qt.size(VLCStyle.icon_normal, VLCStyle.icon_normal)
-                horizontalAlignment: Image.AlignHCenter
-                verticalAlignment: Image.AlignVCenter
+                    visible: !MainCtx.useXmasCone()
+
+                    text: VLCIcons.cone
+                    color: navTheme.fg.link
+                    font.pixelSize: VLCStyle.icon_normal
+                }
+
+                Widgets.BannerCone {
+                    anchors.fill: parent
+
+                    visible: MainCtx.useXmasCone()
+
+                    color: theme.accent
+
+                    fillMode: Image.PreserveAspectFit
+                    sourceSize: Qt.size(VLCStyle.icon_normal, VLCStyle.icon_normal)
+                    horizontalAlignment: Image.AlignHCenter
+                    verticalAlignment: Image.AlignVCenter
+                }
             }
 
             readonly property ColorContext colorContext: ColorContext {
@@ -276,7 +299,8 @@ FocusScope {
 
                 focusPolicy: Qt.TabFocus
 
-                color: theme.fg.primary
+                // Figma 247:464: FG/A2
+                color: navTheme.fg.primary
                 hoverColor: theme.bg.primary.alpha(0.5)
                 isThemeDark: theme.palette.isDark
 

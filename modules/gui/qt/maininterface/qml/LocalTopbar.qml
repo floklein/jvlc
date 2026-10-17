@@ -69,12 +69,13 @@ T.ToolBar {
 
     readonly property ColorContext colorContext: ColorContext {
         id: theme
-        colorSet: ColorContext.Window
+        colorSet: ColorContext.Navigation
     }
 
+    // Figma 6261:15080: "BG/A3 Transparent"
     background:  Widgets.AcrylicBackground {
         enabled: root.useAcrylic
-        tintColor: theme.bg.primary
+        tintColor: theme.bg.secondary
     }
 
     contentItem: Item {
@@ -82,7 +83,7 @@ T.ToolBar {
         implicitHeight: VLCStyle.globalToolbar_height
         implicitWidth: navigationButtons.implicitWidth
                      + playqueueButtonsTop.implicitWidth
-                     + VLCStyle.margin_xsmall * 2
+                     + VLCStyle.titleBar_padding * 2
 
         Item {
             id: navigationButtons
@@ -93,43 +94,67 @@ T.ToolBar {
                 left: parent.left
                 top: parent.top
                 bottom: parent.bottom
-                leftMargin: VLCStyle.margin_xsmall
+                leftMargin: VLCStyle.titleBar_padding
                     + ((root._csdOnLeft && root.topPadding < csdButtons.height)
-                        ? Math.max(csdButtons.width - root.leftPadding, 0)
+                        ? Math.max(csdButtons.width + VLCStyle.titleBar_padding - root.leftPadding, 0)
                         : 0)
             }
 
             Navigation.parentItem: root
 
+            // Figma 6261:15081: the cone 7 px inside its 38 px box, then the
+            // jVLC menu in a 28 px box, 7 px apart
             Row {
                 id: navigationButtonsRow
 
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: VLCStyle.margin_normal
+                spacing: VLCStyle.titleBar_spacing
 
                 Navigation.parentItem: root
                 Navigation.rightItem: playqueueButtonsTop
 
                 // the cone, then the VLC menu, as in the Top bar of the
                 // player (Figma 6261:15078, 970:3308)
-                Widgets.BannerCone {
-                    id: logo
-
+                Item {
                     anchors.verticalCenter: parent.verticalCenter
 
-                    sourceSize.width: VLCStyle.bannerButton_height
-                    sourceSize.height: VLCStyle.bannerButton_height
-                    color: theme.accent
+                    width: VLCStyle.titleBar_coneWidth
+                    height: VLCStyle.titleBar_buttonSize
+
+                    // Figma 6261:15083: the flat cone, "Accent/Logo"
+                    Widgets.IconLabel {
+                        anchors.centerIn: parent
+
+                        visible: !MainCtx.useXmasCone()
+
+                        text: VLCIcons.cone
+                        color: theme.fg.link
+                        font.pixelSize: VLCStyle.icon_normal
+                    }
+
+                    Widgets.BannerCone {
+                        id: logo
+
+                        anchors.centerIn: parent
+
+                        visible: MainCtx.useXmasCone()
+
+                        sourceSize.width: VLCStyle.icon_normal
+                        sourceSize.height: VLCStyle.icon_normal
+                        color: theme.accent
+                    }
                 }
 
                 Widgets.IconToolButton {
                     id: menuBtn
 
+                    anchors.verticalCenter: parent.verticalCenter
+
                     font.pixelSize: VLCStyle.icon_banner
                     text: VLCIcons.more
                     description: qsTr("jVLC menu")
-                    width: VLCStyle.bannerButton_width
-                    height: VLCStyle.bannerButton_height
+                    width: VLCStyle.titleBar_buttonSize
+                    height: VLCStyle.titleBar_buttonSize
                     checked: contextMenu.shown
 
                     Navigation.parentItem: navigationButtons
@@ -153,9 +178,11 @@ T.ToolBar {
 
                     AccessibleCompat.id: "sidebarToggleButton"
 
+                    anchors.verticalCenter: parent.verticalCenter
+
                     font.pixelSize: VLCStyle.icon_banner
-                    height: VLCStyle.bannerButton_height
-                    width: VLCStyle.bannerButton_width
+                    height: VLCStyle.titleBar_buttonSize
+                    width: VLCStyle.titleBar_buttonSize
 
                     onClicked: root.toggleNavigationVisibility()
 
@@ -178,9 +205,9 @@ T.ToolBar {
                 top: parent.top
                 bottom: parent.bottom
                 //put the buttons below the CSD if we have enough space
-                rightMargin: VLCStyle.margin_xsmall
+                rightMargin: VLCStyle.titleBar_padding
                     + ((root._showCSD && !root._csdOnLeft && root.topPadding < csdButtons.height)
-                        ? Math.max(csdButtons.width - root.rightPadding, 0)
+                        ? Math.max(csdButtons.width + VLCStyle.titleBar_padding - root.rightPadding, 0)
                         : 0)
             }
 
@@ -190,7 +217,7 @@ T.ToolBar {
                 id: playqueueButtonsTopRow
 
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: VLCStyle.margin_normal
+                spacing: VLCStyle.titleBar_spacing
 
                 Navigation.parentItem: root
                 Navigation.leftItem: navigationButtons
@@ -228,7 +255,8 @@ T.ToolBar {
             visible: text !== ""
 
             text: root.title
-            color: theme.fg.secondary
+            // Figma 6261:15087: FG/A2
+            color: theme.fg.primary
             font.pixelSize: VLCStyle.fontSize_normal
             elide: Text.ElideRight
             verticalAlignment: Text.AlignVCenter
@@ -252,9 +280,12 @@ T.ToolBar {
 
         //csd button are
         parent:  root
+        // Figma 6261:15088: inside the 6 px padding of the bar
         anchors {
             left: root._csdOnLeft ? parent.left : undefined
             right: root._csdOnLeft ? undefined : parent.right
+            leftMargin: VLCStyle.titleBar_padding
+            rightMargin: VLCStyle.titleBar_padding
             top: parent.top
         }
 

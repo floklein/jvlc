@@ -26,6 +26,9 @@ import VLC.Widgets as Widgets
 import VLC.Style
 import VLC.Util
 
+// A row of the Nav sidebar (Figma 6261:15094): a 24 px icon in a 30 px wide
+// box, then the label 8 px after it, in a 32 px high row. The row ends with
+// the 14 px gap to the next one, so that a list of rows needs no spacing.
 T.ItemDelegate {
     id: control
 
@@ -33,9 +36,12 @@ T.ItemDelegate {
 
     property string iconTxt: ""
 
+    // the icon of the current section: filled (Figma home, videos, …)
+    property string checkedIconTxt: iconTxt
+
     property bool showText: true
 
-    property real radius: VLCStyle.button_radius
+    property real radius: VLCStyle.radius_small
 
     // Settings
 
@@ -44,19 +50,20 @@ T.ItemDelegate {
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
                              implicitContentHeight + topPadding + bottomPadding)
 
-    padding: VLCStyle.margin_xxsmall
+    padding: 0
+    bottomPadding: VLCStyle.navigationItem_spacing
 
     leftInset: implicitLeftInset
     rightInset: implicitRightInset
 
     topInset: implicitTopInset
-    bottomInset: implicitBottomInset
+    bottomInset: VLCStyle.navigationItem_spacing + implicitBottomInset
 
-    property real implicitLeftInset: VLCStyle.margin_xxsmall
-    property real implicitRightInset: VLCStyle.margin_xxsmall
+    property real implicitLeftInset: 0
+    property real implicitRightInset: 0
 
-    property real implicitTopInset: VLCStyle.margin_xxxsmall
-    property real implicitBottomInset: VLCStyle.margin_xxxsmall
+    property real implicitTopInset: 0
+    property real implicitBottomInset: 0
 
     // Accessible
 
@@ -93,7 +100,7 @@ T.ItemDelegate {
 
     ColorContext {
         id: theme
-        colorSet: ColorContext.TabButton
+        colorSet: ColorContext.Navigation
 
         focused: control.visualFocus
         hovered: control.hovered
@@ -101,32 +108,25 @@ T.ItemDelegate {
         enabled: control.enabled
     }
 
-    background: Widgets.AnimatedBackground {
-        enabled: theme.initialized
-        color: theme.bg.primary
-        border.color: visualFocus ? theme.visualFocus : "transparent"
+    // Figma draws no background behind the rows: only the keyboard focus
+    // shows one, as a ring
+    background: Rectangle {
+        color: "transparent"
+        border.width: control.visualFocus ? VLCStyle.focus_border : 0
+        border.color: theme.visualFocus
 
         radius: control.radius
-
-        Widgets.CurrentIndicator {
-            anchors {
-                left: parent.left
-                leftMargin: VLCStyle.margin_xxxsmall
-                verticalCenter: parent.verticalCenter
-            }
-            implicitHeight: parent.height / 2
-            visible: control.checked
-
-            radius: control.radius / 2
-        }
     }
 
-    contentItem: RowLayout {
-        spacing: VLCStyle.margin_xsmall
+    contentItem: Item {
+        implicitWidth: iconBox.width + (label.visible ? VLCStyle.margin_xsmall + label.implicitWidth : 0)
+        implicitHeight: VLCStyle.navigationItem_height
 
         Item {
-            Layout.preferredWidth: VLCStyle.icon_banner
-            Layout.fillHeight: true
+            id: iconBox
+
+            width: VLCStyle.navigationItem_iconWidth
+            height: parent.height
 
             Widgets.IconLabel {
                 id: iconLabel
@@ -135,22 +135,20 @@ T.ItemDelegate {
 
                 anchors.centerIn: parent
 
-                text: control.iconTxt
-
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
+                text: (control.highlighted || control.checked) ? control.checkedIconTxt : control.iconTxt
 
                 color: (control.highlighted || control.checked) ? theme.accent : theme.fg.primary
 
-                font.pixelSize: VLCStyle.icon_banner
+                font.pixelSize: VLCStyle.icon_normal
             }
         }
 
         T.Label {
             id: label
 
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            x: iconBox.width + VLCStyle.margin_xsmall
+            width: Math.max(0, parent.width - x)
+            height: parent.height
 
             text: control.text
 
@@ -163,8 +161,7 @@ T.ItemDelegate {
             visible: control.showText
 
             font.pixelSize: VLCStyle.fontSize_normal
-
-            font.weight: control.checked ? Font.DemiBold : Font.Normal
+            font.weight: Font.Normal
 
             //button text is already exposed
             Accessible.ignored: true

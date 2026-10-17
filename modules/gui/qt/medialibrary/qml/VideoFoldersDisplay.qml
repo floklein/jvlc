@@ -45,10 +45,12 @@ Widgets.PageExt {
 
     headerActions: Component {
         Row {
+            spacing: VLCStyle.pageHeader_actionSpacing // Figma 2139:8878
             Widgets.IconToolButton {
                 font.pixelSize: VLCStyle.icon_banner
                 width: VLCStyle.bannerButton_width
                 height: VLCStyle.bannerButton_height
+                color: VLCStyle.pageToolColor(this)
 
                 text: VLCIcons.add
                 description: qsTr("Add a folder to the library")
@@ -60,6 +62,7 @@ Widgets.PageExt {
                 font.pixelSize: VLCStyle.icon_banner
                 width: VLCStyle.bannerButton_width
                 height: VLCStyle.bannerButton_height
+                color: VLCStyle.pageToolColor(this)
 
                 text: VLCIcons.more
                 description: qsTr("Folder menu")

@@ -190,8 +190,10 @@ T.Page {
 
         position: T.ToolBar.Header
 
-        topPadding: VLCStyle.layoutTitle_top_padding
-        bottomPadding: VLCStyle.layoutTitle_bottom_padding
+        // Figma 6261:15118: 20 px above the header, 17 px between it and the
+        // divider that ends it
+        topPadding: VLCStyle.pageHeader_topPadding
+        bottomPadding: VLCStyle.pageHeader_bottomPadding
 
         // FIXME: `GridItem`'s background extends beyond its
         //        bounding rect, violating the hypothetical
@@ -205,6 +207,9 @@ T.Page {
         implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
                                  implicitContentHeight + topPadding + bottomPadding)
 
+        // the search field sets the height of the row (Figma 6261:15136)
+        readonly property real _rowHeight: compact ? VLCStyle.icon_banner : VLCStyle.pageHeader_rowHeight
+
         Navigation.navigable: gridSortFilter.enabled
 
         // Children
@@ -214,15 +219,32 @@ T.Page {
             colorSet: ColorContext.View
         }
 
-        background: Rectangle {
-            // the Library pane draws its own background (the Tint over the video)
-            visible: !defaultPageHeader.compact
-            color: theme.bg.primary
+        // the colors of the header (Figma 6261:15118)
+        ColorContext {
+            id: navTheme
+            colorSet: ColorContext.Navigation
         }
 
-        // In the Library pane (Figma 187:328), the header takes two rows: the
-        // history, the location, the page actions and ↗ above; the item count
-        // and the sort, view and search controls below.
+        background: Rectangle {
+            // the Library pane draws its own background (the Tint over the video)
+            color: defaultPageHeader.compact ? "transparent" : theme.bg.primary
+
+            // the divider under the header, at its bottom even when the
+            // background leaves room for the grid
+            Rectangle {
+                x: defaultPageHeader.leftPadding
+                width: parent.width - defaultPageHeader.leftPadding - defaultPageHeader.rightPadding
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: -(defaultPageHeader.bottomInset || 0)
+                height: VLCStyle.pageHeader_dividerHeight
+
+                color: navTheme.border
+            }
+        }
+
+        // In the Library pane (Figma 187:328, 1106:5633), the header takes two
+        // rows: the history, the location, the page actions and ↗ above; the
+        // item count and the sort, view and search controls below.
         readonly property bool compact: MainCtx.libraryPane
 
         GridLayout {
@@ -230,8 +252,9 @@ T.Page {
 
             anchors.fill: parent
 
-            columnSpacing: VLCStyle.margin_normal
-            rowSpacing: VLCStyle.margin_xsmall
+            // Figma: 20 px between the groups of the header, 12 px in the Library pane
+            columnSpacing: defaultPageHeader.compact ? VLCStyle.margin_small : VLCStyle.pageHeader_spacing
+            rowSpacing: VLCStyle.pageHeader_spacing
 
             // back and forward through the history of the whole interface
             NavigableRow {
@@ -240,15 +263,19 @@ T.Page {
                 Layout.row: 0
                 Layout.column: 0
 
-                spacing: VLCStyle.margin_xxsmall
+                spacing: VLCStyle.margin_small
 
                 Navigation.parentItem: defaultPageHeader
                 Navigation.rightItem: crumbs.Navigation.navigable ? crumbs : gridSortFilter
 
+                // Figma: a step that can't be taken is the icon at 30 %
                 IconToolButton {
                     font.pixelSize: VLCStyle.icon_banner
                     width: VLCStyle.bannerButton_width
                     height: VLCStyle.bannerButton_height
+
+                    color: enabled ? colorContext.fg.primary : navTheme.fg.primary
+                    opacity: enabled ? 1.0 : VLCStyle.pageHeader_disabledOpacity
 
                     text: VLCIcons.arrow_left
                     description: qsTr("Back")
@@ -263,6 +290,9 @@ T.Page {
                     width: VLCStyle.bannerButton_width
                     height: VLCStyle.bannerButton_height
 
+                    color: enabled ? colorContext.fg.primary : navTheme.fg.primary
+                    opacity: enabled ? 1.0 : VLCStyle.pageHeader_disabledOpacity
+
                     text: VLCIcons.arrow_right
                     description: qsTr("Forward")
 
@@ -272,20 +302,25 @@ T.Page {
                 }
             }
 
-            SubtitleLabel {
+            // a page without trail reads as a trail of one (Figma 6261:15078)
+            T.Label {
                 id: label
 
                 Layout.row: 0
                 Layout.column: 1
                 Layout.fillWidth: true
+                Layout.leftMargin: VLCStyle.pageHeader_historySpacing - row.columnSpacing
+                Layout.minimumHeight: defaultPageHeader._rowHeight
 
                 visible: !crumbs.visible
 
-                // a page without trail reads as the last crumb of one (Figma 6261:15078)
-                font.pixelSize: VLCStyle.fontSize_large
-                font.weight: Font.DemiBold
+                font.pixelSize: VLCStyle.fontSize_xlarge
+                font.weight: Font.Normal
+                elide: Text.ElideRight
+                verticalAlignment: Text.AlignVCenter
+                textFormat: Text.PlainText
 
-                color: theme.fg.primary
+                color: navTheme.fg.primary
             }
 
             // a clickable trail of folders, the last one is the page itself
@@ -296,6 +331,8 @@ T.Page {
                 Layout.column: 1
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.leftMargin: VLCStyle.pageHeader_historySpacing - row.columnSpacing
+                Layout.minimumHeight: defaultPageHeader._rowHeight
                 Layout.preferredHeight: historyButtons.implicitHeight
 
                 visible: Helpers.isArray(defaultPageHeader.breadcrumb)
@@ -330,7 +367,7 @@ T.Page {
                     // crumbs, the current folder stays visible
                     x: Math.min(0, crumbs.width - crumbRow.width)
 
-                    spacing: VLCStyle.margin_xxxsmall
+                    spacing: VLCStyle.pageHeader_crumbSpacing
 
                     Repeater {
                         id: crumbRepeater
@@ -344,18 +381,38 @@ T.Page {
                             required property var modelData
 
                             readonly property bool isLast: index === defaultPageHeader.breadcrumb.length - 1
+                            // Figma 970:2703: the current folder of a trail stands out,
+                            // but not in the Library pane (848:1995)
+                            readonly property bool emphasized: isLast && (index > 0) && !defaultPageHeader.compact
                             readonly property Item button: crumbButton
 
-                            spacing: VLCStyle.margin_xxxsmall
+                            spacing: VLCStyle.pageHeader_crumbSpacing
 
-                            IconLabel {
+                            // Figma: "▶", 8 px, FG/A4
+                            Canvas {
                                 anchors.verticalCenter: parent.verticalCenter
+                                anchors.verticalCenterOffset: -VLCStyle.dp(1, VLCStyle.scale)
 
                                 visible: crumb.index > 0
 
-                                text: VLCIcons.chevron_right
-                                font.pixelSize: VLCStyle.icon_small
-                                color: theme.fg.secondary
+                                width: VLCStyle.pageHeader_crumbSeparatorWidth
+                                height: width
+
+                                readonly property color color: navTheme.separator
+                                onColorChanged: requestPaint()
+
+                                onPaint: {
+                                    const ctx = getContext("2d")
+                                    const s = VLCStyle.scale
+                                    ctx.reset()
+                                    ctx.fillStyle = color
+                                    ctx.beginPath()
+                                    ctx.moveTo(VLCStyle.dp(1, s), VLCStyle.dp(0.5, s))
+                                    ctx.lineTo(VLCStyle.dp(7, s), height / 2)
+                                    ctx.lineTo(VLCStyle.dp(1, s), height - VLCStyle.dp(0.5, s))
+                                    ctx.closePath()
+                                    ctx.fill()
+                                }
                             }
 
                             TextToolButton {
@@ -363,13 +420,17 @@ T.Page {
 
                                 anchors.verticalCenter: parent.verticalCenter
 
+                                // the focus ring hugs the text
+                                leftPadding: 0
+                                rightPadding: 0
+
                                 // the current folder elides rather than lose its first
                                 // letters when it alone is wider than the trail
                                 width: crumb.isLast ? Math.min(implicitWidth, crumbs.width) : implicitWidth
 
                                 text: crumb.modelData
-                                font.pixelSize: VLCStyle.fontSize_large
-                                font.weight: crumb.isLast ? Font.DemiBold : Font.Normal
+                                font.pixelSize: VLCStyle.fontSize_xlarge
+                                font.weight: crumb.emphasized ? Font.DemiBold : Font.Normal
 
                                 enabled: !crumb.isLast
 
@@ -378,7 +439,9 @@ T.Page {
                                 contentItem: T.Label {
                                     text: crumbButton.text
                                     font: crumbButton.font
-                                    color: crumb.isLast ? theme.fg.primary : theme.fg.secondary
+                                    color: crumb.emphasized ? navTheme.fg.highlight
+                                                            : (crumbButton.hovered || crumbButton.visualFocus)
+                                                              ? crumbButton.colorContext.fg.primary : navTheme.fg.primary
                                     verticalAlignment: Text.AlignVCenter
                                     elide: Text.ElideRight
 
@@ -414,7 +477,8 @@ T.Page {
 
                 text: defaultPageHeader.itemCount === 1 ? qsTr("1 item")
                                                          : qsTr("%1 items").arg(defaultPageHeader.itemCount)
-                color: theme.fg.secondary
+                // Figma: FG/A3
+                color: navTheme.indicator
             }
 
             GridSortFilterControls {
@@ -459,6 +523,8 @@ T.Page {
                 font.pixelSize: VLCStyle.icon_banner
                 width: VLCStyle.bannerButton_width
                 height: VLCStyle.bannerButton_height
+
+                color: VLCStyle.pageToolColor(this)
 
                 text: VLCIcons.open
                 description: qsTr("Open the full library")

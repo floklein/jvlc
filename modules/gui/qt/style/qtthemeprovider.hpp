@@ -57,6 +57,7 @@ enum vlc_qt_theme_color_set {
     VQTC_SET_COMBOBOX,
     VQTC_SET_SPINBOX,
     VQTC_SET_TEXTFIELD,
+    VQTC_SET_NAVIGATION,
     VQTC_SET_COUNT
 };
 

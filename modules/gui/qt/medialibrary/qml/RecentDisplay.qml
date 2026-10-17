@@ -44,6 +44,7 @@ Widgets.PageExt {
             font.pixelSize: VLCStyle.icon_banner
             width: VLCStyle.bannerButton_width
             height: VLCStyle.bannerButton_height
+            color: VLCStyle.pageToolColor(this)
 
             text: VLCIcons.more
             description: qsTr("Recent menu")

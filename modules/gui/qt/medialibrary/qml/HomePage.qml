@@ -142,8 +142,8 @@ Widgets.PageExt {
     PaneRowsWithoutTitles { row: favoritePlaylistsRow }
     PaneRowsWithoutTitles { row: favoritesRow }
 
-    // the Library pane (Figma 1106:5633) counts the media of the library
-    itemCount: (MainCtx.libraryPane && !_libraryMedia.loading) ? _libraryMedia.maximumCount : -1
+    // Home counts the media of the library (Figma 6261:15132, 1106:5633)
+    itemCount: !_libraryMedia.loading ? _libraryMedia.maximumCount : -1
 
     contentItem: Flickable {
         id: flickable

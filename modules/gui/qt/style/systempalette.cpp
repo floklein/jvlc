@@ -511,6 +511,40 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         setColor(CS, C::Fg, C::Negative, C::Normal, t.dark ? t.fg1 : t.bgB2);
     }
 
+    //the library's title bar, Nav sidebar and page header (Figma 6261:15080,
+    //6261:15094, 6261:15118)
+    {
+        C::ColorSet CS = C::Navigation;
+        // the card of the sections, and the icon-only sidebar of the Library pane
+        setColor(CS, C::Bg, C::Primary, C::Normal, t.bgA4);
+        // the title bar: "BG/A3 Transparent" over the window
+        setColor(CS, C::Bg, C::Secondary, C::Normal, composite(t.bgA3Transparent, t.bgB1));
+        // the search field of the header
+        setColor(CS, C::Bg, C::Highlight, C::Normal, t.bgA5);
+
+        // the sections, the title, the history and the trail of folders
+        setColor(CS, C::Fg, C::Primary, C::Normal, t.fgA2);
+        setColor(CS, C::Fg, C::Primary, C::Hovered, t.fg1);
+        setColor(CS, C::Fg, C::Primary, C::Focused, t.fg1);
+        setColor(CS, C::Fg, C::Primary, C::Pressed, t.fg1);
+        // the placeholder of the search field
+        setColor(CS, C::Fg, C::Primary, C::Disabled, t.fgA4);
+        // the current section
+        setColor(CS, C::Fg, C::Secondary, C::Normal, t.fg2);
+        // the current folder of a trail
+        setColor(CS, C::Fg, C::Highlight, C::Normal, t.fgA1);
+        // the icon of the current section
+        setColor(CS, C::Decoration, C::Accent, C::Normal, t.accentMain);
+        // the cone of the title bar: "Accent/Logo"
+        setColor(CS, C::Fg, C::Link, C::Normal, t.accentLogo);
+        // the item count and the page tools (sort, view, search, …)
+        setColor(CS, C::Decoration, C::Indicator, C::Normal, t.fgA3);
+        // between the folders of a trail
+        setColor(CS, C::Decoration, C::Separator, C::Normal, t.fgA4);
+        // under the header
+        setColor(CS, C::Decoration, C::Border, C::Normal, t.dividerDim);
+    }
+
     //badges, drawn over thumbnails
     {
         C::ColorSet CS = C::Badge;

@@ -86,6 +86,7 @@ public:
         SpinBox = VQTC_SET_SPINBOX,
         TextField = VQTC_SET_TEXTFIELD,
         Switch = VQTC_SET_SWITCH,
+        Navigation = VQTC_SET_NAVIGATION,
         ColorSetUndefined = -1
     };
     Q_ENUM(ColorSet)

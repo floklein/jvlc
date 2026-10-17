@@ -340,6 +340,7 @@
         {"key":"ui_tt_accent", "path": "./icons/redesign/ui_tt_accent.svg"},
         {"key":"genre", "path": "./icons/redesign/genre.svg"},
         {"key":"genre_tt_base", "path": "./icons/redesign/genre_tt_base.svg"},
-        {"key":"genre_tt_accent", "path": "./icons/redesign/genre_tt_accent.svg"}
+        {"key":"genre_tt_accent", "path": "./icons/redesign/genre_tt_accent.svg"},
+        {"key":"cone", "path": "./icons/redesign/vlc.svg"}
     ]
 }

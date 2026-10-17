@@ -35,7 +35,8 @@ Row {
     // on the left, the order is mirrored: close first (Linux desktops)
     layoutDirection: MainCtx.windowButtonsOnLeft ? Qt.RightToLeft : Qt.LeftToRight
 
-    property color color: theme.fg.primary
+    // Figma 247:464, 6261:15088: FG/A2
+    property color color: navTheme.fg.primary
     property color hoverColor: theme.bg.primary.alpha(0.5)
 
     // the player's Top bar puts its fullscreen button among the window buttons
@@ -58,6 +59,11 @@ Row {
     readonly property ColorContext colorContext: ColorContext {
         id: theme
         colorSet: ColorContext.Window
+    }
+
+    ColorContext {
+        id: navTheme
+        colorSet: ColorContext.Navigation
     }
 
     Repeater {

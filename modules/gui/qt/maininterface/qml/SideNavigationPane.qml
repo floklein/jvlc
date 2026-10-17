@@ -57,7 +57,7 @@ T.Pane {
 
     readonly property ColorContext colorContext: ColorContext {
         id: theme
-        colorSet: ColorContext.Window
+        colorSet: ColorContext.Navigation
     }
 
     Accessible.name: qsTr("Sidebar")
@@ -92,15 +92,16 @@ T.Pane {
 
     // Pins
 
-    function pinIcon(type) {
+    // the icon of a pin, filled when it is shown
+    function pinIcon(type, selected = false) {
         switch (type) {
         case Pins.FOLDER:
         case Pins.MUSIC_FOLDER:
-            return VLCIcons.folder
+            return selected ? VLCIcons.folder_selected : VLCIcons.folder
         case Pins.PLAYLIST:
-            return VLCIcons.playlist
+            return selected ? VLCIcons.playlists_active : VLCIcons.playlists
         default:
-            return VLCIcons.stream
+            return selected ? VLCIcons.streaming_selected : VLCIcons.stream
         }
     }
 
@@ -183,7 +184,7 @@ T.Pane {
         //would be parented (and layouted) to the Layout
         ColumnLayout {
             anchors.fill: parent
-            spacing: VLCStyle.margin_xsmall
+            spacing: 0 // the rows end with their spacing
 
             Widgets.ListViewExt {
                 id: listView
@@ -206,7 +207,7 @@ T.Pane {
                     value: T.ScrollBar.AlwaysOff
                 }
 
-                colorContext.colorSet: ColorContext.Window
+                colorContext.colorSet: ColorContext.Navigation
 
                 fadingEdge.backgroundColor:  (root.background && (root.background.color.a >= 1.0)) ? root.background.color
                                                                                                    : "transparent"
@@ -270,13 +271,14 @@ T.Pane {
 
                     property real preferredHeight: shouldShow ? VLCStyle.buttonHeightNavigationPane : 0.0
 
-                    leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_xsmall
+                    leftPadding: root.safeAreaLeftMargin
                     rightPadding: root.safeAreaRightMargin
 
                     leftInset: root.safeAreaLeftMargin + implicitLeftInset
                     rightInset: root.safeAreaRightMargin + implicitRightInset
 
                     iconTxt: icon_alias
+                    checkedIconTxt: icon_selected
                     text: title
 
                     showText: root.delegateShowText
@@ -286,6 +288,7 @@ T.Pane {
                     required property int depth
                     // TODO: Qt 6.2 has property `icon` marked final, so we can't override it:
                     required property string icon_alias
+                    required property string icon_selected
                     required property bool expandable
                     required property bool expanded
 
@@ -358,7 +361,7 @@ T.Pane {
 
                 Accessible.name: qsTr("Pins")
 
-                colorContext.colorSet: ColorContext.Window
+                colorContext.colorSet: ColorContext.Navigation
 
                 fadingEdge.backgroundColor: listView.fadingEdge.backgroundColor
 
@@ -400,13 +403,14 @@ T.Pane {
                     width: ListView.view.contentWidth
                     height: VLCStyle.buttonHeightNavigationPane
 
-                    leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_xsmall
+                    leftPadding: root.safeAreaLeftMargin
                     rightPadding: root.safeAreaRightMargin
 
                     leftInset: root.safeAreaLeftMargin + implicitLeftInset
                     rightInset: root.safeAreaRightMargin + implicitRightInset
 
                     iconTxt: root.pinIcon(type)
+                    checkedIconTxt: root.pinIcon(type, true)
                     text: label
 
                     showText: root.delegateShowText
@@ -472,7 +476,7 @@ T.Pane {
 
                 visible: MainCtx.mediaLibraryAvailable
 
-                leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_xsmall
+                leftPadding: root.safeAreaLeftMargin
                 rightPadding: root.safeAreaRightMargin
 
                 leftInset: root.safeAreaLeftMargin + implicitLeftInset
@@ -533,13 +537,14 @@ T.Pane {
                 Layout.fillWidth: true
                 Layout.preferredHeight: VLCStyle.buttonHeightNavigationPane
 
-                leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_xsmall
+                leftPadding: root.safeAreaLeftMargin
                 rightPadding: root.safeAreaRightMargin
 
                 leftInset: root.safeAreaLeftMargin + implicitLeftInset
                 rightInset: root.safeAreaRightMargin + implicitRightInset
 
                 iconTxt: VLCIcons.settings
+                checkedIconTxt: VLCIcons.settings_active
                 text: qsTr("Settings")
 
                 checked: DialogsProvider.prefsDialogVisible

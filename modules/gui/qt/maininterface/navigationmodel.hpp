@@ -75,7 +75,8 @@ public:
         ICON_SVG,
         EXPANDABLE,
         EXPANDED,
-        CHILDREN
+        CHILDREN,
+        ICON_SELECTED // the icon of the current section
     };
     Q_ENUM(Roles)
 

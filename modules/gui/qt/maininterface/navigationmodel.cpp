@@ -23,17 +23,19 @@
 //hierachical model entry
 struct ModelEntry
 {
-    ModelEntry( QString name, QString uri, QString icon = {}, QString iconSvg = {})
+    ModelEntry( QString name, QString uri, QString icon = {}, QString iconSvg = {}, QString iconSelected = {})
         : name(name)
         , urinode(uri)
         , icon(icon)
         , icon_svg(iconSvg)
+        , icon_selected(iconSelected.isEmpty() ? icon : iconSelected)
     {}
 
     const QString name;
     const QString urinode;
     const QString icon;
     const QString icon_svg;
+    const QString icon_selected;
     std::vector<ModelEntry> children;
     size_t visibleChildren = 0;
     int expandedIndex = -1;
@@ -213,6 +215,14 @@ struct ModelEntry
             return children[*it].getIcon(it + 1, end);
     }
 
+    QString getIconSelected(const PathIterator& it, const PathIterator& end) const
+    {
+        if (it == end)
+            return icon_selected;
+        else
+            return children[*it].getIconSelected(it + 1, end);
+    }
+
     QString getIconSvg(const PathIterator& it, const PathIterator& end) const
     {
         if (it == end)
@@ -265,13 +275,17 @@ public:
 
     void initilializeModel()
     {
-        m_model.children.emplace_back(qtr("Home"), "home", VLCIcons::home, QStringLiteral(":/icons/ic_fluent_home.svg"));
+        // the icons of Figma 6261:15094, filled for the current section
+        m_model.children.emplace_back(qtr("Home"), "home", VLCIcons::home, QStringLiteral(":/icons/ic_fluent_home.svg"),
+                                      VLCIcons::home_selected);
 
         if (m_hasMedialib)
         {
-            m_model.children.emplace_back(qtr("Videos"), "video", VLCIcons::topbar_video, QStringLiteral(":/icons/ic_fluent_filmstrip.svg"));
+            m_model.children.emplace_back(qtr("Videos"), "video", VLCIcons::topbar_video, QStringLiteral(":/icons/ic_fluent_filmstrip.svg"),
+                                          VLCIcons::videos_selected);
 
-            ModelEntry musicEntry{ qtr("Music"), "music", VLCIcons::topbar_music, QStringLiteral(":/icons/ic_fluent_music_note_2.svg") };
+            ModelEntry musicEntry{ qtr("Music"), "music", VLCIcons::topbar_music, QStringLiteral(":/icons/ic_fluent_music_note_2.svg"),
+                                   VLCIcons::songs_selected };
             musicEntry.children.emplace_back(qtr("Songs"), "tracks");
             musicEntry.children.emplace_back(qtr("Albums"), "albums");
             musicEntry.children.emplace_back(qtr("Artists"), "artists");
@@ -279,11 +293,13 @@ public:
             m_model.children.push_back(std::move(musicEntry));
         }
 
-        m_model.children.emplace_back(qtr("Network"), "network", VLCIcons::topbar_network, QStringLiteral(":/icons/ic_fluent_wifi_1.svg"));
+        m_model.children.emplace_back(qtr("Network"), "network", VLCIcons::topbar_network, QStringLiteral(":/icons/ic_fluent_wifi_1.svg"),
+                                      VLCIcons::streaming_selected);
 
         if (m_hasMedialib)
         {
-            m_model.children.emplace_back(qtr("Playlists"), "playlists", VLCIcons::playlist, QStringLiteral(":/icons/ic_fluent_apps_list.svg"));
+            m_model.children.emplace_back(qtr("Playlists"), "playlists", VLCIcons::playlists, QStringLiteral(":/icons/ic_fluent_apps_list.svg"),
+                                          VLCIcons::playlists_active);
             m_model.children.emplace_back(qtr("Recent"), "recent", VLCIcons::history, QStringLiteral(":/icons/ic_fluent_clock.svg"));
         }
 
@@ -422,6 +438,7 @@ QHash<int,QByteArray> NavigationModel::roleNames() const
         // TODO: Use "icon" instead, when minimum Qt increases:
         {ICON, QByteArrayLiteral("icon_alias") },
         {ICON_SVG, QByteArrayLiteral("icon_svg")},
+        {ICON_SELECTED, QByteArrayLiteral("icon_selected")},
         {EXPANDABLE, QByteArrayLiteral("expandable") },
         {EXPANDED, QByteArrayLiteral("expanded") },
         {CHILDREN, QByteArrayLiteral("children") }
@@ -458,6 +475,8 @@ QVariant NavigationModel::data(const QModelIndex &index, int role) const
         return d->m_model.getIcon(path.cbegin(), path.cend());
     case ICON_SVG:
         return d->m_model.getIconSvg(path.cbegin(), path.cend());
+    case ICON_SELECTED:
+        return d->m_model.getIconSelected(path.cbegin(), path.cend());
     case EXPANDABLE:
         return d->m_model.isExpandable(path.cbegin(), path.cend());
     case EXPANDED:

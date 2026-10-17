@@ -230,19 +230,12 @@ FocusScope {
         navigationVisible: pannelVisiblity.showNavigation
         playqueueVisible: pannelVisiblity.showPlayqueue
 
-        // the library location: "Home", "Videos · The Wand · S01"
-        title: {
-            let location = ""
-            // the innermost page with a title or a trail of folders
-            for (let item = stackView.currentItem; item; item = item.currentItem ?? null) {
-                const crumbs = item.breadcrumb
-                if (Helpers.isArray(crumbs) && crumbs.length > 0)
-                    location = crumbs.join(" · ")
-                else if (typeof item.title === "string" && item.title !== "")
-                    location = item.title
-            }
-            return location
-        }
+        // Figma 6261:15087, 970:2712: the media being played, else the name
+        // of the application; the header of the page shows where the
+        // library is
+        title: (Player.playingState !== Player.PLAYING_STATE_STOPPED && (Player.title || Player.name))
+               ? (Player.title || Player.name)
+               : "jVLC"
 
         Navigation.parentItem: g_mainDisplay
         Navigation.downItem: mainRow
@@ -386,12 +379,20 @@ FocusScope {
 
             width: VLCStyle.isScreenReallySmall ? 0.0 : collapsedWidth
 
-            property real collapsedWidth: VLCStyle.icon_normal + VLCStyle.margin_small + VLCStyle.margin_xsmall + VLCStyle.applicationHorizontalMargin
+            // collapsed, the card is as wide as the icon-only sidebar of the
+            // Library pane (Figma 848:1996)
+            property real collapsedWidth: VLCStyle.navigationRail_width + VLCStyle.applicationHorizontalMargin
                                           + 2 * cardMargin
 
             // Figma 6261:15094: the navigation is a card on the background
             // of the window, which the pages share
-            readonly property real cardMargin: VLCStyle.margin_xsmall
+            readonly property real cardMargin: VLCStyle.navigationCard_margin
+
+            // the sections are 16 px from the sides of the card; collapsed,
+            // their icons are centered in it
+            readonly property real cardPadding: (state === "expanded")
+                                                ? VLCStyle.navigationCard_horizontalPadding
+                                                : (VLCStyle.navigationRail_width - VLCStyle.navigationItem_iconWidth) / 2
 
             delegateShowText: (state === "expanded")
 
@@ -401,10 +402,10 @@ FocusScope {
 
             property int maximumWidth: Math.max(minimumWidth, (g_mainDisplay.width + sidebarResizeHandle.width) / 3)
 
-            topPadding: cardMargin + VLCStyle.margin_xxsmall
-            leftPadding: cardMargin
-            rightPadding: cardMargin + (sidebarResizeHandle.visible ? sidebarResizeHandle.visualBorder.width : 0.0)
-            bottomPadding: VLCStyle.applicationVerticalMargin + VLCStyle.margin_small + cardMargin
+            topPadding: cardMargin + VLCStyle.navigationCard_verticalPadding
+            leftPadding: cardMargin + cardPadding
+            rightPadding: cardMargin + cardPadding + (sidebarResizeHandle.visible ? sidebarResizeHandle.visualBorder.width : 0.0)
+            bottomPadding: VLCStyle.applicationVerticalMargin + VLCStyle.navigationCard_verticalPadding + cardMargin
 
             safeAreaLeftMargin: VLCStyle.applicationHorizontalMargin
 

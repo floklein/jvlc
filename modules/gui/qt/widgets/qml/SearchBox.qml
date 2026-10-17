@@ -18,6 +18,7 @@
 import QtQuick
 import QtQuick.Templates as T
 import QtQuick.Layouts
+import QtQuick.Controls.Basic as Basic
 
 
 import VLC.MainInterface
@@ -27,8 +28,12 @@ import VLC.Widgets as Widgets
 FocusScope {
     id: root
 
-    implicitWidth: iconButton.implicitWidth
-    implicitHeight: iconButton.implicitHeight
+    // the field shown in place, rather than a key that opens it below
+    // (Figma 6261:15136)
+    property bool inline: false
+
+    implicitWidth: inline ? VLCStyle.widthSearchInput : iconButton.implicitWidth
+    implicitHeight: inline ? VLCStyle.pageHeader_rowHeight : iconButton.implicitHeight
 
     property alias popup: popup
     property real maxSearchFieldWidth: Number.MAX_VALUE
@@ -45,22 +50,30 @@ FocusScope {
 
     Binding on searchPattern {
         id: searchPatternBinding
-        value: textField.text
+        value: root.inline ? inlineField.text : textField.text
     }
 
     property bool popBelow: true
     property alias toggleButton: iconButton
     property alias textField: textField
-    readonly property bool expanded: popup.visible
+    readonly property bool expanded: inline || popup.visible
 
     // public functions
 
     function expandAndFocus() {
+        if (root.inline) {
+            inlineField.forceActiveFocus(Qt.ShortcutFocusReason)
+            return
+        }
         popup.open()
         textField.forceActiveFocus(Qt.ShortcutFocusReason)
     }
 
     function retract() {
+        if (root.inline) {
+            inlineField.clear()
+            return
+        }
         popup.close()
     }
 
@@ -68,18 +81,152 @@ FocusScope {
         id: theme
     }
 
+    ColorContext {
+        id: navTheme
+        colorSet: ColorContext.Navigation
+    }
+
+    ColorContext {
+        id: placeholderTheme
+        colorSet: ColorContext.Navigation
+        enabled: false
+    }
+
+    // Figma 6261:15136: BG/A5, radius 6, 8 px and 5 px inside, the search
+    // icon (FG/A3), then "Search" (FG/A4) 10 px after it
+    Rectangle {
+        id: inlineBox
+
+        anchors.fill: parent
+
+        visible: root.inline
+
+        radius: VLCStyle.radius_normal
+        color: navTheme.bg.highlight
+
+        border.width: inlineField.activeFocus ? VLCStyle.focus_border : 0
+        border.color: theme.visualFocus
+
+        Widgets.IconLabel {
+            id: inlineIcon
+
+            anchors.left: parent.left
+            anchors.leftMargin: VLCStyle.margin_xsmall
+            anchors.verticalCenter: parent.verticalCenter
+
+            text: VLCIcons.search
+            color: navTheme.indicator
+            font.pixelSize: VLCStyle.icon_normal
+        }
+
+        Basic.TextField {
+            id: inlineField
+
+            anchors.left: inlineIcon.right
+            anchors.leftMargin: VLCStyle.pageHeader_historySpacing
+            anchors.right: inlineClear.visible ? inlineClear.left : parent.right
+            anchors.rightMargin: VLCStyle.margin_xsmall
+            anchors.verticalCenter: parent.verticalCenter
+
+            focus: root.inline
+
+            padding: 0
+            leftPadding: 0
+            rightPadding: 0
+            verticalAlignment: Text.AlignVCenter
+
+            font.pixelSize: VLCStyle.fontSize_normal
+            color: theme.fg.primary
+            selectionColor: theme.bg.highlight
+            selectedTextColor: theme.fg.highlight
+
+            placeholderText: qsTr("Search")
+            placeholderTextColor: placeholderTheme.fg.primary
+
+            selectByMouse: true
+
+            // the field is the box around it
+            background: null
+
+            Accessible.searchEdit: true
+            Accessible.name: qsTr("Search")
+
+            property bool _keyPressed: false
+
+            Navigation.parentItem: root
+            Navigation.rightItem: inlineClear.visible ? inlineClear : null
+            Navigation.cancelAction: function() {
+                if (inlineField.text.length > 0)
+                    inlineField.clear()
+                else
+                    root.Navigation.defaultNavigationUp()
+            }
+
+            onActiveFocusChanged: MainCtx.useGlobalShortcuts = !activeFocus
+
+            Keys.priority: Keys.AfterItem
+
+            Keys.onPressed: (event) => {
+                _keyPressed = true
+
+                //we don't want Navigation.cancelAction to match Backspace
+                if (event.matches(StandardKey.Backspace))
+                    event.accepted = true
+
+                Navigation.defaultKeyAction(event)
+            }
+
+            Keys.onReleased: (event) => {
+                if (_keyPressed === false)
+                    return
+
+                _keyPressed = false
+
+                if (event.matches(StandardKey.Backspace))
+                    event.accepted = true
+
+                Navigation.defaultKeyReleaseAction(event)
+            }
+        }
+
+        Widgets.IconToolButton {
+            id: inlineClear
+
+            anchors.right: parent.right
+            anchors.rightMargin: VLCStyle.margin_xsmall
+            anchors.verticalCenter: parent.verticalCenter
+
+            visible: inlineField.text.length > 0
+
+            font.pixelSize: VLCStyle.icon_normal
+            text: VLCIcons.close
+            description: qsTr("Clear")
+
+            onClicked: {
+                inlineField.clear()
+                inlineField.forceActiveFocus(Qt.MouseFocusReason)
+            }
+
+            Navigation.parentItem: root
+            Navigation.leftItem: inlineField
+        }
+    }
+
     Widgets.IconToolButton {
         id: iconButton
 
         anchors.fill: parent
+
+        visible: !root.inline
 
         font.pixelSize: VLCStyle.icon_banner
 
         text: VLCIcons.search
         description: qsTr("Filter")
 
-        focus: true
+        focus: !root.inline
         checked: popup.visible
+        color: VLCStyle.pageToolColor(this)
 
         Navigation.parentItem: root
         Navigation.downItem: root.popBelow ? textField : null

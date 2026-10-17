@@ -21,6 +21,7 @@
 #endif
 
 #include "../maininterface/navigationmodel.hpp"
+#include "../style/vlcicons.hpp"
 #include "vlc_stub_modules.hpp"
 
 #include <memory>
@@ -186,6 +187,28 @@ private slots:
         {
             QVERIFY(!m_model->data(m_model->index(row), NavigationModel::ICON).toString().isEmpty());
             QVERIFY(!m_model->data(m_model->index(row), NavigationModel::ICON_SVG).toString().isEmpty());
+        }
+    }
+
+    // Figma 6261:15094: the sections use the redesign's icons, filled for the
+    // current one
+    void testSectionsUseFigmaIcons() {
+        initWithMedialib(true);
+        const QList<std::pair<QChar, QChar>> expected {
+            { VLCIcons::home, VLCIcons::home_selected },
+            { VLCIcons::topbar_video, VLCIcons::videos_selected },
+            { VLCIcons::topbar_music, VLCIcons::songs_selected },
+            { VLCIcons::topbar_network, VLCIcons::streaming_selected },
+            { VLCIcons::playlists, VLCIcons::playlists_active },
+            { VLCIcons::history, VLCIcons::history },
+        };
+        QCOMPARE(m_model->rowCount(), expected.size());
+        for (int row = 0; row < expected.size(); ++row)
+        {
+            QCOMPARE(m_model->data(m_model->index(row), NavigationModel::ICON).toString(),
+                     QString(expected[row].first));
+            QCOMPARE(m_model->data(m_model->index(row), NavigationModel::ICON_SELECTED).toString(),
+                     QString(expected[row].second));
         }
     }
 

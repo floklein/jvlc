@@ -350,6 +350,7 @@ class VLCIcons : public QObject {
     Q_PROPERTY(QChar genre MEMBER genre CONSTANT FINAL)
     Q_PROPERTY(QChar genre_tt_base MEMBER genre_tt_base CONSTANT FINAL)
     Q_PROPERTY(QChar genre_tt_accent MEMBER genre_tt_accent CONSTANT FINAL)
+    Q_PROPERTY(QChar cone MEMBER cone CONSTANT FINAL)
 
 
 public:
@@ -696,6 +697,7 @@ public:
     static constexpr inline QChar genre{ u'\ue14d' };
     static constexpr inline QChar genre_tt_base{ u'\ue14e' };
     static constexpr inline QChar genre_tt_accent{ u'\ue14f' };
+    static constexpr inline QChar cone{ u'\ue150' };
 
 };
 

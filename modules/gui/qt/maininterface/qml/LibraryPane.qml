@@ -36,7 +36,8 @@ FocusScope {
     // NOTE: At large scales or in a small window it leaves room for the video:
     //       240 dp, or half the window.
     implicitWidth: {
-        const width = rail.width + VLCStyle.sidePanel_width
+        // Figma 848:1996: 427 px with its icon-only sidebar
+        const width = rail.width - VLCStyle.navigationRail_width + VLCStyle.libraryPane_width
         if (Window.width <= 0)
             return width
         return Math.min(width, Math.max(Window.width / 2, Window.width - VLCStyle.dp(240, VLCStyle.scale)))
@@ -107,14 +108,14 @@ FocusScope {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
 
-        width: VLCStyle.icon_normal + VLCStyle.margin_small + VLCStyle.margin_xsmall
-               + VLCStyle.applicationHorizontalMargin
+        // Figma 848:1996: 50 px, the icons centered, 8 px from the top
+        width: VLCStyle.navigationRail_width + VLCStyle.applicationHorizontalMargin
 
         delegateShowText: false
 
         topPadding: VLCStyle.margin_xsmall
-        leftPadding: 0
-        rightPadding: 0
+        leftPadding: (VLCStyle.navigationRail_width - VLCStyle.navigationItem_iconWidth) / 2
+        rightPadding: leftPadding
 
         safeAreaLeftMargin: VLCStyle.applicationHorizontalMargin
 
