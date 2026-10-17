@@ -115,11 +115,20 @@ Widgets.PageExt {
             _showItem(item)
     }
 
+    // the first row shown, whose title follows the header divider
+    readonly property Item _firstRow: _rows.find((row) => row.visible) ?? null
+
     // the Library pane (Figma 1106:5633) has smaller titles: 16 px
+    // Figma 6261:15142: the first title 36 px below the header divider, the
+    // others 77 px below the cards above, the cards 20 px below the title
     component RowHeader: Widgets.ViewHeader {
         seeAllChevron: true
         seeAllButton.visible: true
         titlePixelSize: MainCtx.libraryPane ? VLCStyle.fontSize_xlarge : VLCStyle.fontSize_sectionTitle
+
+        topPadding: view === root._firstRow ? VLCStyle.homeSection_firstTopPadding
+                                            : VLCStyle.homeSection_topPadding
+        bottomPadding: VLCStyle.homeSection_bottomPadding
     }
 
     // the Library pane (Figma 1106:5633) lists the rows without column titles
@@ -475,6 +484,9 @@ Widgets.PageExt {
 
                 visible: model.count !== 0 && root._shown("listenAgain")
 
+                // Figma 6272:13917: the artist under the title
+                showArtist: true
+
                 listHeaderPositioning: ListView.InlineHeader
                 enableBeginningFade: false
                 enableEndFade: false
@@ -735,6 +747,17 @@ Widgets.PageExt {
 
                 onActiveFocusChanged: root._onRowActiveFocusChanged(this)
                 onCurrentIndexChanged: root._onRowCurrentIndexChanged(this)
+            }
+
+            // the favorite media follow the favorite Playlists as a next row
+            // of cards (Figma 6272:13818: rows 40 px apart)
+            Item {
+                width: 1
+                height: VLCStyle.gridView_verticalSpacing
+
+                visible: favoritePlaylistsRow.visible && favoritesRow.visible
+
+                Navigation.navigable: false
             }
 
             MediaView {

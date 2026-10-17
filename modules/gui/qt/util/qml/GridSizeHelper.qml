@@ -35,36 +35,32 @@ QtObject{
     property int subtitleTopMargin: VLCStyle.gridItemSubtitle_topMargin
     property int subtitleHeight: VLCStyle.gridItemSubtitle_height
 
-    // NOTE: The total text height of title and subtitle
-    //       1dp is added to each, to correctly represent the actual height
-    readonly property int textHeight: (titleHeight ? titleHeight + titleTopMargin + VLCStyle.dp(1, VLCStyle.scale): 0) +
-                                      (subtitleHeight ? subtitleHeight + subtitleTopMargin + VLCStyle.dp(1, VLCStyle.scale) : 0)
+    // NOTE: The total text height of title and subtitle (the text boxes of
+    //       the cards, Figma 6272:13852)
+    readonly property int textHeight: (titleHeight ? titleHeight + titleTopMargin : 0) +
+                                      (subtitleHeight ? subtitleHeight + subtitleTopMargin : 0)
 
-    property int horizontalSpacing: nbItemPerRow === 2 ? VLCStyle.margin_large + VLCStyle.margin_xxxsmall
-                                                       : (nbItemPerRow === 3 ? VLCStyle.margin_large + VLCStyle.margin_xxsmall
-                                                                             : _defaultHorizontalSpacing)
-
-    readonly property int _defaultHorizontalSpacing: VLCStyle.column_spacing
+    // Figma 6272:13818: the cards keep their size, 20 px apart, from the left
+    property int horizontalSpacing: VLCStyle.gridView_horizontalSpacing
 
     property var maxNbItemPerRow
     readonly property int nbItemPerRow: {
         const _nbItemPerRow = Math.max(
             Math.floor(
-                (availableWidth + _defaultHorizontalSpacing) /
-                (basePictureWidth + _defaultHorizontalSpacing)
+                (availableWidth + horizontalSpacing) /
+                (basePictureWidth + horizontalSpacing)
             ), 1
         )
 
         return maxNbItemPerRow ? Math.min(_nbItemPerRow, maxNbItemPerRow) : _nbItemPerRow
     }
 
-    // NOTE: Responsive cell sizing based on available width
-    readonly property int cellWidth: (availableWidth + horizontalSpacing) / nbItemPerRow - horizontalSpacing
-    readonly property int cellHeight: (basePictureHeight / basePictureWidth) * cellWidth + textHeight
+    // NOTE: The cards are not stretched to fill the row; they only shrink
+    //       when a single one does not fit
+    readonly property int cellWidth: Math.max(Math.min(basePictureWidth, availableWidth), 1)
+    readonly property int cellHeight: Math.round((basePictureHeight / basePictureWidth) * cellWidth) + textHeight
 
-    // NOTE: Find the maximum picture size for nbItemPerRow == 1, so that we downscale in most of the cases
-    //       formula for maxPictureWidth depended on nbItemPerRow would be:
-    //       (basePictureWidth + _defaultHorizontalSpacing) * (1 + 1 / nbItemPerRow) - _defaultHorizontalSpacing
-    readonly property int maxPictureWidth: (basePictureWidth + _defaultHorizontalSpacing) * (1 + 1 / 3) - _defaultHorizontalSpacing
-    readonly property int maxPictureHeight: (basePictureHeight / basePictureWidth) * maxPictureWidth
+    // NOTE: The pictures are never drawn larger than their base size
+    readonly property int maxPictureWidth: basePictureWidth
+    readonly property int maxPictureHeight: basePictureHeight
 }

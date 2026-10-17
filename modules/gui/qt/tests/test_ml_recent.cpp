@@ -22,6 +22,7 @@
 #include "vlc_stub_modules.hpp"
 
 #include "../medialibrary/medialib.hpp"
+#include "../medialibrary/mlrecentaudiomodel.hpp"
 #include "../medialibrary/mlrecentmediamodel.hpp"
 #include "../medialibrary/mlrecentvideomodel.hpp"
 #include "../playlist/playlist_controller.hpp"
@@ -256,6 +257,40 @@ private slots:
         QTRY_COMPARE(recent->getCount(), 4u);
         recent->clearRecent();
         QTRY_COMPARE(continueWatching->getCount(), 0u);
+    }
+
+    // Home's rows list the last played first, as Recent: the media library
+    // lists the history oldest first unless asked otherwise
+    void testHomeRowsListTheLastPlayedFirst()
+    {
+        const int64_t now = daysAgo(0);
+        m_env->setHistory({
+            {5, now - 30, VLC_ML_MEDIA_TYPE_VIDEO, 0.4},
+            {2, now - 25, VLC_ML_MEDIA_TYPE_AUDIO},
+            {6, now, VLC_ML_MEDIA_TYPE_VIDEO, 0.2},
+            {3, now - 5, VLC_ML_MEDIA_TYPE_AUDIO},
+            {7, now - 10, VLC_ML_MEDIA_TYPE_VIDEO, 0.6},
+            {4, now - 15, VLC_ML_MEDIA_TYPE_AUDIO},
+        });
+
+        const auto rowTitles = [](const MLMediaModel &model) {
+            QStringList result;
+            for (int i = 0; i < model.rowCount(); ++i)
+                result.push_back(model.data(model.index(i), MLMediaModel::MEDIA_TITLE).toString());
+            return result;
+        };
+
+        auto continueWatching = std::make_unique<MLRecentVideoModel>();
+        continueWatching->classBegin();
+        continueWatching->setMl(m_medialib.get());
+        continueWatching->componentComplete();
+        QTRY_COMPARE(rowTitles(*continueWatching), QStringList({"ml:6", "ml:7", "ml:5"}));
+
+        auto listenAgain = std::make_unique<MLRecentAudioModel>();
+        listenAgain->classBegin();
+        listenAgain->setMl(m_medialib.get());
+        listenAgain->componentComplete();
+        QTRY_COMPARE(rowTitles(*listenAgain), QStringList({"ml:3", "ml:4", "ml:2"}));
     }
 
 private:

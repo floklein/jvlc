@@ -307,9 +307,7 @@ FocusScope {
                                 asynchronous: true
                                 cache: true
 
-                                Widgets.DefaultShadow {
-                                    visible: (parent.status === Image.Ready)
-                                }
+                                // NOTE: Figma's covers have no shadow
                             }
 
                             Column {

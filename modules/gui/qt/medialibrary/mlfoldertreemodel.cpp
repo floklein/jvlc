@@ -25,7 +25,6 @@
 #include <vlc_common.h>
 #include <vlc_media_library.h>
 
-#include "mlcustomcover.hpp"
 #include "mlfolder.hpp"
 #include "mlhelper.hpp"
 #include "mlvideo.hpp"
@@ -36,10 +35,6 @@
 #include <algorithm>
 
 namespace {
-
-// NOTE: We multiply by 3 to cover most dpi settings.
-const int FOLDER_COVER_WIDTH  = 260 * 3; // 16 / 10 ratio
-const int FOLDER_COVER_HEIGHT = 162 * 3;
 
 // guards the walk up the tree against a corrupted library
 const int MAX_FOLDER_DEPTH = 64;
@@ -316,9 +311,9 @@ QVariant MLFolderTreeModel::itemRoleData(const MLItem *item, int role) const
         return QVariant::fromValue(getFirstSymbol(folder->getTitle()));
     case MEDIA_SMALL_COVER:
     case VIDEO_THUMBNAIL:
-        return MLCustomCover::url(folder->getId()
-                                  , QSize(FOLDER_COVER_WIDTH, FOLDER_COVER_HEIGHT)
-                                  , QStringLiteral(":/placeholder/noart_videoCover.svg"));
+        // a folder shows the folder tile, never a mosaic of its media
+        // (Figma 6284:13980): the views draw it
+        return QVariant::fromValue(QString());
     case MEDIA_DURATION:
         // the duration counts the folder's own videos only, hide it without
         if (folder->getDuration().asMilliseconds() <= 0)

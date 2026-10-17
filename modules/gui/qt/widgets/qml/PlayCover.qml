@@ -39,9 +39,14 @@ Item {
 
     signal tapped(var point)
 
+    // Figma's Play key (848:1712): Accent/Main, 6 px corners, the filled
+    // play glyph in FG/B1; 54 x 28 for a 48 px cover key
     readonly property ColorContext colorContext: ColorContext {
         id: theme
-        colorSet: ColorContext.ToolButton
+        colorSet: ColorContext.ButtonAccent
+
+        hovered: hoverHandler.hovered
+        pressed: tapHandler.pressed
     }
 
     // Animations
@@ -76,24 +81,27 @@ Item {
     }
 
     Rectangle {
-        anchors.fill: parent
+        id: key
 
-        radius: width / 2
-
-        color: theme.fg.secondary
-
-        Widgets.DefaultShadow {
-
-        }
-    }
-
-    Widgets.IconLabel {
         anchors.centerIn: parent
 
-        text: VLCIcons.play_filled
+        width: Math.round(root.width * 54 / 48)
+        height: Math.round(root.width * 28 / 48)
 
-        color: (root.hovered) ? theme.accent : theme.bg.secondary
+        radius: Math.round(root.width * VLCStyle.radius_normal / VLCStyle.play_cover_normal)
 
-        font.pixelSize: Math.round(parent.width / 2)
+        color: theme.bg.primary
+
+        Widgets.IconLabel {
+            anchors.centerIn: parent
+            // Figma pads the glyph 17 px on the left, 15 on the right
+            anchors.horizontalCenterOffset: Math.round(root.width / 48)
+
+            text: VLCIcons.play_filled
+
+            color: theme.fg.primary
+
+            font.pixelSize: Math.round(root.width / 2)
+        }
     }
 }

@@ -29,6 +29,7 @@
 #include "../medialibrary/mlvideofoldersmodel.hpp"
 #include "../medialibrary/medialib.hpp"
 #include "../playlist/playlist_controller.hpp"
+#include "../util/covergenerator.hpp"
 #include "vlc_stub_modules.hpp"
 
 #include <memory>
@@ -446,6 +447,23 @@ private slots:
         QCOMPARE(queueNames().at(1), QStringLiteral("ml:3"));
     }
 
+    // A generated cover (playlists, genres) is transparent where no
+    // thumbnail covers it, so the tile color of the theme shows there
+    // instead of white
+    void testGeneratedCoverIsTransparentWithoutThumbnails()
+    {
+        CoverGenerator generator;
+        generator.setSize(QSize(32, 18));
+        generator.setDefaultThumbnail(QString());
+
+        const QImage image = generator.execute({});
+
+        QCOMPARE(image.size(), QSize(32, 18));
+        QVERIFY(image.hasAlphaChannel());
+        QCOMPARE(qAlpha(image.pixel(0, 0)), 0);
+        QCOMPARE(qAlpha(image.pixel(31, 17)), 0);
+    }
+
     // The Videos folder tree
 
     void testTreeTopListsAddedFoldersWithVideos()
@@ -465,6 +483,11 @@ private slots:
         QCOMPARE(titles(*model), QStringList({"Downloads", "Shows"}));
         QCOMPARE(roleValues(*model, "isFolder"), QVariantList({true, true}));
         QVERIFY(model->path().isEmpty());
+
+        /* a folder has no cover: the views draw the folder tile, never a
+           mosaic of its videos (Figma 6284:13980) */
+        QCOMPARE(roleValues(*model, "thumbnail"), QVariantList({QString(), QString()}));
+        QCOMPARE(roleValues(*model, "small_cover"), QVariantList({QString(), QString()}));
     }
 
     void testTreeFolderListsSubfoldersThenVideos()
@@ -695,6 +718,10 @@ private slots:
         QCOMPARE(roleValues(*all, "nb_videos"), QVariantList({2u, 0u, 1u}));
         QCOMPARE(roleValues(*all, "nb_audio"), QVariantList({0u, 1u, 1u}));
 
+        /* Home draws them as folder tiles (Figma 6284:13980) */
+        QCOMPARE(roleValues(*all, "isFolder"), QVariantList({true, true, true}));
+        QCOMPARE(roleValues(*all, "thumbnail"), QVariantList({QString(), QString(), QString()}));
+
         /* the library gives no duration for these folders: Home shows none,
            not "0 ms" */
         for (const QVariant &duration : roleValues(*all, "duration"))
@@ -727,6 +754,8 @@ private slots:
 
         QCOMPARE(titles(*model), QStringList({"Downloads", "Music"}));
         QCOMPARE(roleValues(*model, "isFolder"), QVariantList({true, true}));
+        // no mosaic of the folder's covers
+        QCOMPARE(roleValues(*model, "cover"), QVariantList({QString(), QString()}));
     }
 
     void testSongsFolderListsSubfoldersThenTracks()

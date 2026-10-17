@@ -21,6 +21,7 @@ import QtQuick
 import VLC.MediaLibrary
 
 import VLC.MainInterface
+import VLC.Style
 
 // The library folders whose media were played the most, most played first
 VideoAll {
@@ -45,6 +46,10 @@ VideoAll {
 
     // ranked by play count, the view offers no other sort
     sortModel: []
+
+    // Figma 6284:13980: 200 px square folder tiles
+    gridCoverWidth: VLCStyle.gridCover_music_width
+    gridCoverHeight: VLCStyle.gridCover_music_height
 
     sectionProperty: ""
 

@@ -980,6 +980,7 @@ libqt_plugin_la_RES = \
 	pixmaps/placeholder/noart_artistCover.svg \
 	pixmaps/placeholder/noart_artist_small.svg \
 	pixmaps/placeholder/noart_videoCover.svg \
+	pixmaps/placeholder/noart_tile.svg \
 	pixmaps/prefs/advprefs_audio.svg \
 	pixmaps/prefs/advprefs_codec.svg \
 	pixmaps/prefs/advprefs_extended.svg \

@@ -48,6 +48,10 @@ T.ItemDelegate {
     // if the item is selected
     property bool selected: false
 
+    // a watched video: its title dims (Figma 970:4028, #6B6B6B: FG/A1 at
+    // 68 % over the page)
+    property bool dimmed: false
+
     // Aliases
 
     property alias mediaCover: picture
@@ -68,8 +72,9 @@ T.ItemDelegate {
     property alias effectiveRadius: picture.effectiveRadius
     property alias pictureOverlay: picture.imageOverlay
 
-    property alias selectedShadow: selectedShadow
-    property alias unselectedShadow: unselectedShadow
+    // the tile under the cover, all that shows without a cover (Figma
+    // 6284:13922, 6270:13777)
+    property alias pictureTile: pictureTile
 
     property alias artworkTextureProvider: picture.textureProvider
 
@@ -106,65 +111,18 @@ T.ItemDelegate {
 
     // States
 
+    // NOTE: Figma draws no hover for the cards, nor any shadow: hovered or
+    //       focused, a card shows the Play key and a BG/A2 tile behind it
     states: [
         State {
             name: "highlighted"
             when: highlighted
 
             PropertyChanges {
-                target: selectedShadow
-                opacity: 1.0
-            }
-
-            PropertyChanges {
-                target: unselectedShadow
-                opacity: 0
-            }
-
-            PropertyChanges {
                 target: picture
                 implicitPlayCoverShowPlay: true
             }
 
-        }
-    ]
-
-    transitions: [
-        Transition {
-            from: ""
-            to: "highlighted"
-            // reversible: true // doesn't work
-
-            SequentialAnimation {
-                PropertyAction {
-                    target: picture
-                    property: "implicitPlayCoverShowPlay"
-                }
-
-                NumberAnimation {
-                    properties: "opacity"
-                    duration: VLCStyle.duration_long
-                    easing.type: Easing.InSine
-                }
-            }
-        },
-
-        Transition {
-            from: "highlighted"
-            to: ""
-
-            SequentialAnimation {
-                PropertyAction {
-                    target: picture
-                    property: "implicitPlayCoverShowPlay"
-                }
-
-                NumberAnimation {
-                    properties: "opacity"
-                    duration: VLCStyle.duration_long
-                    easing.type: Easing.OutSine
-                }
-            }
         }
     ]
 
@@ -177,6 +135,18 @@ T.ItemDelegate {
         focused: root.visualFocus
         hovered: root.hovered
     }
+
+    // BG/A4, the tile of a card without cover (dark #191919, light #E5E5E5);
+    // the Navigation set gives it to the Nav sidebar card too
+    readonly property ColorContext _tileTheme: ColorContext {
+        colorSet: ColorContext.Navigation
+    }
+
+    readonly property ColorContext _pageTheme: ColorContext {
+        colorSet: ColorContext.View
+    }
+
+    readonly property color _pageColor: _pageTheme.bg.primary
 
     // TODO: Qt bug 6.2: QTBUG-103604
     DoubleClickIgnoringItem {
@@ -269,6 +239,9 @@ T.ItemDelegate {
 
         enabled: theme.initialized
 
+        // concentric with the 12 px corners of the cover
+        radius: VLCStyle.gridCover_radius + selectedBorderWidth
+
         //don't show the backgroud unless selected
         color: root.selected ?  theme.bg.highlight : theme.bg.primary
         border.color: visualFocus ? theme.visualFocus : Qt.alpha(theme.visualFocus, 0.0)
@@ -291,7 +264,7 @@ T.ItemDelegate {
 
             implicitPlayCoverShowPlay: false
             radius: VLCStyle.gridCover_radius
-            color: theme.bg.secondary
+            color: root._tileTheme.bg.primary
 
             Layout.preferredWidth: root.width
             Layout.preferredHeight: (root.pictureHeight / root.pictureWidth) * root.width
@@ -318,25 +291,17 @@ T.ItemDelegate {
                 }
              }
 
-            DefaultShadow {
-                id: unselectedShadow
+            // NOTE: Under the cover, as its rounded shape: a card without
+            //       cover is this plain tile (Figma draws no placeholder
+            //       glyph), and it fills the transparent parts of a cover
+            Rectangle {
+                id: pictureTile
 
-                visible: opacity > 0
-            }
-
-            DoubleShadow {
-                id: selectedShadow
-
-                visible: opacity > 0
-                opacity: 0
-
-                primaryVerticalOffset: VLCStyle.dp(6, VLCStyle.scale)
-                primaryBlurRadius: VLCStyle.dp(18, VLCStyle.scale)
-
-                secondaryVerticalOffset: VLCStyle.dp(32, VLCStyle.scale)
-                secondaryBlurRadius: VLCStyle.dp(72, VLCStyle.scale)
-
+                anchors.fill: parent
                 z: -1
+
+                radius: picture.radius
+                color: picture.color
             }
         }
 
@@ -349,21 +314,24 @@ T.ItemDelegate {
             clip: scrolling
 
             Layout.preferredWidth: Math.min(titleLabel.implicitWidth, root.width)
-            Layout.preferredHeight: titleLabel.height
+            // the text box of Figma (Inter 16 at its normal line height), as
+            // the grids count it
+            Layout.preferredHeight: VLCStyle.gridItemTitle_height
             Layout.topMargin: root.titleTopMargin
             Layout.alignment: root.textAlignHCenter ? Qt.AlignCenter : Qt.AlignLeft
 
             Widgets.ListLabel {
                 id: titleLabel
 
-                height: implicitHeight
-                // card titles are regular (Figma 6261:15078, 970:2703); they
-                // stay brighter than the subtitle, which takes Figma's FG/A3
-                // place in the readable FG/A1
+                height: VLCStyle.gridItemTitle_height
+                // card titles: 16 Regular FG/A1 (Figma 6272:13855); a
+                // watched video's title dims (970:4028)
+                font.pixelSize: VLCStyle.fontSize_xlarge
                 font.weight: Font.Normal
                 color: root.selected
                     ? theme.fg.highlight
-                    : theme.fg.primary
+                    : (root.dimmed ? Qt.tint(root._pageColor, Qt.alpha(theme.fg.secondary, 0.684))
+                                   : theme.fg.secondary)
             }
         }
 
@@ -373,11 +341,15 @@ T.ItemDelegate {
             visible: text !== ""
             text: root.subtitle
             elide: Text.ElideRight
+            // the artist of a song: 16 Regular FG/A3 (Figma 6272:13916)
+            font.pixelSize: VLCStyle.fontSize_xlarge
+            font.weight: Font.Normal
             color: root.selected
                 ? theme.fg.highlight
-                : theme.fg.secondary
+                : theme.fg.label
 
             Layout.preferredWidth: Math.min(root.width, implicitWidth)
+            Layout.preferredHeight: VLCStyle.gridItemSubtitle_height
             Layout.alignment: root.textAlignHCenter ? Qt.AlignCenter : Qt.AlignLeft
             Layout.topMargin: root.subtitleTopMargin
 

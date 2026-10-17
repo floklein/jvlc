@@ -286,16 +286,21 @@ QtObject {
     readonly property int gridCover_network_height: gridCover_network_width
     readonly property int gridCover_network_border: MainCtx.dp(3, scale)
 
-    readonly property int gridCover_music_width: colWidth(1)
+    // music and folder cards are 200 px squares (Figma 6261:15078)
+    readonly property int gridCover_music_width: MainCtx.dp(200, scale)
     readonly property int gridCover_music_height: gridCover_music_width
     readonly property int gridCover_music_border: MainCtx.dp(3, scale)
 
-    readonly property int gridCover_video_width: colWidth(2)
-    // video cards are 16:9 with 12 px corners (Figma 6261:15078, 970:2703)
-    readonly property int gridCover_video_height: ( gridCover_video_width * 9.0 ) / 16
+    // video cards are 316 px wide, 16:9, with 12 px corners (Figma
+    // 6261:15078, 970:4028)
+    readonly property int gridCover_video_width: MainCtx.dp(316, scale)
+    readonly property int gridCover_video_height: Math.round(( gridCover_video_width * 9.0 ) / 16)
     readonly property int gridCover_video_border: MainCtx.dp(4, scale)
 
     readonly property int gridCover_radius: MainCtx.dp(12, scale)
+
+    // the folder glyph of a folder card (Figma 6284:13982)
+    readonly property int gridCover_folderIcon: icon_medium
 
     readonly property int expandCover_music_height: MainCtx.dp(171, scale)
     readonly property int expandCover_music_width: MainCtx.dp(171, scale)
@@ -307,15 +312,33 @@ QtObject {
     readonly property real mainView_topLeftRadius: MainCtx.dp(8, scale)
 
     //GridItem
-    readonly property int gridItemTitle_topMargin: margin_xsmall + margin_xxxsmall
-    readonly property int gridItemTitle_height: fontHeight_normal
+    // a card (Figma 6272:13852): the title 20 px below the cover, then the
+    // artist 10 px below it, both 16 px; their boxes are Figma's 19 px
+    // text boxes (Inter 16 at its normal line height)
+    readonly property int gridItemTitle_topMargin: spacing_20
+    readonly property int gridItemTitle_height: MainCtx.dp(19, scale)
 
-    readonly property int gridItemSubtitle_topMargin: margin_xsmall - margin_xxxsmall
-    readonly property int gridItemSubtitle_height: fontHeight_normal
+    readonly property int gridItemSubtitle_topMargin: spacing_10
+    readonly property int gridItemSubtitle_height: gridItemTitle_height
 
     readonly property int gridItemSelectedBorder: MainCtx.dp(8, scale)
 
     readonly property int gridItem_newIndicator: MainCtx.dp(8, scale)
+
+    // the cards of a grid: 20 px apart, rows 40 px apart (Figma 6272:13818),
+    // left-aligned at their size; a grid of a page starts 20 px below the
+    // divider of the header (970:4079)
+    readonly property int gridView_horizontalSpacing: spacing_20
+    readonly property int gridView_verticalSpacing: MainCtx.dp(40, scale)
+    readonly property int gridView_topMargin: MainCtx.dp(19, scale)
+
+    // the sections of Home (Figma 6261:15142): the title row 36 px below the
+    // header divider, 77 px below the cards of the section above, the cards
+    // 20 px below it; the "see all" chevron 24 px, 5 px after the title
+    readonly property int homeSection_firstTopPadding: MainCtx.dp(36, scale)
+    readonly property int homeSection_topPadding: MainCtx.dp(77, scale)
+    readonly property int homeSection_bottomPadding: spacing_20
+    readonly property int homeSection_titleSpacing: spacing_5
 
     readonly property int column_width: MainCtx.dp(114, scale)
 
@@ -411,6 +434,9 @@ QtObject {
     readonly property url noArtAlbumCover: "qrc:///placeholder/noart_albumCover.svg";
     readonly property url noArtArtistCover: "qrc:///placeholder/noart_artistCover.svg";
     readonly property url noArtVideoCover: "qrc:///placeholder/noart_videoCover.svg";
+    // transparent: the cards without cover are the plain tile of their
+    // cover (Figma 6284:13922, 6270:13777)
+    readonly property url noArtTile: "qrc:///placeholder/noart_tile.svg";
 
     // New indicator
     readonly property url newIndicator: "qrc:///misc/new_indicator.svg";

@@ -55,86 +55,93 @@ Widgets.GridItem {
         }
     }
 
+    // in progress: the played part; watched to the end: a full bar and a
+    // dimmed title (Figma 970:4028)
+    readonly property real progress: (model?.progress ?? 0) > 0 ? Helpers.clamp(model.progress, 0, 1) : 0
+    readonly property bool watched: !isFolder && (model?.playcount ?? 0) > 0
+
     playCoverShowPlay: !isFolder && implicitPlayCoverShowPlay
 
-    image: model.thumbnail || ""
-    fallbackImage: VLCStyle.noArtVideoCover
+    // a folder is the folder tile, never a mosaic (Figma 6284:13980); a
+    // video without thumbnail is the plain tile (6270:13777)
+    image: isFolder ? "" : (model.thumbnail || "")
+    fallbackImage: VLCStyle.noArtTile
     fillMode: Image.Stretch
 
     title: model.title || qsTr("Unknown title")
-    subtitle: model?.duration?.formatHMS() ?? ""
+    // Figma 6272:13852: a video card shows its title only, no duration
+    subtitle: ""
+    dimmed: watched && progress <= 0
     pictureWidth: VLCStyle.gridCover_video_width
     pictureHeight: VLCStyle.gridCover_video_height
 
-    // Bottom rounding is provided by the progress bar if it is visible:
-    mediaCover.radiusBottomLeft: progressBar.visible ? 0.0 : mediaCover.radius
-    mediaCover.radiusBottomRight: progressBar.visible ? 0.0 : mediaCover.radius
-
-    selectedShadow.height: selectedShadow.implicitHeight + (progressBar.visible ? progressBar.height : 0.0)
-    unselectedShadow.height: unselectedShadow.implicitHeight + (progressBar.visible ? progressBar.height : 0.0)
-
+    // Figma 6272:13854: 4 px of Accent/Main along the bottom of the cover,
+    // inside it and cut by its corners, with no track
     Widgets.VideoProgressBar {
         id: progressBar
 
         parent: root.mediaCover
 
-        // If the background color of the image is opaque (which should be
-        // the case by default), we can place the progress bar beneath the
-        // thumbnail and disable clipping because the top part would not be
-        // exposed. Note that the top part is still going to be painted, as
-        // long as the image is not opaque which is the expected case since
-        // SDF-based round images always have transparent parts which needs
-        // blending. If the image is not rounded and its blending is disabled,
-        // the top part of the bar is not going to be painted, thanks to depth
-        // testing. Furthermore, fragment shader may not even be executed for
-        // the top part that are obscured by the opaque image, provided that
-        // early depth test is applicable. In any case, since bottom radii
-        // are 0.0 and background color is opaque, the top part (if painted)
-        // will not be exposed to the user.
-        z: (root.mediaCover.color.a > (1.0 - Number.EPSILON)) ? -0.1 : 0.0
-        clip: (z >= 0.0)
+        z: 1
 
         anchors {
-            top: parent.bottom
+            bottom: parent.bottom
             left: parent.left
             right: parent.right
         }
 
-        visible: (model.progress > 0)
+        visible: !root.isFolder && (root.progress > 0 || root.watched)
 
         radius: root.pictureRadius
-        value: Helpers.clamp(model.progress !== undefined ? model.progress : 0, 0, 1)
+        value: root.progress > 0 ? root.progress : 1
+        color: root.colorContext.accent
+        trackColor: "transparent"
     }
 
     pictureOverlay: Item {
         implicitWidth: root.pictureWidth
         implicitHeight: root.pictureHeight
 
-        Widgets.ScaledImage {
-            id: image
+        // Figma 6284:13982: the 48 px folder outline in FG/A2, centered
+        Widgets.IconLabel {
+            anchors.centerIn: parent
 
-            anchors.right: parent.right
-            anchors.top: parent.top
-            // the corner of the triangle sits on the rounded corner of the cover
-            anchors.rightMargin: Math.round(root.pictureRadius * (1 - Math.SQRT1_2))
-            anchors.topMargin: anchors.rightMargin
+            visible: root.isFolder
+
+            text: VLCIcons.folder
+            font.pixelSize: VLCStyle.gridCover_folderIcon
+            color: root.colorContext.fg.value
+        }
+
+        // not in Figma: a dot of Accent/Main for a video never played, 8 px
+        // from the corner or before the labels (as the "sort active" dot of
+        // the header)
+        Rectangle {
+            anchors.right: labelsRow.visible ? labelsRow.left : parent.right
+            anchors.rightMargin: VLCStyle.spacing_8
+            y: labelsRow.visible ? labelsRow.y + Math.round((labelsRow.height - height) / 2)
+                                 : VLCStyle.spacing_8
 
             width: VLCStyle.gridItem_newIndicator
             height: width
+            radius: width / 2
 
             visible: root.showNewIndicator
 
-            source: VLCStyle.newIndicator
+            color: root.colorContext.accent
         }
 
         Widgets.VideoQualityLabels {
+            id: labelsRow
+
             anchors {
                 top: parent.top
                 right: parent.right
-                topMargin: VLCStyle.margin_xxsmall
-                leftMargin: VLCStyle.margin_xxsmall
-                rightMargin: VLCStyle.margin_xxsmall
+                topMargin: VLCStyle.spacing_8
+                rightMargin: VLCStyle.spacing_8
             }
+
+            visible: (root.labels?.length ?? 0) > 0
 
             labels: root.labels
         }

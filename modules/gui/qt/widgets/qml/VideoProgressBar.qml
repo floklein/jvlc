@@ -31,6 +31,10 @@ Item {
     property real value: 0
     property int radius: implicitHeight
 
+    // the played part, and the rest (the cards draw no track: transparent)
+    property color color: theme.fg.primary
+    property color trackColor: theme.bg.primary
+
     readonly property ColorContext colorContext: ColorContext {
         id: theme
         colorSet: ColorContext.Slider
@@ -46,12 +50,12 @@ Item {
         height: Math.max(progressBar.radius * 2, //to have at least the proper radius applied
                          parent.height + radius) //the top radius section should be always clipped
 
-        color: theme.bg.primary
+        color: progressBar.trackColor
         radius: progressBar.radius
 
         gradient: Gradient {
             orientation: Gradient.Horizontal
-            GradientStop { position: progressBar.value; color: theme.fg.primary }
+            GradientStop { position: progressBar.value; color: progressBar.color }
             GradientStop { position: progressBar.value + (1. / rectangle.width); color: rectangle.color }
         }
     }

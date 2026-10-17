@@ -154,9 +154,12 @@ QImage CoverGenerator::execute(QStringList thumbnails) const
         countY = std::ceil((qreal) thumbnails.count() / m_countX);
     }
 
-    QImage image(m_size, QImage::Format_RGB32);
+    // NOTE: Transparent where no thumbnail covers it (the placeholders are
+    //       translucent), so that the cover shows the tile color of the
+    //       theme behind it rather than white.
+    QImage image(m_size, QImage::Format_ARGB32_Premultiplied);
 
-    image.fill(Qt::white);
+    image.fill(Qt::transparent);
 
     QPainter painter;
 

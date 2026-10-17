@@ -193,9 +193,7 @@ T.ItemDelegate {
 
             fillMode: Image.PreserveAspectCrop
 
-            Widgets.DefaultShadow {
-
-            }
+            // NOTE: Figma's covers have no shadow
         }
 
         Widgets.TextAutoScroller {

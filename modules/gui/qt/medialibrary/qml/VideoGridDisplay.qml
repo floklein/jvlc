@@ -45,6 +45,10 @@ Widgets.ExpandGridItemView {
     basePictureWidth: VLCStyle.gridCover_video_width
     basePictureHeight: VLCStyle.gridCover_video_height
 
+    // Figma 6272:13852: the cards show their title only
+    subtitleHeight: 0
+    subtitleTopMargin: 0
+
     activeFocusOnTab: true
 
     // Functions

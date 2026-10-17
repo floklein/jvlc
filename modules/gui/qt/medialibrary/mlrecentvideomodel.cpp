@@ -76,6 +76,10 @@ MLRecentVideoModel::Loader::listAll(vlc_medialibrary_t* ml, const vlc_ml_query_p
     vlc_ml_query_params_t params = queryParams ? *queryParams : vlc_ml_query_params_create();
     params.i_offset = 0;
     params.i_nbResults = 0;
+    // the history is sorted by last played date, oldest first unless
+    // descending: the last watched first
+    if (params.i_sort == VLC_ML_SORTING_DEFAULT)
+        params.b_desc = true;
     return ml_unique_ptr<vlc_ml_media_list_t>{ vlc_ml_list_video_history(ml, &params) };
 }
 

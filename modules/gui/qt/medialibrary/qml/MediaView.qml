@@ -51,6 +51,10 @@ MainViewLoader {
     property int gridCoverWidth: VLCStyle.gridCover_music_width
     property int gridCoverHeight: VLCStyle.gridCover_music_height
 
+    // the cards show the artist under the title (Figma 6272:13917, songs);
+    // without it, the title only (as the video cards)
+    property bool showArtist: false
+
     property int fillMode: MainCtx.gridView ? Image.PreserveAspectCrop : Image.PreserveAspectFit
 
     property int displayMarginBeginning: 0
@@ -140,6 +144,9 @@ MainViewLoader {
             basePictureWidth: root.gridCoverWidth
             basePictureHeight: root.gridCoverHeight
 
+            subtitleHeight: root.showArtist ? VLCStyle.gridItemSubtitle_height : 0
+            subtitleTopMargin: root.showArtist ? VLCStyle.gridItemSubtitle_topMargin : 0
+
             displayMarginBeginning: root.displayMarginBeginning
             displayMarginEnd: root.displayMarginEnd
 
@@ -166,10 +173,11 @@ MainViewLoader {
                 fillMode: root.fillMode
 
                 image: model.small_cover ?? ""
-                fallbackImage: model.isVideo ? VLCStyle.noArtVideoCover : VLCStyle.noArtAlbumCover
+                // Figma 6284:13922: a song without cover is the plain tile
+                fallbackImage: VLCStyle.noArtTile
 
                 title: model.title || qsTr("Unknown Title")
-                subtitle: model.duration?.formatHMS() ?? "--:--"
+                subtitle: root.showArtist ? (model.main_artist ?? "") : ""
 
                 opacity: gridView.expandIndex !== -1 && gridView.expandIndex !== index ? 0.7 : 1
 

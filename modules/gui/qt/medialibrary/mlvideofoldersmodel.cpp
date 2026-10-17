@@ -32,16 +32,9 @@
 #include "util/vlctick.hpp"
 
 // MediaLibrary includes
-#include "mlcustomcover.hpp"
 #include "mlfolder.hpp"
 #include "mlhelper.hpp"
 #include "mlplaycountrank.hpp"
-
-// Static variables
-
-// NOTE: We multiply by 3 to cover most dpi settings.
-static const int MLVIDEOFOLDERSMODEL_COVER_WIDTH  = 260 * 3; // 16 / 10 ratio
-static const int MLVIDEOFOLDERSMODEL_COVER_HEIGHT = 162 * 3;
 
 // Ctor / dtor
 
@@ -60,6 +53,7 @@ QHash<int, QByteArray> MLVideoFoldersModel::roleNames() const /* override */
         { FOLDER_COUNT, QByteArrayLiteral("count") },
         { FOLDER_NB_VIDEOS, QByteArrayLiteral("nb_videos") },
         { FOLDER_NB_AUDIO, QByteArrayLiteral("nb_audio") },
+        { FOLDER_IS_FOLDER, QByteArrayLiteral("isFolder") },
     };
 }
 
@@ -85,11 +79,11 @@ QVariant MLVideoFoldersModel::itemRoleData(const MLItem * item, const int role) 
         case FOLDER_TITLE_FIRST_SYMBOL:
             return QVariant::fromValue( getFirstSymbol(folder->getTitle()) );
         case FOLDER_THUMBNAIL:
-        {
-            return MLCustomCover::url(folder->getId()
-                                    , QSize(MLVIDEOFOLDERSMODEL_COVER_WIDTH, MLVIDEOFOLDERSMODEL_COVER_HEIGHT)
-                                    , QStringLiteral(":/placeholder/noart_videoCover.svg"));
-        }
+            // a folder shows the folder tile, never a mosaic of its media
+            // (Figma 6284:13980): the views draw it
+            return QVariant::fromValue(QString());
+        case FOLDER_IS_FOLDER:
+            return QVariant::fromValue(true);
         case FOLDER_DURATION:
             // the library may not know it: no duration rather than "0 ms"
             if (folder->getDuration().asMilliseconds() <= 0)

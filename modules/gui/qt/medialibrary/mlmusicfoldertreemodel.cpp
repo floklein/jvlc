@@ -26,7 +26,6 @@
 #include <vlc_media_library.h>
 
 #include "mlaudio.hpp"
-#include "mlcustomcover.hpp"
 #include "mlfolder.hpp"
 #include "mlfoldertreemodel.hpp"
 #include "mlhelper.hpp"
@@ -37,9 +36,6 @@
 #include <algorithm>
 
 namespace {
-
-// NOTE: We multiply by 3 to cover most dpi settings.
-const int FOLDER_COVER_SIZE = 256 * 3;
 
 // Compares two tracks on one criterion, 0 when they are equal on it
 using TrackCompare = int (*)(const QCollator &, const MLAudio &, const MLAudio &);
@@ -157,9 +153,9 @@ QVariant MLMusicFolderTreeModel::itemRoleData(const MLItem *item, int role) cons
         return QVariant::fromValue(getFirstSymbol(folder->getTitle()));
     case MEDIA_SMALL_COVER:
     case AUDIO_COVER:
-        return MLCustomCover::url(folder->getId()
-                                  , QSize(FOLDER_COVER_SIZE, FOLDER_COVER_SIZE)
-                                  , QStringLiteral(":/placeholder/noart_albumCover.svg"));
+        // a folder shows the folder tile, never a mosaic of its media
+        // (Figma 6284:13980): the views draw it
+        return QVariant::fromValue(QString());
     case MEDIA_DURATION:
         // the duration counts the folder's own media only, hide it without
         if (folder->getDuration().asMilliseconds() <= 0)

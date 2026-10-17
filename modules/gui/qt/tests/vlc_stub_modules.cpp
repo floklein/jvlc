@@ -624,16 +624,29 @@ static int MLList( vlc_medialibrary_module_t*, int query,
     case VLC_ML_COUNT_HISTORY:
     case VLC_ML_LIST_VIDEO_HISTORY:
     case VLC_ML_COUNT_VIDEO_HISTORY:
+    case VLC_ML_LIST_AUDIO_HISTORY:
+    case VLC_ML_COUNT_AUDIO_HISTORY:
     {
         const bool videoOnly = query == VLC_ML_LIST_VIDEO_HISTORY
                             || query == VLC_ML_COUNT_VIDEO_HISTORY;
-        if (!videoOnly)
+        const bool audioOnly = query == VLC_ML_LIST_AUDIO_HISTORY
+                            || query == VLC_ML_COUNT_AUDIO_HISTORY;
+        if (!videoOnly && !audioOnly)
             (void) va_arg(args, int); /* history type: the stub has one history */
         std::vector<VLCTestingEnv::HistoryEntry> entries;
         for (const auto& entry : stubML.history)
-            if (!videoOnly || entry.type == VLC_ML_MEDIA_TYPE_VIDEO)
+            if ((!videoOnly || entry.type == VLC_ML_MEDIA_TYPE_VIDEO)
+                && (!audioOnly || entry.type == VLC_ML_MEDIA_TYPE_AUDIO))
                 entries.push_back(entry);
-        if (query == VLC_ML_COUNT_HISTORY || query == VLC_ML_COUNT_VIDEO_HISTORY)
+        // as the media library: by last played date, oldest first unless
+        // descending
+        const bool desc = params && params->b_desc;
+        std::stable_sort(entries.begin(), entries.end(),
+                         [desc](const VLCTestingEnv::HistoryEntry& a, const VLCTestingEnv::HistoryEntry& b) {
+            return desc ? a.lastPlayed > b.lastPlayed : a.lastPlayed < b.lastPlayed;
+        });
+        if (query == VLC_ML_COUNT_HISTORY || query == VLC_ML_COUNT_VIDEO_HISTORY
+            || query == VLC_ML_COUNT_AUDIO_HISTORY)
         {
             *va_arg(args, size_t*) = entries.size();
             return VLC_SUCCESS;

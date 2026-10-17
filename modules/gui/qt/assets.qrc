@@ -99,6 +99,7 @@
         <file alias="noart_artist_small.svg">pixmaps/placeholder/noart_artist_small.svg</file>
         <file alias="noart_artistCover.svg">pixmaps/placeholder/noart_artistCover.svg</file>
         <file alias="noart_videoCover.svg">pixmaps/placeholder/noart_videoCover.svg</file>
+        <file alias="noart_tile.svg">pixmaps/placeholder/noart_tile.svg</file>
     </qresource>
     <qresource prefix="/">
         <file alias="VLCIcons.ttf">pixmaps/VLCIcons.ttf</file>

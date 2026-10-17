@@ -161,6 +161,8 @@ Widgets.PageLoader {
 
                 anchors.fill: parent
 
+                showArtist: true
+
                 model: MLRecentAudioModel {
                     ml: MediaLib
 

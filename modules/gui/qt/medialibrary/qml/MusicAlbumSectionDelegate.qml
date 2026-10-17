@@ -293,9 +293,7 @@ T.Pane {
 
             asynchronous: true
 
-            Widgets.DefaultShadow {
-                visible: (artwork.status === Image.Ready)
-            }
+            // NOTE: Figma's covers have no shadow
         }
 
         Column {

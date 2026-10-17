@@ -56,7 +56,9 @@ public:
         FOLDER_DURATION,
         FOLDER_COUNT,
         FOLDER_NB_VIDEOS,
-        FOLDER_NB_AUDIO
+        FOLDER_NB_AUDIO,
+        // always true: the views draw the folder tile (as the folder trees)
+        FOLDER_IS_FOLDER
     };
 
 public:

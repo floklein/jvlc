@@ -89,11 +89,16 @@ T.Pane {
 
         anchors.fill: parent
 
+        // Figma 6261:15651: the chevron 5 px after the title
+        spacing: VLCStyle.homeSection_titleSpacing
+
         // Figma 6261:15078: regular, FG/A1
         SubtitleLabel {
             id: label
 
             Layout.fillWidth: !root.seeAllChevron
+            // Figma 6261:15651: the row is as high as the 24 px chevron
+            Layout.preferredHeight: root.seeAllChevron ? VLCStyle.icon_normal : implicitHeight
 
             font.pixelSize: root.titlePixelSize
             font.weight: Font.Normal
@@ -118,7 +123,30 @@ T.Pane {
             text: root.seeAllChevron ? VLCIcons.ic_fluent_chevron_right_24 : qsTr("See All")
 
             font.family: root.seeAllChevron ? VLCIcons.fontFamily : VLCStyle.fontFamily
-            font.pixelSize: root.seeAllChevron ? VLCStyle.fontSize_xlarge : VLCStyle.fontSize_large
+            // Figma 6261:15651: a 24 px chevron in FG/A2, no padding
+            font.pixelSize: root.seeAllChevron ? VLCStyle.icon_normal : VLCStyle.fontSize_large
+
+            padding: root.seeAllChevron ? 0 : VLCStyle.margin_xxsmall
+
+            implicitWidth: root.seeAllChevron ? VLCStyle.icon_normal
+                                              : Math.max(implicitBackgroundWidth + leftInset + rightInset,
+                                                         implicitContentWidth + leftPadding + rightPadding)
+            implicitHeight: root.seeAllChevron ? VLCStyle.icon_normal
+                                               : Math.max(implicitBackgroundHeight + topInset + bottomInset,
+                                                          implicitContentHeight + topPadding + bottomPadding)
+
+            contentItem: T.Label {
+                text: button.text
+                font: button.font
+                // FG/A2 at rest; as a tool button hovered, focused or pressed
+                color: (root.seeAllChevron && !button.hovered && !button.visualFocus && !button.down)
+                       ? theme.fg.value
+                       : button.colorContext.fg.primary
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+
+                Accessible.ignored: true
+            }
 
             Accessible.name: qsTr("See All")
 

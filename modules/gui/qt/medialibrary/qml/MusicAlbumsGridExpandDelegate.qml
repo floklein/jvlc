@@ -134,9 +134,7 @@ FocusScope {
 
                 readonly property real eDPR: MainCtx.effectiveDevicePixelRatio(Window.window)
 
-                Widgets.DefaultShadow {
-                    visible: (parent.status === Image.Ready)
-                }
+                // NOTE: Figma's covers have no shadow
             }
         }
 

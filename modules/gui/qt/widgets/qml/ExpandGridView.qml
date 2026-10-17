@@ -36,7 +36,10 @@ FocusScope {
 
     //margin to apply
     property int bottomMargin: 0
-    property int topMargin: 0
+    // a grid that scrolls by itself is a page: its cards start 20 px below
+    // the header divider (Figma 970:4079); a row of Home (not interactive)
+    // follows its title
+    property int topMargin: interactive ? VLCStyle.gridView_topMargin : 0
     property int leftMargin: VLCStyle.layout_left_margin + leftPadding
     property int rightMargin: VLCStyle.layout_right_margin + rightPadding
 
@@ -57,8 +60,9 @@ FocusScope {
     // default is true
     property bool reuseItems: true
 
-    property int horizontalSpacing: VLCStyle.column_spacing
-    property int verticalSpacing: VLCStyle.column_spacing
+    // Figma 6272:13818: cards 20 px apart, rows 40 px apart
+    property int horizontalSpacing: VLCStyle.gridView_horizontalSpacing
+    property int verticalSpacing: VLCStyle.gridView_verticalSpacing
 
     property int displayMarginBeginning: 0
     property int displayMarginEnd: 0

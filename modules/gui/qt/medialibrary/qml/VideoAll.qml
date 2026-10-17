@@ -74,6 +74,10 @@ MainViewLoader {
     property real listCoverWidth: VLCStyle.listAlbumCover_width
     property real listCoverRadius: VLCStyle.listAlbumCover_radius
 
+    // the cards of the grid: videos (folders are 200 px squares on Home)
+    property int gridCoverWidth: VLCStyle.gridCover_video_width
+    property int gridCoverHeight: VLCStyle.gridCover_video_height
+
     // Aliases
 
     property alias dragItem: dragItem
@@ -150,6 +154,9 @@ MainViewLoader {
             // Settings
 
             model: root.model
+
+            basePictureWidth: root.gridCoverWidth
+            basePictureHeight: root.gridCoverHeight
 
             selectionModel: root.selectionModel
 
