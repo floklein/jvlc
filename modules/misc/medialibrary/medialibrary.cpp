@@ -433,7 +433,16 @@ MediaLibrary* MediaLibrary::create( vlc_medialibrary_module_t* vlc_ml )
     };
     cfg.logLevel = var_InheritBool( VLC_OBJECT( vlc_ml ), "ml-verbose" ) ?
                         medialibrary::LogLevel::Debug : medialibrary::LogLevel::Warning;
-    cfg.logger = std::make_shared<Logger>( VLC_OBJECT( vlc_ml ) );
+    /* libmedialibrary keeps the logger in a static shared_ptr that it never
+     * resets. Linked as a shared library, it stays loaded after VLC unloads
+     * this plugin (glibc never unloads a library with unique symbols), so
+     * releasing a logger it owns, at exit or when a later instance sets its
+     * own, would run the code of an unloaded plugin. Give it a pointer it
+     * does not own: the MediaLibrary owns the logger, and destroys it after
+     * the medialibrary instance. */
+    auto logger = std::make_unique<Logger>( VLC_OBJECT( vlc_ml ) );
+    cfg.logger = std::shared_ptr<medialibrary::ILogger>( std::shared_ptr<void>{},
+                                                         logger.get() );
 
     msg_Dbg(VLC_OBJECT(vlc_ml), "Opening medialibrary from %s, db at %s",
             dbPath.c_str(), mlFolderPath.c_str());
@@ -441,12 +450,14 @@ MediaLibrary* MediaLibrary::create( vlc_medialibrary_module_t* vlc_ml )
     if ( !ml )
         return nullptr;
 
-    return new MediaLibrary( vlc_ml, ml );
+    return new MediaLibrary( vlc_ml, std::move( logger ), ml );
 }
 
 MediaLibrary::MediaLibrary( vlc_medialibrary_module_t* vlc_ml,
+                            std::unique_ptr<medialibrary::ILogger> logger,
                             medialibrary::IMediaLibrary* ml )
     : m_vlc_ml( vlc_ml )
+    , m_logger( std::move( logger ) )
     , m_ml( ml )
 {
 }

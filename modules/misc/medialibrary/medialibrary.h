@@ -184,9 +184,14 @@ private:
     static medialibrary::SortingCriteria sortingCriteria( int sort );
 
 private:
-    MediaLibrary( vlc_medialibrary_module_t* vlc_ml, medialibrary::IMediaLibrary* ml );
+    MediaLibrary( vlc_medialibrary_module_t* vlc_ml,
+                  std::unique_ptr<medialibrary::ILogger> logger,
+                  medialibrary::IMediaLibrary* ml );
 
     vlc_medialibrary_module_t* m_vlc_ml;
+    /* Declared before m_ml: the medialibrary logs through it until it is
+     * destroyed. */
+    std::unique_ptr<medialibrary::ILogger> m_logger;
     std::unique_ptr<medialibrary::IMediaLibrary> m_ml;
 
     vlc::threads::mutex m_mutex;
