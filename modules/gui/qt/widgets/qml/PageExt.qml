@@ -389,7 +389,7 @@ T.Page {
                             spacing: VLCStyle.pageHeader_crumbSpacing
 
                             // Figma: "▶", 8 px, FG/A4
-                            Canvas {
+                            IconLabel {
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.verticalCenterOffset: -VLCStyle.dp(1, VLCStyle.scale)
 
@@ -398,21 +398,9 @@ T.Page {
                                 width: VLCStyle.pageHeader_crumbSeparatorWidth
                                 height: width
 
-                                readonly property color color: navTheme.separator
-                                onColorChanged: requestPaint()
-
-                                onPaint: {
-                                    const ctx = getContext("2d")
-                                    const s = VLCStyle.scale
-                                    ctx.reset()
-                                    ctx.fillStyle = color
-                                    ctx.beginPath()
-                                    ctx.moveTo(VLCStyle.dp(1, s), VLCStyle.dp(0.5, s))
-                                    ctx.lineTo(VLCStyle.dp(7, s), height / 2)
-                                    ctx.lineTo(VLCStyle.dp(1, s), height - VLCStyle.dp(0.5, s))
-                                    ctx.closePath()
-                                    ctx.fill()
-                                }
+                                text: VLCIcons.crumb_separator
+                                color: navTheme.separator
+                                font.pixelSize: VLCStyle.pageHeader_crumbSeparatorWidth
                             }
 
                             TextToolButton {

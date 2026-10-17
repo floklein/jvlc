@@ -351,6 +351,7 @@ class VLCIcons : public QObject {
     Q_PROPERTY(QChar genre_tt_base MEMBER genre_tt_base CONSTANT FINAL)
     Q_PROPERTY(QChar genre_tt_accent MEMBER genre_tt_accent CONSTANT FINAL)
     Q_PROPERTY(QChar cone MEMBER cone CONSTANT FINAL)
+    Q_PROPERTY(QChar crumb_separator MEMBER crumb_separator CONSTANT FINAL)
 
 
 public:
@@ -698,6 +699,7 @@ public:
     static constexpr inline QChar genre_tt_base{ u'\ue14e' };
     static constexpr inline QChar genre_tt_accent{ u'\ue14f' };
     static constexpr inline QChar cone{ u'\ue150' };
+    static constexpr inline QChar crumb_separator{ u'\ue151' };
 
 };
 
