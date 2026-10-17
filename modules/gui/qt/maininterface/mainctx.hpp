@@ -167,8 +167,8 @@ class MainCtx : public QObject
     Q_PROPERTY(bool minimalView READ isMinimalView WRITE setMinimalView NOTIFY mainInterfaceModesChanged FINAL)
     Q_PROPERTY(bool playerView READ isPlayerView WRITE setPlayerView NOTIFY mainInterfaceModesChanged FINAL)
     // The library shows as the Library pane beside the video in the player
-    // view, as the full-window library otherwise. The Library pane is a list
-    // only (gridView reads false there) with a compact header.
+    // view, as the full-window library otherwise. The Library pane has its
+    // own list or grid view (a list by default) and a compact header.
     Q_PROPERTY(bool libraryPane READ isPlayerView NOTIFY mainInterfaceModesChanged FINAL)
 
     // This Property only works if hasAcrylicSurface is set
@@ -254,8 +254,8 @@ public:
     inline MediaLib* getMediaLibrary() const { return m_medialib; }
     inline ShortcutMessage* shortcutMessage() const { return m_shortcutMessage; }
     inline SavedStreamsModel* getSavedStreams() const { return m_savedStreams; }
-    // the Library pane is a list only
-    inline bool hasGridView() const { return m_gridView && !isPlayerView(); }
+    // the Library pane has its own view, a list by default (Figma 848:1996)
+    inline bool hasGridView() const { return isPlayerView() ? m_paneGridView : m_gridView; }
     inline bool albumSections() const { return m_albumSections; }
     inline bool lyricsMode() const { return m_lyricsMode; }
     inline bool showWaveform() const { return m_showWaveform; }
@@ -535,6 +535,7 @@ protected:
     SavedStreamsModel*   m_savedStreams = nullptr;
     MLBookmarkModel*     m_bookmarks = nullptr;
     bool                 m_gridView = false;
+    bool                 m_paneGridView = false;
     bool                 m_hasGridListMode = false;
     ColorSchemeModel*    m_colorScheme = nullptr;
     PinsModel*           m_pins = nullptr;
@@ -677,6 +678,8 @@ signals:
     void askRaise();
     void kc_pressed(); /* easter eggs */
     void clipboardHasNothingToOpen();
+    // "Show Sidebar" of the jVLC menu: shows or hides the Nav sidebar of the library
+    void navigationToggleRequested();
 
     void playerPlaylistWidthChanged(double);
     void interfaceAlwaysOnTopChanged(bool);

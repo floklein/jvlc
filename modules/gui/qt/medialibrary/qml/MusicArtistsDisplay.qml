@@ -57,10 +57,7 @@ Widgets.PageLoader {
 
             // Name A-Z, the first entry of the sort menu, not Z-A
             Component.onCompleted: {
-                if (artistPage.sort.criteria === "") {
-                    artistPage.sort.criteria = "name"
-                    artistPage.sort.order = Qt.AscendingOrder
-                }
+                artistPage.sort.setDefault("name", Qt.AscendingOrder)
             }
 
             MusicAllArtists {

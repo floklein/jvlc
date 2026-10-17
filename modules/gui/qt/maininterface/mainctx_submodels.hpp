@@ -53,12 +53,53 @@ class SortCtx: public QObject
     Q_PROPERTY(QJSValue model READ getModel WRITE setModel NOTIFY modelChanged FINAL)
     Q_PROPERTY(QString criteria READ getCriteria WRITE setCriteria NOTIFY criteriaChanged FINAL)
     Q_PROPERTY(Qt::SortOrder order MEMBER m_order NOTIFY orderChanged FINAL)
+    // the sort the page starts with; the sort key shows a dot when the
+    // page is sorted otherwise (Figma 970:2703)
+    Q_PROPERTY(QString defaultCriteria READ getDefaultCriteria NOTIFY defaultChanged FINAL)
+    Q_PROPERTY(Qt::SortOrder defaultOrder READ getDefaultOrder NOTIFY defaultChanged FINAL)
+    Q_PROPERTY(bool isDefault READ isDefault NOTIFY isDefaultChanged FINAL)
 
 signals:
     void askShow();
 
 public:
-    using QObject::QObject;
+    explicit SortCtx(QObject* parent = nullptr) : QObject(parent)
+    {
+        connect(this, &SortCtx::criteriaChanged, this, &SortCtx::isDefaultChanged);
+        connect(this, &SortCtx::orderChanged, this, &SortCtx::isDefaultChanged);
+        connect(this, &SortCtx::defaultChanged, this, &SortCtx::isDefaultChanged);
+    }
+
+    // no criteria is the order of the model
+    static bool isDefaultSort(const QString& criteria, Qt::SortOrder order,
+                              const QString& defaultCriteria, Qt::SortOrder defaultOrder)
+    {
+        return criteria.isEmpty()
+            || (criteria == defaultCriteria && order == defaultOrder);
+    }
+
+    inline bool isDefault() const {
+        return isDefaultSort(m_criteria, m_order, m_defaultCriteria, m_defaultOrder);
+    }
+
+    inline QString getDefaultCriteria() const { return m_defaultCriteria; }
+    inline Qt::SortOrder getDefaultOrder() const { return m_defaultOrder; }
+
+    // the page's own sort, applied when nothing else is set
+    Q_INVOKABLE void setDefault(const QString& criteria, Qt::SortOrder order) {
+        m_defaultCriteria = criteria;
+        m_defaultOrder = order;
+        emit defaultChanged();
+        if (m_criteria.isEmpty() && !criteria.isEmpty())
+        {
+            setCriteria(criteria);
+            if (m_order != order)
+            {
+                m_order = order;
+                emit orderChanged(m_order);
+            }
+        }
+    }
 
     inline QJSValue getModel() const  {
         return m_model;
@@ -99,11 +140,15 @@ signals:
     void modelChanged(const QJSValue& model);
     void criteriaChanged(const QString& criteria);
     void orderChanged(const Qt::SortOrder& criteria);
+    void defaultChanged();
+    void isDefaultChanged();
 
 private:
     QJSValue m_model;
     QString m_criteria;
     Qt::SortOrder m_order = Qt::DescendingOrder;
+    QString m_defaultCriteria;
+    Qt::SortOrder m_defaultOrder = Qt::DescendingOrder;
     bool m_available = false;
 };
 

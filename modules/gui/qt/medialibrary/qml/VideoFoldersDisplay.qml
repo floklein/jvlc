@@ -43,6 +43,8 @@ Widgets.PageExt {
 
     itemCount: treeModel.count
 
+    paneAddAction: ({ "text": qsTr("Add"), "action": () => DialogsProvider.addLibraryFolderDialog() })
+
     headerActions: Component {
         Row {
             spacing: VLCStyle.pageHeader_actionSpacing // Figma 2139:8878
@@ -51,6 +53,9 @@ Widgets.PageExt {
                 width: VLCStyle.bannerButton_width
                 height: VLCStyle.bannerButton_height
                 color: VLCStyle.pageToolColor(this)
+
+                // the Library pane has a "+ Add" row instead
+                visible: !MainCtx.libraryPane
 
                 text: VLCIcons.add
                 description: qsTr("Add a folder to the library")
@@ -97,10 +102,7 @@ Widgets.PageExt {
 
     // folders default to Title A-Z
     Component.onCompleted: {
-        if (root.sort.criteria === "") {
-            root.sort.criteria = "title"
-            root.sort.order = Qt.AscendingOrder
-        }
+        root.sort.setDefault("title", Qt.AscendingOrder)
     }
 
     // Children

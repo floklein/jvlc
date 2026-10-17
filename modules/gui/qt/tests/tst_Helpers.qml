@@ -231,4 +231,42 @@ TestCase {
     function test_nextFocusArea(data) {
         compare(Helpers.nextFocusArea(data.current, data.count, data.backward), data.next)
     }
+
+    // The sections of Home that its "…" menu hides
+    function test_hiddenSections_data() {
+        return [
+            { tag: "nothing saved", hidden: undefined, list: [] },
+            { tag: "empty", hidden: "", list: [] },
+            { tag: "one", hidden: "folders", list: ["folders"] },
+            { tag: "several", hidden: "folders,artists", list: ["folders", "artists"] },
+            { tag: "spaces and blanks", hidden: " folders, ,artists,", list: ["folders", "artists"] },
+            { tag: "repeated", hidden: "folders,folders", list: ["folders"] },
+        ]
+    }
+
+    function test_hiddenSections(data) {
+        compare(Helpers.hiddenSections(data.hidden), data.list)
+    }
+
+    function test_sectionShown() {
+        verify(Helpers.sectionShown("", "continueWatching"))
+        verify(Helpers.sectionShown(undefined, "continueWatching"))
+        verify(!Helpers.sectionShown("streams,continueWatching", "continueWatching"))
+        verify(Helpers.sectionShown("streams", "continueWatching"))
+    }
+
+    function test_withSectionShown_data() {
+        return [
+            { tag: "hide", hidden: "", name: "folders", shown: false, result: "folders" },
+            { tag: "hide another", hidden: "folders", name: "artists", shown: false, result: "folders,artists" },
+            { tag: "hide twice", hidden: "folders", name: "folders", shown: false, result: "folders" },
+            { tag: "show", hidden: "folders,artists", name: "folders", shown: true, result: "artists" },
+            { tag: "show the last", hidden: "folders", name: "folders", shown: true, result: "" },
+            { tag: "show a shown one", hidden: "artists", name: "folders", shown: true, result: "artists" },
+        ]
+    }
+
+    function test_withSectionShown(data) {
+        compare(Helpers.withSectionShown(data.hidden, data.name, data.shown), data.result)
+    }
 }

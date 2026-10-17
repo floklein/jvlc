@@ -241,6 +241,18 @@ void VLCMenuBar::VLCMenuEntries( qt_intf_t *p_intf, QMenu *menu )
 
     menu->addSeparator();
 
+    /* the Nav sidebar of the library: its title bar has no key for it (Figma 6261:15080) */
+    if( mi && !mi->isPlayerView() && mi->getNavigationPanel() )
+    {
+        action = addEntry( p_intf, menu, qtr( "Show Side&bar" ), nullptr,
+                           [mi = QPointer<MainCtx>( mi )]() {
+                               if( mi )
+                                   emit mi->navigationToggleRequested();
+                           } );
+        action->setCheckable( true );
+        action->setChecked( mi->getNavigationPanel()->isVisible() );
+    }
+
     /* Customization */
     if( mi && mi->profiles() )
     {

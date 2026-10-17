@@ -56,6 +56,13 @@ class MLBaseModel : public BaseModel
 
     Q_PROPERTY(bool favoriteOnly READ getFavoriteOnly WRITE setFavoriteOnly NOTIFY favoriteOnlyChanged FINAL)
 
+    // the order of the items each load returns, by a role ("title",
+    // "duration"), after the sort of the media library: the rows of Home
+    // keep their items in another order. Empty keeps the order.
+    Q_PROPERTY(QString itemOrder READ getItemOrder WRITE setItemOrder NOTIFY itemOrderChanged FINAL)
+    Q_PROPERTY(Qt::SortOrder itemOrderDirection READ getItemOrderDirection WRITE setItemOrderDirection
+               NOTIFY itemOrderChanged FINAL)
+
 public:
     explicit MLBaseModel(QObject *parent = nullptr);
 
@@ -103,6 +110,11 @@ public:
     bool getFavoriteOnly() const;
     void setFavoriteOnly(const bool favoriteOnly);
 
+    QString getItemOrder() const { return m_itemOrder; }
+    void setItemOrder(const QString& role);
+    Qt::SortOrder getItemOrderDirection() const { return m_itemOrderDirection; }
+    void setItemOrderDirection(Qt::SortOrder order);
+
     // Play the rows, following the Play rule: a single media row plays with
     // the media rows after it, several rows play as they are
     Q_INVOKABLE void addAndPlay(const QModelIndexList &list, const QStringList &options = {});
@@ -113,6 +125,7 @@ signals:
     void parentIdChanged();
     void mlChanged();
     void favoriteOnlyChanged();
+    void itemOrderChanged();
 
 protected:
     virtual std::unique_ptr<MLListCacheLoader> createMLLoader() const  = 0;
@@ -163,6 +176,8 @@ protected:
 
     MediaLib* m_mediaLib = nullptr;
     bool m_favoriteOnly = false;
+    QString m_itemOrder;
+    Qt::SortOrder m_itemOrderDirection = Qt::AscendingOrder;
     vlc_ml_sorting_criteria_t m_mlSortingCriteria = VLC_ML_SORTING_DEFAULT;
     std::unique_ptr<vlc_ml_event_callback_t,
                     std::function<void(vlc_ml_event_callback_t*)>> m_ml_event_handle;
@@ -216,6 +231,9 @@ public:
                                     std::function<void (size_t, size_t, std::vector<ItemType>&)> cb) override;
 
 
+    // reorders the items of each load, on the UI thread (MLBaseModel::itemOrder)
+    void setReorder(std::function<void(std::vector<ItemType>&)> reorder) { m_reorder = std::move(reorder); }
+
     //ML specific operations
     quint64 loadItemsTask(size_t offset, const QVector<int> &indexes, MLBaseModel::ItemCallback cb);
     size_t loadItemByIdTask(MLItemId itemId, std::function<void (size_t, ItemType&&)> cb) const;
@@ -223,5 +241,6 @@ public:
 protected:
     MediaLib* m_medialib = nullptr;
     std::shared_ptr<MLOp> m_op;
+    std::function<void(std::vector<ItemType>&)> m_reorder;
 };
 #endif // MLBASEMODEL_HPP

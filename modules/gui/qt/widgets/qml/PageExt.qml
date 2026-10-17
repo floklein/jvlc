@@ -60,6 +60,10 @@ T.Page {
     // buttons shown at the end of the header
     property Component headerActions: null
 
+    // {text, action}: the first row of the page in the Library pane
+    // ("+ Add", Figma 848:1997); its "+" leaves the header there
+    property var paneAddAction: null
+
     readonly property SearchCtx search: _searchCtx
     readonly property SortCtx sort: _sortCtx
 
@@ -149,6 +153,7 @@ T.Page {
         breadcrumb: root.breadcrumb
         itemCount: root.itemCount
         actions: root.headerActions
+        addAction: root.paneAddAction
 
         leftPadding: VLCStyle.dynamicAppMargins(width) + VLCStyle.layout_left_margin + root.leftPadding
         rightPadding: VLCStyle.dynamicAppMargins(width) + VLCStyle.layout_right_margin + root.rightPadding
@@ -180,6 +185,7 @@ T.Page {
         property var breadcrumb: []
         property int itemCount: -1
         property alias actions: actionsLoader.sourceComponent
+        property var addAction: null
 
         property alias sortMenu: gridSortFilter.sortMenu
 
@@ -193,7 +199,8 @@ T.Page {
         // Figma 6261:15118: 20 px above the header, 17 px between it and the
         // divider that ends it
         topPadding: VLCStyle.pageHeader_topPadding
-        bottomPadding: VLCStyle.pageHeader_bottomPadding
+        // the "+ Add" row ends the header of the Library pane
+        bottomPadding: addRow.visible ? 0 : VLCStyle.pageHeader_bottomPadding
 
         // FIXME: `GridItem`'s background extends beyond its
         //        bounding rect, violating the hypothetical
@@ -233,8 +240,10 @@ T.Page {
             // background leaves room for the grid
             Rectangle {
                 x: defaultPageHeader.leftPadding
+                // above the "+ Add" row of the Library pane
+                y: defaultPageHeader.topPadding + addRow.y - VLCStyle.pageHeader_listPadding - height
                 width: parent.width - defaultPageHeader.leftPadding - defaultPageHeader.rightPadding
-                anchors.bottom: parent.bottom
+                anchors.bottom: addRow.visible ? undefined : parent.bottom
                 anchors.bottomMargin: -(defaultPageHeader.bottomInset || 0)
                 height: VLCStyle.pageHeader_dividerHeight
 
@@ -524,6 +533,79 @@ T.Page {
                     LibraryPages.paneOpen = false
                     MainCtx.playerView = false
                 }
+            }
+
+            // Figma 848:1997: in the Library pane, "+ Add" is the first row
+            // of the list, below the divider, rather than "+" in the header
+            T.ItemDelegate {
+                id: addRow
+
+                Layout.row: 2
+                Layout.column: 0
+                Layout.columnSpan: 4
+                Layout.fillWidth: true
+                Layout.topMargin: VLCStyle.pageHeader_bottomPadding + VLCStyle.pageHeader_listPadding
+                                  - row.rowSpacing
+
+                visible: defaultPageHeader.compact && !!defaultPageHeader.addAction
+
+                implicitHeight: VLCStyle.pageHeader_listRowHeight
+                padding: 0
+
+                text: defaultPageHeader.addAction?.text ?? ""
+
+                focusPolicy: Qt.StrongFocus
+
+                Accessible.name: text
+
+                ColorContext {
+                    id: addTheme
+                    colorSet: ColorContext.Navigation
+
+                    focused: addRow.visualFocus
+                    hovered: addRow.hovered
+                    pressed: addRow.down
+                }
+
+                background: Rectangle {
+                    color: "transparent"
+                    radius: VLCStyle.radius_small
+                    border.width: addRow.visualFocus ? VLCStyle.focus_border : 0
+                    border.color: addTheme.visualFocus
+                }
+
+                contentItem: Item {
+                    IconLabel {
+                        width: VLCStyle.pageHeader_listRowHeight
+                        height: parent.height
+
+                        text: VLCIcons.add
+                        color: addTheme.fg.primary
+                        font.pixelSize: VLCStyle.icon_normal
+                    }
+
+                    T.Label {
+                        x: VLCStyle.pageHeader_listRowHeight + VLCStyle.pageHeader_historySpacing
+                        width: parent.width - x
+                        height: parent.height
+
+                        text: addRow.text
+                        color: addTheme.fg.primary
+                        font.pixelSize: VLCStyle.fontSize_normal
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+
+                        Accessible.ignored: true
+                    }
+                }
+
+                Navigation.parentItem: defaultPageHeader
+                Navigation.upItem: gridSortFilter
+
+                Keys.priority: Keys.AfterItem
+                Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
+
+                onClicked: defaultPageHeader.addAction?.action?.()
             }
         }
     }

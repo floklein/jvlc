@@ -64,7 +64,26 @@ Widgets.IconToolButton {
 
     description: qsTr("Sort")
 
-    text: VLCIcons.topbar_sort
+    // the page is not sorted its own way: the key has an accent dot
+    // (Figma 970:2703, 848:1995)
+    property bool sortActive: false
+
+    text: sortActive ? VLCIcons.sort_active_base : VLCIcons.topbar_sort
+
+    Widgets.IconLabel {
+        anchors.fill: parent
+
+        visible: root.sortActive
+
+        text: VLCIcons.sort_active_accent
+        color: dotTheme.accent
+        font.pixelSize: root.font.pixelSize
+    }
+
+    ColorContext {
+        id: dotTheme
+        colorSet: ColorContext.Navigation
+    }
 
     checked: _menu && _menu.shown
 

@@ -544,6 +544,7 @@ qt_plugin_sources = files(
     'util/qt_dirs.cpp',
     'util/qt_dirs.hpp',
     'util/proxycolumnmodel.hpp',
+    'util/item_order.hpp',
     'util/registry.cpp',
     'util/registry.hpp',
     'util/module_options_model.cpp',
@@ -2057,6 +2058,21 @@ if qt6_dep.found()
             ),
             'moc_sources': files(
                 'tests/test_window_chrome.cpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_item_order',
+            'sources': files(
+                'tests/test_item_order.cpp',
+                'util/item_order.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_item_order.cpp'
             ),
             'suite': ['qt'],
             'include_directories' : qt_include_dir,

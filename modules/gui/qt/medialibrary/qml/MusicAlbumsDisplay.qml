@@ -34,10 +34,7 @@ Widgets.PageExt {
     // albums default to Title A-Z, the first entry of their sort menu; with no
     // criteria, the page's descending order listed them Z-A
     Component.onCompleted: {
-        if (root.sort.criteria === "") {
-            root.sort.criteria = "title"
-            root.sort.order = Qt.AscendingOrder
-        }
+        root.sort.setDefault("title", Qt.AscendingOrder)
     }
 
     MusicAlbums {

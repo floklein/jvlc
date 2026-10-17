@@ -25,7 +25,6 @@ import QtQuick.Window
 
 import VLC.MainInterface
 import VLC.Style
-import VLC.Playlist
 import VLC.Widgets as Widgets
 import VLC.Menus as Menus
 import VLC.Util
@@ -39,27 +38,14 @@ T.ToolBar {
 
     property bool useAcrylic: true
 
-    // For now, used for d&d functionality
-    // Not strictly necessary to set
-    property Item plListView
-
     property bool _showCSD: MainCtx.clientSideDecoration
         && !(MainCtx.intfMainWindow.visibility === Window.FullScreen)
 
     // the desktop puts the window buttons on the left (Linux)
     readonly property bool _csdOnLeft: _showCSD && MainCtx.windowButtonsOnLeft
 
-    // the library location, centered on the window
+    // the title, centered on the window
     property string title: ""
-
-    //whether the navigation pannel is actually visible or not
-    property alias navigationVisible: navigationVisibilty.checked
-    property alias playqueueVisible: playlistBtn.checked
-
-    property alias navigationButton: navigationVisibilty
-
-    signal toggleNavigationVisibility()
-    signal togglePlayqueueVisibility()
 
     implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
                              implicitContentHeight + topPadding + bottomPadding)
@@ -157,8 +143,10 @@ T.ToolBar {
                     height: VLCStyle.titleBar_buttonSize
                     checked: contextMenu.shown
 
+                    focus: true
+
                     Navigation.parentItem: navigationButtons
-                    Navigation.rightItem: navigationVisibilty
+                    Navigation.rightItem: playqueueButtonsTop
 
                     onClicked: contextMenu.popup(this.mapToGlobal(0, height))
 
@@ -168,30 +156,8 @@ T.ToolBar {
                     }
                 }
 
-                Widgets.IconToolButton {
-                    id: navigationVisibilty
-
-                    focus: true
-
-                    text: VLCIcons.panel_left
-                    description: qsTr("Show navigation menu")
-
-                    AccessibleCompat.id: "sidebarToggleButton"
-
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    font.pixelSize: VLCStyle.icon_banner
-                    height: VLCStyle.titleBar_buttonSize
-                    width: VLCStyle.titleBar_buttonSize
-
-                    onClicked: root.toggleNavigationVisibility()
-
-                    Navigation.parentItem: navigationButtons
-                    Navigation.leftItem: menuBtn
-                    Navigation.rightItem: playlistBtn
-                }
-
-                // NOTE: Back and forward are in the header of the library pages.
+                // NOTE: Back and forward are in the header of the library
+                //       pages; the sidebar shows and hides from the jVLC menu.
             }
         }
 
@@ -222,18 +188,9 @@ T.ToolBar {
                 Navigation.parentItem: root
                 Navigation.leftItem: navigationButtons
 
+                // Figma 6261:15088 has only the window buttons: the Queue
+                // opens from the Mini player and the player
                 ConversionsIndicator { }
-
-                PlaylistPane.PlaylistToggleButton {
-                    id: playlistBtn
-
-                    plListView: root.plListView
-
-                    Navigation.parentItem: playqueueButtonsTop
-                    Navigation.leftItem: navigationVisibilty
-
-                    onClicked:  root.togglePlayqueueVisibility()
-                }
             }
         }
 

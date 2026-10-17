@@ -430,6 +430,7 @@ MainCtx::~MainCtx()
         settings->setValue( "artist-albums-width", QString::number( m_artistAlbumsWidth ) );
 
         settings->setValue( "grid-view", m_gridView );
+        settings->setValue( "pane-grid-view", m_paneGridView );
 
         settings->setValue( "color-scheme-index", m_colorScheme->currentIndex() );
 
@@ -615,6 +616,7 @@ void MainCtx::loadFromSettingsImpl(const bool callSignals)
     loadFromSettings(m_artistAlbumsWidth, "MainWindow/artist-albums-width", 120, this,  &MainCtx::artistAlbumsWidthChanged);
 
     loadFromSettings(m_gridView, "MainWindow/grid-view", true, this, &MainCtx::gridViewChanged);
+    loadFromSettings(m_paneGridView, "MainWindow/pane-grid-view", false, this, &MainCtx::gridViewChanged);
 
     loadFromSettings(m_showRemainingTime, "MainWindow/ShowRemainingTime", false, this, &MainCtx::showRemainingTimeChanged);
 
@@ -955,8 +957,8 @@ void MainCtx::setPlayerView(bool enable)
 
     m_mainInterfaceModes.setFlag(MAININTERFACE_MODE_PLAYER, enable);
     emit mainInterfaceModesChanged(m_mainInterfaceModes);
-    // the library switches between the Library pane (a list) and the full window
-    if (m_gridView)
+    // the Library pane and the full-window library each have their view
+    if (m_gridView != m_paneGridView)
         emit gridViewChanged(hasGridView());
 }
 
@@ -968,7 +970,10 @@ void MainCtx::setShowRemainingTime( bool show )
 
 void MainCtx::setGridView(bool asGrid)
 {
-    m_gridView = asGrid;
+    if (isPlayerView())
+        m_paneGridView = asGrid;
+    else
+        m_gridView = asGrid;
     emit gridViewChanged( hasGridView() );
 }
 

@@ -255,7 +255,7 @@ T.Pane {
 
                 Navigation.parentItem: root
                 Navigation.downItem: (pinsView.count > 0) ? pinsView
-                                                          : (addPinButton.visible ? addPinButton : preferenceButton)
+                                                          : (addPinButton.visible ? addPinButton : null)
 
                 // read as "Sections, list with 6 items", like the Pins below
                 Accessible.name: qsTr("Sections")
@@ -374,7 +374,7 @@ T.Pane {
 
                 Navigation.parentItem: root
                 Navigation.upItem: listView
-                Navigation.downItem: addPinButton.visible ? addPinButton : preferenceButton
+                Navigation.downItem: addPinButton.visible ? addPinButton : null
 
                 onActionAtIndex: (index) => root.openPin(index, Qt.TabFocusReason)
 
@@ -494,7 +494,7 @@ T.Pane {
 
                 Navigation.parentItem: root
                 Navigation.upItem: (pinsView.count > 0) ? pinsView : listView
-                Navigation.downItem: preferenceButton
+                Navigation.downItem: null
 
                 Keys.priority: Keys.AfterItem
                 Keys.onPressed: (e) => Navigation.defaultKeyAction(e)
@@ -527,42 +527,6 @@ T.Pane {
                     item.leftInset = Qt.binding(() => { return VLCStyle.margin_xxsmall + root.safeAreaLeftMargin })
                     item.rightInset = Qt.binding(() => { return VLCStyle.margin_xxsmall + root.safeAreaRightMargin })
                 }
-            }
-
-            SideNavigationDelegate {
-                id: preferenceButton
-
-                AccessibleCompat.id: "preferencesButton"
-
-                Layout.fillWidth: true
-                Layout.preferredHeight: VLCStyle.buttonHeightNavigationPane
-
-                leftPadding: root.safeAreaLeftMargin
-                rightPadding: root.safeAreaRightMargin
-
-                leftInset: root.safeAreaLeftMargin + implicitLeftInset
-                rightInset: root.safeAreaRightMargin + implicitRightInset
-
-                iconTxt: VLCIcons.settings
-                checkedIconTxt: VLCIcons.settings_active
-                text: qsTr("Settings")
-
-                checked: DialogsProvider.prefsDialogVisible
-
-                showText: root.delegateShowText
-
-                onClicked: DialogsProvider.prefsDialog()
-
-                //SideNavigationDelegate is an ItemDelegate and has NoFocus by default
-                focusPolicy: Qt.StrongFocus
-
-                Navigation.parentItem: root
-                Navigation.upItem: addPinButton.visible ? addPinButton
-                                                        : ((pinsView.count > 0) ? pinsView : listView)
-
-                Keys.priority: Keys.AfterItem
-                Keys.onPressed: (e) => Navigation.defaultKeyAction(e)
-                Keys.onReleased: (e) => Navigation.defaultKeyReleaseAction(e)
             }
 
         }

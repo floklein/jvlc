@@ -145,6 +145,112 @@ Widgets.PageExt {
     // Home counts the media of the library (Figma 6261:15132, 1106:5633)
     itemCount: !_libraryMedia.loading ? _libraryMedia.maximumCount : -1
 
+    // Figma 6261:15134: the sort orders the items inside each row, which
+    // keeps its items; by default each row has its own order
+    sortModel: [
+        { text: qsTr("Default Order"), criteria: "", order: Qt.DescendingOrder },
+        { text: qsTr("Name A-Z"), criteria: "title", order: Qt.AscendingOrder },
+        { text: qsTr("Name Z-A"), criteria: "title", order: Qt.DescendingOrder },
+        { text: qsTr("Longest First"), criteria: "duration", order: Qt.DescendingOrder },
+        { text: qsTr("Shortest First"), criteria: "duration", order: Qt.AscendingOrder }
+    ]
+
+    // the order of the items of a row
+    component RowOrder: QtObject {
+        id: rowOrder
+
+        required property Item row
+        required property string criteria
+        required property int order
+
+        readonly property Binding _criteria: Binding {
+            target: rowOrder.row.model
+            property: "itemOrder"
+            value: rowOrder.criteria
+        }
+
+        readonly property Binding _order: Binding {
+            target: rowOrder.row.model
+            property: "itemOrderDirection"
+            value: rowOrder.order
+        }
+    }
+
+    RowOrder { row: continueWatchingRow; criteria: root.sort.criteria; order: root.sort.order }
+    RowOrder { row: listenAgainRow; criteria: root.sort.criteria; order: root.sort.order }
+    RowOrder { row: foldersRow; criteria: root.sort.criteria; order: root.sort.order }
+    RowOrder { row: playlistsRow; criteria: root.sort.criteria; order: root.sort.order }
+    RowOrder { row: artistsRow; criteria: root.sort.criteria; order: root.sort.order }
+    RowOrder { row: streamsRow; criteria: root.sort.criteria; order: root.sort.order }
+    RowOrder { row: favoritePlaylistsRow; criteria: root.sort.criteria; order: root.sort.order }
+    RowOrder { row: favoritesRow; criteria: root.sort.criteria; order: root.sort.order }
+
+    // the sections hidden from the "…" menu, saved as "folders,artists"
+    property string _hiddenSections: MainCtx.settingValue("Home/hidden-sections", "")
+
+    on_HiddenSectionsChanged: MainCtx.setSettingValue("Home/hidden-sections", _hiddenSections)
+
+    function _shown(name) {
+        return Helpers.sectionShown(_hiddenSections, name)
+    }
+
+    readonly property var _sections: [
+        { name: "continueWatching", text: qsTr("Continue Watching") },
+        { name: "listenAgain", text: qsTr("Listen Again") },
+        { name: "folders", text: qsTr("Frequently Visited Folders") },
+        { name: "playlists", text: qsTr("Frequently Visited Playlists") },
+        { name: "artists", text: qsTr("Frequently Listened Artists") },
+        { name: "streams", text: qsTr("Latest Streams") },
+        { name: "favorites", text: qsTr("Favorites") }
+    ]
+
+    // Figma 6261:15141: the "…" of Home
+    headerActions: Component {
+        Widgets.IconToolButton {
+            font.pixelSize: VLCStyle.icon_banner
+            width: VLCStyle.bannerButton_width
+            height: VLCStyle.bannerButton_height
+            color: VLCStyle.pageToolColor(this)
+
+            text: VLCIcons.more
+            description: qsTr("Home menu")
+
+            checked: homeMenu.visible
+
+            onClicked: homeMenu.popup([], mapToGlobal(0, height))
+        }
+    }
+
+    NativeMenu {
+        id: homeMenu
+
+        actions: [{
+            "text": qsTr("Sections"),
+            "children": () => root._sections.map((section) => ({
+                "text": section.text,
+                "checked": root._shown(section.name),
+                "action": () => {
+                    root._hiddenSections = Helpers.withSectionShown(root._hiddenSections, section.name,
+                                                                    !root._shown(section.name))
+                }
+            }))
+        }, {
+            "separator": true
+        }, {
+            // Continue Watching, Listen Again, Latest Streams and Recent; it
+            // keeps the watched state and the progress of the media
+            "text": qsTr("Clear History"),
+            "action": () => _historyModel.clearRecent()
+        }]
+
+        onRequestData: (requestID) => setData(requestID, [])
+    }
+
+    readonly property MLRecentMediaModel _historyModel: MLRecentMediaModel {
+        ml: MediaLib
+        limit: 1
+    }
+
     contentItem: Flickable {
         id: flickable
 
@@ -310,7 +416,7 @@ Widgets.PageExt {
 
                 height: currentItem?.contentHeight ?? implicitHeight
 
-                visible: model.count !== 0
+                visible: model.count !== 0 && root._shown("continueWatching")
 
                 headerPositioning: ListView.InlineHeader
                 enableBeginningFade: false
@@ -367,7 +473,7 @@ Widgets.PageExt {
 
                 height: currentItem?.contentHeight ?? implicitHeight
 
-                visible: model.count !== 0
+                visible: model.count !== 0 && root._shown("listenAgain")
 
                 listHeaderPositioning: ListView.InlineHeader
                 enableBeginningFade: false
@@ -418,7 +524,7 @@ Widgets.PageExt {
 
                 height: currentItem?.contentHeight ?? implicitHeight
 
-                visible: model.count !== 0
+                visible: model.count !== 0 && root._shown("folders")
 
                 headerPositioning: ListView.InlineHeader
                 enableBeginningFade: false
@@ -466,7 +572,7 @@ Widgets.PageExt {
 
                 height: currentItem?.contentHeight ?? implicitHeight
 
-                visible: model.count !== 0
+                visible: model.count !== 0 && root._shown("playlists")
 
                 headerPositioning: ListView.InlineHeader
                 enableBeginningFade: false
@@ -510,7 +616,7 @@ Widgets.PageExt {
 
                 height: currentItem?.contentHeight ?? implicitHeight
 
-                visible: model.count !== 0
+                visible: model.count !== 0 && root._shown("artists")
 
                 headerPositioning: ListView.InlineHeader
                 enableBeginningFade: false
@@ -552,7 +658,7 @@ Widgets.PageExt {
 
                 height: currentItem?.contentHeight ?? implicitHeight
 
-                visible: model.count !== 0
+                visible: model.count !== 0 && root._shown("streams")
 
                 listHeaderPositioning: ListView.InlineHeader
                 enableBeginningFade: false
@@ -606,7 +712,7 @@ Widgets.PageExt {
 
                 height: currentItem?.contentHeight ?? implicitHeight
 
-                visible: model.count !== 0
+                visible: model.count !== 0 && root._shown("favorites")
 
                 headerPositioning: ListView.InlineHeader
                 enableBeginningFade: false
@@ -641,7 +747,7 @@ Widgets.PageExt {
 
                 height: currentItem?.contentHeight ?? implicitHeight
 
-                visible: model.count !== 0
+                visible: model.count !== 0 && root._shown("favorites")
 
                 listHeaderPositioning: ListView.InlineHeader
                 enableBeginningFade: false

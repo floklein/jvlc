@@ -218,18 +218,6 @@ FocusScope {
         rightPadding: VLCStyle.applicationHorizontalMargin
         topPadding: VLCStyle.applicationVerticalMargin
 
-        plListView: {
-            if (playlistLoader.active)
-                return playlistLoader.item
-            else if (playlistWindowLoader.status === Loader.Ready)
-                return playlistWindowLoader.item.playlistView
-            else
-                return null
-        }
-
-        navigationVisible: pannelVisiblity.showNavigation
-        playqueueVisible: pannelVisiblity.showPlayqueue
-
         // Figma 6261:15087, 970:2712: the media being played, else the name
         // of the application; the header of the page shows where the
         // library is
@@ -239,9 +227,6 @@ FocusScope {
 
         Navigation.parentItem: g_mainDisplay
         Navigation.downItem: mainRow
-
-        onToggleNavigationVisibility: pannelVisiblity.toggleNavigationVisibility()
-        onTogglePlayqueueVisibility:  pannelVisiblity.togglePlayqueueVisibility()
     }
 
     FocusScope {
@@ -683,9 +668,13 @@ FocusScope {
             MainCtx.navigationPanel.visible = showNavigation
         }
 
-        function togglePlayqueueVisibility() {
-            showPlayqueue = !showPlayqueue
-            MainCtx.playqueuePanel.visible = showPlayqueue
+        // "Show Sidebar" of the jVLC menu
+        Connections {
+            target: MainCtx
+
+            function onNavigationToggleRequested() {
+                pannelVisiblity.toggleNavigationVisibility()
+            }
         }
 
         function onIsScreenSmallChanged() {

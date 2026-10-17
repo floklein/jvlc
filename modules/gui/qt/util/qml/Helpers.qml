@@ -374,4 +374,24 @@ QtObject {
             return backward ? count - 1 : 0
         return (current + (backward ? count - 1 : 1)) % count
     }
+
+    // The sections of Home hidden from its "…" menu, saved as "a,b": the
+    // names in `hidden`, without empty or repeated ones.
+    function hiddenSections(hidden: var) : var {
+        const list = (hidden ?? "").toString().split(",").map((s) => s.trim())
+        return list.filter((name, i) => name.length > 0 && list.indexOf(name) === i)
+    }
+
+    // whether the section `name` of Home shows
+    function sectionShown(hidden: var, name: string) : bool {
+        return hiddenSections(hidden).indexOf(name) === -1
+    }
+
+    // `hidden` with the section `name` shown (`shown`) or hidden
+    function withSectionShown(hidden: var, name: string, shown: bool) : string {
+        const list = hiddenSections(hidden).filter((n) => n !== name)
+        if (!shown && name.length > 0)
+            list.push(name)
+        return list.join(",")
+    }
 }

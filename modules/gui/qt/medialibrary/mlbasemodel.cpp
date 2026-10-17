@@ -28,6 +28,8 @@
 
 #include "util/base_model_p.hpp"
 #include "util/asynctask.hpp"
+#include "util/item_order.hpp"
+#include "util/vlctick.hpp"
 
 #include <QQmlEngine>
 
@@ -71,7 +73,36 @@ public:
     std::unique_ptr<ListCacheLoader<std::unique_ptr<MLItem>>> createLoader() const override
     {
         Q_Q(const MLBaseModel);
-        return q->createMLLoader();
+        std::unique_ptr<MLListCacheLoader> loader = q->createMLLoader();
+        if (loader && !q->m_itemOrder.isEmpty())
+        {
+            // the role of the order; a playlist or an artist has a name, not a title
+            const QHash<int, QByteArray> roles = q->roleNames();
+            QList<QByteArray> names { q->m_itemOrder.toUtf8() };
+            if (q->m_itemOrder == QLatin1String("title"))
+                names << QByteArrayLiteral("name");
+            int role = -1;
+            for (const QByteArray& name : names)
+            {
+                role = roles.key(name, -1);
+                if (role != -1)
+                    break;
+            }
+            if (role != -1)
+            {
+                const Qt::SortOrder order = q->m_itemOrderDirection;
+                loader->setReorder([q, role, order](std::vector<std::unique_ptr<MLItem>>& items) {
+                    ItemOrder::sort(items, [q, role](const std::unique_ptr<MLItem>& item) {
+                        QVariant value = item ? q->itemRoleData(item.get(), role) : QVariant();
+                        // durations compare by their length
+                        if (value.metaType() == QMetaType::fromType<VLCDuration>())
+                            value = QVariant::fromValue(qint64(value.value<VLCDuration>().toMilliseconds()));
+                        return value;
+                    }, order);
+                });
+            }
+        }
+        return loader;
     }
 
     bool cachable() const override {
@@ -510,6 +541,26 @@ void MLBaseModel::setFavoriteOnly(const bool favoriteOnly)
     emit favoriteOnlyChanged();
 }
 
+void MLBaseModel::setItemOrder(const QString& role)
+{
+    if (m_itemOrder == role)
+        return;
+    m_itemOrder = role;
+    emit itemOrderChanged();
+    // a new loader: the cache keeps its loader when it is invalidated
+    resetCache();
+}
+
+void MLBaseModel::setItemOrderDirection(Qt::SortOrder order)
+{
+    if (m_itemOrderDirection == order)
+        return;
+    m_itemOrderDirection = order;
+    emit itemOrderChanged();
+    if (!m_itemOrder.isEmpty())
+        resetCache();
+}
+
 MLItem *MLBaseModel::item(int signedidx) const
 {
     Q_D(const MLBaseModel);
@@ -684,8 +735,10 @@ size_t MLListCacheLoader::loadTask(size_t offset, size_t limit,
             ctx.list = op->load(ml, &query);
         },
         //UI thread
-        [cb](quint64 taskId, Ctx& ctx)
+        [cb, reorder = m_reorder](quint64 taskId, Ctx& ctx)
         {
+            if (reorder)
+                reorder(ctx.list);
             cb(taskId, ctx.list);
         });
 }
@@ -707,7 +760,9 @@ size_t MLListCacheLoader::countAndLoadTask(size_t offset, size_t limit,
             ctx.maximumCount = op->count(ml, &query);
         },
         //UI thread
-        [cb](quint64 taskId, Ctx& ctx) {
+        [cb, reorder = m_reorder](quint64 taskId, Ctx& ctx) {
+            if (reorder)
+                reorder(ctx.list);
             cb(taskId,  ctx.maximumCount, ctx.list);
         });
 }

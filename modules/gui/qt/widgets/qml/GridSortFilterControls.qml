@@ -34,6 +34,8 @@ NavigableRow {
 
         color: VLCStyle.pageToolColor(this)
 
+        sortActive: !root.sort.isDefault
+
         model: root.sort.model
 
         menu: root.sortMenu
@@ -55,8 +57,8 @@ NavigableRow {
 
         anchors.verticalCenter: parent.verticalCenter
 
-        // the Library pane is a list only
-        visible: MainCtx.hasGridListMode && !MainCtx.libraryPane
+        // the Library pane has its own view (Figma 848:1996)
+        visible: MainCtx.hasGridListMode
 
         enabled: visible
         width: VLCStyle.bannerButton_width

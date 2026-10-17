@@ -229,6 +229,10 @@ QtObject {
     readonly property int pageHeader_crumbSpacing: MainCtx.dp(6, scale)
     readonly property int pageHeader_crumbSeparatorWidth: MainCtx.dp(8, scale)
     readonly property real pageHeader_disabledOpacity: 0.3
+    // the list of the Library pane (Figma 848:1997): 20 px below the
+    // divider, rows 32 px high
+    readonly property int pageHeader_listPadding: margin_normal + margin_xxsmall
+    readonly property int pageHeader_listRowHeight: MainCtx.dp(32, scale)
 
     // the color of a tool of the page header (sort, view, search, …): FG/A3,
     // the indicator color, at rest, as a tool button otherwise

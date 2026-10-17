@@ -54,10 +54,7 @@ Widgets.PageLoader {
 
             // Name A-Z, the first entry of the sort menu, not Z-A
             Component.onCompleted: {
-                if (genrePage.sort.criteria === "") {
-                    genrePage.sort.criteria = "name"
-                    genrePage.sort.order = Qt.AscendingOrder
-                }
+                genrePage.sort.setDefault("name", Qt.AscendingOrder)
             }
 
             /* List View */
@@ -101,10 +98,7 @@ Widgets.PageLoader {
 
             // Title A-Z, the first entry of the sort menu, not Z-A
             Component.onCompleted: {
-                if (albumGenrePage.sort.criteria === "") {
-                    albumGenrePage.sort.criteria = "title"
-                    albumGenrePage.sort.order = Qt.AscendingOrder
-                }
+                albumGenrePage.sort.setDefault("title", Qt.AscendingOrder)
             }
 
             // the crumb "Genres" goes back to every genre
