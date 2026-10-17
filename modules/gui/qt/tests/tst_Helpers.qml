@@ -143,6 +143,26 @@ TestCase {
         compare(Helpers.controlFits(data.x, data.width, data.available), data.fits)
     }
 
+    // The Control bar spaces its controls by group (Figma 491:1779): 8 px in
+    // the transport group, 12 px between the buttons of a group, 20 px from
+    // one group to the next; the seek bar, spacers and dividers ("") keep 8
+    function test_controlBarGap_data() {
+        return [
+            { tag: "previous to play", previous: "transport", group: "transport", gap: 8 },
+            { tag: "audio to subtitles", previous: "buttons", group: "buttons", gap: 12 },
+            { tag: "volume to audio", previous: "volume", group: "buttons", gap: 20 },
+            { tag: "adjustments to Queue", previous: "buttons", group: "queue", gap: 20 },
+            { tag: "volume to Queue (tracks folded)", previous: "volume", group: "queue", gap: 20 },
+            { tag: "next to the seek bar", previous: "transport", group: "", gap: 8 },
+            { tag: "a divider to a button", previous: "", group: "buttons", gap: 8 },
+            { tag: "two volumes", previous: "volume", group: "volume", gap: 8 },
+        ]
+    }
+
+    function test_controlBarGap(data) {
+        compare(Helpers.controlBarGap(data.previous, data.group, 8, 12, 20), data.gap)
+    }
+
     // The Mini player goes to the corner nearest to where it is dropped
     function test_nearestCorner_data() {
         // a 400x300 Mini player in a 1920x1040 library

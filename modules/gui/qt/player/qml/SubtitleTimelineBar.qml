@@ -118,6 +118,13 @@ T.Control {
         hovered: hoverHandler.hovered
     }
 
+    // the Accent/Main of the playhead
+    ColorContext {
+        id: accentTheme
+        palette: theme.palette
+        colorSet: ColorContext.ButtonAccent
+    }
+
     HoverHandler {
         id: hoverHandler
         cursorShape: dragHandler.active ? Qt.ClosedHandCursor : Qt.ArrowCursor
@@ -169,10 +176,6 @@ T.Control {
         color: theme.bg.primary
         radius: VLCStyle.radius_normal
 
-        // the track is as dark as the scrim over the video: outline it
-        border.width: VLCStyle.dp(1, VLCStyle.scale)
-        border.color: theme.border
-
         // keyboard focus ring
         Rectangle {
             anchors.fill: parent
@@ -215,7 +218,10 @@ T.Control {
             to: control.windowEnd
             delay: Player.subtitleDelayMS
 
-            color: dragHandler.active ? theme.accent : Qt.alpha(theme.fg.secondary, 0.6)
+            // white at 14 % (Figma 3749:12473), so the played ones take the
+            // played color; black in the light Theme, over a white strip
+            color: dragHandler.active ? theme.accent
+                                      : Qt.alpha((theme.palette?.isDark ?? true) ? "white" : "black", 0.14)
             radius: VLCStyle.dp(1, VLCStyle.scale)
         }
 
@@ -227,7 +233,8 @@ T.Control {
             height: parent.height - control._inset * 2
 
             radius: VLCStyle.radius_small
-            color: theme.fg.primary
+            // Accent/Main, as the seek bar's handle
+            color: accentTheme.bg.primary
         }
     }
 }

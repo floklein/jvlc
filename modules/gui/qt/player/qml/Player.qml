@@ -240,12 +240,27 @@ FocusScope {
         History.previous()
     }
 
-    // The right-hand panel slides over the video in fullscreen and Hide UI,
-    // and is docked beside it in a window
+    // The right-hand panel always floats over the video (Figma 491:1781): the
+    // video keeps the width of the window. In fullscreen and Hide UI, the
+    // panels use the Tint over the video and the Library pane floats too.
     readonly property bool _rightPanelOverlaid: (MainCtx.intfMainWindow.visibility === Window.FullScreen)
                                                 || MainCtx.hideUI
-    readonly property bool _rightPanelDocked: !_rightPanelOverlaid
-                                              && (playlistpopup.visible || adjustmentsPanel.visible)
+
+    // The video sits in a frame of the bars' color with rounded inner corners
+    // (Figma 6586:17371: a 20 px stroke centered on a r19 box, so 10 px wide
+    // with r9 inside), in a window and in Hide UI (3328:11554), not in
+    // fullscreen. Under the Top bar only 1 px of it shows.
+    readonly property bool _videoFrame: MainCtx.hasEmbededVideo
+                                        && (MainCtx.intfMainWindow.visibility !== Window.FullScreen)
+    readonly property real _frameWidth: VLCStyle.dp(10, VLCStyle.scale)
+    readonly property real _frameRadius: VLCStyle.dp(9, VLCStyle.scale)
+
+    // The bars docked in a window: BG/A3 in the dark Theme (Figma 247:445);
+    // in the light one, BG/A3 Transparent (#EBEBEB at 90 %) over the video
+    // (2425:13624), here over its black
+    readonly property color _barColor: windowTheme.palette.isDark
+                                       ? windowTheme.bg.primary
+                                       : Qt.tint("black", Qt.alpha(windowTheme.bg.primary, 0.9))
 
     // the panel in the right-hand slot, the one sliding in while they swap
     readonly property Item _rightPanel: adjustmentsPanel.visible
@@ -442,12 +457,21 @@ FocusScope {
         objectName: "playerSpecializationLoader"
 
         anchors {
-            // a docked Library pane or right-hand panel shrinks the video
-            left: rootPlayer._libraryPaneDocked ? libraryPaneLoader.right : parent.left
-            right: rootPlayer._rightPanelDocked ? rootPlayer._rightPanel.left : parent.right
-            rightMargin: rootPlayer._rightPanelDocked ? VLCStyle.spacing_20 : 0
+            // a docked Library pane shrinks the video; the music player keeps
+            // the window under it (Figma 4778:25123). The right-hand panels
+            // float over both.
+            left: (rootPlayer._libraryPaneDocked && MainCtx.hasEmbededVideo) ? libraryPaneLoader.right : parent.left
+            right: parent.right
             top: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? topBar.bottom : parent.top
             bottom: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? controlBar.top : parent.bottom
+
+            // the frame round the video
+            leftMargin: rootPlayer._videoFrame ? rootPlayer._frameWidth : 0
+            rightMargin: rootPlayer._videoFrame ? rootPlayer._frameWidth : 0
+            topMargin: rootPlayer._videoFrame ? (rootPlayer._controlsUnderVideo ? VLCStyle.dp(1, VLCStyle.scale)
+                                                                                : rootPlayer._frameWidth)
+                                              : 0
+            bottomMargin: (rootPlayer._videoFrame && !rootPlayer._controlsUnderVideo) ? rootPlayer._frameWidth : 0
         }
 
         sourceComponent: MainCtx.hasEmbededVideo ? videoComponent : audioComponent
@@ -684,13 +708,34 @@ FocusScope {
                         lyricsLoader.item.lyricsSyncToPlayback = true
                 }
 
-                // background image
+                // between the bars
+                readonly property real _contentHeight: height - topPadding - bottomPadding
+
+                // The cover stays centered on the window (Figma 4778:25123:
+                // also with the Library pane open over the view), moved aside
+                // only as far as needed to clear the Library pane and the
+                // right-hand panel
+                readonly property real _roomLeft: libraryPaneLoader.visible
+                                                  ? libraryPaneLoader.x + libraryPaneLoader.width : 0
+                readonly property real _roomRight: rootPlayer._rightPanel.visible
+                                                   ? rootPlayer._rightPanel.x : width
+                readonly property real _roomWidth: Math.max(0, _roomRight - _roomLeft - VLCStyle.margin_xlarge * 2)
+
+                function _centerOffset(itemWidth : real) : real {
+                    const low = _roomLeft + VLCStyle.margin_xlarge + itemWidth / 2
+                    const high = _roomRight - VLCStyle.margin_xlarge - itemWidth / 2
+                    const center = (low <= high) ? Helpers.clamp(width / 2, low, high)
+                                                 : (_roomLeft + _roomRight) / 2
+                    return center - width / 2
+                }
+
+                // background image: the cover filling the window, a little
+                // larger (Figma 4777:24034: 1952 px wide in a 1920 px window),
+                // lightly blurred (Figma: layer blur 10), with no tint
                 Widgets.DualKawaseBlur {
                     id: blurredBackground
 
-                    // Six pass is free here since we release the intermediate layers
-                    // through unsetting `live` (see `liveTimer`):
-                    mode: Widgets.DualKawaseBlur.Mode.SixPass
+                    mode: Widgets.DualKawaseBlur.Mode.FourPass
                     radius: 2
 
                     // We disable live when everything settles through `liveTimer`,
@@ -701,15 +746,15 @@ FocusScope {
                     //destination aspect ratio
                     readonly property real dar: parent.width / parent.height
 
+                    readonly property real _bleed: VLCStyle.dp(32, VLCStyle.scale)
+
                     anchors.centerIn: parent
-                    width: (cover.sar < dar) ? parent.width :  parent.height * cover.sar
-                    height: (cover.sar < dar) ? parent.width / cover.sar :  parent.height
+                    width: ((cover.sar < dar) ? parent.width :  parent.height * cover.sar) + _bleed
+                    height: ((cover.sar < dar) ? parent.width / cover.sar :  parent.height) + _bleed / cover.sar
 
                     source: textureProviderIndirection
 
                     postprocess: true
-                    tint: bgtheme.bg.secondary
-                    tintStrength: 0.5
                     backgroundColor: bgtheme.bg.primary
 
                     readonly property ColorContext colorContext: ColorContext {
@@ -925,22 +970,33 @@ FocusScope {
 
                         parent: leftSideParent.visible ? rightSideParent : centerContent
 
-                        anchors.centerIn: parent
+                        // centered on the window, not beside the panels
+                        readonly property bool _onWindow: parent === centerContent
+
+                        // centered, on whole pixels: the cover's thin lines stay sharp
+                        x: Math.floor((parent.width - width) / 2 + (_onWindow ? audioFocusScope._centerOffset(width) : 0))
+                        y: Math.floor((parent.height - height) / 2)
                         spacing: 0
 
                         // The music player (Figma 4767:23726): a large cover with
                         // rounded corners, then "title - artist"
                         Item {
                             id: coverItem
-                            Layout.preferredHeight: Math.min(centerContent.height * heightRatio,
-                                                             coverColumn.parent.width - VLCStyle.margin_xlarge * 2)
+                            Layout.preferredHeight: {
+                                if (!coverColumn._onWindow)
+                                    return Math.min(centerContent.height * 0.75,
+                                                    coverColumn.parent.width - VLCStyle.margin_xlarge * 2)
+                                return Math.round(Math.min(audioFocusScope._contentHeight * heightRatio,
+                                                           audioFocusScope._roomWidth))
+                            }
                             Layout.preferredWidth: cover.paintedWidth
                             Layout.maximumHeight: centerContent.height
                             Layout.alignment: Qt.AlignHCenter
 
-                            // the cover takes three quarters of the view, less
-                            // when the current lyric shows under it
-                            readonly property real heightRatio: (Player.hasLyrics && !audioFocusScope.lyricsLayoutActive) ? 0.6 : 0.75
+                            // the cover takes 737 of the 986 px between the
+                            // bars (Figma 4767:23726), less when the current
+                            // lyric shows under it
+                            readonly property real heightRatio: Player.hasLyrics ? 0.6 : (737 / 986)
 
                             Image {
                                 id: cover
@@ -1032,8 +1088,17 @@ FocusScope {
                             id: titleLabel
 
                             Layout.alignment: Qt.AlignHCenter
-                            Layout.maximumWidth: coverColumn.parent.width - VLCStyle.margin_xlarge * 2
-                            Layout.topMargin: Math.round(centerContent.height * 0.074)
+                            Layout.maximumWidth: coverColumn._onWindow ? audioFocusScope._roomWidth
+                                                                       : coverColumn.parent.width - VLCStyle.margin_xlarge * 2
+                            // Figma 4767:23726: the room between the bars is
+                            // shared evenly above the cover, between the cover
+                            // and the title, and under the title
+                            Layout.topMargin: {
+                                if (!coverColumn._onWindow || Player.hasLyrics)
+                                    return Math.round(centerContent.height * 0.074)
+                                return Math.max(0, Math.round((audioFocusScope._contentHeight - coverItem.Layout.preferredHeight
+                                                               - implicitHeight) / 3))
+                            }
 
                             Binding on visible {
                                 delayed: true
@@ -1173,6 +1238,25 @@ FocusScope {
         }
     }
 
+    // the frame round the video: the border of a box larger than the video,
+    // whose inside is the video with its r9 corners. The border is wider than
+    // the frame so that its own outer rounded corners fall outside the
+    // window; the bars and the Library pane cover the rest of it.
+    Rectangle {
+        readonly property real _band: rootPlayer._frameWidth * 4
+
+        anchors.fill: playerSpecializationLoader
+        anchors.margins: - _band
+
+        visible: rootPlayer._videoFrame
+
+        radius: rootPlayer._frameRadius + _band
+        color: "transparent"
+        border.width: _band
+        border.color: rootPlayer._barColor
+        antialiasing: true
+    }
+
     TopBar {
         id: topBar
 
@@ -1251,13 +1335,14 @@ FocusScope {
         }
 
         // docked in a window, above the video or the music player's cover:
-        // the Theme's window background (Figma BG/A3, 247:447 and 4767:23728)
+        // the Theme's window background (Figma BG/A3, 247:447 and 4767:23728;
+        // light, 2425:13626), as the frame round the video
         Rectangle {
             z: -1
 
             anchors.fill: parent
 
-            color: windowTheme.bg.primary
+            color: rootPlayer._barColor
             opacity: topBarAcrylicBg.opacity
 
             visible: rootPlayer._controlsUnderVideo
@@ -1284,13 +1369,14 @@ FocusScope {
         z: 2
     }
 
-    // The right-hand panel: the Queue panel (Figma 491:1781), 400 px, from
-    // under the Top bar to above the Control bar
+    // The right-hand panel: the Queue panel (Figma 491:1781), 400 px, over
+    // the video, 20 px from the Top bar, the right edge and the Control bar
     Loader {
         id: playlistpopup
 
         anchors {
             top: topBar.bottom
+            topMargin: VLCStyle.spacing_20
             right: parent.right
             bottom: parent.bottom
 
@@ -1369,12 +1455,14 @@ FocusScope {
 
             wheelEnabled: true
 
-            // the Tint over the video, the view background when docked
+            // over the video in a window: BG/B1 Transparent (Figma 463:831, the
+            // view background at 95 %), r10
             background: Widgets.TintBackground {
                 radius: VLCStyle.radius_large
+                // fullscreen and Hide UI keep the Tint over the Video blur
                 overVideo: rootPlayer._rightPanelOverlaid
                 colorContext: windowTheme
-                baseColor: queuePanel.colorContext.bg.primary
+                baseColor: Qt.alpha(queuePanel.colorContext.bg.primary, 0.95)
             }
 
             Navigation.parentItem: rootPlayer
@@ -1397,6 +1485,7 @@ FocusScope {
 
         anchors {
             top: topBar.bottom
+            topMargin: VLCStyle.spacing_20
             right: parent.right
             bottom: parent.bottom
 
@@ -1476,12 +1565,14 @@ FocusScope {
 
             fsm: rightPanel
 
-            // the Tint over the video, the view background when docked
+            // over the video in a window: BG/B1 Transparent (Figma 2238:9432, the
+            // view background at 95 %), r10
             background: Widgets.TintBackground {
                 radius: VLCStyle.radius_large
+                // fullscreen and Hide UI keep the Tint over the Video blur
                 overVideo: rootPlayer._rightPanelOverlaid
                 colorContext: windowTheme
-                baseColor: adjustmentsSidebar.colorContext.bg.primary
+                baseColor: Qt.alpha(adjustmentsSidebar.colorContext.bg.primary, 0.95)
             }
 
             Navigation.parentItem: rootPlayer
@@ -1816,16 +1907,25 @@ FocusScope {
                 }
             }
 
-            overVideo: rootPlayer._panelsOverVideo
+            // the music player's bar is BG/A3 Transparent over the blurred
+            // cover (Figma 4767:23748)
+            overVideo: rootPlayer._panelsOverVideo || !MainCtx.hasEmbededVideo
             colorContext: windowTheme
 
-            // Figma: Divider/Dim along the top edge
+            // docked under the video: the frame's color (Figma 247:445)
+            baseColor: rootPlayer._barColor
+
+            // Divider/Dim along the top edge (Figma 491:1779, 4767:23748),
+            // but not under the framed video: the bar and the frame are one
+            // (247:445)
             Rectangle {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
 
                 height: VLCStyle.border
+
+                visible: !rootPlayer._videoFrame || !rootPlayer._controlsUnderVideo
 
                 color: windowTheme.separator
             }

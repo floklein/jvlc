@@ -20,6 +20,7 @@ import QtQuick.Layouts
 
 import VLC.MainInterface
 import VLC.Util
+import VLC.PlayerControls
 
 Repeater {
     id: repeater
@@ -33,7 +34,87 @@ Repeater {
     // controls that fold read it (foldLevel) or fold away at their foldStep.
     property int foldLevel: ControlBarFolding.Full
 
-    // for each control, its width at each fold level (see ControlBarFolding)
+    // The Control bar spaces its controls by group (Figma 491:1779): `spacing`
+    // inside the transport group (previous, play, next...), `buttonSpacing`
+    // between the buttons of a group (audio, subtitles, adjustments...),
+    // `groupSpacing` between two groups (transport | seek bar | volume |
+    // buttons | Queue). Off, every control is `spacing` apart.
+    property bool groupGaps: false
+    property real spacing: 0
+    property real buttonSpacing: 0
+    property real groupSpacing: 0
+
+    // the group of a control: "" for the ones that sit between groups (the
+    // seek bar, spacers and dividers keep `spacing` on both sides)
+    function controlGroup(controlId : int) : string {
+        switch (controlId) {
+        case ControlListModel.PREVIOUS_BUTTON:
+        case ControlListModel.PLAY_BUTTON:
+        case ControlListModel.NEXT_BUTTON:
+        case ControlListModel.SKIP_BACK_BUTTON:
+        case ControlListModel.SKIP_FW_BUTTON:
+        case ControlListModel.STOP_BUTTON:
+        case ControlListModel.SLOWER_BUTTON:
+        case ControlListModel.FASTER_BUTTON:
+        case ControlListModel.FRAME_PREV_BUTTON:
+        case ControlListModel.FRAME_NEXT_BUTTON:
+        case ControlListModel.REVERSE_BUTTON:
+        case ControlListModel.CHAPTER_PREVIOUS_BUTTON:
+        case ControlListModel.CHAPTER_NEXT_BUTTON:
+            return "transport"
+        case ControlListModel.VOLUME:
+            return "volume"
+        case ControlListModel.PLAYLIST_BUTTON:
+            return "queue"
+        case ControlListModel.SEEK_BAR:
+        case ControlListModel.WIDGET_SPACER:
+        case ControlListModel.WIDGET_SPACER_EXTEND:
+        case ControlListModel.DIVIDER:
+            return ""
+        default:
+            return "buttons"
+        }
+    }
+
+    // the room between two neighbor controls
+    function gapBetween(previousId : int, controlId : int) : real {
+        return Helpers.controlBarGap(controlGroup(previousId), controlGroup(controlId),
+                                     spacing, buttonSpacing, groupSpacing)
+    }
+
+    // the extra room a control takes before it, beyond `spacing`: the gap to
+    // the nearest shown control before it
+    function _leadingMargin(index : int) : real {
+        if (!groupGaps)
+            return 0
+        void _itemsRevision
+        const loader = itemAt(index)
+        if (!loader)
+            return 0
+        for (let i = index - 1; i >= 0; --i) {
+            const previous = itemAt(i)
+            if (previous && previous.visible)
+                return gapBetween(previous.controlId, loader.controlId) - spacing
+        }
+        return 0
+    }
+
+    // the same, with the control before it in the Layout whether it shows or
+    // not: the folding computes the room the bar needs from it, without
+    // depending on what the folding hides
+    function _foldMargin(index : int) : real {
+        if (!groupGaps || index <= 0)
+            return 0
+        void _itemsRevision
+        const loader = itemAt(index)
+        const previous = itemAt(index - 1)
+        if (!loader || !previous)
+            return 0
+        return gapBetween(previous.controlId, loader.controlId) - spacing
+    }
+
+    // for each control, its width at each fold level (see ControlBarFolding),
+    // with the room its group takes before it
     readonly property var foldWidths: {
         const widths = []
         for (let i = 0; i < count; ++i) {
@@ -42,12 +123,15 @@ Repeater {
             if (!item)
                 continue
 
+            const margin = _foldMargin(i)
+            const withMargin = (width) => width > 0 ? width + margin : 0
+
             if (item.foldWidths !== undefined) {
-                widths.push(item.foldWidths)
+                widths.push(item.foldWidths.map(withMargin))
                 continue
             }
 
-            const width = Math.max(loader.Layout.minimumWidth, 0)
+            const width = withMargin(Math.max(loader.Layout.minimumWidth, 0))
             const foldStep = item.foldStep ?? 0
             if (foldStep > 0) {
                 const steps = []
@@ -129,6 +213,9 @@ Repeater {
         Layout.fillHeight: true
 
         Layout.alignment: repeater.alignment
+
+        // the room its group takes before it (groupGaps)
+        Layout.leftMargin: repeater._leadingMargin(index)
 
         Binding on fits {
             delayed: true // this is important

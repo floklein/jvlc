@@ -35,6 +35,12 @@ FocusScope {
 
     property real layoutSpacing: VLCStyle.margin_xxlarge // spacing between layouts (left, center, and right)
 
+    // space the controls of a zone by group (ControlRepeater): `spacing` in
+    // the transport group, `buttonSpacing` between buttons, `layoutSpacing`
+    // between two groups, as between two zones
+    property bool groupGaps: false
+    property real buttonSpacing: spacing
+
     property int identifier: -1
 
     // In a narrow window, fold less important controls in a decided order:
@@ -138,6 +144,13 @@ FocusScope {
             anchors.right: loaderRight.left
         }
 
+        // the side zones end with `spacing` toward the center (their filler):
+        // the zones are `layoutSpacing` apart (Figma 491:1779: 20 px)
+        PropertyChanges {
+            loaderCenter.anchors.leftMargin: (loaderLeft.active ? playerControlLayout.layoutSpacing - playerControlLayout.spacing : 0)
+            loaderCenter.anchors.rightMargin: (loaderRight.active ? playerControlLayout.layoutSpacing - playerControlLayout.spacing : 0)
+        }
+
         AnchorChanges {
             target: loaderRight
             anchors.left: undefined
@@ -225,6 +238,11 @@ FocusScope {
                 availableWidth: loaderLeftRight.width
                 availableHeight: loaderLeftRight.height
 
+                groupGaps: playerControlLayout.groupGaps
+                spacing: playerControlLayout.spacing
+                buttonSpacing: playerControlLayout.buttonSpacing
+                groupSpacing: playerControlLayout.layoutSpacing
+
                 foldLevel: playerControlLayout.foldLevel
 
                 Component.onCompleted: {
@@ -273,6 +291,11 @@ FocusScope {
 
                 availableWidth: loaderLeftRight.width
                 availableHeight: loaderLeftRight.height
+
+                groupGaps: playerControlLayout.groupGaps
+                spacing: playerControlLayout.spacing
+                buttonSpacing: playerControlLayout.buttonSpacing
+                groupSpacing: playerControlLayout.layoutSpacing
 
                 foldLevel: playerControlLayout.foldLevel
 

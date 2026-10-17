@@ -66,20 +66,48 @@ FocusScope {
     readonly property bool _showTime: foldLevel < ControlBarFolding.NoTime
                                       && width >= _timeWidth + spacing + _minimumBarWidth
 
-    // "01:50", or "01:01:50", as VLCTick.formatHMS
-    function _formatMS(ms : real) : string {
+    // where the timeline's span starts or ends: "00:01:50*", the hours shown
+    // as the seek bar's (Figma 3744:12370); the star tells it from the time
+    function _formatSpanMS(ms : real) : string {
         const total = Math.floor(Math.max(ms, 0) / 1000)
-        const hours = Math.floor(total / 3600)
         const pad = (n) => String(n).padStart(2, "0")
-        const mmss = pad(Math.floor(total / 60) % 60) + ":" + pad(total % 60)
-        return hours > 0 ? pad(hours) + ":" + mmss : mmss
+        return pad(Math.floor(total / 3600)) + ":" + pad(Math.floor(total / 60) % 60)
+               + ":" + pad(total % 60) + "*"
     }
 
     // ‹ › move the subtitles by 100 ms, as the subtitle delay
     readonly property int _shiftStep: 100
 
-    // a small accent key over an end of the timeline strip (Figma 3750:12502)
+    // the glyph of a timeline key, 2 px strokes with round ends (Figma 3750:12502)
+    enum Glyph { ChevronLeft, ChevronRight, Minus, Plus }
+
+    // a 2 px stroke with round ends from (x1, y1) to (x2, y2), in its
+    // parent's coordinates
+    component GlyphStroke : Rectangle {
+        required property real x1
+        required property real y1
+        required property real x2
+        required property real y2
+
+        readonly property real _thickness: VLCStyle.dp(2, VLCStyle.scale)
+        readonly property real _length: Math.hypot(x2 - x1, y2 - y1)
+
+        x: (x1 + x2) / 2 - width / 2
+        y: (y1 + y2) / 2 - height / 2
+        width: _thickness
+        height: _length + _thickness
+        radius: _thickness / 2
+        rotation: Math.atan2(x1 - x2, y2 - y1) * 180 / Math.PI
+        antialiasing: true
+    }
+
+    // a small accent key over an end of the timeline strip (Figma 3750:12502):
+    // Accent/Dim, in a 2 px ring of the strip's color, with a vector glyph
     component TimelineButton : Widgets.IconToolButton {
+        id: timelineButton
+
+        required property int glyph
+
         visible: root._timeline
 
         // over the strip
@@ -88,7 +116,8 @@ FocusScope {
         width: VLCStyle.dp(18, VLCStyle.scale)
         height: root.implicitHeight - y * 2
 
-        font.pixelSize: VLCStyle.icon_normal
+        // the glyph is drawn, not a font icon
+        text: " "
 
         radius: VLCStyle.radius_small
         // the strip's own colors
@@ -97,12 +126,109 @@ FocusScope {
         color: timelineBar.colorContext.bg.primary
         opacity: enabled ? 1 : 0.5
 
+        // the ring round the key
+        Rectangle {
+            z: -1
+
+            anchors.fill: parent
+            anchors.margins: -_ring
+
+            readonly property real _ring: VLCStyle.dp(2, VLCStyle.scale)
+
+            radius: timelineButton.radius + _ring
+            color: "transparent"
+            border.width: _ring
+            border.color: timelineBar.colorContext.bg.primary
+        }
+
+        contentItem: Item {
+            // Figma 3750:12503 draws the right chevron 1 px right of the center
+            readonly property real _cx: timelineButton.width / 2
+                                        + ((timelineButton.glyph === SeekBarWidget.Glyph.ChevronRight) ? VLCStyle.dp(1, VLCStyle.scale) : 0)
+            readonly property real _cy: timelineButton.height / 2
+            // the chevron's reach: 4x12 px; the minus and plus span 10 px
+            readonly property real _dx: VLCStyle.dp(2, VLCStyle.scale)
+            readonly property real _dy: VLCStyle.dp(6, VLCStyle.scale)
+            readonly property real _arm: VLCStyle.dp(5, VLCStyle.scale)
+
+            GlyphStroke {
+                color: timelineButton.color
+                visible: timelineButton.glyph !== SeekBarWidget.Glyph.Plus
+                         && timelineButton.glyph !== SeekBarWidget.Glyph.Minus
+                readonly property real _tip: (timelineButton.glyph === SeekBarWidget.Glyph.ChevronLeft) ? -parent._dx : parent._dx
+                x1: parent._cx - _tip; y1: parent._cy - parent._dy
+                x2: parent._cx + _tip; y2: parent._cy
+            }
+            GlyphStroke {
+                color: timelineButton.color
+                visible: timelineButton.glyph !== SeekBarWidget.Glyph.Plus
+                         && timelineButton.glyph !== SeekBarWidget.Glyph.Minus
+                readonly property real _tip: (timelineButton.glyph === SeekBarWidget.Glyph.ChevronLeft) ? -parent._dx : parent._dx
+                x1: parent._cx + _tip; y1: parent._cy
+                x2: parent._cx - _tip; y2: parent._cy + parent._dy
+            }
+            GlyphStroke {
+                color: timelineButton.color
+                visible: timelineButton.glyph === SeekBarWidget.Glyph.Plus
+                         || timelineButton.glyph === SeekBarWidget.Glyph.Minus
+                x1: parent._cx - parent._arm; y1: parent._cy
+                x2: parent._cx + parent._arm; y2: parent._cy
+            }
+            GlyphStroke {
+                color: timelineButton.color
+                visible: timelineButton.glyph === SeekBarWidget.Glyph.Plus
+                x1: parent._cx; y1: parent._cy - parent._arm
+                x2: parent._cx; y2: parent._cy + parent._arm
+            }
+        }
+
         Navigation.parentItem: root
     }
 
     readonly property ColorContext colorContext: ColorContext {
         id: theme
         colorSet: ColorContext.ToolButton
+    }
+
+    // the Current Time's key when hovered (Figma 1904:7239: BG/B2)
+    ColorContext {
+        id: viewTheme
+        palette: theme.palette
+        colorSet: ColorContext.View
+    }
+
+    signal requestLockUnlockAutoHide(bool lock)
+
+    // the Current Time, clicked: a field to type the time to jump to (Figma
+    // 1904:7241); Enter jumps, Escape or a click elsewhere leaves it
+    property bool _editingTime: false
+
+    function _startEditingTime() {
+        if (root.paintOnly || root._timeline || !Player.seekable)
+            return
+        timeField.text = Player.time.formatHMS(VLCTick.WithHours)
+        root._editingTime = true
+        timeField.cursorPosition = timeField.text.length
+        timeField.forceActiveFocus(Qt.MouseFocusReason)
+    }
+
+    function _stopEditingTime(jump : bool) {
+        if (!root._editingTime)
+            return
+        if (jump) {
+            const seconds = Helpers.parseTime(timeField.text)
+            if (seconds >= 0 && (!Player.length.valid() || seconds <= Player.length.toSeconds()))
+                Player.jumpToTime(seconds)
+        }
+        root._editingTime = false
+        if (timeField.activeFocus)
+            slider.forceActiveFocus(Qt.OtherFocusReason)
+    }
+
+    on_EditingTimeChanged: {
+        // the bars stay and the hotkeys wait while the time is typed
+        MainCtx.useGlobalShortcuts = !_editingTime
+        root.requestLockUnlockAutoHide(_editingTime)
     }
 
     function showChapterMarks() {
@@ -122,38 +248,119 @@ FocusScope {
 
         spacing: root.spacing
 
-        T.Label {
-            id: timeLabel
+        // the Current Time (Figma 1904:7238)
+        Item {
+            id: timeBox
 
             visible: root._showTime
 
             Layout.preferredWidth: root._timeWidth
             Layout.fillHeight: true
 
-            text: {
-                if (root.paintOnly)
-                    return "00:02:10"
-                // the timeline: where its span starts
-                if (root._timeline)
-                    return root._formatMS(timelineBar.windowStart)
-                const length = Player.length
-                return Player.time.formatHMS(length.isSubSecond() ? VLCTick.SubSecondFormattedAsMS : 0)
+            // a click types a time to jump to; not on the timeline, whose
+            // label is where its span starts
+            readonly property bool _editable: !root.paintOnly && !root._timeline && Player.seekable
+
+            Accessible.role: Accessible.Button
+            Accessible.name: qsTr("Jump to Time")
+            Accessible.ignored: !_editable || root._editingTime
+            Accessible.onPressAction: root._startEditingTime()
+
+            // hovered or typed in: a BG/B2 key (Figma 1904:7239)
+            Rectangle {
+                anchors.fill: parent
+
+                visible: timeBox._editable && (timeHover.hovered || root._editingTime)
+
+                radius: VLCStyle.radius_normal
+                color: viewTheme.bg.secondary
             }
 
-            color: theme.fg.primary
-            font.pixelSize: VLCStyle.fontSize_large
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
+            T.Label {
+                id: timeLabel
 
-            Accessible.ignored: true
+                anchors.fill: parent
 
-            // TODO: Do not use `Binding` when minimum Qt is 6.12:
-            Binding {
-                target: timeLabel
-                property: "mutabilityGroup"
-                when: (timeLabel.mutabilityGroup !== undefined)
-                value: (Player.playingState === Player.PLAYING_STATE_PLAYING) ? Item.ModerateMutabilityGroup
-                                                                              : Item.StaticMutabilityGroup
+                visible: !root._editingTime
+
+                text: {
+                    if (root.paintOnly)
+                        return "00:02:10"
+                    // the timeline: where its span starts
+                    if (root._timeline)
+                        return root._formatSpanMS(timelineBar.windowStart)
+                    const length = Player.length
+                    return Player.time.formatHMS((length.isSubSecond() ? VLCTick.SubSecondFormattedAsMS : 0)
+                                                 | VLCTick.WithHours)
+                }
+
+                color: theme.fg.primary
+                font.pixelSize: VLCStyle.fontSize_large
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+
+                Accessible.ignored: true
+
+                // TODO: Do not use `Binding` when minimum Qt is 6.12:
+                Binding {
+                    target: timeLabel
+                    property: "mutabilityGroup"
+                    when: (timeLabel.mutabilityGroup !== undefined)
+                    value: (Player.playingState === Player.PLAYING_STATE_PLAYING) ? Item.ModerateMutabilityGroup
+                                                                                  : Item.StaticMutabilityGroup
+                }
+            }
+
+            // the time typed: the digits FG/1 (Figma 1904:7242)
+            TextInput {
+                id: timeField
+
+                anchors.fill: parent
+
+                visible: root._editingTime
+                enabled: root._editingTime
+
+                color: viewTheme.fg.highlight
+                selectionColor: theme.accent
+                selectedTextColor: viewTheme.bg.secondary
+                font.pixelSize: VLCStyle.fontSize_large
+                horizontalAlignment: TextInput.AlignHCenter
+                verticalAlignment: TextInput.AlignVCenter
+                inputMethodHints: Qt.ImhPreferNumbers
+                validator: RegularExpressionValidator { regularExpression: /[0-9:]*/ }
+
+                Accessible.name: qsTr("Time to jump to, as hours:minutes:seconds")
+
+                onAccepted: root._stopEditingTime(true)
+
+                onActiveFocusChanged: {
+                    if (!activeFocus)
+                        root._stopEditingTime(false)
+                }
+
+                // the keys stay in the field: none reaches the player's hotkeys
+                Keys.priority: Keys.AfterItem
+                Keys.onPressed: (event) => {
+                    if (event.key === Qt.Key_Escape) {
+                        root._stopEditingTime(false)
+                        event.accepted = true
+                        return
+                    }
+                    if (event.key !== Qt.Key_Tab && event.key !== Qt.Key_Backtab)
+                        event.accepted = true
+                }
+            }
+
+            HoverHandler {
+                id: timeHover
+
+                enabled: timeBox._editable
+                cursorShape: Qt.PointingHandCursor
+            }
+
+            TapHandler {
+                enabled: timeBox._editable && !root._editingTime
+                onTapped: root._startEditingTime()
             }
         }
 
@@ -186,7 +393,7 @@ FocusScope {
 
                 x: VLCStyle.dp(2, VLCStyle.scale)
 
-                text: VLCIcons.chevron_left
+                glyph: SeekBarWidget.Glyph.ChevronLeft
                 description: qsTr("Show subtitles %1 ms earlier").arg(root._shiftStep)
                 onClicked: Player.subtitleDelayMS = Player.subtitleDelayMS - root._shiftStep
 
@@ -200,7 +407,7 @@ FocusScope {
                 x: shiftEarlierButton.x + shiftEarlierButton.width + VLCStyle.dp(2, VLCStyle.scale)
                 width: VLCStyle.dp(22, VLCStyle.scale)
 
-                text: VLCIcons.remove
+                glyph: SeekBarWidget.Glyph.Minus
                 description: qsTr("Zoom out")
                 enabled: Player.subtitleTimeline.canZoomOut
                 onClicked: Player.subtitleTimeline.zoomOut()
@@ -215,7 +422,7 @@ FocusScope {
                 x: shiftLaterButton.x - width - VLCStyle.dp(2, VLCStyle.scale)
                 width: VLCStyle.dp(22, VLCStyle.scale)
 
-                text: VLCIcons.add
+                glyph: SeekBarWidget.Glyph.Plus
                 description: qsTr("Zoom in")
                 enabled: Player.subtitleTimeline.canZoomIn
                 onClicked: Player.subtitleTimeline.zoomIn()
@@ -227,9 +434,10 @@ FocusScope {
             TimelineButton {
                 id: shiftLaterButton
 
-                x: timelineBar.width - width - VLCStyle.dp(2, VLCStyle.scale)
+                // Figma 3750:12503: flush with the strip's end
+                x: timelineBar.width - width
 
-                text: VLCIcons.chevron_right
+                glyph: SeekBarWidget.Glyph.ChevronRight
                 description: qsTr("Show subtitles %1 ms later").arg(root._shiftStep)
                 onClicked: Player.subtitleDelayMS = Player.subtitleDelayMS + root._shiftStep
 
@@ -284,9 +492,9 @@ FocusScope {
                     return "00:25:40"
                 // the timeline: where its span ends
                 if (root._timeline)
-                    return root._formatMS(timelineBar.windowEnd)
-                return showRemainingTime ? "-" + Player.remainingTime.formatHMS()
-                                         : Player.length.formatHMS()
+                    return root._formatSpanMS(timelineBar.windowEnd)
+                return showRemainingTime ? "-" + Player.remainingTime.formatHMS(VLCTick.SubSecondFormattedAsMS | VLCTick.WithHours)
+                                         : Player.length.formatHMS(VLCTick.SubSecondFormattedAsMS | VLCTick.WithHours)
             }
 
             color: theme.fg.primary
@@ -369,7 +577,7 @@ FocusScope {
                         : Player.remainingTime
 
                     return qsTr("%1 (%2x)")
-                        .arg(adjustedRemainingTime.formatHMS())
+                        .arg(adjustedRemainingTime.formatHMS(VLCTick.SubSecondFormattedAsMS | VLCTick.WithHours))
                         .arg(+Player.rate.toFixed(2))
                 }
 

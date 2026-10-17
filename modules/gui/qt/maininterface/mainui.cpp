@@ -401,7 +401,9 @@ void MainUI::registerQMLTypes()
         assert(m_mainCtx->getPresets());
         qmlRegisterSingletonInstance<PresetController>(uri, versionMajor, versionMinor, "Presets", m_mainCtx->getPresets());
         qmlRegisterSingletonInstance<ShortcutMessage>(uri, versionMajor, versionMinor, "ShortcutMessage", m_mainCtx->shortcutMessage());
-        qmlRegisterUncreatableMetaObject(VLCTickForeign::staticMetaObject, uri, versionMajor, versionMinor, "VLCTick", "Not Instantiable" );
+        // the meta object of VLCTick itself holds FormatFlag: the foreign
+        // namespace has no enum, so VLCTick.WithHours read undefined in QML
+        qmlRegisterUncreatableMetaObject(VLCTick::staticMetaObject, uri, versionMajor, versionMinor, "VLCTick", "Not Instantiable" );
         qmlRegisterTypesAndRevisions<VLCDuration>(uri, versionMajor);
         qmlRegisterTypesAndRevisions<VLCTime>(uri, versionMajor);
 

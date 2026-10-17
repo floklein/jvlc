@@ -25,9 +25,10 @@ import VLC.Util
 import VLC.Style
 import VLC.Player
 
-// The speaker button and the volume cone (Figma 491:1731). The full cone spans
-// 0 to the maximum volume (125% by default); the orange-to-red end of its
-// gradient marks the boost above 100%.
+// The speaker button and the volume cone (Figma 491:1731, 244:184). The full
+// cone spans 0 to 200% (Figma's scale), the default 100% fills half of it.
+// The volume still stops at the maximum volume (125% by default): the cone
+// past it is not reachable.
 T.Pane {
     id: root
 
@@ -38,6 +39,9 @@ T.Pane {
     readonly property var _player: paintOnly ? ({ muted: false, volume: .5 }) : Player
     // the cone works in percent
     readonly property int _maxvol: MainCtx.maxVolume
+    // the volume of the full cone, and the part of the cone up to the maximum
+    readonly property int _scale: Math.max(200, _maxvol)
+    readonly property real _reach: _maxvol / _scale
 
     // how far the Control bar folds (ControlBarFolding.Level): in a narrow
     // window the cone collapses to the speaker, and pops up over it
@@ -221,6 +225,10 @@ T.Pane {
             implicitWidth: VLCStyle.dp(88, VLCStyle.scale)
             implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
 
+            // the slider spans 0 to the maximum volume: the part of the cone
+            // up to it. A press past it sets the maximum.
+            rightPadding: Math.round(width * (1 - root._reach))
+
             // WARNING: Directly setting the insets break handle and background positioning.
             Binding on topInset {
                 when: MainCtx.usingTouch
@@ -279,8 +287,21 @@ T.Pane {
                 implicitWidth: VLCStyle.dp(88, VLCStyle.scale)
                 implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
 
-                width: volControl.availableWidth
+                // the whole cone, past the slider's reach
+                width: volControl.width - volControl.leftPadding
                 height: volControl.availableHeight
+
+                // Figma: the track is BG/B2 in the dark frames (491:1733),
+                // BG/A5 in the light one (2425:13645); the shade over the
+                // level darkens it in the dark Theme, lightens it in the light one
+                readonly property bool _dark: volControl.colorContext.palette?.isDark ?? true
+
+                ColorContext {
+                    id: lightTrackTheme
+                    palette: volControl.colorContext.palette
+                    // its BG/A5 (bg.highlight)
+                    colorSet: ColorContext.Navigation
+                }
 
                 Image {
                     id: coneTrack
@@ -294,7 +315,8 @@ T.Pane {
                     fillMode: Image.Stretch
 
                     source: SVGColorImage.colorize("qrc:///misc/volume_cone_track.svg")
-                                .color1(volControl.colorContext.bg.primary)
+                                .color1(parent._dark ? volControl.colorContext.bg.primary
+                                                     : lightTrackTheme.bg.highlight)
                                 .uri()
                 }
 
@@ -303,7 +325,7 @@ T.Pane {
                     x: parent.width * (1.5 / 88)
                     anchors.verticalCenter: parent.verticalCenter
 
-                    width: (parent.width * (86 / 88)) * volControl.visualPosition
+                    width: (parent.width * (86 / 88)) * volControl.visualPosition * root._reach
                     height: coneLevel.height
 
                     clip: true
@@ -319,7 +341,11 @@ T.Pane {
                         sourceSize: Qt.size(width * Screen.devicePixelRatio, height * Screen.devicePixelRatio)
                         fillMode: Image.Stretch
 
-                        source: "qrc:///misc/volume_cone_level.svg"
+                        // Figma 491:1733 / 2425:13645: black at 20 % over the
+                        // gradient in the dark Theme, white at 20 % in the light one
+                        source: SVGColorImage.colorize("qrc:///misc/volume_cone_level.svg")
+                                    .color1(parent.parent._dark ? "black" : "white")
+                                    .uri()
                     }
                 }
 
@@ -479,7 +505,8 @@ T.Pane {
                 function adjustVolume(mouse) {
                     mouse.accepted = true
 
-                    const pos = mouse.x * root._maxvol / width
+                    // the cone spans 0 to `_scale`
+                    const pos = Math.min(mouse.x * root._scale / width, root._maxvol)
 
                     if (pos < 25)
                         volControl.value = 0

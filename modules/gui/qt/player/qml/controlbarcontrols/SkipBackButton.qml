@@ -43,5 +43,11 @@ Widgets.IconToolButton {
     // the short jump's key; the music player's 15 s has none
     shortcutAction: _music ? "" : "jump-short"
 
+    // Figma 4778:26506: 24 px icon in a 30x28 slot, as Previous and Next
+    leftPadding: VLCStyle.dp(3, VLCStyle.scale)
+    rightPadding: VLCStyle.dp(3, VLCStyle.scale)
+    topPadding: VLCStyle.dp(2, VLCStyle.scale)
+    bottomPadding: VLCStyle.dp(2, VLCStyle.scale)
+
     AccessibleCompat.id: "skipBackButton"
 }

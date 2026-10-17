@@ -181,8 +181,9 @@ T.Pane {
             // This text metrics is used for both the time and length, as we want them to have the same width.
             // Length might not be reported in some cases, for that reason we should check both and use the bigger one.
 
-            // Some extra space to compensate non-monospaced fonts ("-" takes more space than ":", double "-" for guarantee)
-            return (Player.time.isSubHour() && Player.length.isSubHour()) ? "00--00" : "00--00--00"
+            // Some extra space to compensate non-monospaced fonts ("-" takes more space than ":", double "-" for guarantee).
+            // The times always show the hours (Figma 491:1779).
+            return "00--00--00"
         }
     }
 
@@ -211,7 +212,7 @@ T.Pane {
 
                 text: {
                     const length = Player.length
-                    return Player.time.formatHMS(length.isSubSecond() ? VLCTick.SubSecondFormattedAsMS : 0)
+                    return Player.time.formatHMS((length.isSubSecond() ? VLCTick.SubSecondFormattedAsMS : 0) | VLCTick.WithHours)
                 }
                 color: theme.fg.primary
                 font: timeTextMetrics.font
@@ -237,8 +238,8 @@ T.Pane {
                 readonly property bool showRemainingTime: (MainCtx.showRemainingTime && Player.remainingTime.valid())
 
                 text: showRemainingTime
-                      ? "-" + Player.remainingTime.formatHMS()
-                      : Player.length.formatHMS()
+                      ? "-" + Player.remainingTime.formatHMS(VLCTick.SubSecondFormattedAsMS | VLCTick.WithHours)
+                      : Player.length.formatHMS(VLCTick.SubSecondFormattedAsMS | VLCTick.WithHours)
                 color: mediaTime.color
                 font: timeTextMetrics.font
                 horizontalAlignment: Text.AlignHCenter
@@ -319,7 +320,7 @@ T.Pane {
                             : Player.remainingTime
 
                         return qsTr("%1 (%2x)")
-                            .arg(adjustedRemainingTime.formatHMS())
+                            .arg(adjustedRemainingTime.formatHMS(VLCTick.SubSecondFormattedAsMS | VLCTick.WithHours))
                             .arg(+Player.rate.toFixed(2))
                     }
 
@@ -462,9 +463,13 @@ T.Pane {
 
                 folding: root.folding
 
-                // Figma 491:1779: one 32 px row, 8 px between items, 20 px between zones
+                // Figma 491:1779: one 32 px row, 8 px in the transport group,
+                // 12 px between the buttons of a group (audio, subtitles,
+                // adjustments), 20 px between groups and zones
                 spacing: root._redesignRows ? VLCStyle.spacing_8 : VLCStyle.margin_normal
                 layoutSpacing: root._redesignRows ? VLCStyle.spacing_20 : VLCStyle.margin_xxlarge
+                groupGaps: root._redesignRows
+                buttonSpacing: VLCStyle.spacing_12
 
                 implicitHeight: {
                     if (root._redesignRows)
@@ -498,6 +503,9 @@ T.Pane {
                 id: castButtonLoader
 
                 Layout.alignment: Qt.AlignVCenter
+                // Figma 491:1779: without the button, the row ends with the
+                // Queue button: it takes no spacing of the row
+                visible: active
 
                 active: {
                     if (!Player.rendererManager.useRenderer)

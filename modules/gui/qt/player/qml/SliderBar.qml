@@ -70,7 +70,7 @@ T.ProgressBar {
         return -1
     }
 
-    // the seek thumbnail (spec #30: 176x99 while hovering or dragging a video)
+    // the seek thumbnail (Figma 2151:9673: 252x142, while hovering or dragging a video)
     readonly property bool _showThumbnail: control._thick
                                            && control.enabled
                                            && control._pointerX >= 0
@@ -182,6 +182,13 @@ T.ProgressBar {
         hovered: hoverHandler.hovered
     }
 
+    // the Accent/Main of the thick bar's handle
+    ColorContext {
+        id: accentTheme
+        palette: theme.palette
+        colorSet: ColorContext.ButtonAccent
+    }
+
     Timer {
         id: seekpointTimer
         running: Player.hasChapters && !hoverHandler.hovered && _isSeekPointsShown
@@ -205,7 +212,7 @@ T.ProgressBar {
         else
             _text = Player.time
 
-        _text = _text.formatHMS(length.isSubSecond() ? VLCTick.SubSecondFormattedAsMS : 0)
+        _text = _text.formatHMS((length.isSubSecond() ? VLCTick.SubSecondFormattedAsMS : 0) | VLCTick.WithHours)
 
         if (Player.hasChapters)
             _text += " - " + Player.chapters.getNameAtPosition(control._tooltipPosition)
@@ -391,9 +398,9 @@ T.ProgressBar {
     T.Popup {
         id: thumbnailPopup
 
-        // spec #30 / #10: 176x99 with its time (Figma 2151:9673)
-        readonly property real thumbnailWidth: VLCStyle.dp(176, VLCStyle.scale)
-        readonly property real thumbnailHeight: VLCStyle.dp(99, VLCStyle.scale)
+        // Figma 2151:9673: a 272x189 popover, the 252x142 picture and its time
+        readonly property real thumbnailWidth: VLCStyle.dp(252, VLCStyle.scale)
+        readonly property real thumbnailHeight: VLCStyle.dp(142, VLCStyle.scale)
 
         readonly property real _position: Math.max(control._pointerX, 0) / control.width
 
@@ -443,7 +450,9 @@ T.ProgressBar {
                 height: thumbnailPopup.thumbnailHeight
 
                 radius: VLCStyle.radius_small
-                backgroundColor: "black"
+                // nothing behind the picture: a backing would ring its
+                // rounded edge
+                backgroundColor: "transparent"
 
                 // until the first picture is ready
                 Rectangle {
@@ -451,6 +460,7 @@ T.ProgressBar {
                     z: -1
                     radius: parent.radius
                     color: "black"
+                    visible: parent.status !== Image.Ready
                 }
 
                 // served from the cache: it shows at once, the last picture
@@ -465,13 +475,15 @@ T.ProgressBar {
 
             T.Label {
                 width: thumbnailPopup.thumbnailWidth
+                // Figma 5970:13199: a 17 px line
+                height: VLCStyle.dp(17, VLCStyle.scale)
 
                 text: {
                     if (!thumbnailPopup.visible)
                         return ""
                     const length = Player.length
                     let text = length.scale(thumbnailPopup._position)
-                                     .formatHMS(length.isSubSecond() ? VLCTick.SubSecondFormattedAsMS : 0)
+                                     .formatHMS((length.isSubSecond() ? VLCTick.SubSecondFormattedAsMS : 0) | VLCTick.WithHours)
                     if (Player.hasChapters) {
                         const chapter = Player.chapters.getNameAtPosition(thumbnailPopup._position).trim()
                         if (chapter)
@@ -597,10 +609,6 @@ T.ProgressBar {
             color: control.backgroundColor
             anchors.fill: parent
             radius: control._thick ? VLCStyle.radius_normal : implicitHeight
-
-            // the track is as dark as the scrim over the video: outline it
-            border.width: control._thick ? VLCStyle.dp(1, VLCStyle.scale) : 0
-            border.color: theme.border
 
             // keyboard focus ring
             Rectangle {
@@ -955,7 +963,9 @@ T.ProgressBar {
                                       : sliderHandle._size
         implicitHeight: control._thick ? control.barHeight - control._inset * 2 : sliderHandle._size
         radius: control._thick ? VLCStyle.radius_small : VLCStyle.margin_small
-        color: theme.fg.primary
+        // the thick bar's handle is Accent/Main, as the Play button (Figma
+        // 1908:7389, 2425:13645)
+        color: control._thick ? accentTheme.bg.primary : theme.fg.primary
 
         // We use dynamic mutability group because time interpolation
         // may induce rapid change:

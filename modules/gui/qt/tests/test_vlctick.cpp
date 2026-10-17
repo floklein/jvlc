@@ -79,6 +79,27 @@ private slots:
         QCOMPARE(VLCDuration::fromMS(430).formatLong(), QStringLiteral("430 ms"));
         QCOMPARE(VLCDuration::fromMS(430).formatShort(0), QStringLiteral("00:00"));
     }
+
+    // the player's bars show the hours even under an hour (Figma 491:1779:
+    // "00:02:10" / "00:25:40")
+    void thePlayerShowsTheHours()
+    {
+        QCOMPARE(VLCDuration::fromMS(130 * 1000).formatHMS(VLCTick::WithHours),
+                 QStringLiteral("00:02:10"));
+        QCOMPARE(VLCTime(VLCDuration::fromMS(1540 * 1000 + 999)).formatHMS(VLCTick::WithHours),
+                 QStringLiteral("00:25:40"));
+        QCOMPARE(VLCDuration::fromMS((3600 + 2 * 60 + 59) * 1000).formatHMS(VLCTick::WithHours),
+                 QStringLiteral("01:02:59"));
+        QCOMPARE(VLCDuration::fromMS(0).formatHMS(VLCTick::WithHours),
+                 QStringLiteral("00:00:00"));
+        // under a second, the milliseconds still win when asked for
+        QCOMPARE(VLCDuration::fromMS(430).formatHMS(VLCTick::WithHours | VLCTick::SubSecondFormattedAsMS),
+                 QStringLiteral("430 ms"));
+        // without a duration
+        QCOMPARE(VLCDuration().formatHMS(VLCTick::WithHours), QStringLiteral("--:--:--"));
+        // the flag changes nothing else
+        QCOMPARE(VLCDuration::fromMS(130 * 1000).formatHMS(0), QStringLiteral("02:10"));
+    }
 };
 
 QTEST_GUILESS_MAIN(TestVLCTick)

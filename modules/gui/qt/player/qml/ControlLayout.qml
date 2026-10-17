@@ -56,6 +56,9 @@ FocusScope {
                     size += item.implicitWidth
                 else
                     size += item.Layout.minimumWidth
+
+                // the room its group takes before it
+                size += item.Layout.leftMargin
             }
 
             if (count === 0)
@@ -79,7 +82,7 @@ FocusScope {
                     continue
 
                 ++count
-                maximumWidth += item.implicitWidth
+                maximumWidth += item.implicitWidth + item.Layout.leftMargin
             }
 
             maximumWidth += ((count - 1 + ((alignment & (Qt.AlignLeft | Qt.AlignRight)) ? 1 : 0)) * playerControlLayout.spacing)
@@ -184,6 +187,12 @@ FocusScope {
 
             availableWidth: rowLayout.width
             availableHeight: rowLayout.height
+
+            // the Control bar spaces its controls by group (ControlRepeater)
+            groupGaps: playerControlLayout.groupGaps
+            spacing: playerControlLayout.spacing
+            buttonSpacing: playerControlLayout.buttonSpacing
+            groupSpacing: playerControlLayout.layoutSpacing
 
             Component.onCompleted: {
                 requestLockUnlockAutoHide.connect(controlLayout.requestLockUnlockAutoHide)

@@ -155,8 +155,13 @@ T.Control {
         }
     }
 
+    // Figma 848:1711: the filled play glyph 17 px from the left, 15 from the
+    // right; 848:1713: the pause glyph centered, 15 px each side
+    leftPadding: VLCStyle.dp(_playing ? 15 : 17, VLCStyle.scale)
+    rightPadding: VLCStyle.dp(15, VLCStyle.scale)
+
     contentItem: Widgets.IconLabel {
-        text: root._playing ? VLCIcons.pause : VLCIcons.play
+        text: root._playing ? VLCIcons.pause_filled : VLCIcons.play_filled
 
         color: accentTheme.fg.primary
 
@@ -174,7 +179,15 @@ T.Control {
 
         radius: VLCStyle.radius_normal
 
-        color: accentTheme.bg.primary
+        // playing, the key is FG/A3 (Figma 848:1713), FG/A2 when hovered or
+        // pressed; paused, the accent
+        color: {
+            if (!root._playing)
+                return accentTheme.bg.primary
+            if (!root.enabled && !root.paintOnly)
+                return theme.fg.muted
+            return (root.hovered || mouseArea.pressed) ? theme.fg.value : theme.fg.label
+        }
 
         // keyboard focus ring, outside the accent shape
         Rectangle {

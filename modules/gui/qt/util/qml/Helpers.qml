@@ -164,6 +164,20 @@ QtObject {
         return x + width <= Math.ceil(available)
     }
 
+    // The room between two neighbor controls of the Control bar, from their
+    // groups (Figma 491:1779): `spacing` in a group, `buttonSpacing` between
+    // the buttons of the "buttons" group, `groupSpacing` from one group to
+    // the next. A control of no group ("": the seek bar, a spacer, a divider)
+    // keeps `spacing` on both sides.
+    function controlBarGap(previousGroup: string, group: string,
+                           spacing: real, buttonSpacing: real, groupSpacing: real) : real {
+        if (!previousGroup || !group)
+            return spacing
+        if (previousGroup !== group)
+            return groupSpacing
+        return (group === "buttons") ? buttonSpacing : spacing
+    }
+
     function pointInRadius(x: real, y: real, radius: real) : bool {
          return (x * x + y * y < radius * radius)
     }
