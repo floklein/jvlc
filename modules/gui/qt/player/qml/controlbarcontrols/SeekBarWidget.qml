@@ -329,6 +329,13 @@ FocusScope {
                 inputMethodHints: Qt.ImhPreferNumbers
                 validator: RegularExpressionValidator { regularExpression: /[0-9:]*/ }
 
+                // the caret is the accent (Figma 1905:7272)
+                cursorDelegate: Rectangle {
+                    width: VLCStyle.dp(1, VLCStyle.scale)
+                    color: theme.accent
+                    visible: timeField.cursorVisible
+                }
+
                 Accessible.name: qsTr("Time to jump to, as hours:minutes:seconds")
 
                 onAccepted: root._stopEditingTime(true)
