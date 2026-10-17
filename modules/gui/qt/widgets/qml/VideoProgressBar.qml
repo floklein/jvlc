@@ -40,23 +40,44 @@ Item {
         colorSet: ColorContext.Slider
     }
 
+    //to have at least the proper radius applied, the top radius section is always clipped
+    readonly property real _shapeHeight: Math.max(radius * 2, height + radius)
+
     Rectangle {
-        id: rectangle
+        id: track
 
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
 
-        height: Math.max(progressBar.radius * 2, //to have at least the proper radius applied
-                         parent.height + radius) //the top radius section should be always clipped
+        height: progressBar._shapeHeight
 
+        visible: progressBar.trackColor.a > 0
         color: progressBar.trackColor
         radius: progressBar.radius
+    }
 
-        gradient: Gradient {
-            orientation: Gradient.Horizontal
-            GradientStop { position: progressBar.value; color: progressBar.color }
-            GradientStop { position: progressBar.value + (1. / rectangle.width); color: rectangle.color }
+    // NOTE: The played part is the same rounded shape, clipped at the value
+    //       (a gradient with a transparent end draws nothing with the Qt of
+    //       the win64 builds)
+    Item {
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+
+        width: Math.round(progressBar.width * Math.min(Math.max(progressBar.value, 0), 1))
+
+        clip: true
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.bottom: parent.bottom
+
+            width: progressBar.width
+            height: progressBar._shapeHeight
+
+            color: progressBar.color
+            radius: progressBar.radius
         }
     }
 }
