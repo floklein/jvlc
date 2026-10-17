@@ -21,16 +21,20 @@ import QtQuick
 import VLC.Style
 import VLC.Util
 
+// The drop shadow of Figma's "bg blur + shadow" effect style: black at 46 %
+// (the Shadow color), 0 px x, 8 px y, blur 15 px. A Figma (CSS) blur radius
+// is twice the Gaussian sigma the shader takes.
 DoubleShadow {
     id: root
 
-    opacity: 0.62
+    primaryColor: colorContext.shadow
+    primaryVerticalOffset: VLCStyle.dp(8, VLCStyle.scale)
+    primaryBlurRadius: VLCStyle.dp(15, VLCStyle.scale) / 2
 
-    primaryVerticalOffset: VLCStyle.dp(1, VLCStyle.scale)
-    primaryBlurRadius: VLCStyle.dp(3, VLCStyle.scale)
-
-    secondaryVerticalOffset: VLCStyle.dp(6, VLCStyle.scale)
-    secondaryBlurRadius: VLCStyle.dp(14, VLCStyle.scale)
+    // a single shadow
+    secondaryColor: "transparent"
+    secondaryVerticalOffset: 0
+    secondaryBlurRadius: 0
 
     z: -1
 }

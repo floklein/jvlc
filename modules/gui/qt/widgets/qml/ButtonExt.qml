@@ -42,10 +42,21 @@ T.Button {
 
     property int iconSize: VLCStyle.icon_normal
 
-    property color color: theme.fg.primary
+    // Figma's buttons with a text (dialog footers, "Browse", 6259:14982,
+    // 6259:14984): filled, at least 100x32, r6, 14 px SemiBold. The standard
+    // set is the secondary button (FG/A2 on BG/A3), the accent set the primary
+    // one (Accent/Main on BG/Accent Bright); disabled, at half opacity.
+    // Icon-only buttons and the other sets keep their flat look.
+    property bool filled: control.showText && control.display !== AbstractButton.IconOnly
+                          && (theme.colorSet === ColorContext.ButtonStandard
+                              || theme.colorSet === ColorContext.ButtonAccent)
+
+    property color color: control.filled ? theme.fg.secondary : theme.fg.primary
     property color colorFocus: theme.visualFocus
 
-    property int radius: VLCStyle.button_radius
+    property int radius: control.filled ? VLCStyle.radius_normal : VLCStyle.button_radius
+
+    opacity: (control.filled && !control.enabled) ? 0.5 : 1.0
 
     //set to true when user animates the background manually
     property bool extBackgroundAnimation: false
@@ -56,9 +67,12 @@ T.Button {
     // Settings
 
     implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
-                            implicitContentWidth + leftPadding + rightPadding)
-    implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
-                             implicitContentHeight + topPadding + bottomPadding)
+                            implicitContentWidth + leftPadding + rightPadding,
+                            control.filled ? VLCStyle.dp(100, VLCStyle.scale) : 0)
+    implicitHeight: control.filled ? Math.max(VLCStyle.dp(32, VLCStyle.scale),
+                                              implicitContentHeight + VLCStyle.dp(8, VLCStyle.scale))
+                                   : Math.max(implicitBackgroundHeight + topInset + bottomInset,
+                                              implicitContentHeight + topPadding + bottomPadding)
 
     padding: VLCStyle.margin_xsmall
     spacing: VLCStyle.margin_xsmall
@@ -100,7 +114,7 @@ T.Button {
     background: Widgets.AnimatedBackground {
         enabled: theme.initialized && !control.extBackgroundAnimation
 
-        color: theme.bg.primary
+        color: control.filled ? theme.bg.secondary : theme.bg.primary
         border.color: control.visualFocus ? control.colorFocus
                                           : (theme.border.a > 0.0 ? theme.border : color)
 

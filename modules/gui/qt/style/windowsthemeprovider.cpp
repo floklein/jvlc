@@ -114,8 +114,22 @@ static void setQtColorButton(vlc_qt_theme_provider_t* obj,
     setQtColorBg(obj, CS, VQTC_NAME_PRIMARY, VQTC_STATE_FOCUSED, COLOR_HIGHLIGHT);
     setQtColorFg(obj, CS, VQTC_NAME_PRIMARY, VQTC_STATE_FOCUSED, COLOR_HIGHLIGHTTEXT);
     setQtColor(obj, CS, VQTC_SECTION_DECORATION, VQTC_NAME_BORDER, VQTC_STATE_FOCUSED, COLOR_HIGHLIGHTTEXT);
+}
 
-
+// the filled buttons with a text (ButtonExt): drawn as the other buttons
+static void setQtColorTextButton(vlc_qt_theme_provider_t* obj,
+                        vlc_qt_theme_color_set CS)
+{
+    for (vlc_qt_theme_color_state state : { VQTC_STATE_NORMAL, VQTC_STATE_DISABLED })
+    {
+        setQtColorBg(obj, CS, VQTC_NAME_SECONDARY, state, COLOR_3DFACE);
+        setQtColorFg(obj, CS, VQTC_NAME_SECONDARY, state, state == VQTC_STATE_NORMAL ? COLOR_BTNTEXT : COLOR_GRAYTEXT);
+    }
+    for (vlc_qt_theme_color_state state : { VQTC_STATE_HOVERED, VQTC_STATE_FOCUSED, VQTC_STATE_PRESSED })
+    {
+        setQtColorBg(obj, CS, VQTC_NAME_SECONDARY, state, COLOR_HIGHLIGHT);
+        setQtColorFg(obj, CS, VQTC_NAME_SECONDARY, state, COLOR_HIGHLIGHTTEXT);
+    }
 }
 
 static bool isThemeDark(vlc_qt_theme_provider_t* obj)
@@ -150,6 +164,11 @@ static int updatePalette(vlc_qt_theme_provider_t* obj)
             setQtColorFg(obj, CS, VQTC_NAME_SECONDARY, VQTC_STATE_DISABLED, COLOR_GRAYTEXT);
 
             setQtColorFg(obj, CS, VQTC_NAME_LINK, VQTC_STATE_NORMAL, COLOR_HOTLIGHT);
+
+            //values and labels read as text, disabled text as gray text
+            setQtColorFg(obj, CS, VQTC_NAME_VALUE, VQTC_STATE_NORMAL, COLOR_WINDOWTEXT);
+            setQtColorFg(obj, CS, VQTC_NAME_LABEL, VQTC_STATE_NORMAL, COLOR_WINDOWTEXT);
+            setQtColorFg(obj, CS, VQTC_NAME_MUTED, VQTC_STATE_NORMAL, COLOR_GRAYTEXT);
 
             setQtColorBg(obj, CS, VQTC_NAME_HIGHLIGHT, VQTC_STATE_NORMAL, COLOR_HIGHLIGHT);
             setQtColorFg(obj, CS, VQTC_NAME_HIGHLIGHT, VQTC_STATE_NORMAL, COLOR_HIGHLIGHTTEXT);
@@ -190,6 +209,8 @@ static int updatePalette(vlc_qt_theme_provider_t* obj)
         setQtColorButton(obj, VQTC_SET_BUTTON_ACCENT);
         setQtColorButton(obj, VQTC_SET_BUTTON_STANDARD);
         setQtColorButton(obj, VQTC_SET_SWITCH);
+        setQtColorTextButton(obj, VQTC_SET_BUTTON_ACCENT);
+        setQtColorTextButton(obj, VQTC_SET_BUTTON_STANDARD);
 
         return VLC_SUCCESS;
     }

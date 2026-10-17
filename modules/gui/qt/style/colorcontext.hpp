@@ -46,6 +46,13 @@ class ColorProperty {
     Q_PROPERTY(QColor neutral READ neutral CONSTANT FINAL)
     Q_PROPERTY(QColor negative READ negative CONSTANT FINAL)
 
+    // Figma's secondary text and icon levels, for fg: FG/A2 for values,
+    // FG/A3 for labels and secondary text, FG/A4 for disabled text,
+    // placeholders and info glyphs
+    Q_PROPERTY(QColor value READ value CONSTANT FINAL)
+    Q_PROPERTY(QColor label READ label CONSTANT FINAL)
+    Q_PROPERTY(QColor muted READ muted CONSTANT FINAL)
+
 public:
     ColorProperty() = default;
     ColorProperty(const ColorContext* context, int section);
@@ -57,6 +64,9 @@ public:
     QColor positive() const;
     QColor neutral() const;
     QColor negative() const;
+    QColor value() const;
+    QColor label() const;
+    QColor muted() const;
 
 private:
     const ColorContext* m_context;
@@ -123,7 +133,12 @@ public:
         Indicator = VQTC_NAME_INDICATOR,
         Tint = VQTC_NAME_TINT,
         TintOverBlur = VQTC_NAME_TINT_OVER_BLUR,
-        Scrim = VQTC_NAME_SCRIM
+        Scrim = VQTC_NAME_SCRIM,
+
+        //secondary text and icon levels (foreground)
+        Value = VQTC_NAME_VALUE,
+        Label = VQTC_NAME_LABEL,
+        Muted = VQTC_NAME_MUTED
     };
 
     Q_PROPERTY(SystemPalette* palette READ palette WRITE setPalette NOTIFY paletteChanged FINAL)

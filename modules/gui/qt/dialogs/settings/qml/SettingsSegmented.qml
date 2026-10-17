@@ -154,15 +154,18 @@ FocusScope {
                         id: segmentLabel
 
                         visible: !root.swatches
-                        anchors.centerIn: parent
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        // centered, a half pixel rounded down as Figma does
+                        y: Math.ceil((parent.height - height) / 2)
                         // elided rather than spilling out of the segment (large scales)
                         width: Math.max(0, Math.min(implicitWidth, parent.width - 2 * VLCStyle.spacing_4))
                         elide: Text.ElideRight
                         text: segment.text
                         font.pixelSize: VLCStyle.fontSize_normal
                         font.family: VLCStyle.fontFamily
-                        color: segment.selected ? textTheme.accent
-                                                : (segment.hovered ? textTheme.fg.highlight : textTheme.fg.secondary)
+                        // Figma 3046:9870: Accent/Main when picked, FG/A3 otherwise
+                        color: segment.selected ? theme.accent
+                                                : (segment.hovered ? textTheme.fg.value : textTheme.fg.label)
                     }
 
                     Rectangle {

@@ -74,15 +74,19 @@ T.AbstractButton {
                                : control.width - width - control._inset - control.leftPadding
 
             color: control.checked ? theme.bg.secondary : theme.bg.highlight
+        }
 
-            Text {
-                anchors.centerIn: parent
-                text: control.checked ? qsTr("ON") : qsTr("OFF")
-                font.pixelSize: VLCStyle.fontSize_small
-                font.family: VLCStyle.fontFamily
-                color: control.checked ? theme.accent : theme.fg.primary
-                Accessible.ignored: true
-            }
+        // Figma 536:1012 / 536:1339: "ON" 10 px from the left, "OFF" 2 px
+        // right of the middle, the text box 7 px above the middle
+        Text {
+            x: (control.checked ? VLCStyle.spacing_10 : control.width / 2 + VLCStyle.dp(2, VLCStyle.scale))
+               - control.leftPadding
+            y: control.height / 2 - VLCStyle.dp(7, VLCStyle.scale) - control.topPadding
+            text: control.checked ? qsTr("ON") : qsTr("OFF")
+            font.pixelSize: VLCStyle.fontSize_small
+            font.family: VLCStyle.fontFamily
+            color: control.checked ? theme.accent : theme.fg.primary
+            Accessible.ignored: true
         }
 
         // the knob

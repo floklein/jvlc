@@ -17,6 +17,8 @@
  *****************************************************************************/
 #include "systempalette.hpp"
 #include "themetokens.hpp"
+#include <algorithm>
+
 #include <QApplication>
 #include <QPalette>
 #include <QStyleHints>
@@ -31,6 +33,18 @@ QColor setColorAlpha(const QColor& c1, float alpha)
     QColor c(c1);
     c.setAlphaF(alpha);
     return c;
+}
+
+/*
+ * The gray a color becomes in Figma's "luminosity" blend over a gray
+ * backdrop: its luminosity (W3C compositing, Lum = .3 R + .59 G + .11 B).
+ * Figma draws its disabled accent buttons so, at half opacity.
+ */
+QColor luminosityGray(const QColor& color)
+{
+    const QColor c = color.toRgb();
+    const float lum = std::clamp(0.3f * c.redF() + 0.59f * c.greenF() + 0.11f * c.blueF(), 0.f, 1.f);
+    return QColor::fromRgbF(lum, lum, lum, c.alphaF());
 }
 
 static void PaletteChangedCallback(vlc_qt_theme_provider_t*, void* data)
@@ -475,6 +489,14 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         setColor(CS, C::Fg, C::Highlight, C::Normal, t.fg1);
         setColor(CS, C::Fg, C::Link, C::Normal, t.accentText);
 
+        // Figma's secondary text and icon levels, in every set:
+        // FG/A2 values (a picked choice, a field's text),
+        // FG/A3 labels and secondary text,
+        // FG/A4 disabled text, placeholders and info glyphs
+        setColor(CS, C::Fg, C::Value, C::Normal, t.fgA2);
+        setColor(CS, C::Fg, C::Label, C::Normal, t.fgA3);
+        setColor(CS, C::Fg, C::Muted, C::Normal, t.fgA4);
+
         setColor(CS, C::Bg, C::Negative, C::Normal, t.negativeBg);
         setColor(CS, C::Fg, C::Negative, C::Normal, t.negative);
         setColor(CS, C::Bg, C::Neutral, C::Normal, t.neutralBg);
@@ -629,6 +651,18 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         setColor(CS, C::Fg, C::Primary, C::Normal, t.onAccent);
         setColor(CS, C::Fg, C::Primary, C::Disabled, t.fgA1);
 
+        // the primary button with a text of the dialogs (Figma "Save"):
+        // Accent/Main on BG/Accent Bright; disabled, Figma blends it in
+        // luminosity (gray) at half opacity, the opacity is the button's
+        setColor(CS, C::Bg, C::Secondary, C::Normal, t.bgAccentBright);
+        setColor(CS, C::Bg, C::Secondary, C::Pressed, t.bgAccentDark);
+        setColor(CS, C::Bg, C::Secondary, C::Disabled, luminosityGray(t.bgAccentBright));
+        setColor(CS, C::Fg, C::Secondary, C::Normal, t.accentMain);
+        setColor(CS, C::Fg, C::Secondary, C::Hovered, t.accentBright);
+        setColor(CS, C::Fg, C::Secondary, C::Focused, t.accentBright);
+        setColor(CS, C::Fg, C::Secondary, C::Pressed, t.accentMain);
+        setColor(CS, C::Fg, C::Secondary, C::Disabled, luminosityGray(t.accentMain));
+
         setColor(CS, C::Decoration, C::Border, C::Normal, transparent);
         setColor(CS, C::Decoration, C::Border, C::Focused, transparent);
         setColor(CS, C::Decoration, C::Border, C::Hovered, transparent);
@@ -647,6 +681,17 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         setColor(CS, C::Fg, C::Primary, C::Focused, t.fg1);
         setColor(CS, C::Fg, C::Primary, C::Hovered, t.fg1);
         setColor(CS, C::Fg, C::Primary, C::Disabled, t.fgA4);
+
+        // the secondary button with a text of the dialogs (Figma "Cancel"):
+        // FG/A2 on BG/A3; disabled, the button is at half opacity
+        setColor(CS, C::Bg, C::Secondary, C::Normal, t.bgA3);
+        setColor(CS, C::Bg, C::Secondary, C::Hovered, t.bgA1);
+        setColor(CS, C::Bg, C::Secondary, C::Focused, t.bgA1);
+        setColor(CS, C::Bg, C::Secondary, C::Pressed, t.bgA4);
+        setColor(CS, C::Fg, C::Secondary, C::Normal, t.fgA2);
+        setColor(CS, C::Fg, C::Secondary, C::Hovered, t.fg2);
+        setColor(CS, C::Fg, C::Secondary, C::Focused, t.fg2);
+        setColor(CS, C::Fg, C::Secondary, C::Pressed, t.fg2);
 
         setColor(CS, C::Decoration, C::Border, C::Normal, transparent);
         setColor(CS, C::Decoration, C::Border, C::Focused, transparent);
@@ -677,26 +722,35 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         setColor(CS, C::Fg, C::Negative, C::Normal, t.negative);
         // outlines the track, which is as dark as the scrim over the video
         setColor(CS, C::Decoration, C::Border, C::Normal, t.dividerDim);
+        // the ticks of a range (Figma "degrees", BG/Accent Dark, drawn in
+        // the "screen" blend over the track)
+        setColor(CS, C::Decoration, C::Indicator, C::Normal, t.bgAccentDark);
     }
 
-    //Combo box
+    //Combo box: Figma "Dropdown", a BG/B2 frame round a BG/A4 option
     {
         C::ColorSet CS = C::ComboBox;
-        setColor(CS, C::Fg, C::Primary, C::Normal, t.fg2);
+        setColor(CS, C::Fg, C::Primary, C::Normal, t.fgA2);
         setColor(CS, C::Bg, C::Primary, C::Normal, t.bgB2);
         setColor(CS, C::Bg, C::Secondary, C::Normal, t.bgA4);
+        // the hovered option and the current one of the open list
+        setColor(CS, C::Bg, C::Highlight, C::Normal, t.bgA2);
+        // the check of the current option
+        setColor(CS, C::Decoration, C::Accent, C::Normal, t.accentMain);
     }
 
-    //TextField & SpinBox
+    //TextField & SpinBox: filled BG/B2, 2 px BG/A4 inside stroke (Figma
+    //6259:14966), FG/A2 text, FG/A4 placeholder
     for (C::ColorSet CS : { C::TextField, C::SpinBox })
     {
         setColor(CS, C::Bg, C::Primary, C::Normal, t.bgB2);
+        setColor(CS, C::Fg, C::Primary, C::Normal, t.fgA2);
+        setColor(CS, C::Fg, C::Primary, C::Disabled, t.fgA4);
 
-        // the outline is what shows the field: 3:1 against the surface
-        setColor(CS, C::Decoration, C::Border, C::Normal, t.fgA3);
+        setColor(CS, C::Decoration, C::Border, C::Normal, t.bgA4);
         setColor(CS, C::Decoration, C::Border, C::Focused, t.accentText);
-        setColor(CS, C::Decoration, C::Border, C::Hovered, t.fgA2);
-        setColor(CS, C::Decoration, C::Border, C::Disabled, transparent);
+        setColor(CS, C::Decoration, C::Border, C::Hovered, t.dividerBright);
+        setColor(CS, C::Decoration, C::Border, C::Disabled, t.bgA4);
 
         // text selection
         setColor(CS, C::Bg, C::Highlight, C::Normal, t.bgAccentBright);
@@ -711,11 +765,13 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         setColor(CS, C::Bg, C::Highlight, C::Normal, t.bgA4);   // unselected segment, off side
         setColor(CS, C::Fg, C::Primary, C::Normal, t.fgA3);
         setColor(CS, C::Decoration, C::Border, C::Normal, t.dividerBright);
-        // off knob: it shows the state, so 3:1 against the track
-        setColor(CS, C::Decoration, C::Indicator, C::Normal, t.fgA3);
+        // off knob (Figma 536:1338, FG/A4)
+        setColor(CS, C::Decoration, C::Indicator, C::Normal, t.fgA4);
         // on
         setColor(CS, C::Bg, C::Secondary, C::Normal, t.bgAccentBright);
         setColor(CS, C::Fg, C::Secondary, C::Normal, t.accentDim);
+        // the "ON" text and the picked segment's text (Accent/Main)
+        setColor(CS, C::Decoration, C::Accent, C::Normal, t.accentMain);
     }
 }
 

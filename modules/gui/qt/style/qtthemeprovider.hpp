@@ -78,6 +78,11 @@ enum vlc_qt_theme_color_name {
     VQTC_NAME_TINT,
     VQTC_NAME_TINT_OVER_BLUR,
     VQTC_NAME_SCRIM,
+    // the secondary text and icon levels of the design (foreground only):
+    // values, labels, and disabled text, placeholders and info glyphs
+    VQTC_NAME_VALUE,
+    VQTC_NAME_LABEL,
+    VQTC_NAME_MUTED,
     VQTC_NAME_COUNT
 };
 

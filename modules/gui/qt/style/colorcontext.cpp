@@ -72,6 +72,27 @@ QColor ColorProperty::negative() const
         ColorContext::Negative);
 }
 
+QColor ColorProperty::value() const
+{
+    return m_context->getColor(
+        static_cast<ColorContext::ColorSection>(m_section),
+        ColorContext::Value);
+}
+
+QColor ColorProperty::label() const
+{
+    return m_context->getColor(
+        static_cast<ColorContext::ColorSection>(m_section),
+        ColorContext::Label);
+}
+
+QColor ColorProperty::muted() const
+{
+    return m_context->getColor(
+        static_cast<ColorContext::ColorSection>(m_section),
+        ColorContext::Muted);
+}
+
 
 //ColorContext
 
