@@ -17,6 +17,7 @@
  *****************************************************************************/
 #include <QTest>
 #include <QAbstractItemModelTester>
+#include <QDir>
 #include <QTemporaryDir>
 #include <QFile>
 #include <QFileInfo>
@@ -43,6 +44,20 @@ static const char SHORT_MEDIA[] =
 static const char LONG_MEDIA[] =
     "mock://video_track_count=0;audio_track_count=1;length=86400000000;"
     "audio_format=u8;audio_channels=1;audio_rate=8000;audio_sinewave=0";
+
+static bool writeFile(const QString& file, const QByteArray& content)
+{
+    QFile out(file);
+    return out.open(QIODevice::WriteOnly) && out.write(content) == content.size();
+}
+
+static QByteArray readFile(const QString& file)
+{
+    QFile in(file);
+    if (!in.open(QIODevice::ReadOnly))
+        return {};
+    return in.readAll();
+}
 
 class TestConversionManager : public QObject
 {
@@ -195,6 +210,44 @@ private slots:
 
         QVERIFY(existing.open(QIODevice::ReadOnly));
         QCOMPARE(existing.readAll(), "keep me");
+    }
+
+    void testFailedSaveAsKeepsTheReplacedFile()
+    {
+        QVERIFY(writeFile(path("out.wav"), "keep me"));
+
+        /* the user chose to replace it, but the source can't be read */
+        m_manager->convert({ "mock://error=1" }, AUDIO_CD, path("out.wav"), false);
+        QTRY_COMPARE_WITH_TIMEOUT(state(0), ConversionManager::Failed, 10000);
+
+        QCOMPARE(readFile(path("out.wav")), QByteArray("keep me"));
+        QCOMPARE(QDir(m_dir->path()).entryList(QDir::Files), QStringList{ "out.wav" });
+    }
+
+    void testCancelledSaveAsKeepsTheReplacedFile()
+    {
+        QVERIFY(writeFile(path("out.wav"), "keep me"));
+
+        m_manager->convert({ LONG_MEDIA }, AUDIO_CD, path("out.wav"), false);
+        QTRY_COMPARE(state(0), ConversionManager::Running);
+        QTRY_VERIFY(role(0, ConversionManager::PROGRESS).toDouble() > 0.);
+        m_manager->cancel(0);
+        QTRY_COMPARE_WITH_TIMEOUT(state(0), ConversionManager::Cancelled, 10000);
+
+        QCOMPARE(readFile(path("out.wav")), QByteArray("keep me"));
+        QCOMPARE(QDir(m_dir->path()).entryList(QDir::Files), QStringList{ "out.wav" });
+    }
+
+    void testSaveAsReplacesTheFileOnceDone()
+    {
+        QVERIFY(writeFile(path("out.wav"), "replace me"));
+
+        m_manager->convert({ SHORT_MEDIA }, AUDIO_CD, path("out.wav"), false);
+        QTRY_COMPARE_WITH_TIMEOUT(state(0), ConversionManager::Done, 10000);
+
+        const QByteArray converted = readFile(path("out.wav"));
+        QVERIFY(converted.startsWith("RIFF"));
+        QCOMPARE(QDir(m_dir->path()).entryList(QDir::Files), QStringList{ "out.wav" });
     }
 
     void testFinishedConversionsAreCleared()

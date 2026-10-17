@@ -275,6 +275,17 @@ VLC_API vlc_action_id_t
 vlc_actions_get_id(const char *psz_key_name);
 
 /**
+ * Get the key behind the action being delivered.
+ *
+ * Call it from a "key-action" variable callback: it returns the key code
+ * (with its modifiers) that triggered this very action, on this thread. It
+ * returns 0 for a global key, for an action set without a key (from a menu,
+ * for example) and outside such a callback.
+ */
+VLC_API uint_fast32_t
+vlc_actions_get_action_key(void);
+
+/**
  * Get keycodes from a action key name and vlc configuration
  * \return The number of keycodes for this action, or 0 in case of an error.
  * The list needs to be released with free()

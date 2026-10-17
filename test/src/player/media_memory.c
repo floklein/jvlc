@@ -236,6 +236,73 @@ test_defaults_are_not_remembered(struct ctx *ctx)
 }
 
 static void
+test_pick_after_unapplied_default(struct ctx *ctx)
+{
+    test_log("pick_after_unapplied_default\n");
+    vlc_player_t *player = ctx->player;
+
+    struct media_params movie = DEFAULT_MEDIA_PARAMS(VLC_TICK_FROM_SEC(17));
+    movie.track_count[SPU_ES] = 2;
+
+    play(ctx, "movie", &movie);
+    while (vlc_player_GetSubtitleTrackCount(player) < 2)
+        vlc_player_CondWait(player, &ctx->wait);
+    vlc_player_SelectDefaultTrack(player, vlc_player_GetSubtitleTrackAt(player, 1));
+    while (!vlc_player_GetSubtitleTrackAt(player, 1)->selected)
+        vlc_player_CondWait(player, &ctx->wait);
+
+    /* a default that is already selected changes nothing... */
+    vlc_player_SelectDefaultTrack(player, vlc_player_GetSubtitleTrackAt(player, 1));
+
+    /* ...so the viewer's next pick is still the viewer's */
+    const struct vlc_player_track *track = vlc_player_GetSubtitleTrackAt(player, 0);
+    char *picked = strdup(vlc_es_id_GetStrId(track->es_id));
+    assert(picked != NULL);
+    vlc_player_SelectTrack(player, track, VLC_PLAYER_SELECT_EXCLUSIVE);
+    while (!vlc_player_GetSubtitleTrackAt(player, 0)->selected)
+        vlc_player_CondWait(player, &ctx->wait);
+    test_end(ctx);
+
+    vlc_ml_playback_states_all states = saved_states(ctx, &movie);
+    assert(states.current_subtitle_track != NULL);
+    assert(strcmp(states.current_subtitle_track, picked) == 0);
+    vlc_ml_release(&states);
+    free(picked);
+}
+
+static void
+test_secondary_player_does_not_restore(struct ctx *ctx)
+{
+    test_log("secondary_player_does_not_restore\n");
+
+    struct media_params movie = DEFAULT_MEDIA_PARAMS(VLC_TICK_FROM_SEC(18));
+    play(ctx, "movie", &movie);
+    set_delays(ctx, VLC_TICK_FROM_MS(200), VLC_TICK_FROM_MS(100));
+    test_end(ctx);
+
+    /* a player of its own (a conversion's) neither saves nor restores the
+     * media's playback */
+    vlc_object_t *obj = vlc_object_create(ctx->vlc->p_libvlc_int, sizeof(*obj));
+    assert(obj != NULL);
+    vlc_player_t *other = vlc_player_New(obj, VLC_PLAYER_LOCK_NORMAL);
+    assert(other != NULL);
+    input_item_t *item = create_mock_media("movie", &movie);
+    assert(item != NULL);
+
+    vlc_player_Lock(other);
+    int ret = vlc_player_SetCurrentMedia(other, item);
+    assert(ret == VLC_SUCCESS);
+    assert(vlc_player_GetAudioDelay(other) == 0);
+    assert(vlc_player_GetSubtitleDelay(other) == 0);
+    assert_no_memory(other);
+    vlc_player_Unlock(other);
+
+    input_item_Release(item);
+    vlc_player_Delete(other);
+    vlc_object_delete(obj);
+}
+
+static void
 test_speed_is_not_per_media(struct ctx *ctx)
 {
     test_log("speed_is_not_per_media\n");
@@ -302,6 +369,8 @@ main(void)
     test_music_remembers_too(&ctx);
     test_picked_tracks_are_remembered(&ctx);
     test_defaults_are_not_remembered(&ctx);
+    test_pick_after_unapplied_default(&ctx);
+    test_secondary_player_does_not_restore(&ctx);
     test_speed_is_not_per_media(&ctx);
     test_restore_can_be_turned_off(&ctx);
     ctx_destroy(&ctx);

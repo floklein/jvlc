@@ -34,7 +34,7 @@ extras\agents\jvlc.ps1 clean                    # drop this worktree's build sta
 
 Several agents build at once on this machine: 12 cores, 32 GB of RAM, of which WSL gets 16 GB.
 
-- Each `build` and `test` uses **4 jobs**. Keep it at 4 while other agents may be building.
+- Each `build` and `test` uses **4 jobs**, as does `setup` when it builds the contribs (never more than the CPUs). Keep it at 4 while other agents may be building.
 - Pass `-Jobs N` or set `$env:JVLC_JOBS` to change it. Use `-Jobs 2` if a build dies with `Killed` or `signal 9` (out of memory). Go above 4 only when you know you are alone.
 - Two commands on the same worktree and platform never run at once: the second waits for the first.
 

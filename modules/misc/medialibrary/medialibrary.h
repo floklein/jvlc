@@ -117,7 +117,8 @@ class Thumbnailer : public medialibrary::IThumbnailer
     {
         Thumbnailer* thumbnailer;
         bool done;
-        bool error;
+        /* the thumbnail (held), or nullptr if none */
+        picture_t *picture;
         vlc_preparser_req *req;
     };
 public:
@@ -128,13 +129,12 @@ public:
     void stop() override;
 
 private:
-    static void onThumbnailToFilesComplete(vlc_preparser_req *req, int status,
-                                           const bool *result_array,
-                                           size_t result_count, void *data);
-    bool generateAt( const std::string& mrl, uint32_t desiredWidth,
-                     uint32_t desiredHeight, float position, bool precise,
-                     const std::string& dest );
-    bool isDark( const std::string& dest );
+    static void onThumbnailComplete(vlc_preparser_req *req, int status,
+                                    picture_t *thumbnail, void *data);
+    picture_t* takeAt( const std::string& mrl, float position, bool precise );
+    bool isDark( picture_t *pic );
+    bool write( picture_t *pic, uint32_t width, uint32_t height,
+                const std::string& dest );
 
 private:
     vlc_medialibrary_module_t* m_ml;

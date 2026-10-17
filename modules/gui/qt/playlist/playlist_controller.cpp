@@ -830,14 +830,17 @@ int PlaylistController::currentIndex() const
     return d->m_currentIndex;
 }
 
-/* At the end of the Queue (paused on the last frame), Play starts the Queue
- * again from its first item. The playlist must be locked. */
+/* At the end of the Queue (paused on the last frame), Play plays the next
+ * item if some were added since, or else starts the Queue again from its
+ * first item. The playlist must be locked. */
 static bool restartEndedQueue(vlc_playlist_t *playlist)
 {
     vlc_player_t* player = vlc_playlist_GetPlayer( playlist );
     if ( !vlc_player_IsEnded( player ) || vlc_playlist_Count( playlist ) == 0 )
         return false;
-    if ( vlc_playlist_GoTo( playlist, 0 ) == VLC_SUCCESS )
+    int ret = vlc_playlist_HasNext( playlist ) ? vlc_playlist_Next( playlist )
+                                               : vlc_playlist_GoTo( playlist, 0 );
+    if ( ret == VLC_SUCCESS )
         vlc_playlist_Start( playlist );
     return true;
 }

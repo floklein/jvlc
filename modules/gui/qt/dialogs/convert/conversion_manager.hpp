@@ -78,15 +78,19 @@ public:
     /**
      * Converts the media with a Conversion profile. A single media is
      * written to saveAs, if given, replacing it; otherwise each output goes
-     * next to its original with a "-converted" suffix.
+     * next to its original with a "-converted" suffix. A replaced file is
+     * replaced only once its conversion is done.
      */
     Q_INVOKABLE void convert(const QStringList& mrls, const QString& profileValue,
                              const QString& saveAs, bool deinterlace);
 
     /** Queues a conversion of mrl with a stream output chain writing to
-     *  destination. An existing destination is replaced only if overwrite. */
+     *  destination. An existing destination is replaced only if overwrite.
+     *  If output is given, the chain writes it instead, and it becomes the
+     *  destination once the conversion is done. */
     void add(const QString& mrl, const QString& soutChain,
-             const QString& destination, bool overwrite = false);
+             const QString& destination, bool overwrite = false,
+             const QString& output = {});
 
     Q_INVOKABLE void cancel(int row);
     Q_INVOKABLE void cancelAll();
@@ -110,6 +114,8 @@ private:
         QString mrl;
         QString sout;
         QString destination;
+        /* the file the chain writes: destination, or a file beside it */
+        QString output;
         bool overwrite = false;
         bool existed = false;
         State state = Pending;
@@ -119,6 +125,10 @@ private:
     bool ensurePlayer();
     void startNext();
     void finishRunning();
+    /* removes what a conversion that did not end wrote */
+    static void removeOutput(const Conversion& conversion);
+    /* a free file beside destination, to write it until it is done */
+    QString partPath(const QString& destination) const;
     void setState(int row, State state);
     void setRunningProgress(double progress);
     int runningRow() const;

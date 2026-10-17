@@ -300,6 +300,37 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(ended(), 4000);
     }
 
+    void testPlayAfterEndOfQueuePlaysAppendedItem()
+    {
+        if (!module_exists("demux_mock"))
+            QSKIP("needs the mock demux (not installed)");
+
+        const QString mrl = QStringLiteral("mock://video_track_count=0;audio_track_count=1;length=100000");
+        m_controller->playMedia(QVector<Media>{Media(mrl, "a"), Media(mrl, "b")});
+        const auto ended = [this] {
+            vlc_playlist_locker locker(playlist());
+            return vlc_player_IsEnded(vlc_playlist_GetPlayer(playlist()));
+        };
+        QTRY_VERIFY_WITH_TIMEOUT(ended(), 4000);
+        QCOMPARE(currentIndex(), 1);
+
+        /* an item added after the end is the next one to play */
+        m_controller->append(QVector<Media>{Media(mrl, "c")}, false);
+        m_controller->play();
+
+        QCOMPARE(currentIndex(), 2);
+        QVERIFY(!ended());
+        QTRY_VERIFY_WITH_TIMEOUT(ended(), 4000);
+        QCOMPARE(currentIndex(), 2);
+
+        /* and the same from Play/Pause */
+        m_controller->append(medias({"d"}), false);
+        m_controller->togglePlayPause();
+
+        QCOMPARE(currentIndex(), 3);
+        QVERIFY(!ended());
+    }
+
     void testEndOfQueueWithRepeatAllLoops()
     {
         if (!module_exists("demux_mock"))

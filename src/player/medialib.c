@@ -27,6 +27,15 @@
 #include "player.h"
 #include "misc/variables.h"
 
+/* Only the main player saves and restores the playback of a media, not a
+ * secondary one (a conversion's, for example). If this player's parent is the
+ * main vlc object, then it's the main player */
+static bool
+vlc_player_IsMain(vlc_player_t *player)
+{
+    return player->obj.priv->parent == (vlc_object_t*)vlc_object_instance(player);
+}
+
 void
 vlc_player_input_ResetMlStates(struct vlc_player_input *input)
 {
@@ -112,6 +121,9 @@ vlc_player_input_RestoreMlStates(struct vlc_player_input* input, bool force_pos)
 {
     vlc_player_t* player = input->player;
     vlc_player_assert_locked(player);
+
+    if (!vlc_player_IsMain(player))
+        return;
 
     int restore_pos;
     if (force_pos)
@@ -276,9 +288,7 @@ vlc_player_CompareAssignState(char **target_ptr, char **input_ptr)
 void
 vlc_player_UpdateMLStates(vlc_player_t *player, struct vlc_player_input* input)
 {
-    /* Do not save states for any secondary player. If this player's parent is
-       the main vlc object, then it's the main player */
-    if (player->obj.priv->parent != (vlc_object_t*)vlc_object_instance(player))
+    if (!vlc_player_IsMain(player))
         return;
 
     vlc_medialibrary_t* ml = vlc_ml_instance_get(player);

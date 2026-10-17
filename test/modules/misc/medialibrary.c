@@ -50,14 +50,49 @@ const char vlc_module_name[] = MODULE_STRING;
 
 static int exitcode = 0;
 
+struct thumbnail_wait
+{
+    vlc_sem_t sem;
+    char *mrl;
+};
+
 static void ValidateThumbnail(void *data, const vlc_ml_event_t *event)
 {
     if (event->i_type != VLC_ML_EVENT_MEDIA_THUMBNAIL_GENERATED)
         return;
 
     assert(event->media_thumbnail_generated.b_success);
-    vlc_sem_t *sem = data;
-    vlc_sem_post(sem);
+    struct thumbnail_wait *wait = data;
+    const vlc_ml_thumbnail_t *thumbnail =
+        &event->media_thumbnail_generated.p_media->thumbnails[
+            event->media_thumbnail_generated.i_size];
+    assert(thumbnail->psz_mrl != NULL);
+    wait->mrl = strdup(thumbnail->psz_mrl);
+    vlc_sem_post(&wait->sem);
+}
+
+/* The average luma of a picture file, from 0 to 255 */
+static unsigned MeanLuma(vlc_object_t *obj, const char *mrl)
+{
+    image_handler_t *handler = image_HandlerCreate(obj);
+    assert(handler != NULL);
+    video_format_t fmt;
+    video_format_Init(&fmt, VLC_CODEC_I420);
+    picture_t *pic = image_ReadUrl(handler, mrl, &fmt);
+    image_HandlerDelete(handler);
+    assert(pic != NULL);
+    assert(pic->format.i_chroma == VLC_CODEC_I420);
+
+    const plane_t *y = &pic->p[0];
+    uint64_t sum = 0;
+    for (int line = 0; line < y->i_visible_lines; ++line)
+        for (int col = 0; col < y->i_visible_pitch; ++col)
+            sum += y->p_pixels[line * y->i_pitch + col];
+    const uint64_t count = (uint64_t)y->i_visible_lines * y->i_visible_pitch;
+    assert(count > 0);
+    picture_Release(pic);
+    video_format_Clean(&fmt);
+    return sum / count;
 }
 
 static const char *tempdir;
@@ -173,20 +208,28 @@ static int OpenIntf(vlc_object_t *root)
 
     TestFolderTree(ml);
 
+    /* the mock video is black at its start, and its frames get lighter
+     * with time: the thumbnail is taken further in, out of the dark */
     #define MOCK_URL "mock://video_track_count=1;length=100000000;" \
                      "video_width=800;video_height=600"
     vlc_ml_media_t *media = vlc_ml_new_external_media(ml, MOCK_URL);
 
-    vlc_sem_t sem;
-    vlc_sem_init(&sem, 0);
+    struct thumbnail_wait wait = { .mrl = NULL };
+    vlc_sem_init(&wait.sem, 0);
 
     vlc_ml_event_callback_t *listener =
-        vlc_ml_event_register_callback(ml, ValidateThumbnail, &sem);
+        vlc_ml_event_register_callback(ml, ValidateThumbnail, &wait);
     vlc_ml_media_generate_thumbnail(ml, media->i_id,
             VLC_ML_THUMBNAIL_SMALL, 800, 600, 0.f);
 
-    vlc_sem_wait(&sem);
+    vlc_sem_wait(&wait.sem);
     vlc_ml_event_unregister_callback(ml, listener);
+
+    assert(wait.mrl != NULL);
+    unsigned luma = MeanLuma(root, wait.mrl);
+    fprintf(stderr, "thumbnail %s, mean luma %u\n", wait.mrl, luma);
+    assert(luma >= 32);
+    free(wait.mrl);
 
     vlc_ml_media_release(media);
 

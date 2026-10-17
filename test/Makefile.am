@@ -69,6 +69,7 @@ check_PROGRAMS = \
 	test_src_interface_dialog \
 	test_src_media_source \
 	test_src_misc_bits \
+	test_src_misc_actions \
 	test_src_misc_chroma_probe \
 	test_src_misc_epg \
 	test_src_misc_keystore \
@@ -332,6 +333,8 @@ test_src_player_tracks_ids_SOURCES = src/player/common.h src/player/modules.c \
 test_src_player_tracks_ids_LDADD = $(LIBVLCCORE) $(LIBVLC) $(LIBM)
 test_src_misc_bits_SOURCES = src/misc/bits.c
 test_src_misc_bits_LDADD = $(LIBVLC)
+test_src_misc_actions_SOURCES = src/misc/actions.c
+test_src_misc_actions_LDADD = $(LIBVLCCORE) $(LIBVLC)
 test_src_misc_epg_SOURCES = src/misc/epg.c
 test_src_misc_epg_LDADD = $(LIBVLCCORE) $(LIBVLC)
 test_src_misc_keystore_SOURCES = src/misc/keystore.c

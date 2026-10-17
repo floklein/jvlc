@@ -23,6 +23,7 @@
 # include "config.h"
 #endif
 
+#include <atomic>
 #include <deque>
 #include <vector>
 
@@ -38,6 +39,10 @@
  * It listens to every message of the instance from its creation, in addition
  * to the configured log, and keeps the last ones in a ring buffer. The rows
  * are the messages that pass the verbosity and the search pattern.
+ *
+ * Errors, warnings and info are always kept, so an error notice's Details
+ * show what came before. Debug messages are many, from busy threads: they are
+ * only formatted and kept while the verbosity is Debug.
  */
 class MessagesModel : public QAbstractListModel, public Singleton<MessagesModel>
 {
@@ -123,6 +128,8 @@ private:
     std::vector<quint64> m_visible;
 
     Verbosity m_verbosity = Info;
+    /// whether debug messages are kept, read from the logging threads
+    std::atomic<bool> m_keepDebug { false };
     QString m_searchPattern;
 
     /// messages received from any thread, not yet in the model

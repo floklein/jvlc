@@ -270,13 +270,17 @@ PLAYER_ACTION_HANDLER(State)
     {
         case ACTIONID_PLAY_PAUSE:
         {
-            /* At the end of the playlist (paused on the last frame), play it
+            /* At the end of the playlist (paused on the last frame), play the
+             * next item if some were added since, or else play the playlist
              * again from its first item. The playlist and the player share
              * the lock. */
             vlc_playlist_t *playlist = intf->p_sys->playlist;
             if (vlc_player_IsEnded(player) && vlc_playlist_Count(playlist) > 0)
             {
-                if (vlc_playlist_GoTo(playlist, 0) == VLC_SUCCESS)
+                int ret = vlc_playlist_HasNext(playlist)
+                        ? vlc_playlist_Next(playlist)
+                        : vlc_playlist_GoTo(playlist, 0);
+                if (ret == VLC_SUCCESS)
                     vlc_playlist_Start(playlist);
                 break;
             }
@@ -1242,30 +1246,36 @@ static vlc_action_id_t
 DiscMenuAction(intf_thread_t *intf, vlc_action_id_t action_id)
 {
     vlc_action_id_t nav_id;
+    uint_fast32_t arrow;
     switch (action_id)
     {
         case ACTIONID_JUMP_BACKWARD_SHORT:
             nav_id = ACTIONID_NAV_LEFT;
+            arrow = KEY_LEFT;
             break;
         case ACTIONID_JUMP_FORWARD_SHORT:
             nav_id = ACTIONID_NAV_RIGHT;
+            arrow = KEY_RIGHT;
             break;
         case ACTIONID_VOL_UP:
             nav_id = ACTIONID_NAV_UP;
+            arrow = KEY_UP;
             break;
         case ACTIONID_VOL_DOWN:
             nav_id = ACTIONID_NAV_DOWN;
+            arrow = KEY_DOWN;
             break;
         default:
             return action_id;
     }
 
-    /* the keys with a modifier (Alt+Left, Ctrl+Up) keep seeking and changing
-     * the volume, as do global keys and the actions sent without a key (from
-     * a menu): "key-action-key" is the key behind this very action, unlike
-     * "key-pressed" which keeps the last key */
-    int64_t key = var_GetInteger(vlc_object_instance(intf), "key-action-key");
-    if (key == 0 || (key & KEY_MODIFIER))
+    /* only the plain arrow itself moves: the keys with a modifier (Alt+Left,
+     * Ctrl+Up), the other keys of the action (the keyboard's Volume Up key,
+     * a mouse wheel), global keys and the actions sent without a key (from a
+     * menu) keep seeking and changing the volume.
+     * vlc_actions_get_action_key() is the key behind this very action,
+     * unlike "key-pressed" which keeps the last key */
+    if (vlc_actions_get_action_key() != arrow)
         return action_id;
 
     vlc_player_t *player = vlc_playlist_GetPlayer(intf->p_sys->playlist);

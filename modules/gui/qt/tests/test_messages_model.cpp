@@ -106,6 +106,40 @@ private slots:
         QCOMPARE(visibleTexts(model), expected);
     }
 
+    void testDebugIsOnlyKeptAtDebugVerbosity()
+    {
+        MessagesModel model(m_env->intf);
+        model.setVerbosity(MessagesModel::Info);
+        model.setSearchPattern("tst-debug-gate");
+
+        /* debug messages are many: they are not even formatted unless shown */
+        msg_Dbg(obj(), "tst-debug-gate dropped");
+        msg_Info(obj(), "tst-debug-gate info");
+        QTRY_COMPARE(model.rowCount(), 1);
+
+        model.setVerbosity(MessagesModel::Debug);
+        QCOMPARE(visibleTexts(model), QStringList{ "tst-debug-gate info" });
+
+        msg_Dbg(obj(), "tst-debug-gate kept");
+        QTRY_COMPARE(visibleTexts(model), QStringList({ "tst-debug-gate info",
+                                                        "tst-debug-gate kept" }));
+    }
+
+    void testLessVerboseLevelsAreKeptAtAnyVerbosity()
+    {
+        MessagesModel model(m_env->intf);
+        model.setVerbosity(MessagesModel::Errors);
+        model.setSearchPattern("tst-kept");
+
+        msg_Warn(obj(), "tst-kept warning");
+        msg_Err(obj(), "tst-kept error");
+        QTRY_COMPARE(model.rowCount(), 1);
+
+        /* back from the errors of a notice's Details, the rest is there */
+        model.setVerbosity(MessagesModel::Info);
+        QCOMPARE(visibleTexts(model), QStringList({ "tst-kept warning", "tst-kept error" }));
+    }
+
     void testSearchIgnoresCase()
     {
         MessagesModel model(m_env->intf);

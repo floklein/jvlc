@@ -16,7 +16,9 @@ TRIPLET=x86_64-w64-mingw32
 SRC="$JVLC_ROOT/contrib-src/$SHA"
 CONTRIB="$JVLC_ROOT/contrib"
 PREFIX="$CONTRIB/$TRIPLET"
-JOBS="${SETUP_JOBS:-$(nproc)}"
+# the same cap as the builds (docs/agents/build.md), and no more than the CPUs
+JOBS="${SETUP_JOBS:-$JVLC_JOBS}"
+[ "$JOBS" -le "$(nproc)" ] || JOBS="$(nproc)"
 
 if [ "$(cat "$CONTRIB/SHA" 2>/dev/null)" = "$SHA" ] && [ -f "$CONTRIB/.quicktest" ]; then
     info "contribs for $SHA already set up"

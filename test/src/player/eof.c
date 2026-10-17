@@ -118,6 +118,67 @@ test_pause_at_end_resume(struct ctx *ctx)
 }
 
 static void
+pause_at_end_wait_ended(struct ctx *ctx)
+{
+    vlc_player_t *player = ctx->player;
+    vlc_player_Resume(player);
+    wait_state(ctx, VLC_PLAYER_STATE_PLAYING);
+    wait_state(ctx, VLC_PLAYER_STATE_PAUSED);
+    assert(vlc_player_IsEnded(player));
+}
+
+static void
+test_pause_at_end_navigation(struct ctx *ctx)
+{
+    test_log("pause_at_end_navigation\n");
+
+    vlc_player_t *player = ctx->player;
+    vlc_player_SetPauseAtEnd(player, true);
+
+    /* Short steps, so that the player learns each chapter as it plays */
+    struct media_params params = DEFAULT_MEDIA_PARAMS(VLC_TICK_FROM_MS(400));
+    params.audio_sample_length = VLC_TICK_FROM_MS(10);
+    params.title_count = 1;
+    params.chapter_count = 4;
+    player_set_next_mock_media(ctx, "media1", &params);
+    player_start(ctx);
+
+    wait_state(ctx, VLC_PLAYER_STATE_PLAYING);
+    wait_state(ctx, VLC_PLAYER_STATE_PAUSED);
+    assert(vlc_player_IsEnded(player));
+
+    /* Moving the playback point away from the end is not the end any more,
+     * so a Resume plays from there instead of from the start */
+    vlc_player_SelectChapterIdx(player, 2);
+    assert(!vlc_player_IsEnded(player));
+
+    /* There is no chapter after the last one, nor another title: these do
+     * not move */
+    pause_at_end_wait_ended(ctx);
+    assert(vlc_player_GetSelectedChapterIdx(player) == 3);
+    vlc_player_SelectNextChapter(player);
+    vlc_player_SelectNextTitle(player);
+    vlc_player_SelectPrevTitle(player);
+    assert(vlc_player_IsEnded(player));
+
+    vlc_player_SelectPrevChapter(player);
+    assert(!vlc_player_IsEnded(player));
+
+    pause_at_end_wait_ended(ctx);
+    vlc_player_SelectTitleIdx(player, 0);
+    assert(!vlc_player_IsEnded(player));
+
+    pause_at_end_wait_ended(ctx);
+    vlc_player_PreviousVideoFrame(player);
+    assert(!vlc_player_IsEnded(player));
+
+    test_prestop(ctx);
+    vlc_player_Stop(player);
+
+    test_end(ctx);
+}
+
+static void
 test_pause_at_end_no_pause(struct ctx *ctx)
 {
     test_log("pause_at_end_no_pause\n");
@@ -193,6 +254,7 @@ main(void)
     test_play_pause(&ctx);
     test_pause_at_end(&ctx);
     test_pause_at_end_resume(&ctx);
+    test_pause_at_end_navigation(&ctx);
     test_pause_at_end_no_pause(&ctx);
     test_repeat(&ctx);
     test_audio_end(&ctx, 2.f);

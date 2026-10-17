@@ -134,9 +134,10 @@ struct vlc_player_input
         bool has_audio_tracks;
         /* The string ids of the tracks picked by the viewer, by category */
         char *picked_tracks[DATA_ES];
-        /* The next forced selection of a category comes from
-         * vlc_player_SelectDefaultTrack(): it isn't the viewer's pick */
-        bool default_selection[DATA_ES];
+        /* The track vlc_player_SelectDefaultTrack() asked for, by category
+         * (held): its selection isn't the viewer's pick. Any other selection
+         * in the category drops it. */
+        vlc_es_id_t *default_selection[DATA_ES];
     } ml;
 
     unsigned repeat;
@@ -484,6 +485,11 @@ void
 vlc_player_input_SelectTracksByStringIds(struct vlc_player_input *input,
                                          enum es_format_category_e cat,
                                          const char *str_ids);
+
+void
+vlc_player_input_SetDefaultSelection(struct vlc_player_input *input,
+                                     enum es_format_category_e cat,
+                                     vlc_es_id_t *id);
 
 char *
 vlc_player_input_GetSelectedTrackStringIds(struct vlc_player_input *input,

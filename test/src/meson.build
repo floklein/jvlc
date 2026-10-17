@@ -441,6 +441,13 @@ vlc_tests += {
 }
 
 vlc_tests += {
+    'name' : 'test_src_misc_actions',
+    'sources' : files('misc/actions.c'),
+    'suite' : ['src', 'test_src'],
+    'link_with' : [libvlc, libvlccore],
+}
+
+vlc_tests += {
     'name' : 'test_src_misc_epg',
     'sources' : files('misc/epg.c'),
     'suite' : ['src', 'test_src'],

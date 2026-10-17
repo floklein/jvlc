@@ -2375,8 +2375,10 @@ static bool Control( input_thread_t *p_input,
             es_out_Control(&priv->p_es_out->out, ES_OUT_RESET_PCR);
             ResetFramePrevious( p_input );
             priv->next_frame_need_data = false;
-            demux_Control(priv->master->p_demux,
-                          DEMUX_SET_TITLE, i_title);
+            /* A new title can be played after the end of the previous one */
+            if( demux_Control( priv->master->p_demux,
+                               DEMUX_SET_TITLE, i_title ) == VLC_SUCCESS )
+                priv->master->b_eof = false;
             break;
         }
         case INPUT_CONTROL_SET_SEEKPOINT:
@@ -2422,6 +2424,7 @@ static bool Control( input_thread_t *p_input,
             if( demux_Control( priv->master->p_demux,
                                DEMUX_SET_SEEKPOINT, i_seekpoint ) )
                 break;
+            priv->master->b_eof = false;
 
             input_SendEventSeekpoint( p_input, i_title, i_seekpoint );
 

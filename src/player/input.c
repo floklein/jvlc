@@ -712,8 +712,8 @@ vlc_player_input_HandleEsEvent(struct vlc_player_input *input,
                 bool by_default = false;
                 if (ev->forced && cat >= 0 && cat < DATA_ES)
                 {
-                    by_default = input->ml.default_selection[cat];
-                    input->ml.default_selection[cat] = false;
+                    by_default = input->ml.default_selection[cat] == ev->id;
+                    vlc_player_input_SetDefaultSelection(input, cat, NULL);
                 }
                 trackpriv->t.selected = true;
                 trackpriv->selected_by_user = ev->forced && !by_default;
@@ -1261,7 +1261,20 @@ vlc_player_input_SelectTracksByStringIds(struct vlc_player_input *input,
                                          enum es_format_category_e cat,
                                          const char *str_ids)
 {
+    vlc_player_input_SetDefaultSelection(input, cat, NULL);
     input_SetEsCatIds(input->thread, cat, str_ids);
+}
+
+void
+vlc_player_input_SetDefaultSelection(struct vlc_player_input *input,
+                                     enum es_format_category_e cat,
+                                     vlc_es_id_t *id)
+{
+    if (cat < 0 || cat >= DATA_ES)
+        return;
+    if (input->ml.default_selection[cat] != NULL)
+        vlc_es_id_Release(input->ml.default_selection[cat]);
+    input->ml.default_selection[cat] = id ? vlc_es_id_Hold(id) : NULL;
 }
 
 char *
@@ -1348,7 +1361,7 @@ vlc_player_input_New(vlc_player_t *player, input_item_t *item)
     for (enum es_format_category_e i = UNKNOWN_ES; i < DATA_ES; ++i)
     {
         input->ml.picked_tracks[i] = NULL;
-        input->ml.default_selection[i] = false;
+        input->ml.default_selection[i] = NULL;
     }
 
     static const struct vlc_input_thread_callbacks cbs = {
@@ -1425,7 +1438,10 @@ vlc_player_input_Delete(struct vlc_player_input *input)
     vlc_vector_destroy(&input->spu_track_vector);
 
     for (enum es_format_category_e i = UNKNOWN_ES; i < DATA_ES; ++i)
+    {
         free(input->ml.picked_tracks[i]);
+        vlc_player_input_SetDefaultSelection(input, i, NULL);
+    }
 
     input_Close(input->thread);
     free(input);

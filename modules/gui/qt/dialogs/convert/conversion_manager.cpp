@@ -73,10 +73,18 @@ ConversionManager::~ConversionManager()
     vlc_player_Delete(m_player);
 
     const int row = runningRow();
-    if (row >= 0 && (m_conversions[row].overwrite || !m_conversions[row].existed))
-        QFile::remove(m_conversions[row].destination);
+    if (row >= 0)
+        removeOutput(m_conversions[row]);
 
     vlc_object_delete(m_object);
+}
+
+void ConversionManager::removeOutput(const Conversion& conversion)
+{
+    if (conversion.output != conversion.destination)
+        QFile::remove(conversion.output);
+    else if (conversion.overwrite || !conversion.existed)
+        QFile::remove(conversion.destination);
 }
 
 bool ConversionManager::ensurePlayer()
@@ -283,21 +291,47 @@ void ConversionManager::convert(const QStringList& mrls, const QString& profileV
 
     for (const QString& mrl : mrls)
     {
-        const QString destination = single ? saveAs
-                                           : convertedPath(mrl, extension);
-        /* the user confirmed the replacement when saving as */
-        add(mrl, ConversionProfileModel::soutChain(profileValue, destination, deinterlace, single),
-            destination, single);
+        if (single)
+        {
+            /* the user confirmed the replacement when saving as: the file is
+             * written aside, and replaced once done, so that it survives a
+             * failed or cancelled conversion */
+            const QString output = partPath(saveAs);
+            add(mrl, ConversionProfileModel::soutChain(profileValue, output, deinterlace, true),
+                saveAs, true, output);
+            continue;
+        }
+        const QString destination = convertedPath(mrl, extension);
+        add(mrl, ConversionProfileModel::soutChain(profileValue, destination, deinterlace, false),
+            destination, false);
     }
 }
 
+QString ConversionManager::partPath(const QString& destination) const
+{
+    const auto taken = [this](const QString& path) {
+        if (QFileInfo::exists(path))
+            return true;
+        return std::any_of(m_conversions.cbegin(), m_conversions.cend(), [&path](const Conversion& conversion) {
+            return isActive(conversion.state) && conversion.output == path;
+        });
+    };
+
+    QString path = destination + QStringLiteral(".part");
+    for (int i = 2; taken(path); i++)
+        path = QStringLiteral("%1.%2.part").arg(destination).arg(i);
+    return path;
+}
+
 void ConversionManager::add(const QString& mrl, const QString& soutChain,
-                            const QString& destination, bool overwrite)
+                            const QString& destination, bool overwrite,
+                            const QString& output)
 {
     Conversion conversion;
     conversion.mrl = mrl;
     conversion.sout = soutChain;
     conversion.destination = destination;
+    conversion.output = output.isEmpty() ? destination : output;
     conversion.overwrite = overwrite;
 
     const QUrl source(mrl);
@@ -403,11 +437,20 @@ void ConversionManager::finishRunning()
     State state = Done;
     if (m_cancelRequested)
         state = Cancelled;
-    else if (m_error || QFileInfo(conversion.destination).size() <= 0)
+    else if (m_error || QFileInfo(conversion.output).size() <= 0)
         state = Failed;
+    else if (conversion.output != conversion.destination)
+    {
+        /* done: the written file replaces the destination */
+        if (QFileInfo::exists(conversion.destination)
+            && !QFile::remove(conversion.destination))
+            state = Failed;
+        else if (!QFile::rename(conversion.output, conversion.destination))
+            state = Failed;
+    }
 
-    if (state != Done && (conversion.overwrite || !conversion.existed))
-        QFile::remove(conversion.destination);
+    if (state != Done)
+        removeOutput(conversion);
 
     setState(row, state);
     startNext();

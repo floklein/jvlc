@@ -529,6 +529,7 @@ video_format_LogDifferences
 video_format_IsSameChroma
 video_format_Setup
 video_format_Print
+vlc_actions_get_action_key
 vlc_actions_get_id
 vlc_actions_get_key_names
 vlc_actions_get_keycodes

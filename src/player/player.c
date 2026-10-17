@@ -497,6 +497,8 @@ vlc_player_SelectEsIdList(vlc_player_t *player,
     if (max_tracks == 0)
         return 0;
 
+    vlc_player_input_SetDefaultSelection(input, cat, NULL);
+
     /* First, count and hold all the ES Ids.
        Ids will be released in input.c:ControlRelease */
     size_t track_count = 0;
@@ -599,6 +601,9 @@ vlc_player_SelectEsId(vlc_player_t *player, vlc_es_id_t *id,
 
     if (policy == VLC_PLAYER_SELECT_EXCLUSIVE)
     {
+        /* the viewer's pick, even of the default track */
+        vlc_player_input_SetDefaultSelection(input, vlc_es_id_GetCat(id),
+                                             NULL);
         if (input_ControlPushEsHelper(input->thread, INPUT_CONTROL_SET_ES, id)
          == VLC_SUCCESS)
             vlc_player_osd_Track(player, id, true);
@@ -629,7 +634,7 @@ vlc_player_SelectDefaultTrack(vlc_player_t *player,
         return;
     if (input_ControlPushEsHelper(input->thread, INPUT_CONTROL_SET_ES,
                                   track->es_id) == VLC_SUCCESS)
-        input->ml.default_selection[cat] = true;
+        vlc_player_input_SetDefaultSelection(input, cat, track->es_id);
 }
 
 void
@@ -736,12 +741,14 @@ vlc_player_UnselectEsId(vlc_player_t *player, vlc_es_id_t *id)
     if (!input)
         return;
 
+    const enum es_format_category_e cat = vlc_es_id_GetCat(id);
+    vlc_player_input_SetDefaultSelection(input, cat, NULL);
+
     int ret = input_ControlPushEsHelper(input->thread, INPUT_CONTROL_UNSET_ES,
                                         id);
     if (ret != VLC_SUCCESS)
         return;
 
-    const enum es_format_category_e cat = vlc_es_id_GetCat(id);
     vlc_es_id_t **selected_es = vlc_player_GetEsIdList(player, cat, NULL);
     if (selected_es == NULL)
         return;
@@ -896,13 +903,39 @@ vlc_player_GetTitleIdx(vlc_player_t *player,
     return -1;
 }
 
+/* A title or chapter change moves the playback point away from the end, like
+ * a seek: Resume then plays from there, see vlc_player_Resume(). The checks
+ * are those of the input thread, which ignores a title or chapter that does
+ * not exist. */
+static void
+vlc_player_input_LeaveEndForTitle(struct vlc_player_input *input,
+                                  ssize_t index)
+{
+    if (input->titles && index >= 0 && (size_t) index < input->titles->count)
+        input->paused_at_end = false;
+}
+
+static void
+vlc_player_input_LeaveEndForChapter(struct vlc_player_input *input,
+                                    ssize_t index)
+{
+    if (!input->titles || input->title_selected >= input->titles->count)
+        return;
+    const struct vlc_player_title *title =
+        &input->titles->array[input->title_selected];
+    if (index >= 0 && (size_t) index < title->chapter_count)
+        input->paused_at_end = false;
+}
+
 void
 vlc_player_SelectTitleIdx(vlc_player_t *player, size_t index)
 {
     struct vlc_player_input *input = vlc_player_get_input_locked(player);
-    if (input)
-        input_ControlPushHelper(input->thread, INPUT_CONTROL_SET_TITLE,
-                                &(vlc_value_t){ .i_int = index });
+    if (!input)
+        return;
+    vlc_player_input_LeaveEndForTitle(input, index);
+    input_ControlPushHelper(input->thread, INPUT_CONTROL_SET_TITLE,
+                            &(vlc_value_t){ .i_int = index });
 }
 
 void
@@ -930,6 +963,7 @@ vlc_player_SelectNextTitle(vlc_player_t *player)
     struct vlc_player_input *input = vlc_player_get_input_locked(player);
     if (!input)
         return;
+    vlc_player_input_LeaveEndForTitle(input, input->title_selected + 1);
     int ret = input_ControlPush(input->thread, INPUT_CONTROL_SET_TITLE_NEXT,
                                 NULL);
     if (ret == VLC_SUCCESS)
@@ -942,6 +976,8 @@ vlc_player_SelectPrevTitle(vlc_player_t *player)
     struct vlc_player_input *input = vlc_player_get_input_locked(player);
     if (!input)
         return;
+    vlc_player_input_LeaveEndForTitle(input,
+                                      (ssize_t) input->title_selected - 1);
     int ret = input_ControlPush(input->thread, INPUT_CONTROL_SET_TITLE_PREV,
                                 NULL);
     if (ret == VLC_SUCCESS)
@@ -988,6 +1024,7 @@ vlc_player_SelectChapterIdx(vlc_player_t *player, size_t index)
     struct vlc_player_input *input = vlc_player_get_input_locked(player);
     if (!input)
         return;
+    vlc_player_input_LeaveEndForChapter(input, index);
     vlc_player_UpdateChapterSeekState(input, index);
     int ret = input_ControlPushHelper(input->thread, INPUT_CONTROL_SET_SEEKPOINT,
                                       &(vlc_value_t){ .i_int = index });
@@ -1001,6 +1038,7 @@ vlc_player_SelectNextChapter(vlc_player_t *player)
     struct vlc_player_input *input = vlc_player_get_input_locked(player);
     if (!input)
         return;
+    vlc_player_input_LeaveEndForChapter(input, input->chapter_selected + 1);
     vlc_player_UpdateChapterSeekState(input, input->chapter_selected + 1);
     int ret = input_ControlPush(input->thread, INPUT_CONTROL_SET_SEEKPOINT_NEXT,
                                 NULL);
@@ -1014,14 +1052,15 @@ vlc_player_SelectPrevChapter(vlc_player_t *player)
     struct vlc_player_input *input = vlc_player_get_input_locked(player);
     if (!input)
         return;
-    size_t index = input->chapter_selected;
+    ssize_t index = input->chapter_selected;
     vlc_tick_t time = vlc_player_ChapterTime(input, index);
     /* same rule as the input thread */
-    if (time >= 0 && vlc_player_input_GetTime(input, true, vlc_tick_now())
-                     >= time + VLC_TICK_FROM_SEC(3))
+    if (time < 0 || vlc_player_input_GetTime(input, true, vlc_tick_now())
+                    < time + VLC_TICK_FROM_SEC(3))
+        index--;
+    vlc_player_input_LeaveEndForChapter(input, index);
+    if (index >= 0)
         vlc_player_UpdateChapterSeekState(input, index);
-    else if (index > 0)
-        vlc_player_UpdateChapterSeekState(input, index - 1);
     int ret = input_ControlPush(input->thread, INPUT_CONTROL_SET_SEEKPOINT_PREV,
                                 NULL);
     if (ret == VLC_SUCCESS)
@@ -1416,6 +1455,7 @@ vlc_player_PreviousVideoFrame(vlc_player_t *player)
     struct vlc_player_input *input = vlc_player_get_input_locked(player);
     if (!input)
         return;
+    input->paused_at_end = false;
     input_ControlPushHelper(input->thread,
                             INPUT_CONTROL_SET_FRAME_PREVIOUS, NULL);
 }

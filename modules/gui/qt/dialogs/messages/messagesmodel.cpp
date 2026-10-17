@@ -91,6 +91,10 @@ void MessagesModel::onLog(void *data, int type, const vlc_log_t *item,
 {
     auto self = static_cast<MessagesModel *>(data);
 
+    if (verbosityOf(type) == Debug
+     && !self->m_keepDebug.load(std::memory_order_relaxed))
+        return;
+
     char *str;
     if (unlikely(vasprintf(&str, format, ap) == -1))
         return;
@@ -243,6 +247,7 @@ void MessagesModel::setVerbosity(Verbosity verbosity)
     if (m_verbosity == verbosity)
         return;
     m_verbosity = verbosity;
+    m_keepDebug.store(verbosity == Debug, std::memory_order_relaxed);
     refilter();
     emit verbosityChanged();
 }

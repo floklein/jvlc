@@ -421,6 +421,10 @@ struct vlc_actions_t
     const char *ppsz_keys[];
 };
 
+/* The key behind the action being delivered on this thread, see
+ * vlc_actions_get_action_key() */
+static thread_local uint_fast32_t action_key;
+
 static int vlc_key_to_action (vlc_object_t *obj, const char *varname,
                               vlc_value_t prevkey, vlc_value_t curkey, void *d)
 {
@@ -440,12 +444,19 @@ static int vlc_key_to_action (vlc_object_t *obj, const char *varname,
     if (action == ACTIONID_NONE)
         return VLC_SUCCESS;
 
-    /* The key behind the action, for the "key-action" callbacks: 0 for a
-     * global key and for an action triggered without a key */
-    var_SetInteger (obj, "key-action-key", global ? 0 : keycode);
+    /* The key behind the action, for the "key-action" callbacks, which run
+     * on this thread: 0 for a global key and for an action triggered without
+     * a key */
+    uint_fast32_t prev_key = action_key;
+    action_key = global ? 0 : keycode;
     int ret = var_SetInteger (obj, "key-action", action);
-    var_SetInteger (obj, "key-action-key", 0);
+    action_key = prev_key;
     return ret;
+}
+
+uint_fast32_t vlc_actions_get_action_key (void)
+{
+    return action_key;
 }
 
 /**
@@ -573,7 +584,6 @@ int libvlc_InternalActionsInit (libvlc_int_t *libvlc)
     var_Create (obj, "key-pressed", VLC_VAR_INTEGER);
     var_Create (obj, "global-key-pressed", VLC_VAR_INTEGER);
     var_Create (obj, "key-action", VLC_VAR_INTEGER);
-    var_Create (obj, "key-action-key", VLC_VAR_INTEGER);
 
     for (size_t i = 0; i < ARRAY_SIZE(s_names2actions); i++)
     {

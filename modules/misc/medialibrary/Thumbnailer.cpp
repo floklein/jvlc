@@ -31,15 +31,18 @@
 #include <vlc_preparser.h>
 #include <vlc_image.h>
 #include <vlc_picture.h>
+#include <vlc_fourcc.h>
 
+#include <cerrno>
 #include <climits>
+#include <fcntl.h>
 #include <stdexcept>
 
 Thumbnailer::Thumbnailer( vlc_medialibrary_module_t* ml )
     : m_ml(ml)
     , m_currentContext(nullptr)
     , m_thumbnailer(VLC_OBJECT(ml), {
-        .types = VLC_PREPARSER_TYPE_THUMBNAIL_TO_FILES,
+        .types = VLC_PREPARSER_TYPE_THUMBNAIL,
         .max_parser_threads = 0,
         .max_thumbnailer_threads = 1,
         .timeout = VLC_TICK_FROM_SEC( 3 ),
@@ -52,27 +55,23 @@ Thumbnailer::Thumbnailer( vlc_medialibrary_module_t* ml )
 {
 }
 
-void Thumbnailer::onThumbnailToFilesComplete(vlc_preparser_req *req, int ,
-                                             const bool *result_array,
-                                             size_t result_count, void *data)
+void Thumbnailer::onThumbnailComplete(vlc_preparser_req *req, int status,
+                                      picture_t *thumbnail, void *data)
 {
     ThumbnailerCtx* ctx = static_cast<ThumbnailerCtx*>( data );
 
     vlc::threads::mutex_locker lock( ctx->thumbnailer->m_mutex );
     ctx->done = true;
-    if (result_count != 1) {
-        ctx->error = true;
-    } else {
-        ctx->error = !result_array[0];
-    }
+    if ( status == VLC_SUCCESS && thumbnail != nullptr )
+        ctx->picture = picture_Hold( thumbnail );
     ctx->thumbnailer->m_currentContext = nullptr;
     ctx->thumbnailer->m_cond.broadcast();
     vlc_preparser_req_Release( req );
 }
 
 /* Many films open dark: titles, a fade in. A thumbnail taken there is all
- * black, so a dark one is taken again further in, a few times at most: the
- * check reads back the small picture just written. */
+ * black, so a dark one is taken again further in, a few times at most. The
+ * check reads the decoded picture, and only the last one is written. */
 bool Thumbnailer::generate( const medialibrary::IMedia&, const std::string& mrl,
                             uint32_t desiredWidth, uint32_t desiredHeight,
                             float position, const std::string& dest )
@@ -80,88 +79,154 @@ bool Thumbnailer::generate( const medialibrary::IMedia&, const std::string& mrl,
     static const float step = .2f;
     static const int attempts = 3;
 
-    bool generated = false;
+    picture_t *thumbnail = nullptr;
     for ( int i = 0; i < attempts; ++i )
     {
         const float pos = position + i * step;
         if ( i > 0 && pos > .9f )
             break;
-        if ( !generateAt( mrl, desiredWidth, desiredHeight, pos, i > 0, dest ) )
+        picture_t *pic = takeAt( mrl, pos, i > 0 );
+        if ( pic == nullptr )
         {
             /* a dark thumbnail is still one */
             msg_Dbg( m_ml, "no thumbnail at %.2f for %s", pos, mrl.c_str() );
             continue;
         }
-        generated = true;
-        if ( !isDark( dest ) )
+        if ( thumbnail != nullptr )
+            picture_Release( thumbnail );
+        thumbnail = pic;
+        if ( !isDark( pic ) )
             break;
         msg_Dbg( m_ml, "dark thumbnail at %.2f for %s, trying further in",
                  pos, mrl.c_str() );
     }
-    return generated;
+    if ( thumbnail == nullptr )
+        return false;
+
+    bool written = write( thumbnail, desiredWidth, desiredHeight, dest );
+    picture_Release( thumbnail );
+    return written;
 }
 
-/* Whether the picture of a file is almost black: its average luma is below
- * an eighth of the range */
-bool Thumbnailer::isDark( const std::string& dest )
+/* The average luma of the luma plane of an 8-bit YUV picture (planar or
+ * semi-planar), from 0 to 255, or -1 for any other picture */
+static int meanLuma( const picture_t *pic )
 {
-    auto url = vlc::wrap_cptr( vlc_path2uri( dest.c_str(), nullptr ), &free );
-    if ( url == nullptr )
-        return false;
+    const vlc_chroma_description_t *desc =
+        vlc_fourcc_GetChromaDescription( pic->format.i_chroma );
+    if ( desc == nullptr || !vlc_chroma_description_IsYUV( desc )
+      || desc->plane_count < 2 || desc->pixel_size != 1 )
+        return -1;
 
-    image_handler_t *handler = image_HandlerCreate( m_ml );
-    if ( handler == nullptr )
-        return false;
-
-    video_format_t fmt;
-    video_format_Init( &fmt, VLC_CODEC_I420 );
-    picture_t *pic = image_ReadUrl( handler, url.get(), &fmt );
-    image_HandlerDelete( handler );
-    if ( pic == nullptr )
+    const plane_t &y = pic->p[0];
+    uint64_t sum = 0;
+    for ( int line = 0; line < y.i_visible_lines; ++line )
     {
-        video_format_Clean( &fmt );
-        return false;
+        const uint8_t *p = y.p_pixels + line * y.i_pitch;
+        for ( int col = 0; col < y.i_visible_pitch; ++col )
+            sum += p[col];
     }
-
-    bool dark = false;
-    if ( pic->format.i_chroma == VLC_CODEC_I420 )
-    {
-        const plane_t &y = pic->p[0];
-        uint64_t sum = 0;
-        for ( int line = 0; line < y.i_visible_lines; ++line )
-        {
-            const uint8_t *p = y.p_pixels + line * y.i_pitch;
-            for ( int col = 0; col < y.i_visible_pitch; ++col )
-                sum += p[col];
-        }
-        const uint64_t count = (uint64_t)y.i_visible_lines * y.i_visible_pitch;
-        dark = count > 0 && sum / count < 32;
-    }
-    picture_Release( pic );
-    video_format_Clean( &fmt );
-    return dark;
+    const uint64_t count = (uint64_t)y.i_visible_lines * y.i_visible_pitch;
+    return count > 0 ? sum / count : -1;
 }
 
-bool Thumbnailer::generateAt( const std::string& mrl,
-                              uint32_t desiredWidth, uint32_t desiredHeight,
-                              float position, bool precise,
-                              const std::string& dest )
+/* Whether a picture is almost black: its average luma is below an eighth of
+ * the range */
+bool Thumbnailer::isDark( picture_t *pic )
+{
+    video_format_t fmt = pic->format;
+    picture_t *converted = nullptr;
+    int luma = meanLuma( pic );
+    if ( luma < 0 )
+    {
+        /* any other chroma: a small 8-bit YUV copy tells */
+        image_handler_t *handler = image_HandlerCreate( m_ml );
+        if ( handler == nullptr )
+            return false;
+        video_format_Init( &fmt, VLC_CODEC_I420 );
+        fmt.i_width = fmt.i_visible_width = 64;
+        fmt.i_height = fmt.i_visible_height = 64;
+        converted = image_Convert( handler, pic, &pic->format, &fmt );
+        image_HandlerDelete( handler );
+        if ( converted == nullptr )
+            return false;
+        fmt = converted->format;
+        luma = meanLuma( converted );
+        picture_Release( converted );
+        if ( luma < 0 )
+            return false;
+    }
+
+    /* black is 16 in the limited range, 0 in the full one */
+    const bool full = fmt.color_range == COLOR_RANGE_FULL;
+    const int black = full ? 0 : 16;
+    const int range = full ? 255 : 219;
+    return luma < black + 32 * range / 255;
+}
+
+/* Writes the thumbnail as a JPEG file, as the preparser does for the
+ * thumbnails to files */
+bool Thumbnailer::write( picture_t *pic, uint32_t width, uint32_t height,
+                         const std::string& dest )
 {
 #if INT_MAX < UINT32_MAX
-    assert(desiredWidth < (uint32_t)INT_MAX);
-    assert(desiredHeight < (uint32_t)INT_MAX);
+    assert(width < (uint32_t)INT_MAX);
+    assert(height < (uint32_t)INT_MAX);
 #endif
 
+    block_t *block;
+    if ( picture_Export( VLC_OBJECT( m_ml ), &block, nullptr, pic,
+                         VLC_CODEC_JPEG, (int)width, (int)height, true ) != VLC_SUCCESS )
+        return false;
+
+    int flags = O_WRONLY | O_CREAT | O_TRUNC;
+#ifdef O_BINARY
+    flags |= O_BINARY;
+#endif
+    int fd = vlc_open( dest.c_str(), flags, 0600 );
+    if ( fd == -1 )
+    {
+        block_Release( block );
+        return false;
+    }
+
+    const uint8_t *data = block->p_buffer;
+    size_t size = block->i_buffer;
+    while ( size > 0 )
+    {
+        ssize_t len = vlc_write( fd, data, size );
+        if ( len < 0 )
+        {
+            if ( errno == EINTR || errno == EAGAIN )
+                continue;
+            break;
+        }
+        size -= len;
+        data += len;
+    }
+    vlc_close( fd );
+    block_Release( block );
+    if ( size > 0 )
+    {
+        vlc_unlink( dest.c_str() );
+        return false;
+    }
+    return true;
+}
+
+picture_t* Thumbnailer::takeAt( const std::string& mrl, float position,
+                                bool precise )
+{
     ThumbnailerCtx ctx{};
 
     auto item = vlc::wrap_cptr( input_item_New( mrl.c_str(), nullptr ),
                                 &input_item_Release );
     if ( unlikely( item == nullptr ) )
-        return false;
+        return nullptr;
 
     ctx.done = false;
     ctx.thumbnailer = this;
-    ctx.error = true;
+    ctx.picture = nullptr;
     {
         vlc::threads::mutex_locker lock( m_mutex );
         m_currentContext = &ctx;
@@ -175,39 +240,30 @@ bool Thumbnailer::generateAt( const std::string& mrl,
             .hw_dec = false,
         };
 
-        struct vlc_thumbnailer_output thumb_out = {
-            .format = VLC_THUMBNAILER_FORMAT_JPEG,
-            .width = (int)desiredWidth,
-            .height = (int)desiredHeight,
-            .crop = true,
-            .file_path = dest.c_str(),
-            .creat_mode = 0600,
-        };
-
-        static const struct vlc_thumbnailer_to_files_cbs cbs = {
-            .on_ended = onThumbnailToFilesComplete,
+        static const struct vlc_thumbnailer_cbs cbs = {
+            .on_ended = onThumbnailComplete,
         };
 
         vlc_preparser_t *thumbnailer = m_thumbnailer.instance();
         if (thumbnailer == nullptr) {
-            return false;
+            m_currentContext = nullptr;
+            return nullptr;
         }
 
         vlc_preparser_req *preparserReq =
-            vlc_preparser_req_NewThumbnailToFiles(thumbnailer, item.get(),
-                                                  &thumb_arg, &thumb_out, 1,
-                                                  &cbs, &ctx);
+            vlc_preparser_req_NewThumbnail(thumbnailer, item.get(),
+                                           &thumb_arg, &cbs, &ctx);
         if (preparserReq == nullptr)
         {
             m_currentContext = nullptr;
-            return false;
+            return nullptr;
         }
 
         if (vlc_preparser_Submit(thumbnailer, preparserReq) != VLC_SUCCESS)
         {
             vlc_preparser_req_Release(preparserReq);
             m_currentContext = nullptr;
-            return false;
+            return nullptr;
         }
 
         while ( ctx.done == false )
@@ -215,7 +271,7 @@ bool Thumbnailer::generateAt( const std::string& mrl,
         m_currentContext = nullptr;
     }
 
-    return !ctx.error;
+    return ctx.picture;
 }
 
 void Thumbnailer::stop()
