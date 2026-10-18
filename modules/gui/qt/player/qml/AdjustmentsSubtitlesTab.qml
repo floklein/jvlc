@@ -37,22 +37,26 @@ FocusScope {
         colorSet: ColorContext.View
     }
 
+    // the fields' stroke and fill, for the dropdowns drawn as fields
+    readonly property ColorContext _fieldContext: ColorContext {
+        id: fieldTheme
+        colorSet: ColorContext.TextField
+    }
+
     readonly property SubtitleAppearance appearance: Player.subtitleAppearance
 
     // styled ASS subtitles draw themselves: their look can't be changed
     readonly property bool styled: Player.subtitleTracks.styledSelected
 
-    property bool _advancedOpen: false
-
     // the controls, top to bottom, for the keyboard navigation
     readonly property var _controls: [
-        languageCombo,
+        trackField, languageCombo,
         delayField, delaySlider, voiceHeardButton, textSeenButton,
         secondaryDelayField, secondaryDelaySlider,
-        advancedButton,
         speedField, speedSlider, durationField, durationSlider,
-        keepStylingRow, fontCombo, sizeModeSegments, relativeSizeCombo, pixelSizeField,
-        textColorRow, outlineColorRow, outlineSegments, backgroundSlider, offsetField,
+        keepStylingRow, fontCombo, textColorRow, outlineColorRow, offsetField,
+        sizeModeSegments, relativeSizeSlider, pixelSizeField,
+        outlineSlider, backgroundSlider,
     ]
 
     function _usable(item) : bool {
@@ -121,6 +125,14 @@ FocusScope {
         { value: SubtitleAppearance.Larger, text: qsTr("Larger") },
     ]
 
+    // the steps of the Outline Thickness range, in their order
+    readonly property var _outlines: [
+        { value: SubtitleAppearance.NoOutline, text: qsTr("None") },
+        { value: SubtitleAppearance.ThinOutline, text: qsTr("Thin") },
+        { value: SubtitleAppearance.NormalOutline, text: qsTr("Normal") },
+        { value: SubtitleAppearance.ThickOutline, text: qsTr("Thick") },
+    ]
+
     readonly property var _fonts: [qsTr("Default")].concat(Qt.fontFamilies())
 
     // the colors of the text renderer's list
@@ -145,7 +157,8 @@ FocusScope {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
 
-        T.ScrollBar.vertical: Widgets.ScrollBarExt { }
+        // Figma has none: it shows while scrolling
+        T.ScrollBar.vertical: AdjustmentsScrollBar { }
 
         ColumnLayout {
             id: content
@@ -161,14 +174,34 @@ FocusScope {
                 divider: false
             }
 
-            ChoiceRow {
+            // Figma "Frame 92" (845:1597): the track and the language the next
+            // media shows, in 48 px rows 5 px apart
+            FieldRow {
+                Layout.topMargin: VLCStyle.spacing_10
+
+                text: qsTr("Subtitle Track")
+
+                TrackField {
+                    id: trackField
+
+                    focus: true
+
+                    Accessible.name: qsTr("Default subtitle track")
+
+                    track: root.appearance.defaultTrack
+                    onTrackEntered: (track) => { root.appearance.defaultTrack = track }
+                }
+            }
+
+            FieldRow {
+                Layout.topMargin: VLCStyle.spacing_5
+                Layout.bottomMargin: VLCStyle.spacing_10
+
                 text: qsTr("Subtitle Language")
                 presetKeys: ["sub-language"]
 
-                ChoiceCombo {
+                FieldCombo {
                     id: languageCombo
-
-                    focus: true
 
                     Accessible.name: qsTr("Default subtitle language")
 
@@ -186,13 +219,16 @@ FocusScope {
                 }
             }
 
-            // Synchronization
+            // Synchronization (Figma "Frame 80", 767:2196)
 
             SectionHeader {
                 text: qsTr("Synchronization")
             }
 
             FieldRow {
+                Layout.topMargin: VLCStyle.spacing_10
+                Layout.preferredHeight: VLCStyle.dp(56, VLCStyle.scale)
+
                 text: qsTr("Subtitle Track Delay")
                 presetKeys: ["sub-delay"]
 
@@ -218,6 +254,7 @@ FocusScope {
                 }
             }
 
+            // Figma 1905:7365: the ends and the middle 10 px under the track
             RowSlider {
                 id: delaySlider
 
@@ -226,19 +263,22 @@ FocusScope {
                 from: -10
                 to: 10
                 stepSize: 0.05
-                unit: "s"
                 value: Math.min(Math.max(Player.subtitleDelayMS / 1000, from), to)
                 accessibleName: qsTr("Subtitle delay")
-                tickLabels: ["-10 s", "0 s", "+10 s"]
+                accessibleValue: root._formatSeconds(Player.subtitleDelayMS)
+                edgeLabels: ["-10 s", "0 s", "+10 s"]
+                labelGap: VLCStyle.spacing_6
 
                 onMoved: (value) => { Player.subtitleDelayMS = Math.round(value * 1000) }
             }
 
-            // "Voice heard" then "Text seen" (or the reverse) sets the delay
+            // not in Figma: "Voice heard" then "Text seen" (or the reverse) sets
+            // the delay
             RowLayout {
                 Layout.fillWidth: true
                 Layout.leftMargin: VLCStyle.spacing_20
                 Layout.rightMargin: VLCStyle.spacing_20
+                Layout.topMargin: VLCStyle.spacing_10
                 Layout.bottomMargin: VLCStyle.spacing_10
 
                 spacing: VLCStyle.spacing_10
@@ -290,6 +330,8 @@ FocusScope {
             FieldRow {
                 visible: Player.hasSecondarySubtitle
 
+                Layout.preferredHeight: VLCStyle.dp(56, VLCStyle.scale)
+
                 text: qsTr("Second Subtitle Delay")
 
                 ValueField {
@@ -320,123 +362,104 @@ FocusScope {
                 from: -10
                 to: 10
                 stepSize: 0.05
-                unit: "s"
                 value: Math.min(Math.max(Player.secondarySubtitleDelayMS / 1000, from), to)
                 accessibleName: qsTr("Second subtitle delay")
-                tickLabels: ["-10 s", "0 s", "+10 s"]
+                accessibleValue: root._formatSeconds(Player.secondarySubtitleDelayMS)
+                edgeLabels: ["-10 s", "0 s", "+10 s"]
+                labelGap: VLCStyle.spacing_6
 
                 onMoved: (value) => { Player.secondarySubtitleDelayMS = Math.round(value * 1000) }
             }
 
-            // Advanced: subtitle speed and duration factor
-            Widgets.ButtonExt {
-                id: advancedButton
+            FieldRow {
+                Layout.topMargin: VLCStyle.spacing_5
+                Layout.preferredHeight: VLCStyle.dp(56, VLCStyle.scale)
 
-                Layout.leftMargin: VLCStyle.spacing_10
-                Layout.bottomMargin: VLCStyle.spacing_10
+                text: qsTr("Subtitle Speed")
 
-                text: qsTr("Advanced")
-                iconTxt: root._advancedOpen ? VLCIcons.expand_inverted : VLCIcons.expand
+                ValueField {
+                    id: speedField
 
-                Accessible.role: Accessible.Button
-                Accessible.description: root._advancedOpen ? qsTr("Expanded") : qsTr("Collapsed")
-
-                onClicked: root._advancedOpen = !root._advancedOpen
-
-                Navigation.parentItem: root
-                Navigation.upAction: () => root._move(advancedButton, -1)
-                Navigation.downAction: () => root._move(advancedButton, 1)
-            }
-
-            ColumnLayout {
-                visible: root._advancedOpen
-
-                Layout.fillWidth: true
-
-                spacing: 0
-
-                FieldRow {
-                    text: qsTr("Subtitle Speed")
-
-                    ValueField {
-                        id: speedField
-
-                        Accessible.name: qsTr("Subtitle speed")
-
-                        enabled: Player.isStarted
-
-                        Binding on text {
-                            when: !speedField.activeFocus
-                            value: Player.subtitleFPS.toFixed(3) + " fps"
-                            restoreMode: Binding.RestoreNone
-                        }
-
-                        onEditingFinished: {
-                            const fps = root._parseNumber(text)
-                            if (!isNaN(fps))
-                                Player.subtitleFPS = Math.min(Math.max(fps, 1), 100)
-                            text = Player.subtitleFPS.toFixed(3) + " fps"
-                        }
-                    }
-                }
-
-                RowSlider {
-                    id: speedSlider
+                    Accessible.name: qsTr("Subtitle speed")
 
                     enabled: Player.isStarted
 
-                    from: 1
-                    to: 60
-                    stepSize: 0.5
-                    unit: "fps"
-                    value: Math.min(Math.max(Player.subtitleFPS, from), to)
-                    accessibleName: qsTr("Subtitle speed")
-
-                    onMoved: (value) => { Player.subtitleFPS = value }
-                }
-
-                FieldRow {
-                    text: qsTr("Subtitle Duration Factor")
-
-                    ValueField {
-                        id: durationField
-
-                        Accessible.name: qsTr("Subtitle duration factor")
-
-                        Binding on text {
-                            when: !durationField.activeFocus
-                            value: Player.subtitleDurationFactor.toFixed(3)
-                            restoreMode: Binding.RestoreNone
-                        }
-
-                        onEditingFinished: {
-                            const factor = root._parseNumber(text)
-                            if (!isNaN(factor))
-                                Player.subtitleDurationFactor = factor
-                            text = Player.subtitleDurationFactor.toFixed(3)
-                        }
+                    Binding on text {
+                        when: !speedField.activeFocus
+                        value: Player.subtitleFPS.toFixed(3) + " fps"
+                        restoreMode: Binding.RestoreNone
                     }
-                }
 
-                RowSlider {
-                    id: durationSlider
-
-                    from: 0
-                    to: 5
-                    stepSize: 0.1
-                    unit: "×"
-                    value: Math.min(Player.subtitleDurationFactor, to)
-                    accessibleName: qsTr("Subtitle duration factor")
-
-                    onMoved: (value) => { Player.subtitleDurationFactor = value }
-                }
-
-                HelpText {
-                    text: qsTr("Multiplies how long each line stays on screen. 0 keeps the subtitles' own durations.")
+                    onEditingFinished: {
+                        const fps = root._parseNumber(text)
+                        if (!isNaN(fps))
+                            Player.subtitleFPS = Math.min(Math.max(fps, 1), 100)
+                        text = Player.subtitleFPS.toFixed(3) + " fps"
+                    }
                 }
             }
 
-            // Appearance
+            // Figma 804:1174: no labels, no ticks
+            RowSlider {
+                id: speedSlider
+
+                enabled: Player.isStarted
+
+                from: 1
+                to: 60
+                stepSize: 0.5
+                intervals: 0
+                value: Math.min(Math.max(Player.subtitleFPS, from), to)
+                accessibleName: qsTr("Subtitle speed")
+                accessibleValue: Player.subtitleFPS.toFixed(3) + " fps"
+
+                onMoved: (value) => { Player.subtitleFPS = value }
+            }
+
+            FieldRow {
+                Layout.topMargin: VLCStyle.spacing_5
+                Layout.preferredHeight: VLCStyle.dp(56, VLCStyle.scale)
+
+                text: qsTr("Subtitle Duration Factor")
+
+                ValueField {
+                    id: durationField
+
+                    Accessible.name: qsTr("Subtitle duration factor")
+                    Accessible.description: qsTr("Multiplies how long each line stays on screen. 0 keeps the subtitles' own durations.")
+
+                    Binding on text {
+                        when: !durationField.activeFocus
+                        value: Player.subtitleDurationFactor.toFixed(3)
+                        restoreMode: Binding.RestoreNone
+                    }
+
+                    onEditingFinished: {
+                        const factor = root._parseNumber(text)
+                        if (!isNaN(factor))
+                            Player.subtitleDurationFactor = factor
+                        text = Player.subtitleDurationFactor.toFixed(3)
+                    }
+                }
+            }
+
+            RowSlider {
+                id: durationSlider
+
+                Layout.bottomMargin: VLCStyle.spacing_20
+
+                from: 0
+                to: 5
+                stepSize: 0.1
+                intervals: 0
+                value: Math.min(Player.subtitleDurationFactor, to)
+                accessibleName: qsTr("Subtitle duration factor")
+                accessibleValue: Player.subtitleDurationFactor.toFixed(3)
+
+                onMoved: (value) => { Player.subtitleDurationFactor = value }
+            }
+
+            // Appearance (Figma "Frame 91", 800:1126)
 
             SectionHeader {
                 text: qsTr("Appearance")
@@ -445,32 +468,37 @@ FocusScope {
             // styled ASS subtitles keep their look
             HelpText {
                 visible: root.styled
+                Layout.topMargin: VLCStyle.spacing_10
+                Layout.bottomMargin: 0
                 text: qsTr("This subtitle uses its own styling.")
             }
 
             ColumnLayout {
                 Layout.fillWidth: true
+                Layout.topMargin: VLCStyle.spacing_10
+                Layout.bottomMargin: VLCStyle.spacing_10
 
-                spacing: 0
+                spacing: VLCStyle.spacing_5
 
                 enabled: !root.styled
                 opacity: enabled ? 1 : 0.5
 
+                // the bold, italic and colors set by the subtitles
                 ToggleRow {
                     id: keepStylingRow
 
-                    text: qsTr("Keep the File's Styling")
+                    text: qsTr("Embedded Sub Format")
                     presetKeys: ["sub-keep-styling"]
                     description: qsTr("Bold, italic and colors set by the subtitles")
                     checked: root.appearance.keepFileStyling
                     onToggled: root.appearance.keepFileStyling = !root.appearance.keepFileStyling
                 }
 
-                ChoiceRow {
-                    text: qsTr("Font")
+                FieldRow {
+                    text: qsTr("Subtitle Font")
                     presetKeys: ["sub-font"]
 
-                    ChoiceCombo {
+                    FieldCombo {
                         id: fontCombo
 
                         Accessible.name: qsTr("Subtitle font")
@@ -485,80 +513,6 @@ FocusScope {
 
                         onActivated: (index) => {
                             root.appearance.font = index === 0 ? "" : root._fonts[index]
-                        }
-                    }
-                }
-
-                FieldRow {
-                    text: qsTr("Size")
-                    presetKeys: ["sub-size-mode"]
-
-                    SettingsSegmented {
-                        id: sizeModeSegments
-
-                        Layout.preferredWidth: VLCStyle.dp(220, VLCStyle.scale)
-
-                        accessibleName: qsTr("Subtitle size")
-                        choices: [
-                            { value: SubtitleAppearance.Relative, label: qsTr("Relative") },
-                            { value: SubtitleAppearance.Pixels, label: qsTr("Pixels") },
-                        ]
-                        value: root.appearance.sizeMode
-
-                        onActivated: (value) => { root.appearance.sizeMode = value }
-
-                        Navigation.parentItem: root
-                        Navigation.upAction: () => root._move(sizeModeSegments, -1)
-                        Navigation.downAction: () => root._move(sizeModeSegments, 1)
-                    }
-                }
-
-                ChoiceRow {
-                    visible: root.appearance.sizeMode === SubtitleAppearance.Relative
-
-                    text: qsTr("Relative Size")
-                    presetKeys: ["sub-relative-size"]
-
-                    ChoiceCombo {
-                        id: relativeSizeCombo
-
-                        Accessible.name: qsTr("Relative subtitle size")
-
-                        model: root._relativeSizes
-                        textRole: "text"
-
-                        Binding on currentIndex {
-                            value: root.appearance.relativeSize
-                        }
-
-                        onActivated: (index) => {
-                            root.appearance.relativeSize = root._relativeSizes[index].value
-                        }
-                    }
-                }
-
-                FieldRow {
-                    visible: root.appearance.sizeMode === SubtitleAppearance.Pixels
-
-                    text: qsTr("Size in Pixels")
-                    presetKeys: ["sub-pixel-size"]
-
-                    ValueField {
-                        id: pixelSizeField
-
-                        Accessible.name: qsTr("Subtitle size in pixels")
-
-                        Binding on text {
-                            when: !pixelSizeField.activeFocus
-                            value: root.appearance.pixelSize + " px"
-                            restoreMode: Binding.RestoreNone
-                        }
-
-                        onEditingFinished: {
-                            const pixels = Math.round(root._parseNumber(text))
-                            if (pixels > 0)
-                                root.appearance.pixelSize = pixels
-                            text = root.appearance.pixelSize + " px"
                         }
                     }
                 }
@@ -582,53 +536,7 @@ FocusScope {
                 }
 
                 FieldRow {
-                    text: qsTr("Outline")
-                    presetKeys: ["sub-outline-thickness"]
-
-                    SettingsSegmented {
-                        id: outlineSegments
-
-                        Layout.preferredWidth: VLCStyle.dp(220, VLCStyle.scale)
-
-                        accessibleName: qsTr("Outline thickness")
-                        choices: [
-                            { value: SubtitleAppearance.NoOutline, label: qsTr("None") },
-                            { value: SubtitleAppearance.ThinOutline, label: qsTr("Thin") },
-                            { value: SubtitleAppearance.NormalOutline, label: qsTr("Normal") },
-                            { value: SubtitleAppearance.ThickOutline, label: qsTr("Thick") },
-                        ]
-                        value: root.appearance.outlineThickness
-
-                        onActivated: (value) => { root.appearance.outlineThickness = value }
-
-                        Navigation.parentItem: root
-                        Navigation.upAction: () => root._move(outlineSegments, -1)
-                        Navigation.downAction: () => root._move(outlineSegments, 1)
-                    }
-                }
-
-                FieldRow {
-                    text: qsTr("Background Opacity")
-                    presetKeys: ["sub-background-opacity"]
-                }
-
-                RowSlider {
-                    id: backgroundSlider
-
-                    from: 0
-                    to: 100
-                    stepSize: 5
-                    unit: "%"
-                    value: root.appearance.backgroundOpacity
-                    accessibleName: qsTr("Background opacity")
-
-                    onMoved: (value) => { root.appearance.backgroundOpacity = Math.round(value) }
-                }
-
-                FieldRow {
-                    Layout.bottomMargin: VLCStyle.spacing_20
-
-                    text: qsTr("Vertical Offset")
+                    text: qsTr("Subtitle Offset")
                     presetKeys: ["sub-vertical-offset"]
 
                     ValueField {
@@ -638,7 +546,8 @@ FocusScope {
 
                         Binding on text {
                             when: !offsetField.activeFocus
-                            value: root.appearance.verticalOffset + " px"
+                            //: a subtitle offset in pixels, "0px"
+                            value: qsTr("%1px").arg(root.appearance.verticalOffset)
                             restoreMode: Binding.RestoreNone
                         }
 
@@ -646,15 +555,153 @@ FocusScope {
                             const pixels = root._parseNumber(text)
                             if (!isNaN(pixels))
                                 root.appearance.verticalOffset = Math.round(pixels)
-                            text = root.appearance.verticalOffset + " px"
+                            text = qsTr("%1px").arg(root.appearance.verticalOffset)
                         }
+                    }
+                }
+
+                // Figma "Frame 61" (800:1136): relative sizes or pixels
+                FieldRow {
+                    Layout.preferredHeight: VLCStyle.dp(50, VLCStyle.scale)
+
+                    text: qsTr("Size Values")
+                    presetKeys: ["sub-size-mode"]
+
+                    SettingsSegmented {
+                        id: sizeModeSegments
+
+                        Layout.preferredWidth: VLCStyle.dp(180, VLCStyle.scale)
+                        implicitHeight: VLCStyle.dp(38, VLCStyle.scale)
+
+                        accessibleName: qsTr("Subtitle size")
+                        choices: [
+                            { value: SubtitleAppearance.Relative, label: qsTr("Relative") },
+                            { value: SubtitleAppearance.Pixels, label: qsTr("Pixels") },
+                        ]
+                        value: root.appearance.sizeMode
+
+                        onActivated: (value) => { root.appearance.sizeMode = value }
+
+                        Navigation.parentItem: root
+                        Navigation.upAction: () => root._move(sizeModeSegments, -1)
+                        Navigation.downAction: () => root._move(sizeModeSegments, 1)
+                    }
+                }
+
+                // Figma "Frame 96" (804:1341): the relative size on a range
+                ValueRange {
+                    visible: root.appearance.sizeMode === SubtitleAppearance.Relative
+
+                    text: qsTr("Font Size")
+                    presetKeys: ["sub-relative-size"]
+                    valueText: root._relativeSizes[root.appearance.relativeSize]?.text ?? ""
+
+                    RowSlider {
+                        id: relativeSizeSlider
+
+                        Layout.leftMargin: 0
+                        Layout.rightMargin: 0
+                        Layout.topMargin: 0
+                        Layout.bottomMargin: 0
+
+                        from: 0
+                        to: root._relativeSizes.length - 1
+                        stepSize: 1
+                        value: root.appearance.relativeSize
+                        accessibleName: qsTr("Relative subtitle size")
+                        accessibleValue: root._relativeSizes[root.appearance.relativeSize]?.text ?? ""
+
+                        onMoved: (value) => {
+                            root.appearance.relativeSize = root._relativeSizes[Math.round(value)].value
+                        }
+                    }
+                }
+
+                FieldRow {
+                    visible: root.appearance.sizeMode === SubtitleAppearance.Pixels
+
+                    text: qsTr("Font Size")
+                    presetKeys: ["sub-pixel-size"]
+
+                    ValueField {
+                        id: pixelSizeField
+
+                        Accessible.name: qsTr("Subtitle size in pixels")
+
+                        Binding on text {
+                            when: !pixelSizeField.activeFocus
+                            value: root.appearance.pixelSize + " px"
+                            restoreMode: Binding.RestoreNone
+                        }
+
+                        onEditingFinished: {
+                            const pixels = Math.round(root._parseNumber(text))
+                            if (pixels > 0)
+                                root.appearance.pixelSize = pixels
+                            text = root.appearance.pixelSize + " px"
+                        }
+                    }
+                }
+
+                // Figma "Frame 97" (804:1342): None, Thin, Normal and Thick
+                ValueRange {
+                    text: qsTr("Outline Thickness")
+                    presetKeys: ["sub-outline-thickness"]
+                    valueText: root._outlines[root.appearance.outlineThickness]?.text ?? ""
+
+                    RowSlider {
+                        id: outlineSlider
+
+                        Layout.leftMargin: 0
+                        Layout.rightMargin: 0
+                        Layout.topMargin: 0
+                        Layout.bottomMargin: 0
+
+                        from: 0
+                        to: root._outlines.length - 1
+                        stepSize: 1
+                        value: root.appearance.outlineThickness
+                        accessibleName: qsTr("Outline thickness")
+                        accessibleValue: root._outlines[root.appearance.outlineThickness]?.text ?? ""
+
+                        onMoved: (value) => {
+                            root.appearance.outlineThickness = root._outlines[Math.round(value)].value
+                        }
+                    }
+                }
+
+                // Figma "Frame 98" (848:1686): ten ticks, the value above
+                ValueRange {
+                    text: qsTr("Background Opacity")
+                    presetKeys: ["sub-background-opacity"]
+                    //: a background opacity, "0 %"
+                    valueText: qsTr("%1 %").arg(root.appearance.backgroundOpacity)
+
+                    RowSlider {
+                        id: backgroundSlider
+
+                        Layout.leftMargin: 0
+                        Layout.rightMargin: 0
+                        Layout.topMargin: 0
+                        Layout.bottomMargin: 0
+
+                        from: 0
+                        to: 100
+                        stepSize: 5
+                        intervals: 10
+                        value: root.appearance.backgroundOpacity
+                        accessibleName: qsTr("Background opacity")
+                        accessibleValue: qsTr("%1 %").arg(root.appearance.backgroundOpacity)
+
+                        onMoved: (value) => { root.appearance.backgroundOpacity = Math.round(value) }
                     }
                 }
             }
         }
     }
 
-    // Figma "Defaults": a section title, under a divider
+    // Figma "Frame 101" (845:1677): a section title, 16 Medium FG/A1, 24 px
+    // in, 20 px under the line above it; the line takes no room (845:1375)
     component SectionHeader : ColumnLayout {
         property alias text: sectionLabel.text
         property bool divider: true
@@ -663,25 +710,31 @@ FocusScope {
 
         spacing: 0
 
-        Rectangle {
-            visible: parent.divider
+        Item {
             Layout.fillWidth: true
-            implicitHeight: VLCStyle.border
-            color: theme.border
+            implicitHeight: 0
+
+            Rectangle {
+                visible: parent.parent.divider
+                width: parent.width
+                height: VLCStyle.border
+                color: theme.separator
+            }
         }
 
         T.Label {
             id: sectionLabel
 
             Layout.fillWidth: true
-            Layout.leftMargin: VLCStyle.spacing_20
-            Layout.rightMargin: VLCStyle.spacing_20
-            Layout.topMargin: VLCStyle.spacing_14
-            Layout.bottomMargin: VLCStyle.spacing_10
+            Layout.leftMargin: VLCStyle.dp(24, VLCStyle.scale)
+            Layout.rightMargin: VLCStyle.dp(24, VLCStyle.scale)
+            Layout.topMargin: VLCStyle.spacing_20
+            // Figma's 19 px line (845:1678); Qt's is a pixel taller
+            Layout.preferredHeight: VLCStyle.dp(19, VLCStyle.scale)
 
-            color: theme.fg.primary
-            font.pixelSize: VLCStyle.fontSize_large
-            font.weight: Font.DemiBold
+            color: theme.fg.secondary
+            font.pixelSize: VLCStyle.fontSize_xlarge
+            font.weight: Font.Medium
             font.family: VLCStyle.fontFamily
             elide: Text.ElideRight
 
@@ -690,29 +743,38 @@ FocusScope {
         }
     }
 
-    // A label, left of its control
+    component AdjustmentsScrollBar : Widgets.ScrollBarExt {
+        opacity: (active || interacting) ? 1 : 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: VLCStyle.duration_short }
+        }
+    }
+
+    // A label, left of its control: Figma 14 Regular FG/A3, 4 px in
     component RowLabel : T.Label {
         leftPadding: VLCStyle.spacing_4
-        color: theme.fg.secondary
+        color: theme.fg.label
         font.pixelSize: VLCStyle.fontSize_normal
         font.family: VLCStyle.fontFamily
         elide: Text.ElideRight
     }
 
-    // a line of explanation
+    // a line of explanation (not in Figma)
     component HelpText : T.Label {
         Layout.fillWidth: true
         Layout.leftMargin: VLCStyle.spacing_20 + VLCStyle.spacing_4
         Layout.rightMargin: VLCStyle.spacing_20
         Layout.bottomMargin: VLCStyle.spacing_10
 
-        color: theme.fg.secondary
+        color: theme.fg.label
         font.pixelSize: VLCStyle.fontSize_small
         font.family: VLCStyle.fontFamily
         wrapMode: Text.WordWrap
     }
 
-    // a label and a control at the right
+    // Figma "Frame 60" (800:1127): a label and its 140x36 control in a 48 px
+    // row
     component FieldRow : RowLayout {
         property alias text: fieldLabel.text
         // the Preset keys of the row: a dot shows that the Preset sets it
@@ -721,14 +783,13 @@ FocusScope {
         Layout.fillWidth: true
         Layout.leftMargin: VLCStyle.spacing_20
         Layout.rightMargin: VLCStyle.spacing_20
-        Layout.bottomMargin: VLCStyle.spacing_10
+        Layout.preferredHeight: VLCStyle.dp(48, VLCStyle.scale)
 
         spacing: VLCStyle.spacing_10
 
         RowLabel {
             id: fieldLabel
             Layout.fillWidth: true
-            Layout.minimumHeight: VLCStyle.dp(32, VLCStyle.scale)
             verticalAlignment: Text.AlignVCenter
 
             PresetMark {
@@ -739,12 +800,49 @@ FocusScope {
         }
     }
 
-    // Figma: a 140 px field of the sidebar
+    // Figma "Frame 96" (804:1341): the name and the value over a range,
+    // 10 px around, the range 5 px under the 37 px row
+    component ValueRange : ColumnLayout {
+        property alias text: rangeLabel.text
+        property alias presetKeys: rangeMark.keys
+        property alias valueText: rangeValue.text
+
+        Layout.fillWidth: true
+        Layout.leftMargin: VLCStyle.spacing_20
+        Layout.rightMargin: VLCStyle.spacing_20
+        Layout.topMargin: VLCStyle.spacing_10
+        Layout.bottomMargin: VLCStyle.spacing_10
+
+        spacing: VLCStyle.spacing_5
+
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.preferredHeight: VLCStyle.dp(37, VLCStyle.scale)
+
+            RowLabel {
+                id: rangeLabel
+                Layout.fillWidth: true
+
+                PresetMark {
+                    id: rangeMark
+                    anchors.right: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            RowLabel {
+                id: rangeValue
+                rightPadding: VLCStyle.spacing_4
+            }
+        }
+    }
+
+    // Figma "text_input": a 140x36 field of the sidebar
     component ValueField : Widgets.TextFieldExt {
         id: valueField
 
         Layout.preferredWidth: VLCStyle.dp(140, VLCStyle.scale)
-        implicitHeight: VLCStyle.dp(32, VLCStyle.scale)
+        implicitHeight: VLCStyle.dp(36, VLCStyle.scale)
         radius: VLCStyle.radius_normal
 
         Keys.onEscapePressed: (event) => {
@@ -758,26 +856,54 @@ FocusScope {
         Navigation.downAction: () => root._move(valueField, 1)
     }
 
-    // a slider under its field row
-    component RowSlider : SettingsSlider {
+    // Figma "text_input" (4046:12353): a track number from 1, empty to let
+    // the media choose
+    component TrackField : ValueField {
+        id: trackInput
+
+        property int track: 0
+
+        signal trackEntered(int track)
+
+        //: the default track: the media chooses
+        placeholderText: qsTr("Auto")
+        validator: IntValidator { bottom: 0; top: 99 }
+
+        Binding on text {
+            when: !trackInput.activeFocus
+            value: trackInput.track > 0 ? String(trackInput.track) : ""
+            restoreMode: Binding.RestoreNone
+        }
+
+        onEditingFinished: {
+            const track = parseInt(text, 10)
+            trackInput.trackEntered(isNaN(track) ? 0 : track)
+            text = trackInput.track > 0 ? String(trackInput.track) : ""
+        }
+    }
+
+    // a range under its field row, 5 px under it
+    component RowSlider : AdjustmentsRange {
         id: rowSlider
 
         Layout.fillWidth: true
         Layout.leftMargin: VLCStyle.spacing_20
         Layout.rightMargin: VLCStyle.spacing_20
-        Layout.bottomMargin: VLCStyle.spacing_14
+        Layout.topMargin: VLCStyle.spacing_5
 
         Navigation.parentItem: root
         Navigation.upAction: () => root._move(rowSlider, -1)
         Navigation.downAction: () => root._move(rowSlider, 1)
     }
 
-    // Figma "Frame 69": a label and an ON / OFF toggle
+    // Figma "Frame 69" (2255:9846): a label and an ON / OFF toggle, 10 px
+    // above and 6 px under the toggle
     component ToggleRow : FocusScope {
         id: toggleRow
 
         property alias text: toggleLabel.text
-        property alias description: toggleDescription.text
+        // read by screen readers, not shown (Figma has none)
+        property string description
         property alias checked: toggle.checked
         property alias presetKeys: toggleMark.keys
 
@@ -786,37 +912,21 @@ FocusScope {
         Layout.fillWidth: true
         Layout.leftMargin: VLCStyle.spacing_20
         Layout.rightMargin: VLCStyle.spacing_20
-        Layout.bottomMargin: VLCStyle.spacing_4
 
-        implicitHeight: Math.max(labels.implicitHeight, toggle.implicitHeight) + VLCStyle.spacing_10
+        implicitHeight: toggle.implicitHeight + VLCStyle.spacing_10 + VLCStyle.spacing_6
 
-        ColumnLayout {
-            id: labels
+        RowLabel {
+            id: toggleLabel
 
             anchors.left: parent.left
             anchors.right: toggle.left
             anchors.rightMargin: VLCStyle.spacing_10
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenter: toggle.verticalCenter
 
-            spacing: 0
-
-            RowLabel {
-                id: toggleLabel
-                Layout.fillWidth: true
-
-                PresetMark {
-                    id: toggleMark
-                    anchors.right: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-            }
-
-            RowLabel {
-                id: toggleDescription
-                Layout.fillWidth: true
-                visible: text !== ""
-                font.pixelSize: VLCStyle.fontSize_small
-                wrapMode: Text.WordWrap
+            PresetMark {
+                id: toggleMark
+                anchors.right: parent.left
+                anchors.verticalCenter: parent.verticalCenter
             }
         }
 
@@ -824,12 +934,13 @@ FocusScope {
             id: toggle
 
             anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.top: parent.top
+            anchors.topMargin: VLCStyle.spacing_10
 
             focus: true
 
             Accessible.name: toggleLabel.text
-            Accessible.description: toggleDescription.text
+            Accessible.description: toggleRow.description
 
             onClicked: toggleRow.toggled()
 
@@ -841,23 +952,33 @@ FocusScope {
         Navigation.downAction: () => root._move(toggleRow, 1)
     }
 
-    // a label and a 220 px dropdown
-    component ChoiceRow : FieldRow { }
-
-    // Figma "EQ": the dropdown of the sidebar
-    component ChoiceCombo : Widgets.ComboBoxExt {
+    // Figma "text_input" (4046:12356, 4046:12371): a choice drawn as the
+    // 140x36 fields of the tab, its 2 px BG/A4 stroke round a BG/B2 fill; the
+    // chevron says that it opens a list
+    component FieldCombo : Widgets.ComboBoxExt {
         id: combo
 
-        Layout.preferredWidth: VLCStyle.dp(220, VLCStyle.scale)
-        implicitHeight: VLCStyle.dp(40, VLCStyle.scale)
+        Layout.preferredWidth: VLCStyle.dp(140, VLCStyle.scale)
+        implicitHeight: VLCStyle.dp(36, VLCStyle.scale)
 
-        font.pixelSize: VLCStyle.fontSize_normal
-        leftPadding: VLCStyle.spacing_14 + VLCStyle.dp(2, VLCStyle.scale)
-        rightPadding: VLCStyle.spacing_14
+        leftPadding: frame + VLCStyle.spacing_12
+        rightPadding: frame + VLCStyle.spacing_4
 
-        color: theme.fg.secondary
+        bgColor: fieldTheme.border
+        fieldColor: hovered ? colorContext.bg.highlight : fieldTheme.bg.primary
 
-        // long lists (languages, fonts) scroll
+        // the list is as wide as the other dropdowns, right-aligned; long
+        // lists (languages, fonts) scroll
+        Binding {
+            target: combo.popup
+            property: "width"
+            value: VLCStyle.dp(220, VLCStyle.scale)
+        }
+        Binding {
+            target: combo.popup
+            property: "x"
+            value: combo.width - VLCStyle.dp(220, VLCStyle.scale)
+        }
         Binding {
             target: combo.popup
             property: "height"
@@ -865,37 +986,13 @@ FocusScope {
                             VLCStyle.dp(320, VLCStyle.scale))
         }
 
-        contentItem: Text {
-            rightPadding: combo.spacing + combo.indicator.width
-            text: combo.displayText
-            color: combo.color
-            font.pixelSize: VLCStyle.fontSize_normal
-            font.family: VLCStyle.fontFamily
-            verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
-        }
-
-        background: Rectangle {
-            radius: VLCStyle.radius_normal
-            color: combo.bgColor
-            border.width: combo.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : 0
-            border.color: theme.accent
-
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: VLCStyle.dp(2, VLCStyle.scale)
-                radius: VLCStyle.radius_small
-                color: combo.hovered ? theme.bg.highlight : combo.colorContext.bg.secondary
-            }
-        }
-
         Navigation.parentItem: root
         Navigation.upAction: () => root._move(combo, -1)
         Navigation.downAction: () => root._move(combo, 1)
     }
 
-    // Figma "Text Color": a label, the hex code and a swatch opening the
-    // palette
+    // Figma "Text Color" (800:1141): a label, the hex code and a 22 px swatch
+    // opening the palette, in a 140x36 field of a 48 px row
     component ColorRow : FocusScope {
         id: colorRow
 
@@ -908,9 +1005,8 @@ FocusScope {
         Layout.fillWidth: true
         Layout.leftMargin: VLCStyle.spacing_20
         Layout.rightMargin: VLCStyle.spacing_20
-        Layout.bottomMargin: VLCStyle.spacing_10
 
-        implicitHeight: VLCStyle.dp(32, VLCStyle.scale)
+        implicitHeight: VLCStyle.dp(48, VLCStyle.scale)
 
         RowLabel {
             id: colorLabel
@@ -933,9 +1029,9 @@ FocusScope {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             width: VLCStyle.dp(140, VLCStyle.scale)
-            height: parent.height
+            height: VLCStyle.dp(36, VLCStyle.scale)
             radius: VLCStyle.radius_normal
-            rightPadding: VLCStyle.dp(18, VLCStyle.scale) + VLCStyle.spacing_10 // the swatch
+            rightPadding: VLCStyle.dp(22, VLCStyle.scale) + VLCStyle.spacing_10 // the swatch
 
             focus: true
 
@@ -967,10 +1063,10 @@ FocusScope {
         T.AbstractButton {
             id: swatch
 
-            // NOTE: The swatch stays 18 dp, the target is 24 dp (WCAG 2.5.8): the
-            //       swatch's right edge stays 6 dp from the field's.
+            // NOTE: The swatch is 22 dp, the target 24 dp (WCAG 2.5.8): the
+            //       swatch's right edge stays 7 dp from the field's (Figma).
             anchors.right: hexField.right
-            anchors.rightMargin: VLCStyle.spacing_6 - (width - VLCStyle.dp(18, VLCStyle.scale)) / 2
+            anchors.rightMargin: VLCStyle.dp(7, VLCStyle.scale) - (width - VLCStyle.dp(22, VLCStyle.scale)) / 2
             anchors.verticalCenter: parent.verticalCenter
             width: VLCStyle.icon_normal
             height: width
@@ -986,15 +1082,16 @@ FocusScope {
             Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
 
             background: Item {
+                // Figma 4046:12377: r2, a 1.5 px white stroke at 21 %
                 Rectangle {
                     anchors.centerIn: parent
-                    width: VLCStyle.dp(18, VLCStyle.scale)
+                    width: VLCStyle.dp(22, VLCStyle.scale)
                     height: width
 
                     radius: VLCStyle.radius_xxsmall
                     color: colorRow.color
-                    border.width: swatch.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : VLCStyle.border
-                    border.color: swatch.visualFocus ? theme.accent : theme.fg.secondary
+                    border.width: swatch.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : 1.5 * VLCStyle.scale
+                    border.color: swatch.visualFocus ? theme.accent : Qt.rgba(1, 1, 1, 0.21)
                 }
             }
 

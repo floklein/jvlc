@@ -579,6 +579,9 @@ void SystemPalette::makeThemePalette(const ThemeTokens& t)
         C::ColorSet CS = C::TabButton;
         setColor(CS, C::Bg, C::Primary, C::Normal, setColorAlpha(t.bgA2, 0.0));
         setColor(CS, C::Bg, C::Primary, C::Focused, t.bgA2);
+        // the accent layer of the current tab's two-tone icon (Figma
+        // 463:833: Accent/Dim over an FG/A3 base)
+        setColor(CS, C::Fg, C::Highlight, C::Normal, t.accentDim);
         setColor(CS, C::Bg, C::Primary, C::Hovered, t.bgA2);
         setColor(CS, C::Bg, C::Primary, C::Pressed, t.bgA1);
 

@@ -78,6 +78,9 @@ class AudioAdjustments : public QObject
     Q_PROPERTY(QString language READ language NOTIFY languageChanged FINAL)
     // the choices of the default language: { code, name }, "Auto" first
     Q_PROPERTY(QVariantList languages READ languages NOTIFY languageChanged FINAL)
+    // the audio track the next media plays, from 1 (Figma "Audio Track",
+    // 845:1652); 0 lets the media choose ("audio-track")
+    Q_PROPERTY(int defaultTrack READ defaultTrack WRITE setDefaultTrack NOTIFY defaultTrackChanged FINAL)
 
 public:
     static constexpr int BAND_COUNT = 10;
@@ -107,6 +110,7 @@ public:
 
     QString language() const;
     QVariantList languages() const;
+    int defaultTrack() const;
 
     /// whether changes are kept in the configuration; while a Preset is
     /// active they are only applied to the output (#56)
@@ -141,6 +145,7 @@ public slots:
     void setValue(const QString& name, double value);
 
     void setLanguage(const QString& code);
+    void setDefaultTrack(int track);
 
     /// sets the stereo mode of the output and keeps it as the default one
     void setStereoMode(int mode);
@@ -159,6 +164,7 @@ signals:
     void filtersChanged();
     void modifiedGroupsChanged();
     void languageChanged();
+    void defaultTrackChanged();
     void stereoModeChanged();
     /// the viewer changed something (not a preview)
     void adjusted();
@@ -182,6 +188,7 @@ private:
     vlc_player_t* m_player;
     bool m_profileWrites = true;
     QString m_language;
+    int m_defaultTrack = 0;
 
     EqualizerState m_equalizer;
     bool m_twoPass = false;

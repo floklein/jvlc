@@ -34,7 +34,10 @@ public:
     enum FormatFlag {
         SubSecondFormattedAsMS = 1,
         // formatHMS: "00:02:10" rather than "02:10" under an hour
-        WithHours = 2
+        WithHours = 2,
+        // formatHMS: the milliseconds after the seconds, "00:00:42:023"
+        // (the bookmarks of the Queue panel, Figma 6320:13816)
+        WithMilliseconds = 4
     };
     Q_ENUM(FormatFlag)
 

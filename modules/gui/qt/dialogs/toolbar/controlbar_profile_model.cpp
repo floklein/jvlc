@@ -73,15 +73,15 @@ decltype (ControlbarProfileModel::m_defaults)
                     },
                     {
                         // The music player (Figma 4778:26181) adds the
-                        // ±15 s skips, drops the subtitles button but keeps
-                        // the adjustments (equalizer)
+                        // ±15 s skips and drops the subtitles and Adjustments
+                        // buttons, so the waveform gets Figma's length; the
+                        // Adjustments stay in the menus and on Ctrl+E
                         PlayerControlbarModel::Audioplayer,
                         {
                             QVector<int> { C::PREVIOUS_BUTTON, C::SKIP_BACK_BUTTON, C::PLAY_BUTTON,
                                            C::SKIP_FW_BUTTON, C::NEXT_BUTTON },
                             QVector<int> { C::SEEK_BAR },
-                            QVector<int> { C::VOLUME, C::AUDIO_BUTTON, C::EXTENDED_BUTTON,
-                                           C::PLAYLIST_BUTTON },
+                            QVector<int> { C::VOLUME, C::AUDIO_BUTTON, C::PLAYLIST_BUTTON },
                             QVector<int> { C::VLC_MENU_BUTTON, C::LIBRARY_BUTTON, C::DIVIDER,
                                            C::FOLDER_BUTTON },
                             QVector<int> { C::TITLE_WIDGET },

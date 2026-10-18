@@ -100,6 +100,23 @@ private slots:
         // the flag changes nothing else
         QCOMPARE(VLCDuration::fromMS(130 * 1000).formatHMS(0), QStringLiteral("02:10"));
     }
+
+    // the bookmarks of the Queue panel show the milliseconds (Figma 6320:13816:
+    // "00:00:42:023")
+    void bookmarksShowTheMilliseconds()
+    {
+        const int flags = VLCTick::WithHours | VLCTick::WithMilliseconds;
+        QCOMPARE(VLCDuration::fromMS(42023).formatHMS(flags), QStringLiteral("00:00:42:023"));
+        QCOMPARE(VLCDuration::fromMS(44125).formatHMS(flags), QStringLiteral("00:00:44:125"));
+        QCOMPARE(VLCDuration::fromMS((3600 + 61) * 1000 + 5).formatHMS(flags),
+                 QStringLiteral("01:01:01:005"));
+        // a bookmark at the start, and one under a second
+        QCOMPARE(VLCDuration::fromMS(0).formatHMS(flags), QStringLiteral("00:00:00:000"));
+        QCOMPARE(VLCDuration::fromMS(430).formatHMS(flags), QStringLiteral("00:00:00:430"));
+        // without the hours
+        QCOMPARE(VLCDuration::fromMS(42023).formatHMS(VLCTick::WithMilliseconds),
+                 QStringLiteral("00:42:023"));
+    }
 };
 
 QTEST_GUILESS_MAIN(TestVLCTick)

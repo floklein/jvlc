@@ -24,6 +24,7 @@ import VLC.Widgets as Widgets
 import VLC.Player
 import VLC.Style
 import VLC.Util
+import VLC.Dialogs
 
 // The Adjustments sidebar (Figma 2238:9432): Playback, Video, Audio and
 // Subtitles tabs in the player's right-hand slot. Changes apply live.
@@ -69,7 +70,8 @@ T.Pane {
     function _tabInfo(tab) {
         switch (tab) {
         case RightPanelFSM.Playback:
-            return { icon: "playback", twoTone: "playback_selected", text: qsTr("Playback") }
+            // Figma 5187:24312: the outline of the two-tone glyph when not current
+            return { icon: "playback_selected_tt_base", twoTone: "playback_selected", text: qsTr("Playback") }
         case RightPanelFSM.Video:
             return { icon: "video", twoTone: "video", text: qsTr("Video") }
         case RightPanelFSM.Audio:
@@ -88,7 +90,10 @@ T.Pane {
             implicitHeight: VLCStyle.dp(50, VLCStyle.scale)
 
             color: theme.bg.secondary
-            radius: VLCStyle.radius_xxsmall
+            // the panel's r10 top corners (Figma 5187:24309 is square, the
+            // panel clips it)
+            topLeftRadius: VLCStyle.radius_large
+            topRightRadius: VLCStyle.radius_large
 
             RowLayout {
                 anchors.fill: parent
@@ -108,8 +113,19 @@ T.Pane {
 
                         readonly property var _info: root._tabInfo(modelData)
 
-                        Layout.fillWidth: true
+                        // Figma 5187:24309: Playback and Subtitles share the room
+                        // (107.5 px), Video and Audio are 85 px with 12 px aside
+                        readonly property bool _fixed: modelData === RightPanelFSM.Video
+                                                       || modelData === RightPanelFSM.Audio
+
+                        Layout.fillWidth: !_fixed
+                        // the flexible ones grow from 0: equal whatever their labels
+                        Layout.preferredWidth: _fixed ? VLCStyle.dp(85, VLCStyle.scale) : 0
                         Layout.fillHeight: true
+
+                        leftPadding: _fixed ? VLCStyle.spacing_12 : VLCStyle.spacing_8
+                        rightPadding: leftPadding
+                        lineInset: _fixed ? 7.5 * VLCStyle.scale : VLCStyle.spacing_8
 
                         iconName: _info.icon
                         twoToneName: _info.twoTone
@@ -187,21 +203,39 @@ T.Pane {
             }
         }
 
-        // Figma "Frame 68": the footer, the Preset of the playing file's
-        // folder and Reset All
+        // Figma "Frame 68" (812:1580): the footer of the Video, Audio and
+        // Subtitles tabs (Playback has none), over a 1 px Divider/Dim line:
+        // the Preset of the playing file's folder (with Reset All in its
+        // list) and Open Advanced Settings, on the tab's Settings page
         Rectangle {
+            id: footerBox
+
+            visible: root.fsm.currentTab !== RightPanelFSM.Playback
+
             Layout.fillWidth: true
-            implicitHeight: footer.implicitHeight + 2 * VLCStyle.spacing_10
+            implicitHeight: footer.implicitHeight + VLCStyle.border + 2 * VLCStyle.spacing_20
 
-            color: theme.bg.secondary
-            radius: VLCStyle.radius_xxsmall
+            // BG/B1 Transparent over the panel
+            color: Qt.alpha(theme.bg.primary, 0.95)
+            // the panel's r10 bottom corners
+            bottomLeftRadius: VLCStyle.radius_large
+            bottomRightRadius: VLCStyle.radius_large
 
-            RowLayout {
+            Rectangle {
+                width: parent.width
+                height: VLCStyle.border
+                color: theme.separator
+            }
+
+            ColumnLayout {
                 id: footer
 
-                anchors.fill: parent
-                anchors.leftMargin: VLCStyle.spacing_10
-                anchors.rightMargin: VLCStyle.spacing_10
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.leftMargin: VLCStyle.spacing_20
+                anchors.rightMargin: VLCStyle.spacing_20
+                anchors.topMargin: VLCStyle.border + VLCStyle.spacing_20
 
                 spacing: VLCStyle.spacing_10
 
@@ -209,27 +243,82 @@ T.Pane {
                     id: presetSelector
 
                     Layout.fillWidth: true
-                    Layout.maximumWidth: VLCStyle.dp(200, VLCStyle.scale)
+
+                    onResetAllRequested: root.resetAll()
 
                     Navigation.parentItem: root
                     Navigation.upItem: tabContent.item
-                    Navigation.rightItem: resetAllButton
+                    Navigation.downItem: advancedButton
                 }
 
-                Item {
+                // Figma 812:1585: a gear and the label, FG/A3, centered
+                T.Button {
+                    id: advancedButton
+
                     Layout.fillWidth: true
-                }
+                    implicitHeight: VLCStyle.dp(32, VLCStyle.scale)
 
-                Widgets.TextToolButton {
-                    id: resetAllButton
+                    text: qsTr("Open Advanced Settings")
 
-                    text: qsTr("Reset All Adjustments")
+                    Accessible.name: text
 
-                    onClicked: root.resetAll()
+                    // the Settings page of the tab, its Advanced Options open
+                    onClicked: {
+                        switch (root.fsm.currentTab) {
+                        case RightPanelFSM.Video:
+                            DialogsProvider.showSettings("video", true)
+                            break
+                        case RightPanelFSM.Audio:
+                            DialogsProvider.showSettings("audio", true)
+                            break
+                        default:
+                            DialogsProvider.showSettings("subtitles", true)
+                        }
+                    }
+
+                    Keys.priority: Keys.AfterItem
+                    Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
 
                     Navigation.parentItem: root
-                    Navigation.upItem: tabContent.item
-                    Navigation.leftItem: presetSelector
+                    Navigation.upItem: presetSelector
+
+                    background: Rectangle {
+                        radius: VLCStyle.radius_small
+                        color: advancedButton.hovered || advancedButton.down ? theme.bg.highlight
+                                                                             : "transparent"
+                        border.width: VLCStyle.focus_border
+                        border.color: advancedButton.visualFocus ? theme.visualFocus : "transparent"
+                    }
+
+                    contentItem: Item {
+                        implicitHeight: advancedRow.implicitHeight
+
+                        Row {
+                            id: advancedRow
+
+                            anchors.centerIn: parent
+
+                            spacing: VLCStyle.spacing_6
+
+                            Widgets.IconLabel {
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                text: VLCIcons.settings
+                                font.pixelSize: VLCStyle.dp(20, VLCStyle.scale)
+                                color: advancedLabel.color
+                            }
+
+                            Widgets.LabelExt {
+                                id: advancedLabel
+
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                text: advancedButton.text
+                                font.pixelSize: VLCStyle.fontSize_normal
+                                color: advancedButton.hovered ? theme.fg.value : theme.fg.label
+                            }
+                        }
+                    }
                 }
             }
         }

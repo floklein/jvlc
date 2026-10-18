@@ -38,6 +38,8 @@ class SubtitleAppearance : public QObject
     Q_OBJECT
 
     Q_PROPERTY(QString defaultLanguage READ defaultLanguage WRITE setDefaultLanguage NOTIFY defaultLanguageChanged FINAL)
+    // the subtitle track the next media shows, from 1; 0 lets it choose ("sub-track")
+    Q_PROPERTY(int defaultTrack READ defaultTrack WRITE setDefaultTrack NOTIFY defaultTrackChanged FINAL)
     Q_PROPERTY(QVariantList languages READ languages CONSTANT FINAL)
 
     Q_PROPERTY(bool keepFileStyling READ keepFileStyling WRITE setKeepFileStyling NOTIFY keepFileStylingChanged FINAL)
@@ -102,6 +104,11 @@ public:
     // None first, then the languages by name
     QVariantList languages() const;
 
+    // the number of the subtitle track the next media shows, from 1 (Figma
+    // "Subtitle Track", 845:1598); 0 lets the media choose
+    int defaultTrack() const { return m_defaultTrack; }
+    void setDefaultTrack(int track);
+
     bool keepFileStyling() const { return m_keepFileStyling; }
     void setKeepFileStyling(bool keep);
 
@@ -139,6 +146,7 @@ public:
 
 signals:
     void defaultLanguageChanged();
+    void defaultTrackChanged();
     void keepFileStylingChanged();
     void fontChanged();
     void sizeModeChanged();
@@ -163,6 +171,7 @@ private:
     bool m_profileWrites = true;
 
     QString m_defaultLanguage;
+    int m_defaultTrack = 0;
     bool m_keepFileStyling = true;
     QString m_font;
     SizeMode m_sizeMode = Relative;

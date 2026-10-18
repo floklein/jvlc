@@ -53,14 +53,15 @@ FocusScope {
             Layout.leftMargin: VLCStyle.dp(28, VLCStyle.scale)
             Layout.rightMargin: VLCStyle.spacing_20
             Layout.topMargin: VLCStyle.spacing_20
-            Layout.bottomMargin: VLCStyle.spacing_20
+            // and Figma's 1 px between the rows of the panel (6320:13784)
+            Layout.bottomMargin: VLCStyle.spacing_20 + VLCStyle.border
 
             spacing: VLCStyle.spacing_12
 
             Widgets.ListLabel {
                 Layout.fillWidth: true
 
-                color: theme.fg.secondary
+                color: theme.fg.label
                 font.pixelSize: VLCStyle.fontSize_normal
                 font.weight: Font.Normal
 
@@ -68,7 +69,7 @@ FocusScope {
                                                  : qsTr("%1 Bookmarks").arg(bookmarkList.count)
             }
 
-            Widgets.IconToolButton {
+            HeaderButton {
                 id: removeButton
 
                 font.pixelSize: VLCStyle.icon_normal
@@ -84,7 +85,7 @@ FocusScope {
                 Navigation.downItem: bookmarkList
             }
 
-            Widgets.IconToolButton {
+            HeaderButton {
                 id: addButton
 
                 font.pixelSize: VLCStyle.icon_normal
@@ -144,6 +145,10 @@ FocusScope {
                 required property int index
                 required property string name
                 required property string time
+                required property var duration
+
+                // Figma 6320:13816: "00:00:42:023"
+                readonly property string timeText: duration.formatHMS(VLCTick.WithHours | VLCTick.WithMilliseconds)
 
                 width: ListView.view.width
 
@@ -186,8 +191,8 @@ FocusScope {
 
                     Widgets.ListLabel {
                         font.weight: Font.Normal
-                        text: bookmarkDelegate.time
-                        color: itemTheme.fg.secondary
+                        text: bookmarkDelegate.timeText
+                        color: itemTheme.fg.label
                     }
                 }
 
@@ -221,5 +226,11 @@ FocusScope {
                 }
             }
         }
+    }
+
+    // Figma 6320:13803: the glyphs of the summary row, FG/A3, 12 px apart;
+    // Remove keeps Figma's color without a bookmark picked
+    component HeaderButton : Widgets.IconToolButton {
+        color: (hovered || visualFocus) ? colorContext.fg.value : colorContext.fg.label
     }
 }

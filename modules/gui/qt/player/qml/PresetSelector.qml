@@ -26,18 +26,22 @@ import VLC.Dialogs
 import VLC.Menus
 import VLC.Style
 
-// The Preset picker of the Adjustments sidebar's footer (Figma 2372:8834):
-// "Default" (the Profile's values only), the Presets, each with Rename,
-// Duplicate and Delete, and "+ New Preset". Choosing one attaches it to the
-// playing file's folder.
+// The Preset picker of the Adjustments sidebar's footer (Figma "Setting
+// Preset" 2372:8834): "Default" (the Profile's values only), the Presets,
+// each with Rename, Duplicate and Delete, "+ New Preset" and Reset All.
+// Choosing one attaches it to the playing file's folder.
 T.AbstractButton {
     id: root
 
     readonly property bool _canChoose: Presets.folder !== ""
 
+    // "Reset All Adjustments", at the end of the list
+    signal resetAllRequested()
+
+    // Figma's dropdown: a 2 px BG/B2 frame round a flat option, FG/A2
     readonly property ColorContext colorContext: ColorContext {
         id: theme
-        colorSet: ColorContext.ToolButton
+        colorSet: ColorContext.ComboBox
 
         enabled: root.enabled
         focused: root.visualFocus
@@ -45,16 +49,20 @@ T.AbstractButton {
         pressed: root.down
     }
 
-    implicitWidth: Math.max(implicitBackgroundWidth, implicitContentWidth + leftPadding + rightPadding)
-    implicitHeight: Math.max(implicitBackgroundHeight, implicitContentHeight + topPadding + bottomPadding)
+    readonly property real _frame: VLCStyle.dp(2, VLCStyle.scale)
 
-    padding: VLCStyle.margin_xxsmall
-    leftPadding: VLCStyle.margin_xsmall
-    rightPadding: VLCStyle.margin_xsmall
+    implicitWidth: Math.max(implicitBackgroundWidth, implicitContentWidth + leftPadding + rightPadding)
+    implicitHeight: Math.max(VLCStyle.dp(42, VLCStyle.scale),
+                             implicitContentHeight + topPadding + bottomPadding)
+
+    padding: _frame
+    leftPadding: _frame + VLCStyle.spacing_14
+    rightPadding: _frame + VLCStyle.spacing_14
 
     font.pixelSize: VLCStyle.fontSize_normal
+    font.family: VLCStyle.fontFamily
 
-    text: Presets.activeId !== "" ? Presets.activeName : qsTr("Default")
+    text: Presets.activeId !== "" ? Presets.activeName : qsTr("Default Preset")
 
     Accessible.role: Accessible.ComboBox
     Accessible.name: qsTr("Preset")
@@ -66,15 +74,26 @@ T.AbstractButton {
 
     onClicked: popup.open()
 
-    background: Widgets.AnimatedBackground {
-        enabled: theme.initialized
+    background: Rectangle {
+        radius: VLCStyle.radius_normal
         color: theme.bg.primary
-        border.color: root.visualFocus ? theme.visualFocus : Qt.alpha(theme.visualFocus, 0.0)
-        radius: VLCStyle.button_radius
+        border.width: root.visualFocus ? VLCStyle.focus_border : 0
+        border.color: theme.visualFocus
+
+        // the option: flat, BG/A2 hovered
+        Widgets.AnimatedBackground {
+            anchors.fill: parent
+            anchors.margins: root._frame
+
+            enabled: theme.initialized
+            radius: VLCStyle.radius_small
+            color: root.hovered || root.down ? theme.bg.highlight : Qt.alpha(theme.bg.highlight, 0.0)
+            border.width: 0
+        }
     }
 
     contentItem: RowLayout {
-        spacing: VLCStyle.margin_xsmall
+        spacing: VLCStyle.spacing_10
 
         T.Label {
             Layout.fillWidth: true
@@ -88,10 +107,11 @@ T.AbstractButton {
             Accessible.ignored: true
         }
 
+        // the list opens above
         Widgets.IconLabel {
-            text: VLCIcons.chevron_down
-            color: theme.fg.secondary
-            font.pixelSize: VLCStyle.icon_small
+            text: VLCIcons.chevron_up
+            color: theme.fg.primary
+            font.pixelSize: VLCStyle.icon_normal
         }
     }
 
@@ -198,6 +218,10 @@ T.AbstractButton {
                     list.itemAt(list.count - 1)?.forceActiveFocus(Qt.TabFocusReason)
                     event.accepted = true
                 }
+                Keys.onDownPressed: (event) => {
+                    resetAllButton.forceActiveFocus(Qt.TabFocusReason)
+                    event.accepted = true
+                }
 
                 onClicked: {
                     popup.close()
@@ -208,6 +232,27 @@ T.AbstractButton {
                                        : qsTr("It starts with this file's adjustments that differ from the Profile."),
                                    "",
                                    (name) => Presets.createFromCurrent(name))
+                }
+            }
+
+            // every tab back to its defaults (the footer has no room for it
+            // in Figma 812:1580)
+            Widgets.TextToolButton {
+                id: resetAllButton
+
+                Layout.fillWidth: true
+
+                text: qsTr("Reset All Adjustments")
+                colorContext.palette: VLCStyle.palette
+
+                Keys.onUpPressed: (event) => {
+                    newButton.forceActiveFocus(Qt.TabFocusReason)
+                    event.accepted = true
+                }
+
+                onClicked: {
+                    popup.close()
+                    root.resetAllRequested()
                 }
             }
         }

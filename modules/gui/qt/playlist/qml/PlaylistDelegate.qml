@@ -183,7 +183,8 @@ T.Control {
                 }
                 return VLCIcons.move
             }
-            color: delegate.isCurrent ? theme.accent : theme.indicator
+            // Figma 463:849: the handle FG/A2
+            color: delegate.isCurrent ? theme.accent : theme.fg.value
 
             Accessible.role: Accessible.Graphic
             Accessible.name: {
@@ -221,7 +222,7 @@ T.Control {
             text: delegate.duration.formatHMS()
             horizontalAlignment: Text.AlignRight
             verticalAlignment: Text.AlignVCenter
-            color: delegate.isCurrent ? theme.accent : theme.fg.secondary
+            color: delegate.isCurrent ? theme.accent : theme.fg.label
         }
     }
 

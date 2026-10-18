@@ -831,6 +831,7 @@ qml_modules += {
        'player/qml/StatisticsOverlay.qml',
        'player/qml/AdjustmentsSubtitlesTab.qml',
        'player/qml/PresetSelector.qml',
+       'player/qml/AdjustmentsRange.qml',
        'player/qml/PresetMark.qml',
        'player/qml/PresetNotice.qml',
        'player/qml/ControlLayout.qml',

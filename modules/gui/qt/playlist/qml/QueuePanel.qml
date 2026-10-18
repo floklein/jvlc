@@ -68,6 +68,9 @@ T.Pane {
 
             color: theme.bg.secondary
             radius: VLCStyle.radius_xxsmall
+            // the panel's r10 top corners (Figma 463:831 clips its content)
+            topLeftRadius: VLCStyle.radius_large
+            topRightRadius: VLCStyle.radius_large
 
             RowLayout {
                 anchors.fill: parent
@@ -90,6 +93,8 @@ T.Pane {
                         required property int index
 
                         Layout.fillWidth: true
+                        // grown from 0: equal tabs whatever their labels (Figma 463:832)
+                        Layout.preferredWidth: 0
                         Layout.fillHeight: true
 
                         iconName: modelData.icon
@@ -212,7 +217,7 @@ T.Pane {
                 // played, as it has no room on the seek bar
                 readonly property bool inClip: model.inClip ?? true
                 readonly property string timeText: (model.time !== undefined && model.time.valid())
-                                                   ? model.time.formatHMS(0) : ""
+                                                   ? model.time.formatHMS(VLCTick.WithHours) : ""
 
                 width: ListView.view.width
 
@@ -268,7 +273,7 @@ T.Pane {
                     Widgets.ListLabel {
                         font.weight: Font.Normal
                         text: chapterDelegate.timeText
-                        color: chapterDelegate.isCurrentChapter ? chapterTheme.accent : chapterTheme.fg.secondary
+                        color: chapterDelegate.isCurrentChapter ? chapterTheme.accent : chapterTheme.fg.label
                     }
                 }
 

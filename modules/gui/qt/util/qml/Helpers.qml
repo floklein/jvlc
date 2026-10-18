@@ -377,6 +377,23 @@ QtObject {
         return (Math.round(speed * 100) / 100) + "x"
     }
 
+    // A duration as Figma's Queue writes it (463:841, "2h 3m"): its two
+    // largest units, "1h 9m", "23m 49s", "45s"
+    function formatCompactDuration(seconds: int) : string {
+        const total = Math.max(0, Math.floor(seconds))
+        const h = Math.floor(total / 3600)
+        const m = Math.floor(total / 60) % 60
+        const s = total % 60
+        //: a duration in hours and minutes, "2h 3m"
+        if (h > 0)
+            return qsTr("%1h %2m").arg(h).arg(m)
+        //: a duration in minutes and seconds, "23m 49s"
+        if (m > 0)
+            return qsTr("%1m %2s").arg(m).arg(s)
+        //: a duration in seconds, "45s"
+        return qsTr("%1s").arg(s)
+    }
+
     // The area F6 moves the focus to, among `count` areas, from the area at
     // `current` (-1 when none has the focus): the next one, or the previous
     // one with Shift+F6 (`backward`), wrapping around. Returns -1 when there

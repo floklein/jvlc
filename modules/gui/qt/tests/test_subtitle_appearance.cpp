@@ -279,6 +279,37 @@ private slots:
         QCOMPARE(m_options->redraws, 0);
     }
 
+    // Figma "Subtitle Track" (845:1598): the track of the next media, from 1
+    void defaultTrackCountsFromOne()
+    {
+        // without the option the media chooses
+        QCOMPARE(m_appearance->defaultTrack(), 0);
+
+        QSignalSpy changed(m_appearance.get(), &SubtitleAppearance::defaultTrackChanged);
+        m_appearance->setDefaultTrack(2);
+        QCOMPARE(m_options->values["sub-track"].toInt(), 1);
+        QCOMPARE(m_appearance->defaultTrack(), 2);
+        QCOMPARE(changed.count(), 1);
+
+        // the same track writes nothing
+        m_appearance->setDefaultTrack(2);
+        QCOMPARE(writes("sub-track"), 1);
+
+        // 0 (or less) lets the media choose again
+        m_appearance->setDefaultTrack(-3);
+        QCOMPARE(m_options->values["sub-track"].toInt(), -1);
+        QCOMPARE(m_appearance->defaultTrack(), 0);
+
+        // it picks the track of the next media: nothing to redraw
+        QCOMPARE(m_options->redraws, 0);
+
+        // the Profile's value is read back
+        m_options->values["sub-track"] = 0;
+        m_appearance->reload();
+        QCOMPARE(m_appearance->defaultTrack(), 1);
+        QCOMPARE(changed.count(), 3);
+    }
+
     // switching Profile (#45) replaces the options under the tab
     void anotherProfileIsShownAndDrawn()
     {

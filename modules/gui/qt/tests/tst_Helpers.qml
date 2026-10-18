@@ -234,6 +234,23 @@ TestCase {
         compare(Helpers.formatSpeed(data.speed), data.text)
     }
 
+    // the Queue's summary writes what is left as Figma's "2h 3m" (463:841)
+    function test_formatCompactDuration_data() {
+        return [
+            { tag: "figma", seconds: 2 * 3600 + 3 * 60 + 40, text: "2h 3m" },
+            { tag: "hour", seconds: 3600, text: "1h 0m" },
+            { tag: "minutes", seconds: 23 * 60 + 49, text: "23m 49s" },
+            { tag: "minute", seconds: 60, text: "1m 0s" },
+            { tag: "seconds", seconds: 45, text: "45s" },
+            { tag: "zero", seconds: 0, text: "0s" },
+            { tag: "negative", seconds: -5, text: "0s" },
+        ]
+    }
+
+    function test_formatCompactDuration(data) {
+        compare(Helpers.formatCompactDuration(data.seconds), data.text)
+    }
+
     // F6 and Shift+F6 go through the areas of the player, wrapping around
     function test_nextFocusArea_data() {
         return [

@@ -279,9 +279,8 @@ FocusScope {
         }
     }
 
-    // The Library pane follows the same rule on the left; both panels can be
-    // open at once.
-    readonly property bool _libraryPaneDocked: !_rightPanelOverlaid && libraryPaneLoader.visible
+    // The Library pane floats over the video too (Figma 187:328); both panels
+    // can be open at once.
 
     onLibraryPaneOpenChanged: {
         // the bars show and stay while the pane is open over the video
@@ -457,10 +456,9 @@ FocusScope {
         objectName: "playerSpecializationLoader"
 
         anchors {
-            // a docked Library pane shrinks the video; the music player keeps
-            // the window under it (Figma 4778:25123). The right-hand panels
-            // float over both.
-            left: (rootPlayer._libraryPaneDocked && MainCtx.hasEmbededVideo) ? libraryPaneLoader.right : parent.left
+            // the Library pane (Figma 187:328, 4778:25123) and the right-hand
+            // panels float over the video and the music player
+            left: parent.left
             right: parent.right
             top: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? topBar.bottom : parent.top
             bottom: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? controlBar.top : parent.bottom
@@ -1963,6 +1961,9 @@ FocusScope {
                        - 2 * _margin
 
         colorContext.palette: windowTheme.palette
+
+        // fullscreen and Hide UI keep the Tint, as the side panels
+        overVideo: rootPlayer._rightPanelOverlaid
 
         onOpened: rootPlayer.lockUnlockAutoHide(true)
         onClosed: rootPlayer.lockUnlockAutoHide(false)

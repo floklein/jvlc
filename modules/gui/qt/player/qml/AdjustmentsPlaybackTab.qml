@@ -129,14 +129,10 @@ FocusScope {
     }
 
     function _belowStatistics() : Item {
-        if (waveformRow.visible)
-            return waveformRow
-        return _timelineUsable() ? subtitleTimelineRow : sleepCombo
+        return waveformRow.visible ? waveformRow : sleepCombo
     }
 
     function _aboveSleepTimer() : Item {
-        if (_timelineUsable())
-            return subtitleTimelineRow
         return waveformRow.visible ? waveformRow : statisticsRow
     }
 
@@ -155,7 +151,8 @@ FocusScope {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
 
-        T.ScrollBar.vertical: Widgets.ScrollBarExt { }
+        // Figma has none: it shows while scrolling
+        T.ScrollBar.vertical: AdjustmentsScrollBar { }
 
         ColumnLayout {
             id: content
@@ -164,8 +161,44 @@ FocusScope {
 
             spacing: 0
 
-            // Figma: 20 px on the sides, 10 px above the first row
+            // Figma 5187:24486: 20 px on the sides, 10 px above the first row
             Item { implicitHeight: VLCStyle.spacing_10 }
+
+            // the subtitle timeline (#54), first as in Figma: not for music;
+            // external text subtitles only, the toggle says why otherwise
+            ToggleRow {
+                id: subtitleTimelineRow
+
+                visible: !root._music
+
+                enabled: Player.subtitleTimeline.unsupportedReason === ""
+                opacity: enabled ? 1 : 0.5
+
+                text: qsTr("Show Subtitle Timeline on Seekbar")
+                checked: MainCtx.showSubtitleTimeline
+                onToggled: MainCtx.showSubtitleTimeline = !MainCtx.showSubtitleTimeline
+
+                Navigation.parentItem: root
+                Navigation.downItem: statisticsRow
+            }
+
+            T.Label {
+                id: subtitleTimelineReason
+
+                visible: subtitleTimelineRow.visible && text !== ""
+
+                Layout.fillWidth: true
+                Layout.leftMargin: VLCStyle.spacing_20 + VLCStyle.spacing_4
+                Layout.rightMargin: VLCStyle.spacing_20
+                Layout.bottomMargin: VLCStyle.spacing_10
+
+                // why it can't, or why nothing shows yet
+                text: Player.subtitleTimeline.note
+                color: theme.fg.label
+                font.pixelSize: VLCStyle.fontSize_small
+                font.family: VLCStyle.fontFamily
+                wrapMode: Text.WordWrap
+            }
 
             ToggleRow {
                 id: statisticsRow
@@ -177,6 +210,7 @@ FocusScope {
                 focus: true
 
                 Navigation.parentItem: root
+                Navigation.upItem: root._timelineUsable() ? subtitleTimelineRow : null
                 Navigation.downItem: root._belowStatistics()
             }
 
@@ -186,49 +220,13 @@ FocusScope {
 
                 visible: Player.waveform.available
 
-                text: qsTr("Show Waveform on Seek Bar")
+                text: qsTr("Show Waveform on Seekbar")
                 checked: MainCtx.showWaveform
                 onToggled: MainCtx.showWaveform = !MainCtx.showWaveform
 
                 Navigation.parentItem: root
                 Navigation.upItem: statisticsRow
-                Navigation.downItem: root._timelineUsable() ? subtitleTimelineRow : sleepCombo
-            }
-
-            // the subtitle timeline (#54): not for music; external text
-            // subtitles only, the toggle says why otherwise
-            ToggleRow {
-                id: subtitleTimelineRow
-
-                visible: !root._music
-
-                enabled: Player.subtitleTimeline.unsupportedReason === ""
-                opacity: enabled ? 1 : 0.5
-
-                text: qsTr("Show Subtitle Timeline on Seek Bar")
-                checked: MainCtx.showSubtitleTimeline
-                onToggled: MainCtx.showSubtitleTimeline = !MainCtx.showSubtitleTimeline
-
-                Navigation.parentItem: root
-                Navigation.upItem: waveformRow.visible ? waveformRow : statisticsRow
                 Navigation.downItem: sleepCombo
-            }
-
-            T.Label {
-                id: subtitleTimelineReason
-
-                visible: subtitleTimelineRow.visible && text !== ""
-
-                Layout.fillWidth: true
-                Layout.leftMargin: VLCStyle.spacing_20 + VLCStyle.spacing_4
-                Layout.rightMargin: VLCStyle.spacing_20
-
-                // why it can't, or why nothing shows yet
-                text: Player.subtitleTimeline.note
-                color: theme.fg.secondary
-                font.pixelSize: VLCStyle.fontSize_small
-                font.family: VLCStyle.fontFamily
-                wrapMode: Text.WordWrap
             }
 
             ChoiceRow {
@@ -304,7 +302,7 @@ FocusScope {
 
                 T.Label {
                     text: qsTr("min")
-                    color: theme.fg.secondary
+                    color: theme.fg.label
                     font.pixelSize: VLCStyle.fontSize_normal
                     font.family: VLCStyle.fontFamily
                 }
@@ -317,6 +315,11 @@ FocusScope {
 
                 ChoiceCombo {
                     id: visualizerCombo
+
+                    // Figma "Audio Visualizer" (2372:8640): the text and the
+                    // chevron 16 px from the edges, as the Settings dropdowns
+                    leftPadding: frame + VLCStyle.spacing_14
+                    rightPadding: frame + VLCStyle.spacing_14
 
                     Accessible.name: qsTr("Audio Visualizer")
 
@@ -337,11 +340,13 @@ FocusScope {
                 }
             }
 
-            // Figma "Frame 105": speed label and field, then the slider
+            // Figma "Frame 105": speed label and field in a 44 px row, then
+            // the slider
             RowLayout {
                 Layout.fillWidth: true
                 Layout.leftMargin: VLCStyle.spacing_20
                 Layout.rightMargin: VLCStyle.spacing_20
+                Layout.preferredHeight: VLCStyle.dp(44, VLCStyle.scale)
 
                 spacing: VLCStyle.spacing_10
 
@@ -362,6 +367,9 @@ FocusScope {
                     Layout.preferredWidth: VLCStyle.dp(140, VLCStyle.scale)
                     implicitHeight: VLCStyle.dp(32, VLCStyle.scale)
                     radius: VLCStyle.radius_normal
+                    // Figma 5187:24542: no stroke, FG/A3 text 12 px in
+                    stroked: false
+                    color: colorContext.fg.label
 
                     Accessible.name: qsTr("Playback speed")
 
@@ -414,10 +422,10 @@ FocusScope {
         }
     }
 
-    // A label, left of its control
+    // A label, left of its control: Figma 14 Regular FG/A3, 4 px in
     component RowLabel : T.Label {
         leftPadding: VLCStyle.spacing_4
-        color: theme.fg.secondary
+        color: theme.fg.label
         font.pixelSize: VLCStyle.fontSize_normal
         font.family: VLCStyle.fontFamily
         elide: Text.ElideRight
@@ -445,6 +453,9 @@ FocusScope {
             anchors.right: toggle.left
             anchors.rightMargin: VLCStyle.spacing_10
             anchors.verticalCenter: parent.verticalCenter
+            // Figma's 17 px line 17.5 px down the 52 px row: the half pixel goes
+            // down
+            anchors.verticalCenterOffset: 1
         }
 
         SettingsToggle {
@@ -479,41 +490,23 @@ FocusScope {
         }
     }
 
-    // Figma "EQ": the dropdown of the sidebar
+    // Figma "EQ" (5187:24535): the dropdown of the sidebar, 220x48, its text
+    // 18 px and its chevron 14 px from the edges
     component ChoiceCombo : Widgets.ComboBoxExt {
         id: combo
 
         Layout.preferredWidth: VLCStyle.dp(220, VLCStyle.scale)
         implicitHeight: VLCStyle.dp(48, VLCStyle.scale)
 
-        font.pixelSize: VLCStyle.fontSize_normal
-        leftPadding: VLCStyle.spacing_14 + VLCStyle.dp(2, VLCStyle.scale)
-        rightPadding: VLCStyle.spacing_14
+        leftPadding: frame + VLCStyle.dp(16, VLCStyle.scale)
+        rightPadding: frame + VLCStyle.spacing_12
+    }
 
-        color: theme.fg.secondary
+    component AdjustmentsScrollBar : Widgets.ScrollBarExt {
+        opacity: (active || interacting) ? 1 : 0
 
-        contentItem: Text {
-            rightPadding: combo.spacing + combo.indicator.width
-            text: combo.displayText
-            color: combo.color
-            font.pixelSize: VLCStyle.fontSize_normal
-            font.family: VLCStyle.fontFamily
-            verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
-        }
-
-        background: Rectangle {
-            radius: VLCStyle.radius_normal
-            color: combo.bgColor
-            border.width: combo.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : 0
-            border.color: theme.accent
-
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: VLCStyle.dp(2, VLCStyle.scale)
-                radius: VLCStyle.radius_small
-                color: combo.hovered ? theme.bg.highlight : combo.colorContext.bg.secondary
-            }
+        Behavior on opacity {
+            NumberAnimation { duration: VLCStyle.duration_short }
         }
     }
 }

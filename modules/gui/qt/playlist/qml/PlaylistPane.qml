@@ -170,7 +170,9 @@ T.Pane {
             Layout.leftMargin: VLCStyle.dp(28, VLCStyle.scale)
             Layout.rightMargin: VLCStyle.spacing_20
             Layout.topMargin: VLCStyle.spacing_20
-            Layout.bottomMargin: VLCStyle.spacing_20
+            // and Figma's 1 px between the rows of the panel (463:831), less the
+            // 6 px the rows keep above them (32 px rows 12 px apart)
+            Layout.bottomMargin: VLCStyle.spacing_20 + VLCStyle.border - VLCStyle.spacing_6
 
             spacing: VLCStyle.spacing_12
 
@@ -179,9 +181,10 @@ T.Pane {
 
                 Layout.fillWidth: true
 
-                color: theme.fg.secondary
+                // Figma "4 items - 2h 3m" (463:841): 14 Regular FG/A3; the
+                // count and the time are what is left to play
+                color: theme.fg.label
                 font.pixelSize: VLCStyle.fontSize_normal
-                // Figma "4 items - 2h 3m" (463:841): Inter Regular
                 font.weight: Font.Normal
 
                 text: {
@@ -190,8 +193,9 @@ T.Pane {
                     const duration = root.model.remainingDuration
                     if (!duration.valid() || duration.toSeconds() <= 0)
                         return qsTr("%1 left").arg(root.model.remainingCount)
-                    return qsTr("%1 left · %2").arg(root.model.remainingCount)
-                                               .arg(duration.formatLong())
+                    //: what is left in the Queue: "3 left - 1h 9m"
+                    return qsTr("%1 left - %2").arg(root.model.remainingCount)
+                                               .arg(Helpers.formatCompactDuration(duration.toSeconds()))
                 }
             }
 
@@ -200,6 +204,9 @@ T.Pane {
 
                 text: VLCIcons.sort
                 font.pixelSize: VLCStyle.icon_normal
+
+                // Figma 463:843: FG/A3
+                color: checked ? colorContext.accent : (hovered ? colorContext.fg.value : colorContext.fg.label)
 
                 description: qsTr("Sort")
 
@@ -240,10 +247,14 @@ T.Pane {
                 Navigation.downItem: listView
             }
 
-            Widgets.IconToolButton {
+            HeaderButton {
                 id: repeatButton
 
                 font.pixelSize: VLCStyle.icon_normal
+
+                // Figma 1701:3774: a 30x28 frame round the glyph
+                horizontalPadding: VLCStyle.dp(3, VLCStyle.scale)
+                verticalPadding: VLCStyle.dp(2, VLCStyle.scale)
 
                 checked: MainPlaylistController.repeatMode !== PlaylistController.PLAYBACK_REPEAT_NONE
                 text: (MainPlaylistController.repeatMode === PlaylistController.PLAYBACK_REPEAT_CURRENT)
@@ -271,10 +282,13 @@ T.Pane {
                 Navigation.downItem: listView
             }
 
-            Widgets.IconToolButton {
+            HeaderButton {
                 id: shuffleButton
 
                 font.pixelSize: VLCStyle.icon_normal
+
+                horizontalPadding: VLCStyle.dp(3, VLCStyle.scale)
+                verticalPadding: VLCStyle.dp(2, VLCStyle.scale)
 
                 checked: MainPlaylistController.random
                 text: VLCIcons.shuffle
@@ -290,7 +304,7 @@ T.Pane {
                 Navigation.downItem: listView
             }
 
-            Widgets.IconToolButton {
+            HeaderButton {
                 id: removeButton
 
                 font.pixelSize: VLCStyle.icon_normal
@@ -309,7 +323,7 @@ T.Pane {
                 Navigation.downItem: listView
             }
 
-            Widgets.IconToolButton {
+            HeaderButton {
                 id: addButton
 
                 font.pixelSize: VLCStyle.icon_normal
@@ -545,6 +559,14 @@ T.Pane {
     Keys.priority: Keys.AfterItem
     Keys.forwardTo: listView
     Keys.onPressed: (event) => root.Navigation.defaultKeyAction(event)
+
+    // Figma 463:842: the controls of the summary row, FG/A3 glyphs 12 px
+    // apart; an unavailable control (Remove without a selection) keeps
+    // Figma's color
+    component HeaderButton : Widgets.IconToolButton {
+        color: checked ? colorContext.accent
+                       : (hovered || visualFocus) ? colorContext.fg.value : colorContext.fg.label
+    }
 
     component PlaylistToggleButton : Widgets.IconToolButton {
         id: playlistBtn

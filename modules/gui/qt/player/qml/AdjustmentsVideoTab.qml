@@ -127,7 +127,8 @@ FocusScope {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
 
-        T.ScrollBar.vertical: Widgets.ScrollBarExt { }
+        // Figma has none: it shows while scrolling
+        T.ScrollBar.vertical: AdjustmentsScrollBar { }
 
         ColumnLayout {
             id: content
@@ -144,7 +145,10 @@ FocusScope {
             RowLabel {
                 Layout.leftMargin: VLCStyle.spacing_20
                 Layout.rightMargin: VLCStyle.spacing_20
-                Layout.topMargin: VLCStyle.spacing_20 + VLCStyle.spacing_6
+                // Figma's 17 px line (6114:13609) 26 px down: Qt draws Inter a
+                // pixel higher in its box
+                Layout.topMargin: VLCStyle.spacing_20 + VLCStyle.spacing_6 + VLCStyle.dp(1, VLCStyle.scale)
+                Layout.preferredHeight: VLCStyle.dp(16, VLCStyle.scale)
 
                 text: qsTr("Flip")
 
@@ -176,13 +180,14 @@ FocusScope {
                 Navigation.downItem: rotationField
             }
 
-            // Figma "Frame 110": the label and the free angle, then the
-            // quarter turns
+            // Figma "Frame 110": the label and the free angle in a 48 px row,
+            // 21 px under the flips; then the quarter turns (not in Figma)
             RowLayout {
                 Layout.fillWidth: true
                 Layout.leftMargin: VLCStyle.spacing_20
                 Layout.rightMargin: VLCStyle.spacing_20
-                Layout.topMargin: VLCStyle.spacing_20
+                Layout.topMargin: VLCStyle.dp(21, VLCStyle.scale)
+                Layout.preferredHeight: VLCStyle.dp(48, VLCStyle.scale)
 
                 spacing: VLCStyle.spacing_10
 
@@ -239,7 +244,7 @@ FocusScope {
                 Layout.fillWidth: true
                 Layout.leftMargin: VLCStyle.spacing_20
                 Layout.rightMargin: VLCStyle.spacing_20
-                Layout.topMargin: VLCStyle.spacing_10
+                Layout.topMargin: VLCStyle.spacing_5
 
                 choices: root._rotationChoices
                 // a free angle selects none
@@ -361,9 +366,7 @@ FocusScope {
                 }
             }
 
-            Divider {
-                Layout.topMargin: VLCStyle.spacing_10
-            }
+            Divider { }
 
             SectionHeader {
                 text: qsTr("Filters")
@@ -500,35 +503,54 @@ FocusScope {
         }
     }
 
-    // A label, left of its control
+    // A label, left of its control: Figma 14 Regular FG/A3, 4 px in
     component RowLabel : T.Label {
         leftPadding: VLCStyle.spacing_4
-        color: theme.fg.secondary
+        color: theme.fg.label
         font.pixelSize: VLCStyle.fontSize_normal
         font.family: VLCStyle.fontFamily
         elide: Text.ElideRight
     }
 
-    // Figma "Frame 104": the title of a section
+    // Figma "Frame 104" (1711:4103): the title of a section, 16 Medium FG/A1,
+    // 24 px in, 20 px under the previous one
     component SectionHeader : T.Label {
         Layout.fillWidth: true
         Layout.leftMargin: VLCStyle.dp(24, VLCStyle.scale)
         Layout.rightMargin: VLCStyle.dp(24, VLCStyle.scale)
         Layout.topMargin: VLCStyle.spacing_20
+        // Figma's 19 px line (1711:4104); Qt's is a pixel taller
+        Layout.preferredHeight: VLCStyle.dp(19, VLCStyle.scale)
 
-        color: theme.fg.primary
-        font.pixelSize: VLCStyle.fontSize_large
-        font.weight: Font.DemiBold
+        color: theme.fg.secondary
+        font.pixelSize: VLCStyle.fontSize_xlarge
+        font.weight: Font.Medium
         font.family: VLCStyle.fontFamily
         elide: Text.ElideRight
 
         Accessible.role: Accessible.Heading
     }
 
-    component Divider : Rectangle {
+    component AdjustmentsScrollBar : Widgets.ScrollBarExt {
+        opacity: (active || interacting) ? 1 : 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: VLCStyle.duration_short }
+        }
+    }
+
+    // Figma's lines between sections take no room (a 0 px high vector,
+    // 1711:4124): drawn over the top of what follows
+    component Divider : Item {
         Layout.fillWidth: true
-        implicitHeight: VLCStyle.border
-        color: theme.separator
+        implicitHeight: 0
+        z: 1
+
+        Rectangle {
+            width: parent.width
+            height: VLCStyle.border
+            color: theme.separator
+        }
     }
 
     // a separator between the filters of a group
@@ -557,42 +579,16 @@ FocusScope {
         }
     }
 
-    // Figma "EQ": the dropdown of the sidebar
+    // Figma "EQ" (6114:13510): the dropdown of the sidebar, 220x48, its text
+    // 18 px and its chevron 14 px from the edges
     component ChoiceCombo : Widgets.ComboBoxExt {
         id: combo
 
         Layout.preferredWidth: VLCStyle.dp(220, VLCStyle.scale)
         implicitHeight: VLCStyle.dp(48, VLCStyle.scale)
 
-        font.pixelSize: VLCStyle.fontSize_normal
-        leftPadding: VLCStyle.spacing_14 + VLCStyle.dp(2, VLCStyle.scale)
-        rightPadding: VLCStyle.spacing_14
-
-        color: theme.fg.secondary
-
-        contentItem: Text {
-            rightPadding: combo.spacing + combo.indicator.width
-            text: combo.displayText
-            color: combo.color
-            font.pixelSize: VLCStyle.fontSize_normal
-            font.family: VLCStyle.fontFamily
-            verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
-        }
-
-        background: Rectangle {
-            radius: VLCStyle.radius_normal
-            color: combo.bgColor
-            border.width: combo.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : 0
-            border.color: theme.accent
-
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: VLCStyle.dp(2, VLCStyle.scale)
-                radius: VLCStyle.radius_small
-                color: combo.hovered ? theme.bg.highlight : combo.colorContext.bg.secondary
-            }
-        }
+        leftPadding: frame + VLCStyle.dp(16, VLCStyle.scale)
+        rightPadding: frame + VLCStyle.spacing_12
     }
 
     // a dropdown over a variable of the video output (zoom, aspect ratio,
@@ -761,7 +757,7 @@ FocusScope {
                             Text {
                                 Layout.fillWidth: true
                                 text: expandButton.text
-                                color: expandButton.hovered ? theme.fg.primary : theme.fg.secondary
+                                color: expandButton.hovered ? theme.fg.value : theme.fg.label
                                 font.pixelSize: VLCStyle.fontSize_normal
                                 font.family: VLCStyle.fontFamily
                                 elide: Text.ElideRight
@@ -770,7 +766,7 @@ FocusScope {
 
                             Widgets.IconLabel {
                                 text: group.expanded ? VLCIcons.chevron_down : VLCIcons.chevron_right
-                                color: theme.fg.secondary
+                                color: theme.fg.label
                                 font.pixelSize: VLCStyle.icon_normal
                                 Accessible.ignored: true
                             }
@@ -948,7 +944,7 @@ FocusScope {
             T.Label {
                 id: cropLabel
                 Layout.fillWidth: true
-                color: theme.fg.secondary
+                color: theme.fg.label
                 font.pixelSize: VLCStyle.fontSize_normal
                 font.family: VLCStyle.fontFamily
                 elide: Text.ElideRight
@@ -959,7 +955,7 @@ FocusScope {
 
                 Layout.preferredWidth: VLCStyle.dp(40, VLCStyle.scale)
                 horizontalAlignment: TextInput.AlignRight
-                color: theme.fg.primary
+                color: theme.fg.value
                 selectionColor: theme.accent
                 font.pixelSize: VLCStyle.fontSize_normal
                 font.family: VLCStyle.fontFamily
@@ -990,7 +986,7 @@ FocusScope {
 
             T.Label {
                 text: qsTr("px")
-                color: theme.fg.secondary
+                color: theme.fg.label
                 font.pixelSize: VLCStyle.fontSize_normal
                 font.family: VLCStyle.fontFamily
             }

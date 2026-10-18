@@ -87,6 +87,9 @@ void SubtitleAppearance::read()
 
     // the first language of the preference list
     m_defaultLanguage = value("sub-language").toString().section(QLatin1Char(','), 0, 0).trimmed();
+    // "sub-track" counts from 0, -1 lets the media choose
+    const QVariant track = value("sub-track");
+    m_defaultTrack = track.isValid() ? std::max(0, track.toInt() + 1) : 0;
 
     const QVariant keep = value("freetype-keep-styling");
     m_keepFileStyling = !keep.isValid() || keep.toBool();
@@ -113,6 +116,7 @@ void SubtitleAppearance::reload()
     m_backend->reloadProfile();
 
     const QString language = m_defaultLanguage;
+    const int track = m_defaultTrack;
     const bool keep = m_keepFileStyling;
     const QString font = m_font;
     const SizeMode mode = m_sizeMode;
@@ -128,6 +132,8 @@ void SubtitleAppearance::reload()
 
     if (language != m_defaultLanguage)
         emit defaultLanguageChanged();
+    if (track != m_defaultTrack)
+        emit defaultTrackChanged();
     if (keep != m_keepFileStyling)
         emit keepFileStylingChanged();
     if (font != m_font)
@@ -175,6 +181,18 @@ void SubtitleAppearance::setDefaultLanguage(const QString& language)
     // it picks the subtitle track of the next media, not of this one
     write("sub-language", code);
     emit defaultLanguageChanged();
+    emit adjusted();
+}
+
+void SubtitleAppearance::setDefaultTrack(int track)
+{
+    track = std::max(0, track);
+    if (track == m_defaultTrack)
+        return;
+    m_defaultTrack = track;
+    // as the language, it picks the track of the next media
+    write("sub-track", track - 1);
+    emit defaultTrackChanged();
     emit adjusted();
 }
 

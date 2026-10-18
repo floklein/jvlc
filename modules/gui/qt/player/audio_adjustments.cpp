@@ -215,6 +215,9 @@ AudioAdjustments::AudioAdjustments(vlc_player_t* player, QObject* parent)
         m_stereoMode = HEADPHONES;
     // the first of the preferred languages
     m_language = configString("audio-language").section(',', 0, 0).trimmed();
+    // "audio-track" counts from 0, -1 lets the media choose
+    if (config_FindConfig("audio-track"))
+        m_defaultTrack = static_cast<int>(std::max<int64_t>(0, config_GetInt("audio-track") + 1));
 
     m_modifiedGroups = modifiedGroups();
 }
@@ -342,6 +345,24 @@ QStringList AudioAdjustments::modifiedGroups() const
 QString AudioAdjustments::language() const
 {
     return m_language;
+}
+
+int AudioAdjustments::defaultTrack() const
+{
+    return m_defaultTrack;
+}
+
+void AudioAdjustments::setDefaultTrack(int track)
+{
+    track = std::max(0, track);
+    if (track == m_defaultTrack)
+        return;
+    m_defaultTrack = track;
+    // as the subtitles', it picks the track of the next media
+    if (m_profileWrites)
+        config_PutInt("audio-track", track - 1);
+    emit defaultTrackChanged();
+    emit adjusted();
 }
 
 QVariantList AudioAdjustments::languages() const

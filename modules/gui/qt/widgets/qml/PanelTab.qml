@@ -23,7 +23,9 @@ import VLC.Style
 import VLC.Widgets as Widgets
 
 // A tab of the tab bar of the player's right-hand panels (Queue panel,
-// Adjustments sidebar): icon and label, an accent line when checked
+// Adjustments sidebar, Track menu): icon and label, an accent line when
+// checked (Figma 463:833): the current tab's label FG/A2 and its icon two-tone
+// (FG/A3 and Accent/Dim), the other tabs' labels FG/A3 and icons FG/A4
 T.TabButton {
     id: tab
 
@@ -31,6 +33,10 @@ T.TabButton {
     property string iconName
     // the two-tone glyph shown when checked, without its "_tt_base" suffix
     property string twoToneName: iconName
+
+    // the accent line's distance to the tab's edges (Figma 8 px, 7.5 px on
+    // the fixed 85 px tabs of the Adjustments sidebar)
+    property real lineInset: VLCStyle.spacing_8
 
     hoverEnabled: true
 
@@ -58,10 +64,14 @@ T.TabButton {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            anchors.leftMargin: VLCStyle.spacing_8
-            anchors.rightMargin: VLCStyle.spacing_8
+            anchors.leftMargin: tab.lineInset
+            anchors.rightMargin: tab.lineInset
 
             height: VLCStyle.dp(2, VLCStyle.scale)
+
+            // Figma: the top corners rounded by 1 px
+            topLeftRadius: VLCStyle.dp(1, VLCStyle.scale)
+            topRightRadius: VLCStyle.dp(1, VLCStyle.scale)
 
             color: tab.checked ? tabTheme.accent : Qt.alpha(tabTheme.accent, 0.0)
         }
@@ -100,6 +110,8 @@ T.TabButton {
                     Widgets.TwoToneIcon {
                         name: tab.twoToneName
                         pixelSize: VLCStyle.dp(20, VLCStyle.scale)
+                        baseColor: tabTheme.fg.label
+                        accentColor: tabTheme.fg.highlight
                     }
                 }
 
@@ -108,7 +120,7 @@ T.TabButton {
 
                     Widgets.IconLabel {
                         text: VLCIcons[tab.iconName]
-                        color: tabTheme.fg.primary
+                        color: tab.hovered ? tabTheme.fg.label : tabTheme.fg.muted
                         font.pixelSize: VLCStyle.dp(20, VLCStyle.scale)
                     }
                 }
@@ -118,6 +130,9 @@ T.TabButton {
                 id: tabLabel
 
                 anchors.verticalCenter: parent.verticalCenter
+                // Figma puts the 15 px line 2.5 px down the 20 px row: the half
+                // pixel goes down, as Figma renders it
+                anchors.verticalCenterOffset: 1
 
                 // elided rather than spilling out of the tab (large scales)
                 width: Math.max(0, Math.min(implicitWidth,
@@ -126,7 +141,7 @@ T.TabButton {
                 text: tab.text
                 font.pixelSize: VLCStyle.fontSize_small
                 font.weight: Font.Normal
-                color: tab.checked ? tabTheme.fg.secondary : tabTheme.fg.primary
+                color: (tab.checked || tab.hovered) ? tabTheme.fg.value : tabTheme.fg.label
             }
         }
     }

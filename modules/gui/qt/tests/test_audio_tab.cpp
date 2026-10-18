@@ -406,6 +406,27 @@ private slots:
         QCOMPARE(configString("audio-language"), QString());
     }
 
+    // Figma "Audio Track" (845:1652): the track of the next media, from 1
+    void theDefaultTrackIsAPreference()
+    {
+        QCOMPARE(m_audio->defaultTrack(), 0);
+
+        QSignalSpy changed(m_audio.get(), &AudioAdjustments::defaultTrackChanged);
+        m_audio->setDefaultTrack(2);
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(m_audio->defaultTrack(), 2);
+        QCOMPARE(config_GetInt("audio-track"), 1);
+
+        // not an adjustment: Reset all keeps it
+        m_audio->resetAll();
+        QCOMPARE(m_audio->defaultTrack(), 2);
+
+        // 0 lets the media choose
+        m_audio->setDefaultTrack(0);
+        QCOMPARE(config_GetInt("audio-track"), -1);
+        QCOMPARE(changed.count(), 2);
+    }
+
     void resetAllPutsEveryGroupBack()
     {
         m_audio->applyEqualizerPreset(CLUB);

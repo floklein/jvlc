@@ -149,7 +149,8 @@ private slots:
             ControlbarProfileModel::generateProfileFromStyle(ControlbarProfileModel::Style::DEFAULT_STYLE) };
         QVERIFY(profile);
 
-        // the music player adds the ±15 s skips around play (Figma 4778:26181)
+        // the music player adds the ±15 s skips around play and has no
+        // Adjustments key (Figma 4778:26181): the waveform keeps its length
         const int audio = PlayerControlbarModel::Audioplayer;
         QCOMPARE(controls(profile.get(), audio, 0),
                  (QVector<int>{ C::PREVIOUS_BUTTON, C::SKIP_BACK_BUTTON, C::PLAY_BUTTON,
@@ -157,7 +158,7 @@ private slots:
         QCOMPARE(controls(profile.get(), audio, 1),
                  (QVector<int>{ C::SEEK_BAR }));
         QCOMPARE(controls(profile.get(), audio, 2),
-                 (QVector<int>{ C::VOLUME, C::AUDIO_BUTTON, C::EXTENDED_BUTTON, C::PLAYLIST_BUTTON }));
+                 (QVector<int>{ C::VOLUME, C::AUDIO_BUTTON, C::PLAYLIST_BUTTON }));
     }
 
     void testDefaultLayoutsHaveNoStopOrRecord()

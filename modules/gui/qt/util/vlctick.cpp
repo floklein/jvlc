@@ -57,15 +57,19 @@ QString VLCTick::formatHMS(int formatFlags) const
         int min = (t_sec / 60) % 60;
         int hour = t_sec / 3600;
 
+        QString text;
         if (hour == 0 && !(formatFlags & WithHours))
-            return QString("%1:%2")
+            text = QString("%1:%2")
                     .arg(min, 2, 10, QChar('0'))
                     .arg(sec, 2, 10, QChar('0'));
         else
-           return QString("%1:%2:%3")
+            text = QString("%1:%2:%3")
                     .arg(hour, 2, 10, QChar('0'))
                     .arg(min, 2, 10, QChar('0'))
                     .arg(sec, 2, 10, QChar('0'));
+        if (formatFlags & WithMilliseconds)
+            text += QString(":%1").arg(asMilliseconds() % 1000, 3, 10, QChar('0'));
+        return text;
     }
     else
         return qtr("%1 ms").arg(asMilliseconds());

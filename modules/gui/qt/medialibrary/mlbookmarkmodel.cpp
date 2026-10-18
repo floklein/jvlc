@@ -65,6 +65,8 @@ QVariant MLBookmarkModel::data( const QModelIndex &index, int role ) const
     switch(role){
         case BookmarkRoles::NameRole:
             return QVariant::fromValue( qfu( bookmark.psz_name ) );
+        case BookmarkRoles::DurationRole:
+            return QVariant::fromValue( VLCDuration::fromMS( bookmark.i_time ) );
         case BookmarkRoles::TimeRole:
             return QVariant::fromValue( VLCDuration::fromMS( bookmark.i_time ).formatHMS() );
         case BookmarkRoles::PositionRole:
@@ -150,7 +152,8 @@ QHash<int, QByteArray> MLBookmarkModel::roleNames() const{
         {BookmarkRoles::NameRole, QByteArrayLiteral("name")},
         {BookmarkRoles::TimeRole, QByteArrayLiteral("time")},
         {BookmarkRoles::PositionRole, QByteArrayLiteral("position")},
-        {BookmarkRoles::DescriptionRole, QByteArrayLiteral("description")}
+        {BookmarkRoles::DescriptionRole, QByteArrayLiteral("description")},
+        {BookmarkRoles::DurationRole, QByteArrayLiteral("duration")}
     };
 }
 

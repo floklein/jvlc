@@ -99,6 +99,9 @@ FocusScope {
 
         overVideo: root.overlaid
         colorContext: theme
+        // it floats over the video and the music player: BG/B1 Transparent,
+        // the view background at 95 % (Figma 187:328, 4778:25123)
+        baseColor: Qt.alpha(theme.bg.primary, 0.95)
     }
 
     SideNavigationPane {

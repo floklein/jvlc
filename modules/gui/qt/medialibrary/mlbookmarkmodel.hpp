@@ -56,7 +56,9 @@ public:
         NameRole = Qt::UserRole,
         TimeRole = Qt::UserRole + 1,
         PositionRole = Qt::UserRole + 2,
-        DescriptionRole = Qt::UserRole + 3
+        DescriptionRole = Qt::UserRole + 3,
+        // the time as a VLCDuration, for the formats of the views
+        DurationRole = Qt::UserRole + 4
     };
     QHash<int, QByteArray> roleNames() const override;
 

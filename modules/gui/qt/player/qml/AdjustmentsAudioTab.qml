@@ -51,7 +51,7 @@ FocusScope {
 
     // the keyboard order of the controls, hidden ones are skipped
     readonly property var _focusChain: [
-        languageCombo, stereoCombo,
+        trackField, languageCombo, stereoCombo,
         delayField, delaySlider, soundHeard, soundSpotted,
         equalizerCombo, equalizerBox, twoPassRow,
         compressorRow, compressorBox,
@@ -94,7 +94,8 @@ FocusScope {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
 
-        T.ScrollBar.vertical: Widgets.ScrollBarExt { }
+        // Figma has none: it shows while scrolling
+        T.ScrollBar.vertical: AdjustmentsScrollBar { }
 
         ColumnLayout {
             id: content
@@ -109,18 +110,40 @@ FocusScope {
                 text: qsTr("Defaults")
             }
 
+            // Figma "Frame 92" (845:1651): the track and the language the next
+            // media plays, in 48 px rows 5 px apart
             ChoiceRow {
                 Layout.topMargin: VLCStyle.spacing_10
+                Layout.preferredHeight: VLCStyle.dp(48, VLCStyle.scale)
+
+                text: qsTr("Audio Track")
+
+                TrackField {
+                    id: trackField
+
+                    focus: true
+
+                    Accessible.name: qsTr("Default audio track")
+
+                    track: root.audio.defaultTrack
+                    onTrackEntered: (track) => root.audio.setDefaultTrack(track)
+
+                    Navigation.parentItem: root
+                    Navigation.downItem: root._neighbour(trackField, 1)
+                }
+            }
+
+            ChoiceRow {
+                Layout.topMargin: VLCStyle.spacing_5
+                Layout.bottomMargin: VLCStyle.spacing_10
+                Layout.preferredHeight: VLCStyle.dp(48, VLCStyle.scale)
 
                 text: qsTr("Audio Language")
                 presetKeys: ["audio-language"]
 
-                ChoiceCombo {
+                FieldCombo {
                     id: languageCombo
 
-                    Layout.preferredWidth: VLCStyle.dp(160, VLCStyle.scale)
-
-                    focus: true
                     Accessible.name: qsTr("Default audio language")
 
                     model: root.audio.languages
@@ -131,20 +154,21 @@ FocusScope {
                     onActivated: (index) => root.audio.setLanguage(root.audio.languages[index].code)
 
                     Navigation.parentItem: root
+                    Navigation.upItem: root._neighbour(languageCombo, -1)
                     Navigation.downItem: root._neighbour(languageCombo, 1)
                 }
             }
 
+            // Figma "Frame 102" (1052:2920): a 52 px row, then the modes 10 px
+            // under it
             RowLayout {
                 Layout.fillWidth: true
                 Layout.leftMargin: VLCStyle.spacing_20
                 Layout.rightMargin: VLCStyle.spacing_20
-                Layout.topMargin: VLCStyle.spacing_10
+                Layout.preferredHeight: VLCStyle.dp(52, VLCStyle.scale)
 
                 RowLabel {
                     Layout.fillWidth: true
-                    Layout.topMargin: VLCStyle.spacing_10
-                    Layout.bottomMargin: VLCStyle.spacing_10
                     text: qsTr("Stereo Mode")
 
                     PresetMark {
@@ -168,6 +192,7 @@ FocusScope {
                 Layout.fillWidth: true
                 Layout.leftMargin: VLCStyle.spacing_20
                 Layout.rightMargin: VLCStyle.spacing_20
+                Layout.topMargin: VLCStyle.spacing_10
                 Layout.bottomMargin: VLCStyle.spacing_20
 
                 Accessible.name: qsTr("Stereo Mode")
@@ -223,18 +248,19 @@ FocusScope {
                 }
             }
 
+            // Figma "Frame 80" (768:2267): the field in a 56 px row, 10 px
+            // under the title
             RowLayout {
                 Layout.fillWidth: true
                 Layout.leftMargin: VLCStyle.spacing_20
                 Layout.rightMargin: VLCStyle.spacing_20
                 Layout.topMargin: VLCStyle.spacing_10
+                Layout.preferredHeight: VLCStyle.dp(56, VLCStyle.scale)
 
                 spacing: VLCStyle.spacing_10
 
                 RowLabel {
                     Layout.fillWidth: true
-                    Layout.topMargin: VLCStyle.spacing_10
-                    Layout.bottomMargin: VLCStyle.spacing_10
                     text: qsTr("Audio Track Delay")
 
                     PresetMark {
@@ -261,7 +287,9 @@ FocusScope {
                 }
             }
 
-            SettingsSlider {
+            // Figma 1905:7352: the range 8 px under the row, its ends and
+            // middle 8 px under it
+            AdjustmentsRange {
                 id: delaySlider
 
                 Layout.fillWidth: true
@@ -274,11 +302,12 @@ FocusScope {
                 from: -10
                 to: 10
                 stepSize: 0.05
-                unit: "s"
                 value: Player.audioDelayMS / 1000
                 accessibleName: qsTr("Audio track delay")
+                accessibleValue: root._formatDelay(Player.audioDelayMS)
 
-                tickLabels: [qsTr("-10 s"), qsTr("0 s"), qsTr("+10 s")]
+                edgeLabels: [qsTr("-10 s"), qsTr("0 s"), qsTr("+10 s")]
+                labelGap: VLCStyle.spacing_8
 
                 onMoved: (value) => { Player.audioDelayMS = Math.round(value * 1000) }
 
@@ -293,6 +322,7 @@ FocusScope {
                 onDelayChanged: Player.addAudioDelay(delayEstimator.delay)
             }
 
+            // not in Figma: the delay from a sound and its source
             RowLabel {
                 Layout.fillWidth: true
                 Layout.leftMargin: VLCStyle.spacing_20
@@ -416,11 +446,13 @@ FocusScope {
                 }
             }
 
+            // Figma "Frame 71" (536:1114): a 48 px row, 10 px under the box,
+            // 20 px above the line
             ToggleRow {
                 id: twoPassRow
 
-                Layout.topMargin: VLCStyle.spacing_5
-                Layout.bottomMargin: VLCStyle.spacing_10
+                Layout.topMargin: VLCStyle.spacing_10
+                Layout.bottomMargin: VLCStyle.spacing_20
 
                 text: qsTr("2 Pass")
                 checked: root.audio.twoPass
@@ -564,6 +596,8 @@ FocusScope {
         Layout.fillWidth: true
         leftPadding: VLCStyle.dp(24, VLCStyle.scale)
         topPadding: VLCStyle.spacing_20
+        // Figma's 19 px line (845:1681); Qt's is a pixel taller
+        Layout.preferredHeight: VLCStyle.spacing_20 + VLCStyle.dp(19, VLCStyle.scale)
 
         color: theme.fg.secondary
         font.pixelSize: VLCStyle.fontSize_xlarge
@@ -573,16 +607,32 @@ FocusScope {
     }
 
     // a line between sections
-    component Divider : Rectangle {
+    // Figma's lines between sections take no room (a 0 px high vector,
+    // 1711:4124): drawn over the top of what follows
+    component Divider : Item {
         Layout.fillWidth: true
-        implicitHeight: VLCStyle.border
-        color: theme.separator
+        implicitHeight: 0
+        z: 1
+
+        Rectangle {
+            width: parent.width
+            height: VLCStyle.border
+            color: theme.separator
+        }
     }
 
-    // A label, left of its control
+    component AdjustmentsScrollBar : Widgets.ScrollBarExt {
+        opacity: (active || interacting) ? 1 : 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: VLCStyle.duration_short }
+        }
+    }
+
+    // A label, left of its control: Figma 14 Regular FG/A3, 4 px in
     component RowLabel : T.Label {
         leftPadding: VLCStyle.spacing_4
-        color: theme.fg.secondary
+        color: theme.fg.label
         font.pixelSize: VLCStyle.fontSize_normal
         font.family: VLCStyle.fontFamily
         elide: Text.ElideRight
@@ -746,63 +796,15 @@ FocusScope {
         }
     }
 
-    // Figma "EQ": the dropdown of the sidebar
+    // Figma "EQ" (2372:8624): the dropdown of the sidebar, 48 px, its text
+    // 18 px and its chevron 14 px from the edges
     component ChoiceCombo : Widgets.ComboBoxExt {
         id: combo
 
         implicitHeight: VLCStyle.dp(48, VLCStyle.scale)
 
-        font.pixelSize: VLCStyle.fontSize_normal
-        leftPadding: VLCStyle.spacing_14 + VLCStyle.dp(2, VLCStyle.scale)
-        rightPadding: VLCStyle.spacing_14
-
-        color: theme.fg.secondary
-
-        // Figma "option": the choices, the current one checked
-        delegate: T.ItemDelegate {
-            id: choiceDelegate
-
-            required property var model
-            required property var modelData
-            required property int index
-
-            width: combo.width
-            implicitHeight: VLCStyle.dp(44, VLCStyle.scale)
-            leftPadding: VLCStyle.spacing_14
-            rightPadding: VLCStyle.spacing_14
-
-            text: !combo.textRole ? modelData
-                  : (Helpers.isArray(combo.model) ? modelData[combo.textRole] : model[combo.textRole])
-            highlighted: combo.highlightedIndex === index
-
-            Accessible.name: text
-
-            contentItem: RowLayout {
-                spacing: VLCStyle.spacing_10
-
-                T.Label {
-                    Layout.fillWidth: true
-                    text: choiceDelegate.text
-                    color: theme.fg.secondary
-                    font.pixelSize: VLCStyle.fontSize_normal
-                    font.family: VLCStyle.fontFamily
-                    elide: Text.ElideRight
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                Widgets.IconLabel {
-                    visible: choiceDelegate.index === combo.currentIndex
-                    text: VLCIcons.check
-                    color: theme.accent
-                    font.pixelSize: VLCStyle.icon_normal
-                }
-            }
-
-            background: Rectangle {
-                radius: VLCStyle.radius_small
-                color: choiceDelegate.highlighted ? theme.bg.highlight : "transparent"
-            }
-        }
+        leftPadding: frame + VLCStyle.dp(16, VLCStyle.scale)
+        rightPadding: frame + VLCStyle.spacing_12
 
         // assistive tools open the list like a click
         Accessible.onPressAction: {
@@ -811,29 +813,62 @@ FocusScope {
             else
                 combo.popup.open()
         }
+    }
 
-        contentItem: Text {
-            rightPadding: combo.spacing + combo.indicator.width
-            text: combo.displayText
-            color: combo.color
-            font.pixelSize: VLCStyle.fontSize_normal
-            font.family: VLCStyle.fontFamily
-            verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
+    // Figma "text_input" (4046:12347): a choice drawn as the 140x36 fields of
+    // the tab, its 2 px BG/A4 stroke round a BG/B2 fill; the chevron says
+    // that it opens a list
+    component FieldCombo : ChoiceCombo {
+        id: fieldCombo
+
+        Layout.preferredWidth: VLCStyle.dp(140, VLCStyle.scale)
+        implicitHeight: VLCStyle.dp(36, VLCStyle.scale)
+
+        leftPadding: frame + VLCStyle.spacing_12
+        rightPadding: frame + VLCStyle.spacing_4
+
+        bgColor: fieldTheme.border
+        fieldColor: hovered ? colorContext.bg.highlight : fieldTheme.bg.primary
+
+        // the list is as wide as the other dropdowns, right-aligned
+        Binding {
+            target: fieldCombo.popup
+            property: "width"
+            value: VLCStyle.dp(220, VLCStyle.scale)
+        }
+        Binding {
+            target: fieldCombo.popup
+            property: "x"
+            value: fieldCombo.width - VLCStyle.dp(220, VLCStyle.scale)
+        }
+    }
+
+    // Figma "text_input" (4046:12344): a track number from 1, empty to let
+    // the media choose
+    component TrackField : Widgets.TextFieldExt {
+        id: trackInput
+
+        property int track: 0
+
+        signal trackEntered(int track)
+
+        Layout.preferredWidth: VLCStyle.dp(140, VLCStyle.scale)
+        implicitHeight: VLCStyle.dp(36, VLCStyle.scale)
+
+        //: the default track: the media chooses
+        placeholderText: qsTr("Auto")
+        validator: IntValidator { bottom: 0; top: 99 }
+
+        Binding on text {
+            when: !trackInput.activeFocus
+            value: trackInput.track > 0 ? String(trackInput.track) : ""
+            restoreMode: Binding.RestoreNone
         }
 
-        background: Rectangle {
-            radius: VLCStyle.radius_normal
-            color: combo.bgColor
-            border.width: combo.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : 0
-            border.color: theme.accent
-
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: VLCStyle.dp(2, VLCStyle.scale)
-                radius: VLCStyle.radius_small
-                color: combo.hovered ? theme.bg.highlight : combo.colorContext.bg.secondary
-            }
+        onEditingFinished: {
+            const track = parseInt(text, 10)
+            trackInput.trackEntered(isNaN(track) ? 0 : track)
+            text = trackInput.track > 0 ? String(trackInput.track) : ""
         }
     }
 
@@ -905,7 +940,7 @@ FocusScope {
                 T.Label {
                     Layout.fillWidth: true
                     text: eqDelegate.modelData
-                    color: theme.fg.secondary
+                    color: theme.fg.value
                     font.pixelSize: VLCStyle.fontSize_normal
                     font.family: VLCStyle.fontFamily
                     elide: Text.ElideRight
@@ -988,14 +1023,14 @@ FocusScope {
                     T.Label {
                         Layout.fillWidth: true
                         text: box.expanded ? qsTr("Collapse Settings") : qsTr("Expand Settings")
-                        color: expandButton.hovered ? theme.fg.primary : theme.fg.secondary
+                        color: expandButton.hovered ? theme.fg.value : theme.fg.label
                         font.pixelSize: VLCStyle.fontSize_normal
                         font.family: VLCStyle.fontFamily
                     }
 
                     Widgets.IconLabel {
                         text: box.expanded ? VLCIcons.chevron_down : VLCIcons.chevron_right
-                        color: theme.fg.secondary
+                        color: theme.fg.label
                         font.pixelSize: VLCStyle.icon_normal
                     }
                 }
@@ -1062,7 +1097,7 @@ FocusScope {
             T.Label {
                 id: parameterLabel
                 Layout.fillWidth: true
-                color: theme.fg.secondary
+                color: theme.fg.label
                 font.pixelSize: VLCStyle.fontSize_normal
                 font.family: VLCStyle.fontFamily
                 elide: Text.ElideRight
@@ -1070,7 +1105,7 @@ FocusScope {
 
             T.Label {
                 text: parameterRow.valueText
-                color: theme.fg.secondary
+                color: theme.fg.label
                 font.pixelSize: VLCStyle.fontSize_normal
                 font.family: VLCStyle.fontFamily
             }
@@ -1111,7 +1146,7 @@ FocusScope {
             T.Label {
                 id: bandLabel
                 Layout.fillWidth: true
-                color: theme.fg.secondary
+                color: theme.fg.label
                 font.pixelSize: VLCStyle.fontSize_normal
                 font.family: VLCStyle.fontFamily
                 elide: Text.ElideRight
@@ -1172,82 +1207,13 @@ FocusScope {
         }
     }
 
-    // Figma "range": a slider without labels, with optional ticks
-    component FilterSlider : T.Slider {
-        id: filterSlider
-
-        property string accessibleName
-        property string accessibleValue
-        // ticks spread over the range, none with 0
+    // Figma "range" (612:1414): the sidebar's range without labels; its
+    // ticks, when asked, in the Settings slider's style
+    component FilterSlider : AdjustmentsRange {
+        // the ticks spread over the range, the ends included (they are not
+        // drawn): 3 for the pitch's middle one
         property int tickCount: 0
 
-        implicitHeight: VLCStyle.dp(24, VLCStyle.scale)
-
-        snapMode: T.Slider.SnapAlways
-        live: true
-        focusPolicy: Qt.StrongFocus
-
-        Accessible.name: accessibleName
-        Accessible.description: accessibleValue
-
-        Keys.priority: Keys.AfterItem
-        Keys.onPressed: (event) => Navigation.defaultKeyAction(event)
-
-        readonly property ColorContext colorContext: ColorContext {
-            id: sliderTheme
-            colorSet: ColorContext.Slider
-            enabled: filterSlider.enabled
-            focused: filterSlider.visualFocus
-            hovered: filterSlider.hovered
-        }
-
-        T.ToolTip.visible: filterSlider.pressed || filterSlider.visualFocus
-        T.ToolTip.text: accessibleValue
-
-        background: Rectangle {
-            id: sliderTrack
-
-            y: (filterSlider.height - height) / 2
-            width: filterSlider.width
-            height: VLCStyle.dp(16, VLCStyle.scale)
-            radius: VLCStyle.radius_normal
-            color: sliderTheme.bg.primary
-            border.width: filterSlider.visualFocus ? VLCStyle.dp(2, VLCStyle.scale) : 0
-            border.color: sliderTheme.visualFocus
-
-            Rectangle {
-                x: VLCStyle.dp(2, VLCStyle.scale)
-                y: VLCStyle.dp(2, VLCStyle.scale)
-                height: parent.height - 2 * y
-                width: filterSlider.visualPosition * (parent.width - 2 * x)
-                radius: VLCStyle.radius_small
-                color: sliderTheme.bg.highlight
-            }
-
-            Repeater {
-                model: filterSlider.tickCount
-
-                Rectangle {
-                    required property int index
-
-                    x: VLCStyle.dp(2, VLCStyle.scale)
-                       + index * (sliderTrack.width - VLCStyle.dp(4, VLCStyle.scale)) / Math.max(1, filterSlider.tickCount - 1)
-                       - width / 2
-                    y: (sliderTrack.height - height) / 2
-                    width: VLCStyle.border
-                    height: VLCStyle.dp(6, VLCStyle.scale)
-                    color: sliderTheme.bg.secondary
-                }
-            }
-        }
-
-        handle: Rectangle {
-            x: filterSlider.visualPosition * (filterSlider.availableWidth - width)
-            y: (filterSlider.height - height) / 2
-            width: VLCStyle.dp(8, VLCStyle.scale)
-            height: VLCStyle.dp(24, VLCStyle.scale)
-            radius: VLCStyle.radius_small
-            color: sliderTheme.fg.primary
-        }
+        intervals: tickCount > 1 ? tickCount - 1 : 0
     }
 }

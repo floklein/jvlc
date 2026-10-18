@@ -183,10 +183,17 @@ T.Popup {
         }
     }
 
+    // the popover sits over the video in fullscreen and Hide UI: the Tint
+    // there, as the side panels (the host sets it)
+    property bool overVideo: false
+
+    // Figma 491:2243: BG/B1 Transparent, the view background at 95 %, r10
     background: Widgets.TintBackground {
         radius: VLCStyle.radius_large
 
+        overVideo: root.overVideo
         colorContext: theme
+        baseColor: Qt.alpha(theme.bg.primary, 0.95)
     }
 
     contentItem: ColumnLayout {
@@ -233,21 +240,21 @@ T.Popup {
                 TabButton {
                     id: videoTab
                     tab: TrackMenuFSM.Video
-                    glyph: VLCIcons.video
+                    iconName: "video"
                     text: qsTr("Video")
                 }
 
                 TabButton {
                     id: audioTab
                     tab: TrackMenuFSM.Audio
-                    glyph: VLCIcons.audio
+                    iconName: "audio"
                     text: qsTr("Audio")
                 }
 
                 TabButton {
                     id: subtitlesTab
                     tab: TrackMenuFSM.Subtitles
-                    glyph: VLCIcons.subtitles
+                    iconName: "subtitles"
                     text: qsTr("Subtitles")
                 }
             }
@@ -298,6 +305,7 @@ T.Popup {
 
                     leftPadding: VLCStyle.spacing_20
                     rightPadding: leftPadding
+                    topPadding: VLCStyle.border
                     bottomPadding: VLCStyle.margin_normal
 
                     spacing: VLCStyle.margin_small
@@ -334,7 +342,9 @@ T.Popup {
                     secondSubtitle: true
                 }
 
-                Separator { }
+                Separator {
+                    line: false
+                }
 
                 Section {
                     title: qsTr("External Tracks")
@@ -377,7 +387,8 @@ T.Popup {
             Layout.preferredHeight: VLCStyle.dp(32, VLCStyle.scale)
             Layout.margins: VLCStyle.spacing_20
 
-            text: qsTr("More Settings")
+            // Figma 500:3075; it opens the Adjustments sidebar on the same tab
+            text: qsTr("Show Preferences")
 
             Accessible.name: text
 
@@ -396,24 +407,32 @@ T.Popup {
             contentItem: Widgets.LabelExt {
                 text: moreSettings.text
 
+                // Figma's 17 px line 7.5 px down the 32 px key: the half pixel
+                // goes down
+                topPadding: VLCStyle.dp(2, VLCStyle.scale)
+
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
 
                 font.pixelSize: VLCStyle.fontSize_normal
 
-                color: moreSettings.hovered ? theme.fg.primary : theme.fg.secondary
+                // Figma 500:3061: 14 Regular FG/A3
+                color: moreSettings.hovered ? theme.fg.value : theme.fg.label
             }
         }
     }
 
     // Components
 
-    // a tab of the Track menu
+    // a tab of the Track menu, drawn as the tabs of the side panels (Figma
+    // 491:2391): the current tab's label FG/A2 and its icon two-tone (FG/A3
+    // and Accent/Dim), the others FG/A3 and FG/A4, an accent line 8 px in
     component TabButton: T.AbstractButton {
         id: tabButton
 
         required property int tab
-        required property string glyph
+        // the glyph in VLCIcons, which also has a two-tone variant
+        required property string iconName
 
         readonly property bool current: (fsm.tab === tab)
 
@@ -421,6 +440,11 @@ T.Popup {
         Layout.fillHeight: true
 
         focusPolicy: Qt.StrongFocus
+        hoverEnabled: true
+
+        topPadding: VLCStyle.spacing_14
+        leftPadding: VLCStyle.spacing_8
+        rightPadding: VLCStyle.spacing_8
 
         Accessible.role: Accessible.PageTab
         Accessible.name: text
@@ -428,57 +452,92 @@ T.Popup {
 
         onClicked: fsm.selectTab(tab)
 
+        readonly property ColorContext colorContext: ColorContext {
+            id: tabTheme
+            colorSet: ColorContext.TabButton
+            // the content of a Popup does not inherit the palette
+            palette: theme.palette
+
+            focused: tabButton.visualFocus
+            hovered: tabButton.hovered
+            pressed: tabButton.down
+        }
+
         background: Item {
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: VLCStyle.spacing_4
-
-                radius: VLCStyle.radius_small
-
-                color: "transparent"
-
-                border.width: VLCStyle.focus_border
-                border.color: tabButton.visualFocus ? theme.accent : "transparent"
-            }
-
             Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                anchors.leftMargin: VLCStyle.margin_xsmall
-                anchors.rightMargin: VLCStyle.margin_xsmall
+                anchors.leftMargin: VLCStyle.spacing_8
+                anchors.rightMargin: VLCStyle.spacing_8
 
                 height: VLCStyle.dp(2, VLCStyle.scale)
 
-                color: tabButton.current ? theme.accent : "transparent"
+                topLeftRadius: VLCStyle.dp(1, VLCStyle.scale)
+                topRightRadius: VLCStyle.dp(1, VLCStyle.scale)
+
+                color: tabButton.current ? tabTheme.accent : "transparent"
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                radius: VLCStyle.radius_small
+                color: "transparent"
+                border.width: VLCStyle.focus_border
+                border.color: tabButton.visualFocus ? tabTheme.visualFocus : "transparent"
             }
         }
 
         contentItem: Item {
+            implicitWidth: tabRow.implicitWidth
+            implicitHeight: tabRow.implicitHeight
+
             Row {
-                anchors.centerIn: parent
+                id: tabRow
 
-                spacing: VLCStyle.margin_xsmall
+                anchors.horizontalCenter: parent.horizontalCenter
 
-                Widgets.IconLabel {
+                spacing: VLCStyle.spacing_8
+
+                Item {
                     anchors.verticalCenter: parent.verticalCenter
 
-                    text: tabButton.glyph
+                    width: VLCStyle.dp(20, VLCStyle.scale)
+                    height: width
 
-                    font.pixelSize: VLCStyle.dp(20, VLCStyle.scale)
+                    Widgets.TwoToneIcon {
+                        anchors.fill: parent
 
-                    color: tabButton.current ? theme.accent : theme.indicator
+                        visible: tabButton.current
+
+                        name: tabButton.iconName
+                        pixelSize: parent.width
+                        baseColor: tabTheme.fg.label
+                        accentColor: tabTheme.fg.highlight
+                    }
+
+                    Widgets.IconLabel {
+                        anchors.fill: parent
+
+                        visible: !tabButton.current
+
+                        text: VLCIcons[tabButton.iconName]
+                        font.pixelSize: parent.width
+                        color: tabButton.hovered ? tabTheme.fg.label : tabTheme.fg.muted
+                    }
                 }
 
                 Widgets.LabelExt {
                     anchors.verticalCenter: parent.verticalCenter
+                    // Figma's half pixel goes down (15 px line, 20 px row)
+                    anchors.verticalCenterOffset: 1
 
                     text: tabButton.text
 
                     font.pixelSize: VLCStyle.fontSize_small
 
-                    color: (tabButton.current || tabButton.hovered) ? theme.fg.primary
-                                                                   : theme.fg.secondary
+                    color: (tabButton.current || tabButton.hovered) ? tabTheme.fg.value
+                                                                   : tabTheme.fg.label
                 }
             }
         }
@@ -501,10 +560,12 @@ T.Popup {
             colorContext.palette: theme.palette
         }
 
+        // Figma: 1 px between the tab bar and the first section
         Column {
             id: pageColumn
 
             width: page.width
+            topPadding: VLCStyle.border
         }
     }
 
@@ -523,12 +584,15 @@ T.Popup {
             anchors.left: parent.left
             anchors.leftMargin: VLCStyle.dp(28, VLCStyle.scale)
             anchors.verticalCenter: parent.verticalCenter
+            // Figma puts the 17 px line 21.5 px down: the half pixel goes down
+            anchors.verticalCenterOffset: 1
 
             text: section.title
 
             font.pixelSize: VLCStyle.fontSize_normal
 
-            color: theme.fg.secondary
+            // Figma 491:2253: FG/A3
+            color: theme.fg.label
 
             Accessible.role: Accessible.Heading
         }
@@ -553,11 +617,22 @@ T.Popup {
         padding: VLCStyle.dp(3, VLCStyle.scale)
     }
 
-    component Separator: Rectangle {
-        width: parent.width
-        height: VLCStyle.dp(1, VLCStyle.scale)
+    // Figma 496:2652: the line between two sections, 1 px from the next one;
+    // without a line (491:2243) only the 1 px gap stays
+    component Separator: Item {
+        property bool line: true
 
-        color: theme.separator
+        width: parent.width
+        height: line ? 2 * VLCStyle.border : VLCStyle.border
+
+        Rectangle {
+            visible: parent.line
+
+            width: parent.width
+            height: VLCStyle.border
+
+            color: theme.separator
+        }
     }
 
     // the tracks of a category, "None" first
@@ -578,9 +653,12 @@ T.Popup {
 
         width: parent.width
 
+        // Figma 491:2258: 1 px under the section title, 32 px rows 12 px
+        // apart, 18 px under the last one
         leftPadding: VLCStyle.spacing_20
         rightPadding: leftPadding
-        bottomPadding: VLCStyle.margin_normal
+        topPadding: VLCStyle.border
+        bottomPadding: VLCStyle.dp(18, VLCStyle.scale)
 
         spacing: VLCStyle.margin_small
 
@@ -706,8 +784,8 @@ T.Popup {
 
                 font.pixelSize: VLCStyle.fontSize_normal
 
-                color: (trackRow.checked || trackRow.hovered) ? theme.fg.primary
-                                                              : theme.fg.secondary
+                // Figma 491:2265: FG/A1, the picked one too
+                color: trackRow.hovered ? theme.fg.primary : theme.fg.secondary
             }
 
             Widgets.LabelExt {
