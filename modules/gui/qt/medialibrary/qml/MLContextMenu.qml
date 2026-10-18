@@ -190,7 +190,8 @@ NativeMenu {
             "action": (dataList) => DialogsProvider.addSubtitlesDialog(dataList[0].mrl),
             "visible": _isLocalVideo
         }, {
-            "text": qsTr("Add Audio Track…"),
+            // Figma 2404:13340
+            "text": qsTr("Add Audio Tracks…"),
             "icon": _icon("audio"),
             "action": (dataList) => DialogsProvider.addAudioTrackDialog(dataList[0].mrl),
             "visible": _isLocalVideo
@@ -205,9 +206,7 @@ NativeMenu {
             "action": (dataList) => DialogsProvider.convertDialog(dataList.map((data) => data.mrl)),
             "visible": _isFiles
         }, {
-            "separator": true,
-            "visible": _isFiles
-        }, {
+            // Figma's file menu (2404:13340) has no line
             "text": _showInFileManagerText,
             "icon": _icon("folder"),
             "action": (dataList) => Qt.openUrlExternally(_parentUrl(dataList[0].mrl)),

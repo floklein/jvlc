@@ -271,6 +271,8 @@ void QmlGlobalMenu::popup(QPoint pos)
         return;
 
     m_menu = std::make_unique<VLCMenu>(m_ctx->getIntf());
+    // MenuStyle gives it Figma's 375 px (6062:13354)
+    m_menu->setObjectName(QStringLiteral("vlcMenu"));
 
     connect( m_menu.get(), &QMenu::aboutToShow, this, [this]() {
         m_shown = true;
@@ -623,7 +625,7 @@ void PlaylistListContextMenu::popup(const QModelIndexList & selected, QPoint pos
     {
         menu->addSeparator();
 
-        action = menu->addAction(qtr("Rename"));
+        action = menu->addAction(icon(VLCIcons::edit, {}), qtr("Rename"));
 
         QModelIndex index = selected.first();
 

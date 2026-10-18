@@ -440,6 +440,8 @@ qt_plugin_sources = files(
     'style/systempalette.hpp',
     'style/themetokens.cpp',
     'style/themetokens.hpp',
+    'style/menustyle.cpp',
+    'style/menustyle.hpp',
     'style/vlcicons.cpp',
     'style/vlcicons.hpp',
     'style/defaultthemeproviders.hpp',
@@ -1905,6 +1907,30 @@ if qt6_dep.found()
             'include_directories' : qt_include_dir,
             'link_with': [libvlccore],
             'link_args': qt_link_args,
+            'dependencies': [qt6_dep, qtest_qt6_dep]
+        }
+
+        vlc_tests += {
+            'name': 'test_qt_menu_style',
+            'sources': files(
+                'tests/test_menu_style.cpp',
+                'style/menustyle.cpp',
+                'style/menustyle.hpp',
+                'style/themetokens.cpp',
+                'style/themetokens.hpp',
+                'util/color_scheme_model.cpp',
+                'util/color_scheme_model.hpp'
+            ),
+            'moc_sources': files(
+                'tests/test_menu_style.cpp'
+            ),
+            'moc_headers': files(
+                'util/color_scheme_model.hpp'
+            ),
+            'suite': ['qt'],
+            'include_directories' : qt_include_dir,
+            'link_with': [libvlccore],
+            'link_args': test_videoblur_link_args,
             'dependencies': [qt6_dep, qtest_qt6_dep]
         }
 

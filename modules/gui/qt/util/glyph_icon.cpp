@@ -37,9 +37,11 @@ namespace {
 class GlyphIconEngine : public QIconEngine
 {
 public:
-    GlyphIconEngine( QChar base, QColor baseColor, QChar accent, QColor accentColor )
+    GlyphIconEngine( QChar base, QColor baseColor, QChar accent, QColor accentColor,
+                     bool accentBelow )
         : m_base( base ), m_baseColor( baseColor )
         , m_accent( accent ), m_accentColor( accentColor )
+        , m_accentBelow( accentBelow )
     {}
 
     void paint( QPainter *painter, const QRect &rect, QIcon::Mode mode, QIcon::State ) override
@@ -51,7 +53,8 @@ public:
         painter->setFont( font );
         painter->setRenderHint( QPainter::TextAntialiasing );
         if( mode == QIcon::Disabled )
-            painter->setOpacity( 0.4 );
+            // about FG/A4 over the menu, as the text of a disabled entry
+            painter->setOpacity( 0.34 );
 
         const auto draw = [&]( QChar glyph, const QColor &color ) {
             if( glyph.isNull() )
@@ -59,8 +62,16 @@ public:
             painter->setPen( color );
             painter->drawText( rect, Qt::AlignCenter, QString( glyph ) );
         };
-        draw( m_base, m_baseColor );
-        draw( m_accent, m_accentColor );
+        if( m_accentBelow )
+        {
+            draw( m_accent, m_accentColor );
+            draw( m_base, m_baseColor );
+        }
+        else
+        {
+            draw( m_base, m_baseColor );
+            draw( m_accent, m_accentColor );
+        }
 
         painter->restore();
     }
@@ -85,7 +96,7 @@ public:
 
     QIconEngine *clone() const override
     {
-        return new GlyphIconEngine( m_base, m_baseColor, m_accent, m_accentColor );
+        return new GlyphIconEngine( m_base, m_baseColor, m_accent, m_accentColor, m_accentBelow );
     }
 
     QString key() const override
@@ -98,6 +109,7 @@ private:
     QColor m_baseColor;
     QChar m_accent;
     QColor m_accentColor;
+    bool m_accentBelow;
 };
 
 void registerIconFont()
@@ -132,10 +144,11 @@ QColor accentColorFor( const QColor &background )
         free( option );
     }
 
-    return makeThemeTokens( dark, userAccent ).accentMain;
+    // Figma's menu icons use Accent/Dim (6062:13354)
+    return makeThemeTokens( dark, userAccent ).accentDim;
 }
 
-QIcon glyphIcon( QChar base, QChar accent, const QWidget *widget )
+QIcon glyphIcon( QChar base, QChar accent, const QWidget *widget, bool accentBelow )
 {
     registerIconFont();
 
@@ -145,10 +158,14 @@ QIcon glyphIcon( QChar base, QChar accent, const QWidget *widget )
         widget->ensurePolished();
 
     const QPalette palette = widget ? widget->palette() : qApp->palette();
-    const QColor background = palette.color( QPalette::Window );
+    // the menu's background: the Theme's style sheet sets it as the
+    // alternate background (see MenuStyle), else it is the platform's window
+    const QColor background = qApp->styleSheet().isEmpty()
+        ? palette.color( QPalette::Window ) : palette.color( QPalette::AlternateBase );
 
-    QColor baseColor = palette.color( QPalette::WindowText );
-    baseColor.setAlphaF( 0.7f );
+    // FG/A2, the color of the entry's text
+    const QColor baseColor = palette.color( QPalette::WindowText );
 
-    return QIcon( new GlyphIconEngine( base, baseColor, accent, accentColorFor( background ) ) );
+    return QIcon( new GlyphIconEngine( base, baseColor, accent, accentColorFor( background ),
+                                       accentBelow ) );
 }

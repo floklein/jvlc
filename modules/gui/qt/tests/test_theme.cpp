@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include <QTest>
+#include <QRegularExpression>
 
 #include <cmath>
 
@@ -467,10 +468,19 @@ private slots:
         const ThemeTokens t = makeThemeTokens(dark);
         const MenuColors c = menuColors(t);
 
-        // Figma 6062:13354: BG/A3 Transparent, FG/A2 text, Divider/Dim lines
+        // Figma 6062:13354: BG/A3 Transparent, FG/A2 text, FG/A3 shortcuts,
+        // Divider/Dim lines, BG/A2 hovered and checked rows, FG/A2 + Accent/Dim
+        // icons, Accent/Main check (856:2215)
         QCOMPARE(c.background, composite(t.bgA3Transparent, t.bgB1));
         QCOMPARE(c.text, t.fgA2);
+        QCOMPARE(c.shortcut, t.fgA3);
         QCOMPARE(c.separator, t.dividerDim);
+        QCOMPARE(c.hoveredBackground, t.bgA2);
+        QCOMPARE(c.hoveredText, t.fgA2);
+        QCOMPARE(c.disabledText, t.fgA4);
+        QCOMPARE(c.check, t.accentMain);
+        QCOMPARE(c.iconBase, t.fgA2);
+        QCOMPARE(c.iconAccent, t.accentDim);
         if (dark)
             QCOMPARE(c.background.name(), QStringLiteral("#181818"));
 
@@ -488,19 +498,25 @@ private slots:
         const MenuColors c = menuColors(t);
 
         const QString sheet = menuStyleSheet(t);
-        QVERIFY(sheet.contains(c.background.name()));
-        QVERIFY(sheet.contains(c.text.name()));
-        QVERIFY(sheet.contains(c.hoveredBackground.name()));
-        // 48 px rows: 44 px, plus 2 px of padding above and below
-        QVERIFY(sheet.contains(QStringLiteral("min-height: 44px; padding: 2px 14px;")));
+        QVERIFY(sheet.contains(QStringLiteral("alternate-background-color: ") + c.background.name()));
+        QVERIFY(sheet.contains(QStringLiteral("color: ") + c.text.name()));
+        QVERIFY(sheet.contains(QStringLiteral("selection-background-color: ") + c.hoveredBackground.name()));
+        QVERIFY(sheet.contains(QStringLiteral("placeholder-text-color: ") + c.shortcut.name()));
+        QVERIFY(sheet.contains(QStringLiteral("accent-color: ") + c.check.name()));
         QVERIFY(sheet.contains(QStringLiteral("font-size: 14px")));
-        QVERIFY(sheet.contains(QStringLiteral("border-radius: 10px")));
-        QVERIFY(sheet.contains(QStringLiteral("icon-size: 24px")));
+        // nothing that would make the style sheet code draw or size the menus
+        // itself instead of MenuStyle: no box, border, background or size
+        QVERIFY(!sheet.contains(QStringLiteral("padding")));
+        QVERIFY(!sheet.contains(QStringLiteral("border")));
+        QVERIFY(!sheet.contains(QStringLiteral("width")));
+        // (the separator's line only)
+        QCOMPARE(sheet.count(QRegularExpression(QStringLiteral("[{;] background-color"))), 1);
+        QVERIFY(sheet.contains(QStringLiteral("QMenu::separator { background-color: ") + c.separator.name()));
+        QVERIFY(!sheet.contains(QStringLiteral("min-height")));
         QVERIFY(!sheet.contains(QLatin1Char('%')));
 
-        // the rows follow the interface scale
+        // the text follows the interface scale (and MenuStyle with it)
         const QString scaled = menuStyleSheet(t, 1.5);
-        QVERIFY(scaled.contains(QStringLiteral("min-height: 66px; padding: 3px 21px;")));
         QVERIFY(scaled.contains(QStringLiteral("font-size: 21px")));
     }
 

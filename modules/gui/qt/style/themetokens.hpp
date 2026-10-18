@@ -141,19 +141,24 @@ QColor withContrast(const QColor& color, const QList<QColor>& backgrounds, doubl
 struct MenuColors
 {
     QColor background;
-    QColor border;
     QColor text;
+    QColor shortcut;
     QColor disabledText;
-    QColor hoveredBackground;
+    QColor hoveredBackground; // also the checked row
     QColor hoveredText;
     QColor separator;
+    QColor check;
+    // the two tones of the entries' icons
+    QColor iconBase;
+    QColor iconAccent;
 };
 
 MenuColors menuColors(const ThemeTokens& t);
 
 /**
- * The style sheet that draws the native menus as Figma's menu (6062:13354):
- * 48 px rows, 14 px text, rounded corners, in the colors of menuColors().
+ * The style sheet that gives the native menus the colors of menuColors()
+ * and Figma's 14 px Inter. MenuStyle draws them (48 px rows, the widths,
+ * the shortcut column...) from these colors.
  * scale is the interface scale.
  */
 QString menuStyleSheet(const ThemeTokens& t, double scale = 1.);

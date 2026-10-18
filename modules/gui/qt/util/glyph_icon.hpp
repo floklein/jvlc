@@ -33,12 +33,16 @@ class QWidget;
  * @param base glyph drawn with the text color of @a widget
  * @param accent glyph drawn with the Accent color
  * @param widget the widget showing the icon, for its palette
+ * @param accentBelow draw the accent glyph first, under the base one: a
+ *        single-color glyph as the accent shows only where the base glyph
+ *        leaves it (Hide UI: the diagonal of "ui" inside the frame of
+ *        "ui_tt_base", Figma 6065:13616)
  */
-QIcon glyphIcon( QChar base, QChar accent, const QWidget *widget );
+QIcon glyphIcon( QChar base, QChar accent, const QWidget *widget, bool accentBelow = false );
 
 /**
- * @brief the accent shade of the user's Accent color for a light or dark
- * surface
+ * @brief the accent shade of the menu icons (Accent/Dim) of the user's
+ * Accent color for a light or dark surface
  */
 QColor accentColorFor( const QColor &background );
 

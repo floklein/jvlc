@@ -331,12 +331,16 @@ MenuColors menuColors(const ThemeTokens& t)
     // Figma's "BG/A3 Transparent", made opaque over the window: a native
     // menu has no translucent background on every platform
     c.background = composite(t.bgA3Transparent, t.bgB1);
-    c.border = t.dividerDim;
     c.text = t.fgA2;
+    c.shortcut = t.fgA3;
     c.disabledText = t.fgA4;
-    c.hoveredBackground = t.dividerDim;
-    c.hoveredText = t.fg1;
+    // the hovered row and the checked one: BG/A2, the text stays FG/A2
+    c.hoveredBackground = t.bgA2;
+    c.hoveredText = t.fgA2;
     c.separator = t.dividerDim;
+    c.check = t.accentMain;
+    c.iconBase = t.fgA2;
+    c.iconAccent = t.accentDim;
     return c;
 }
 
@@ -350,22 +354,21 @@ QString menuStyleSheet(const ThemeTokens& t, double scale)
         return color.name(QColor::HexRgb);
     };
 
+    // Only colors and the font: with no box, border, background or size,
+    // the style sheet code leaves the drawing of the menus to MenuStyle,
+    // which reads these colors from the menu's palette
+    // (alternate-background-color is the menu's background) and its scale
+    // from the font size
     return QStringLiteral(
         "QMenu {"
-        " background-color: %1; color: %2;"
-        " border: 1px solid %3; border-radius: %4; padding: %5;"
-        " font-family: \"Inter\"; font-size: %6; icon-size: %15; }"
-        "QMenu::item {"
-        " background-color: transparent; border-radius: %7;"
-        " min-height: %8; padding: %9 %10; }"
-        "QMenu::item:selected { background-color: %11; color: %12; }"
-        "QMenu::item:disabled { color: %13; }"
-        "QMenu::icon { padding-left: %10; }"
-        "QMenu::separator { height: 1px; background-color: %14; margin: %5 0; }")
-        .arg(name(c.background), name(c.text), name(c.border),
-             px(10), px(4), px(14), px(6), px(44), px(2))
-        .arg(px(14), name(c.hoveredBackground), name(c.hoveredText),
-             name(c.disabledText), name(c.separator), px(24));
+        " color: %1; selection-color: %2; selection-background-color: %3;"
+        " alternate-background-color: %4; placeholder-text-color: %5; accent-color: %6;"
+        " font-family: \"Inter\"; font-size: %7; }"
+        "QMenu::item:disabled { color: %8; }"
+        "QMenu::separator { background-color: %9; }")
+        .arg(name(c.text), name(c.hoveredText), name(c.hoveredBackground),
+             name(c.background), name(c.shortcut), name(c.check),
+             px(14), name(c.disabledText), name(c.separator));
 }
 
 bool resolveDarkTheme(ColorSchemeModel::ColorScheme theme, bool systemIsDark)

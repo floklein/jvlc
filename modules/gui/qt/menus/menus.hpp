@@ -102,7 +102,7 @@ public:
     static void QueueMenu( qt_intf_t *, QMenu * );
 
     static void RepeatAndShuffleEntries( qt_intf_t *, QMenu * );
-    static void SleepTimerMenu( qt_intf_t *, QMenu * );
+    static QMenu *SleepTimerMenu( qt_intf_t *, QMenu * );
 
     /* Entries of the right-click menu, also used by the systray menu */
     static void PopupMenuStaticEntries( QMenu *menu, qt_intf_t *p_intf );

@@ -52,6 +52,7 @@ extern "C" char **environ;
 #endif
 
 #include <QApplication>
+#include <QStyleFactory>
 #include <QDate>
 #include <QFile>
 #include <QFontDatabase>
@@ -99,6 +100,7 @@ extern "C" char **environ;
 # include "maininterface/mainctx.hpp"   /* MainCtx creation */
 #endif
 #include "style/defaultthemeproviders.hpp"
+#include "style/menustyle.hpp"
 #include "dialogs/extensions/extensions_manager.hpp" /* Extensions manager */
 #include "dialogs/messages/messagesmodel.hpp"
 #include "util/dismiss_popup_event_filter.hpp"
@@ -918,6 +920,8 @@ static void *Thread( void *obj )
     /* Start the QApplication here */
     QApplication app( argc, argv );
     app.setProperty("initialStyle", app.style()->name());
+    /* the native menus are drawn as Figma's, over the platform style */
+    QApplication::setStyle( new MenuStyle( QStyleFactory::create( app.style()->name() ) ) );
 
     {
         /* Bundled interface fonts: Inter for the text, DM Mono for key caps */
@@ -1520,7 +1524,9 @@ static void *Thread( void *obj )
     QString s_style = getSettings()->value( QTSTYLE_KEY, "" ).toString();
     if( s_style.compare("") != 0 )
     {
-        if ( !QApplication::setStyle( s_style ) )
+        if ( QStyle *style = QStyleFactory::create( s_style ) )
+            QApplication::setStyle( new MenuStyle( style ) );
+        else
         {
             // With VLC 3.0 we provide the Fusion style, but not with VLC 4.0.
             // Since we use the same setting key, if the style is no longer

@@ -19,11 +19,13 @@ import QtQml
 
 import VLC.MediaLibrary
 import VLC.Dialogs
+import VLC.Style
 import VLC.Util
 
 // The page "…" menu of Videos and Songs: Add Folder to Library…, then,
 // inside a folder, Add Subtitles to This Folder… (Videos), Rescan and
 // Properties. At the top of the tree, Rescan rescans the whole library.
+// As Figma's folder menu (2139:8935): a two-tone icon on every row, no line.
 NativeMenu {
     id: root
 
@@ -35,22 +37,29 @@ NativeMenu {
 
     actions: [{
         "text": qsTr("Add Folder to Library…"),
+        "icon": _icon("new_folder"),
         "action": () => DialogsProvider.addLibraryFolderDialog()
     }, {
         "text": qsTr("Add Subtitles to This Folder…"),
+        "icon": _icon("subtitles"),
         "action": (dataList) => DialogsProvider.addFolderSubtitlesDialog(dataList[0].mrl),
         "visible": (dataList) => dataList.length === 1 && (dataList[0].path ?? "") !== ""
                                  && root.type !== FolderActions.Songs
     }, {
         "text": qsTr("Rescan"),
+        "icon": _icon("refresh"),
         "action": (dataList) => FolderActions.rescan(dataList.length === 1 ? dataList[0].mrl : "")
     }, {
-        "separator": true
-    }, {
         "text": qsTr("Properties"),
+        "icon": _icon("info"),
         "action": () => FolderActions.showProperties(root.folderId, root.type),
         "visible": (dataList) => dataList.length === 1
     }]
+
+    // the two-tone icon "<name>_tt_base" / "<name>_tt_accent" of an entry
+    function _icon(name) {
+        return [VLCIcons[name + "_tt_base"] ?? "", VLCIcons[name + "_tt_accent"] ?? ""]
+    }
 
     // the data is the description of the folder, none at the top
     onRequestData: (requestID) => {

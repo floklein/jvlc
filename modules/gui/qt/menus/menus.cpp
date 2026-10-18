@@ -237,7 +237,9 @@ void VLCMenuBar::VLCMenuEntries( qt_intf_t *p_intf, QMenu *menu )
         setIcon( action, menu, VLCIcons::recent_tt_base, VLCIcons::recent_tt_accent );
     }
 
-    SleepTimerMenu( p_intf, menu );
+    /* an icon as the other entries of Figma's VLC menu (6062:13354) */
+    if( QMenu *sleepTimer = SleepTimerMenu( p_intf, menu ) )
+        setIcon( sleepTimer->menuAction(), menu, VLCIcons::time, QChar() );
 
     menu->addSeparator();
 
@@ -296,7 +298,7 @@ void VLCMenuBar::VLCMenuEntries( qt_intf_t *p_intf, QMenu *menu )
     action->setMenuRole( QAction::AboutRole );
     setIcon( action, menu, VLCIcons::info_tt_base, VLCIcons::info_tt_accent );
 
-    action = addEntry( p_intf, menu, qtr( "&Quit" ), "quit",
+    action = addEntry( p_intf, menu, qtr( "&Quit jVLC" ), "quit",
                        []() { THEDP->quit(); } );
     action->setMenuRole( QAction::QuitRole );
     setIcon( action, menu, VLCIcons::quit_tt_base, VLCIcons::quit_tt_accent );
@@ -359,7 +361,7 @@ void VLCMenuBar::FoldedEntries( qt_intf_t *p_intf, QMenu *menu, const QList<int>
         { C::AUDIO_BUTTON, N_( "&Audio" ), nullptr,
           VLCIcons::audio_tt_base, VLCIcons::audio_tt_accent },
         { C::SUBTITLES_BUTTON, N_( "Su&btitles" ), nullptr,
-          VLCIcons::subtitle_tt_base, VLCIcons::subtitle_tt_accent },
+          VLCIcons::subtitles_tt_base, VLCIcons::subtitles_tt_accent },
         { C::EXTENDED_BUTTON, N_( "Ad&justments" ), "adjustments",
           VLCIcons::settings_tt_base, VLCIcons::settings_tt_accent },
         { C::PLAYLIST_BUTTON, N_( "&Queue" ), "show-queue", QChar(), QChar() },
@@ -635,11 +637,11 @@ void VLCMenuBar::PlaybackMenu( qt_intf_t *p_intf, QMenu *menu )
 
 /* Sleep Timer ▸: the choices of the Playback tab, the running one checked
  * (a custom duration is set in the Playback tab) */
-void VLCMenuBar::SleepTimerMenu( qt_intf_t *p_intf, QMenu *menu )
+QMenu *VLCMenuBar::SleepTimerMenu( qt_intf_t *p_intf, QMenu *menu )
 {
     QPointer<SleepTimer> timer = THEMIM->getSleepTimer();
     if( !timer )
-        return;
+        return nullptr;
 
     QMenu *submenu = menu->addMenu( qtr( "S&leep Timer" ) );
     QActionGroup *group = new QActionGroup( submenu );
@@ -665,6 +667,7 @@ void VLCMenuBar::SleepTimerMenu( qt_intf_t *p_intf, QMenu *menu )
          [timer]() { timer->startEndOfItem(); } );
     add( qtr( "End of Queue" ), mode == SleepTimer::EndOfQueue,
          [timer]() { timer->startEndOfQueue(); } );
+    return submenu;
 }
 
 /* Repeat ▸ and Shuffle, of the Playback and Queue menus */
@@ -774,14 +777,15 @@ void VLCMenuBar::PopupMenuPlaylistEntries( QMenu *menu, qt_intf_t *p_intf, bool 
 
     /* Next / Previous */
     bool bPlaylistEmpty = THEMPL->isEmpty();
-    QAction* previousAction = addEntry( p_intf, menu, qtr( "Pre&vious" ), "prev",
+    /* Figma 6065:13616: "Previous Item", "Next Item" */
+    QAction* previousAction = addEntry( p_intf, menu, qtr( "Pre&vious Item" ), "prev",
                                         [p_intf]() { THEMPL->prev(); } );
     if( icons )
         setIcon( previousAction, menu, {}, VLCIcons::previous_tt_accent );
     previousAction->setEnabled( !bPlaylistEmpty );
     connect( THEMPL, &PlaylistController::isEmptyChanged, previousAction, &QAction::setDisabled);
 
-    QAction* nextAction = addEntry( p_intf, menu, qtr( "Ne&xt" ), "next",
+    QAction* nextAction = addEntry( p_intf, menu, qtr( "Ne&xt Item" ), "next",
                                     [p_intf]() { THEMPL->next(); } );
     if( icons )
         setIcon( nextAction, menu, {}, VLCIcons::next_tt_accent );
@@ -837,7 +841,8 @@ void VLCMenuBar::PopupMenuStaticEntries( QMenu *menu, qt_intf_t *p_intf )
     QAction *action = menu->addMenu( openmenu );
     setIcon( action, menu, VLCIcons::file_tt_base, VLCIcons::file_tt_accent );
 
-    action = addEntry( p_intf, menu, qtr( "&Quit" ), "quit", []() { THEDP->quit(); } );
+    /* Figma 6065:13616: "Quit VLC", with the product's name */
+    action = addEntry( p_intf, menu, qtr( "&Quit jVLC" ), "quit", []() { THEDP->quit(); } );
     action->setMenuRole( QAction::QuitRole );
     setIcon( action, menu, VLCIcons::quit_tt_base, VLCIcons::quit_tt_accent );
 }
@@ -885,6 +890,8 @@ QMenu* VLCMenuBar::MiscPopupMenu( qt_intf_t *p_intf, bool show )
 QMenu* VLCMenuBar::PopupMenu( qt_intf_t *p_intf, bool show )
 {
     QMenu* menu = new VLCMenu(p_intf);
+    /* MenuStyle gives it Figma's 292 px (6065:13616) */
+    menu->setObjectName( QStringLiteral( "playerMenu" ) );
     MainCtx *mi = p_intf->p_mi;
     const bool hasInput = THEMIM->hasInput();
     QMenu *submenu;
@@ -902,7 +909,10 @@ QMenu* VLCMenuBar::PopupMenu( qt_intf_t *p_intf, bool show )
                            } );
         action->setCheckable( true );
         action->setChecked( mi->hideUI() );
-        setIcon( action, menu, VLCIcons::ui_tt_base, VLCIcons::ui_tt_accent );
+#ifndef __APPLE__
+        /* Figma's "ui" icon: the frame, its diagonal in the accent color */
+        action->setIcon( glyphIcon( VLCIcons::ui_tt_base, VLCIcons::ui, menu, true ) );
+#endif
         menu->addSeparator();
     }
 
@@ -943,7 +953,8 @@ QMenu* VLCMenuBar::PopupMenu( qt_intf_t *p_intf, bool show )
     SubtitleMenu( p_intf, submenu );
     action = menu->addMenu( submenu );
     action->setEnabled( hasInput );
-    setIcon( action, menu, VLCIcons::subtitle_tt_base, VLCIcons::subtitle_tt_accent );
+    /* Figma's "subtitles" icon (6065:13616) */
+    setIcon( action, menu, VLCIcons::subtitles_tt_base, VLCIcons::subtitles_tt_accent );
 
     menu->addSeparator();
 
